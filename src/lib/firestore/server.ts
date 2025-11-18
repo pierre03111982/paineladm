@@ -234,6 +234,9 @@ export async function registerFavoriteLook(params: {
     productName: productName ?? null,
     productPrice: typeof productPrice === "number" ? productPrice : null,
     lookType: "criativo",
+    action: "like", // Garantir que o campo action está presente
+    tipo: "like", // Compatibilidade com código antigo
+    votedType: "like", // Compatibilidade adicional
     createdAt: new Date(),
   });
 }
@@ -292,11 +295,27 @@ export async function fetchFavoriteLooks(params: {
     const results: any[] = [];
     snapshot.forEach((doc: any) => {
       const data = typeof doc.data === "function" ? doc.data() : doc.data;
-      results.push({ id: doc.id, ...data });
+      // Filtrar apenas likes e garantir que tem imagem
+      const isLike = data?.action === "like" || data?.tipo === "like" || data?.votedType === "like" || (!data?.action && !data?.tipo && !data?.votedType);
+      const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
+      
+      if (isLike && hasImage) {
+        results.push({ id: doc.id, ...data });
+      }
     });
 
-    console.log("[fetchFavoriteLooks] ✅ Favoritos encontrados:", results.length);
-    return results;
+    // Garantir ordenação por data (mais recente primeiro)
+    results.sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Limitar a 10 mais recentes
+    const limitedResults = results.slice(0, 10);
+
+    console.log("[fetchFavoriteLooks] ✅ Favoritos encontrados:", limitedResults.length, "de", results.length, "likes totais");
+    return limitedResults;
   } catch (error) {
     console.error("[fetchFavoriteLooks] Erro:", error);
     return [];
