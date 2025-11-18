@@ -75,11 +75,11 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
             ))}
           </nav>
 
-          <div className="mt-auto rounded-2xl border border-purple-500/20 bg-purple-500/10 p-4">
-            <p className="text-sm font-medium text-purple-100">
+          <div className="mt-auto rounded-xl md:rounded-2xl border border-purple-500/20 bg-purple-500/10 p-3 md:p-4">
+            <p className="text-xs md:text-sm font-medium text-purple-100">
               Administração
             </p>
-            <p className="mt-1 text-xs text-purple-200/80">
+            <p className="mt-1 text-[10px] md:text-xs text-purple-200/80">
               Gerencie lojistas, planos e custos da plataforma.
             </p>
           </div>
