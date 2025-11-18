@@ -66,10 +66,10 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] md:text-xs uppercase tracking-[0.18em] text-indigo-300/80">
+              <p className="text-[10px] md:text-xs uppercase tracking-[0.18em] text-indigo-300/80" translate="no">
                 Experimente AI
               </p>
-              <h2 className="text-base md:text-lg font-semibold text-white truncate" id="sidebar-loja-nome">
+              <h2 className="text-base md:text-lg font-semibold text-white truncate" id="sidebar-loja-nome" translate="no">
                 {perfil?.nome || ""}
               </h2>
               <p className="text-[10px] md:text-xs text-zinc-500">
@@ -105,7 +105,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                 <p className="text-[10px] md:text-xs uppercase tracking-[0.24em] text-indigo-300/70">
                   Painel do lojista
                 </p>
-                <h1 className="text-base md:text-xl lg:text-2xl font-semibold text-white truncate" id="header-loja-nome">
+                <h1 className="text-base md:text-xl lg:text-2xl font-semibold text-white truncate" id="header-loja-nome" translate="no">
                   {perfil?.nome || ""}
                 </h1>
                 {perfil?.descricao ? (
@@ -128,7 +128,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                   </span>
                 )}
                 <div className="min-w-0">
-                  <p className="font-medium text-white truncate">
+                  <p className="font-medium text-white truncate" translate="no">
                     {perfil?.nome || "Equipe Experimente AI"}
                   </p>
                   <p className="text-[10px] md:text-xs text-zinc-500">

@@ -121,12 +121,14 @@ export function LojistaLayoutUpdater() {
     // Verificar se o nome já está correto antes de atualizar (evitar flash)
     const titleElement = document.querySelector("#header-loja-nome") || document.querySelector("header h1");
     if (titleElement && titleElement.textContent !== perfil.nome) {
+      titleElement.setAttribute("translate", "no");
       titleElement.textContent = perfil.nome;
     }
     
     // Verificar se o nome já está correto antes de atualizar (evitar flash)
     const sidebarName = document.querySelector("#sidebar-loja-nome") || document.querySelector("aside h2");
     if (sidebarName && sidebarName.textContent !== perfil.nome) {
+      sidebarName.setAttribute("translate", "no");
       sidebarName.textContent = perfil.nome;
     }
     
