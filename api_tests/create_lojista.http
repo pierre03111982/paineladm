@@ -1,0 +1,17 @@
+### Variável para sua chave secreta (NÃO COLOQUE ASPAS)
+# Pegue esta senha do seu arquivo .env.local
+@ADMIN_API_KEY =Papel123
+
+####################################################
+# Criar o primeiro Lojista (Passo 2 da checklist)
+####################################################
+
+POST http://localhost:3000/api/admin/create-user
+Content-Type: application/json
+X-API-KEY: {{@ADMIN_API_KEY}}
+
+{
+  "email": "lojista@experimente.ai",
+  "password": "senhaforte123",
+  "nomeLoja": "Loja Exemplo 1"
+}

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+:root {
+  --lojista-content-opacity: 1;
+}
+
+.lojista-content {
+  opacity: var(--lojista-content-opacity) !important;
+  transition: opacity 0.2s ease-in;
+}
+
+/* Garantir que o conteúdo sempre esteja visível por padrão */
+html:not(.lojista-loading) .lojista-content {
+  opacity: 1 !important;
+}

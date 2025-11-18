@@ -1,0 +1,47 @@
+import { ProductsTable } from "./products-table";
+import { fetchProdutos } from "@/lib/firestore/server";
+import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { PageHeader } from "../components/page-header";
+import { ProductsPageContent } from "./products-page-content";
+
+export const dynamic = 'force-dynamic';
+
+type ProdutosPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function ProdutosPage({ searchParams }: ProdutosPageProps) {
+  const params = await searchParams;
+  // Tentar ler tanto lojistaId quanto lojistald (para compatibilidade com typos)
+  const lojistaIdFromQuery = (params.lojistaId || params.lojistald) as string | undefined;
+  
+  // Prioridade: query string (modo admin) > usuário logado > env var
+  const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
+  const lojistaId =
+    lojistaIdFromQuery ||
+    lojistaIdFromAuth ||
+    process.env.NEXT_PUBLIC_LOJISTA_ID ||
+    process.env.LOJISTA_ID ||
+    "";
+
+  const includeArchived = params.includeArchived === "true";
+  const produtos = await fetchProdutos(lojistaId);
+  
+  console.log("[ProdutosPage] lojistaId:", lojistaId);
+  console.log("[ProdutosPage] Produtos encontrados:", produtos.length);
+  
+  // Filtrar arquivados se necessário
+  const filteredProdutos = includeArchived 
+    ? produtos 
+    : produtos.filter((p) => !p.arquivado);
+
+  console.log("[ProdutosPage] Produtos filtrados (arquivados):", filteredProdutos.length);
+
+  return (
+    <ProductsPageContent 
+      initialProdutos={filteredProdutos}
+      lojistaId={lojistaId}
+    />
+  );
+}
+

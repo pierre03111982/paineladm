@@ -1,0 +1,317 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Copy, Check, AlertCircle, Download } from "lucide-react";
+import QRCode from "qrcode";
+import jsPDF from "jspdf";
+import { cn } from "@/lib/utils";
+import { buildClientAppDisplayUrl } from "@/lib/client-app";
+
+type DisplayLinkPanelProps = {
+  lojistaId?: string | null;
+  panelBaseUrl: string;
+};
+
+function resolveDisplayUrl(
+  lojistaId: string | null | undefined,
+  panelBaseUrl: string
+): URL {
+  try {
+    const clientAppUrl = buildClientAppDisplayUrl(lojistaId);
+    const panelUrl = new URL(panelBaseUrl);
+    
+    // Construir URL completa
+    let target: URL;
+    if (clientAppUrl.startsWith("http")) {
+      // URL absoluta
+      target = new URL(clientAppUrl);
+    } else {
+      // URL relativa, usar a mesma origem do painel
+      target = new URL(clientAppUrl, panelBaseUrl);
+    }
+
+    // Adicionar parâmetros do display
+    if (lojistaId) {
+      target.searchParams.set("lojista", lojistaId);
+    }
+    target.searchParams.set("display", "1");
+    target.searchParams.set("backend", panelBaseUrl);
+
+    return target;
+  } catch (error) {
+    console.error("[resolveDisplayUrl] Error:", error);
+    // Fallback final - usar subdomínio padrão
+    const isDev = process.env.NODE_ENV === "development";
+    const fallbackBase = isDev 
+      ? `http://localhost:${process.env.NEXT_PUBLIC_APPMELHORADO_PORT || "3001"}`
+      : "https://app.experimenteai.com.br";
+    const fallbackUrl = new URL("/display", fallbackBase);
+    if (lojistaId) {
+      fallbackUrl.searchParams.set("lojista", lojistaId);
+    }
+    fallbackUrl.searchParams.set("display", "1");
+    fallbackUrl.searchParams.set("backend", panelBaseUrl);
+    return fallbackUrl;
+  }
+}
+
+export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelProps) {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [downloadState, setDownloadState] = useState<"idle" | "success" | "error">(
+    "idle"
+  );
+
+  const displayUrl = useMemo(() => resolveDisplayUrl(lojistaId ?? null, panelBaseUrl), [
+    lojistaId,
+    panelBaseUrl,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+
+    QRCode.toDataURL(displayUrl.toString(), {
+      errorCorrectionLevel: "H",
+      width: 448,
+      margin: 2,
+      color: {
+        dark: "#22d3ee",
+        light: "#ffffff",
+      },
+    })
+      .then((dataUrl: string) => {
+        if (active) {
+          setQrDataUrl(dataUrl);
+          setLoading(false);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("[DisplayLinkPanel] QR Code error:", error);
+        if (active) {
+          setQrDataUrl(null);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [displayUrl]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(displayUrl.toString());
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 2000);
+    } catch (error) {
+      console.error("[DisplayLinkPanel] copy error:", error);
+      setCopyState("error");
+      setTimeout(() => setCopyState("idle"), 2000);
+    }
+  };
+
+  const handleDownloadPng = () => {
+    if (!qrDataUrl) return;
+    const link = document.createElement("a");
+    link.href = qrDataUrl;
+    link.download = `display-qrcode-${lojistaId || "loja"}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setDownloadState("success");
+    setTimeout(() => setDownloadState("idle"), 2000);
+  };
+
+  const handleDownloadPdf = () => {
+    if (!qrDataUrl) return;
+    try {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 18;
+      const imageSize = pageHeight - margin * 2;
+
+      pdf.setFont("Helvetica", "bold");
+      pdf.setFontSize(24);
+      pdf.text("Display interativo do provador", pageWidth / 2, margin, {
+        align: "center",
+      });
+
+      pdf.addImage(
+        qrDataUrl,
+        "PNG",
+        margin,
+        margin + 10,
+        imageSize,
+        imageSize
+      );
+
+      pdf.setFontSize(12);
+      pdf.setFont("Helvetica", "normal");
+      pdf.text(
+        [
+          "Escaneie este QR Code para abrir o display em outro monitor ou tablet.",
+          "Mantenha o navegador em tela cheia e com a guia ativa para exibir as composições geradas.",
+        ],
+        margin + imageSize + 12,
+        margin + 20,
+        { maxWidth: pageWidth - margin * 2 - imageSize - 12 }
+      );
+
+      pdf.setTextColor("#22d3ee");
+      pdf.text(
+        displayUrl.toString(),
+        margin + imageSize + 12,
+        margin + 52,
+        { maxWidth: pageWidth - margin * 2 - imageSize - 12 }
+      );
+
+      pdf.save(`display-provador-${lojistaId || "loja"}.pdf`);
+      setDownloadState("success");
+      setTimeout(() => setDownloadState("idle"), 2000);
+    } catch (error) {
+      console.error("[DisplayLinkPanel] pdf error:", error);
+      setDownloadState("error");
+      setTimeout(() => setDownloadState("idle"), 2000);
+    }
+  };
+
+  return (
+    <section className="grid gap-6 rounded-2xl border border-zinc-800/60 bg-zinc-950/40 p-6 lg:grid-cols-[320px_1fr]">
+      <div className="space-y-3">
+        <span className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+          Display da loja
+        </span>
+        <h2 className="text-lg font-semibold text-white">
+          Leve o provador para vitrines e monitores
+        </h2>
+        <p className="text-sm text-zinc-400">
+          Copie o link oficial do display ou imprima o QR Code para abrir o painel
+          em qualquer monitor. Ideal para vitrines, balcões e totens interativos.
+        </p>
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-xs text-cyan-100">
+          Dica: deixe o navegador em tela cheia (F11) e fixe esta página no monitor
+          para acompanhar novas composições em tempo real.
+        </div>
+      </div>
+
+      <div className="grid gap-5 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5 lg:grid-cols-2">
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-white">Link dedicado</h3>
+          <p className="text-xs text-zinc-500">
+            Use este link para abrir o display em outro dispositivo ou para fixar no
+            navegador do monitor da loja.
+          </p>
+          <input
+            readOnly
+            value={displayUrl.toString()}
+            className="w-full truncate rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-xs text-zinc-300"
+          />
+          <button
+            onClick={handleCopy}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition",
+              copyState === "copied"
+                ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-100"
+                : copyState === "error"
+                ? "border-rose-500/40 bg-rose-500/10 text-rose-100"
+                : "border-zinc-700 text-zinc-300 hover:border-cyan-400 hover:text-cyan-200"
+            )}
+          >
+            {copyState === "copied" ? (
+              <>
+                <Check className="h-4 w-4" />
+                Copiado
+              </>
+            ) : copyState === "error" ? (
+              <>
+                <AlertCircle className="h-4 w-4" />
+                Falhou
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                Copiar link
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-white">QR Code rápido</h3>
+          <p className="text-xs text-zinc-500">
+            Escaneie para abrir o display no tablet ou no monitor secundário da
+            loja. Perfeito para vitrines e eventos.
+          </p>
+          <div className="flex h-32 w-32 items-center justify-center rounded-xl border border-zinc-700/60 bg-zinc-900/80">
+            {loading ? (
+              <span className="text-[10px] uppercase tracking-[0.24em] text-zinc-600">
+                Gerando...
+              </span>
+            ) : qrDataUrl ? (
+              <img
+                src={qrDataUrl}
+                alt="QR Code do display"
+                className="h-32 w-32 rounded-lg border border-zinc-800/60 bg-white p-2"
+              />
+            ) : (
+              <span className="text-[10px] uppercase tracking-[0.24em] text-rose-500">
+                Erro
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleDownloadPng}
+              disabled={!qrDataUrl}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition",
+                qrDataUrl
+                  ? "border-zinc-700 text-zinc-300 hover:border-cyan-400 hover:text-cyan-200"
+                  : "cursor-not-allowed border-zinc-800 text-zinc-600"
+              )}
+            >
+              <Download className="h-4 w-4" />
+              Baixar PNG
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              disabled={!qrDataUrl}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition",
+                qrDataUrl
+                  ? "border-zinc-700 text-zinc-300 hover:border-cyan-400 hover:text-cyan-200"
+                  : "cursor-not-allowed border-zinc-800 text-zinc-600"
+              )}
+            >
+              <Download className="h-4 w-4" />
+              Baixar PDF
+            </button>
+          </div>
+          {downloadState === "success" ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-[10px] text-emerald-100">
+              <Check className="h-3.5 w-3.5" />
+              Arquivo baixado
+            </div>
+          ) : downloadState === "error" ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1 text-[10px] text-rose-100">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Falha ao gerar arquivo
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
+

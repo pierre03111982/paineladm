@@ -1,0 +1,46 @@
+{
+  "name": "paineladm",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "vercel-build": "next build",
+    "deploy:check": "bash scripts/check-env.sh",
+    "deploy:vercel": "vercel --prod",
+    "deploy:build": "npm run build && npm run start"
+  },
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/uuid": "^10.0.0",
+    "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "firebase": "^12.5.0",
+    "firebase-admin": "^13.6.0",
+    "form-data": "^4.0.4",
+    "google-auth-library": "^10.5.0",
+    "jspdf": "^3.0.3",
+    "lucide-react": "^0.553.0",
+    "next": "16.0.1",
+    "qrcode": "^1.5.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "recharts": "^3.3.0",
+    "sharp": "^0.34.5",
+    "tailwind-merge": "^3.4.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.1",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

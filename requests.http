@@ -1,0 +1,12 @@
+### Requisição GET simples
+GET https://jsonplaceholder.typicode.com/posts/1
+Accept: application/json
+
+### Requisição POST com JSON
+POST https://example.com/api/login
+Content-Type: application/json
+
+{
+  "email": "usuario@teste.com",
+  "senha": "123456"
+}

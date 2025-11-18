@@ -1,0 +1,370 @@
+/**
+ * Serviço de integração com Google Vertex AI Gemini 2.5 Flash Image
+ * Para geração de imagens criativas com múltiplas imagens de entrada
+ * Documentação: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image
+ */
+
+import { APIResponse } from "./types";
+
+/**
+ * Configuração do Gemini 2.5 Flash Image
+ */
+const GEMINI_FLASH_IMAGE_CONFIG = {
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || "",
+  location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
+  modelId: "gemini-2.5-flash-image",
+  // Custo por imagem gerada (em USD)
+  // Fonte: https://cloud.google.com/vertex-ai/generative-ai/pricing
+  // Gemini 2.5 Flash Image: verificar preços na documentação oficial
+  costPerRequest: parseFloat(process.env.GEMINI_FLASH_IMAGE_COST || "0.02"),
+};
+
+/**
+ * Parâmetros para geração de imagem com Gemini Flash Image
+ */
+export interface GeminiFlashImageParams {
+  prompt: string;
+  imageUrls: string[]; // Array de URLs de imagens (primeira é a pessoa, seguintes são produtos)
+  negativePrompt?: string;
+  aspectRatio?: "1:1" | "4:3" | "3:4" | "16:9" | "9:16";
+  safetySettings?: {
+    category: string;
+    threshold: string;
+  }[];
+}
+
+/**
+ * Resultado da geração
+ */
+export interface GeminiFlashImageResult {
+  imageUrl: string;
+  seed?: number;
+  finishReason?: string;
+  processingTime: number;
+}
+
+/**
+ * Cliente para Google Vertex AI Gemini 2.5 Flash Image
+ */
+export class GeminiFlashImageService {
+  private projectId: string;
+  private location: string;
+  private endpoint: string;
+
+  constructor() {
+    this.projectId = GEMINI_FLASH_IMAGE_CONFIG.projectId;
+    this.location = GEMINI_FLASH_IMAGE_CONFIG.location;
+    
+    // Endpoint do Gemini 2.5 Flash Image
+    // Documentação: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image
+    // O endpoint usa o padrão de streaming/generateContent do Gemini
+    this.endpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${GEMINI_FLASH_IMAGE_CONFIG.modelId}:generateContent`;
+
+    if (!this.projectId) {
+      console.warn(
+        "[GeminiFlashImage] GOOGLE_CLOUD_PROJECT_ID não configurado. Serviço em modo mock."
+      );
+    }
+  }
+
+  /**
+   * Verifica se o serviço está configurado
+   */
+  isConfigured(): boolean {
+    return !!(this.projectId && this.location);
+  }
+
+  /**
+   * Obtém token de acesso do Firebase Admin
+   */
+  private async getAccessToken(): Promise<string> {
+    try {
+      const { getAdminApp } = await import("@/lib/firebaseAdmin");
+      const adminApp = getAdminApp();
+      
+      if (!adminApp) {
+        throw new Error("Firebase Admin não inicializado");
+      }
+
+      const client = await adminApp.options.credential?.getAccessToken();
+      
+      if (!client || !client.access_token) {
+        throw new Error("Não foi possível obter token de acesso");
+      }
+
+      return client.access_token;
+    } catch (error) {
+      console.error("[GeminiFlashImage] Erro ao obter access token:", error);
+      throw new Error("Falha na autenticação. Configure GOOGLE_APPLICATION_CREDENTIALS ou use Service Account do Firebase.");
+    }
+  }
+
+  /**
+   * Converte URL de imagem para base64
+   */
+  private async imageUrlToBase64(imageUrl: string): Promise<string> {
+    try {
+      console.log("[GeminiFlashImage] 📥 Baixando imagem de:", imageUrl.substring(0, 100) + "...");
+      const response = await fetch(imageUrl);
+      
+      if (!response.ok) {
+        console.error("[GeminiFlashImage] ❌ Erro ao baixar imagem:", response.status, response.statusText);
+        throw new Error(`Falha ao baixar imagem: ${response.status} ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64 = buffer.toString('base64');
+      console.log("[GeminiFlashImage] ✅ Imagem convertida para base64, tamanho:", base64.length, "bytes");
+      return base64;
+    } catch (error) {
+      console.error("[GeminiFlashImage] ❌ Erro ao converter imagem para base64:", error);
+      console.error("[GeminiFlashImage] URL que falhou:", imageUrl);
+      throw new Error(`Erro ao processar imagem: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
+  }
+
+  /**
+   * Gera imagem usando Gemini 2.5 Flash Image
+   */
+  async generateImage(
+    params: GeminiFlashImageParams
+  ): Promise<APIResponse<GeminiFlashImageResult>> {
+    const startTime = Date.now();
+
+    console.log("[GeminiFlashImage] Iniciando geração de imagem", {
+      promptLength: params.prompt.length,
+      imageCount: params.imageUrls.length,
+      isConfigured: this.isConfigured(),
+    });
+
+    if (!this.isConfigured()) {
+      console.warn("[GeminiFlashImage] ⚠️ USANDO MOCK - Configure GOOGLE_CLOUD_PROJECT_ID para usar o serviço real!");
+      return this.mockGeneration(params, startTime);
+    }
+
+    try {
+      const accessToken = await this.getAccessToken();
+
+      // Validar que temos pelo menos uma imagem
+      if (!params.imageUrls || params.imageUrls.length === 0) {
+        throw new Error("Pelo menos uma imagem é obrigatória");
+      }
+
+      // Converter todas as imagens para base64
+      console.log("[GeminiFlashImage] 🔄 Convertendo imagens para base64...");
+      console.log("[GeminiFlashImage] 📋 Lista de imagens a converter:", {
+        total: params.imageUrls.length,
+        imagens: params.imageUrls.map((url, index) => ({
+          indice: index,
+          tipo: index === 0 ? "IMAGEM_PESSOA" : `IMAGEM_PRODUTO_${index}`,
+          url: url.substring(0, 80) + "...",
+        })),
+      });
+      
+      const imageParts = await Promise.all(
+        params.imageUrls.map(async (url, index) => {
+          console.log(`[GeminiFlashImage] 🔄 Convertendo imagem ${index + 1}/${params.imageUrls.length}...`, {
+            tipo: index === 0 ? "IMAGEM_PESSOA" : `IMAGEM_PRODUTO_${index}`,
+            url: url.substring(0, 80) + "...",
+          });
+          const base64 = await this.imageUrlToBase64(url);
+          console.log(`[GeminiFlashImage] ✅ Imagem ${index + 1} convertida:`, {
+            tipo: index === 0 ? "IMAGEM_PESSOA" : `IMAGEM_PRODUTO_${index}`,
+            tamanhoBase64: base64.length,
+          });
+          return {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: base64,
+            },
+          };
+        })
+      );
+
+      console.log("[GeminiFlashImage] ✅ Todas as imagens convertidas:", {
+        total: imageParts.length,
+        detalhes: imageParts.map((part, index) => ({
+          indice: index,
+          tipo: index === 0 ? "IMAGEM_PESSOA" : `IMAGEM_PRODUTO_${index}`,
+          temData: !!part.inlineData?.data,
+          tamanhoData: part.inlineData?.data?.length || 0,
+        })),
+      });
+
+      // Construir o payload para a API do Gemini
+      // A primeira imagem é a pessoa, as seguintes são produtos
+      const contents = [
+        {
+          role: "user",
+          parts: [
+            ...imageParts,
+            {
+              text: params.prompt,
+            },
+          ],
+        },
+      ];
+
+      const requestBody: any = {
+        contents,
+        generationConfig: {
+          temperature: 0.4,
+          topP: 0.95,
+          topK: 40,
+          maxOutputTokens: 8192,
+        },
+        safetySettings: params.safetySettings || [
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+          },
+        ],
+      };
+
+      // NOTA: aspectRatio não é suportado pela API Gemini 2.5 Flash Image
+      // O modelo gera imagens em formato padrão
+      // if (params.aspectRatio) {
+      //   requestBody.generationConfig.aspectRatio = params.aspectRatio;
+      // }
+
+      console.log("[GeminiFlashImage] 📤 Enviando requisição para:", this.endpoint);
+      console.log("[GeminiFlashImage] 📦 Payload completo:", {
+        totalImagens: imageParts.length,
+        estruturaImagens: imageParts.map((part, index) => ({
+          indice: index,
+          tipo: index === 0 ? "IMAGEM_PESSOA" : `IMAGEM_PRODUTO_${index}`,
+          temInlineData: !!part.inlineData,
+          mimeType: part.inlineData?.mimeType,
+          tamanhoData: part.inlineData?.data?.length || 0,
+        })),
+        promptLength: params.prompt.length,
+        totalParts: imageParts.length + 1, // +1 para o texto do prompt
+      });
+
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[GeminiFlashImage] ❌ Erro na API:", response.status, errorText.substring(0, 500));
+        throw new Error(`Gemini Flash Image API error: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      const executionTime = Date.now() - startTime;
+
+      console.log("[GeminiFlashImage] ✅ Resposta da API recebida");
+
+      // Extrair a imagem gerada da resposta
+      // A estrutura da resposta do Gemini pode variar, vamos verificar diferentes formatos
+      let imageUrl: string | null = null;
+
+      if (data.candidates && data.candidates.length > 0) {
+        const candidate = data.candidates[0];
+        
+        if (candidate.content?.parts) {
+          for (const part of candidate.content.parts) {
+            if (part.inlineData?.data) {
+              imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!imageUrl) {
+        console.error("[GeminiFlashImage] ❌ Resposta completa:", JSON.stringify(data, null, 2));
+        throw new Error("Resposta da API não contém imagem gerada. Verifique os logs para mais detalhes.");
+      }
+
+      console.log("[GeminiFlashImage] ✅ Imagem gerada com sucesso", {
+        executionTime,
+        cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
+        imageUrlType: imageUrl.startsWith("data:") ? "base64" : "uri",
+      });
+
+      return {
+        success: true,
+        data: {
+          imageUrl,
+          processingTime: executionTime,
+          finishReason: data.candidates?.[0]?.finishReason || "SUCCESS",
+        },
+        executionTime,
+        cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
+        metadata: {
+          provider: "gemini-flash-image",
+          model: GEMINI_FLASH_IMAGE_CONFIG.modelId,
+        },
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      console.error("[GeminiFlashImage] Erro ao gerar imagem:", error);
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Erro desconhecido ao gerar imagem",
+        executionTime,
+      };
+    }
+  }
+
+  /**
+   * Mock para desenvolvimento/testes
+   */
+  private mockGeneration(
+    params: GeminiFlashImageParams,
+    startTime: number
+  ): APIResponse<GeminiFlashImageResult> {
+    const executionTime = Date.now() - startTime;
+    
+    console.warn("[GeminiFlashImage] ⚠️ USANDO MOCK - Configure GOOGLE_CLOUD_PROJECT_ID para usar o serviço real!");
+    
+    const mockImageUrl = "https://via.placeholder.com/1024x1024/6f5cf1/FFFFFF?text=Gemini+Flash+Image+Mock";
+
+    return {
+      success: true,
+      data: {
+        imageUrl: mockImageUrl,
+        processingTime: executionTime,
+        finishReason: "SUCCESS",
+      },
+      executionTime,
+      cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
+      metadata: {
+        mode: "mock",
+        provider: "gemini-flash-image",
+        model: GEMINI_FLASH_IMAGE_CONFIG.modelId,
+      },
+    };
+  }
+}
+
+let geminiFlashImageServiceInstance: GeminiFlashImageService | null = null;
+
+export function getGeminiFlashImageService(): GeminiFlashImageService {
+  if (!geminiFlashImageServiceInstance) {
+    geminiFlashImageServiceInstance = new GeminiFlashImageService();
+  }
+  return geminiFlashImageServiceInstance;
+}
+
