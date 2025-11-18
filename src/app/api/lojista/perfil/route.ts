@@ -29,8 +29,21 @@ export async function GET(request: NextRequest) {
       return addCorsHeaders(response);
     }
 
+    // Buscar perfil sem cache
     const perfil = await fetchLojaPerfil(lojistaId);
+    
+    // Garantir que não retorne "Moda Tailandesa" - corrigir se necessário
+    if (perfil && perfil.nome && (perfil.nome === "Moda Tailandesa" || perfil.nome === "moda tailandesa" || perfil.nome === "MODA TAILANDESA")) {
+      console.warn("[API Perfil] Nome incorreto detectado:", perfil.nome);
+      // Não corrigir automaticamente aqui, apenas logar
+      // A correção deve ser feita manualmente ou via script
+    }
+    
     const response = NextResponse.json(perfil);
+    // Adicionar headers para evitar cache
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
     return addCorsHeaders(response);
   } catch (error) {
     console.error("[API Perfil] Erro:", error);

@@ -51,12 +51,8 @@ export function LojistaLayoutUpdater() {
       setIsLoading(true);
       setIsReady(false);
       
-      // Atualizar o conteúdo imediatamente para evitar flash
-      // Primeiro, mostrar "Carregando..." nos textos que serão atualizados
-      const titleElement = document.querySelector("#header-loja-nome") || document.querySelector("header h1");
-      const sidebarName = document.querySelector("#sidebar-loja-nome") || document.querySelector("aside h2");
-      if (titleElement) titleElement.textContent = "Carregando...";
-      if (sidebarName) sidebarName.textContent = "Carregando...";
+      // Não mostrar "Carregando..." para evitar flash - manter o que já está no servidor
+      // O servidor já carregou os dados corretos, só vamos atualizar se necessário
 
       // Timeout de segurança: garantir que o conteúdo esteja visível após 1 segundo
       const timeoutId = setTimeout(() => {
@@ -65,7 +61,13 @@ export function LojistaLayoutUpdater() {
         document.documentElement.classList.remove('lojista-loading');
       }, 1000);
 
-      fetch(`/api/lojista/perfil?lojistaId=${lojistaIdFromUrl}`)
+      // Usar cache: 'no-store' para garantir dados atualizados
+      fetch(`/api/lojista/perfil?lojistaId=${lojistaIdFromUrl}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      })
         .then((res) => {
           if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
@@ -116,15 +118,15 @@ export function LojistaLayoutUpdater() {
       return;
     }
 
-    // Atualizar o título da página imediatamente
+    // Verificar se o nome já está correto antes de atualizar (evitar flash)
     const titleElement = document.querySelector("#header-loja-nome") || document.querySelector("header h1");
-    if (titleElement) {
+    if (titleElement && titleElement.textContent !== perfil.nome) {
       titleElement.textContent = perfil.nome;
     }
     
-    // Atualizar o nome na sidebar imediatamente
+    // Verificar se o nome já está correto antes de atualizar (evitar flash)
     const sidebarName = document.querySelector("#sidebar-loja-nome") || document.querySelector("aside h2");
-    if (sidebarName) {
+    if (sidebarName && sidebarName.textContent !== perfil.nome) {
       sidebarName.textContent = perfil.nome;
     }
     
