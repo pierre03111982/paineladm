@@ -43,8 +43,8 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 p-6 lg:p-10">
-        <aside className="hidden w-64 flex-col rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-6 shadow-[0_25px_80px_-45px_rgba(79,70,229,0.65)] backdrop-blur-xl md:flex">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-3 md:gap-6 p-3 md:p-6 lg:p-10">
+        <aside className="hidden w-64 flex-col rounded-2xl md:rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-4 md:p-6 shadow-[0_25px_80px_-45px_rgba(79,70,229,0.65)] backdrop-blur-xl md:flex">
           <div className="mb-8 space-y-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/20 text-lg font-semibold text-purple-200">
               ADM
@@ -85,48 +85,48 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </aside>
 
-        <div className="flex flex-1 flex-col">
-          <header className="mb-6 rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-5 backdrop-blur-xl">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-purple-300/70">
+        <div className="flex flex-1 flex-col min-w-0">
+          <header className="mb-3 md:mb-6 rounded-2xl md:rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-3 md:p-5 backdrop-blur-xl">
+            <div className="flex flex-col gap-2 md:gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-xs uppercase tracking-[0.24em] text-purple-300/70">
                   Painel Administrativo
                 </p>
-                <h1 className="text-xl font-semibold text-white md:text-2xl">
+                <h1 className="text-base md:text-xl lg:text-2xl font-semibold text-white">
                   Experimente AI - Administração
                 </h1>
-                <p className="text-sm text-zinc-400">
+                <p className="text-xs md:text-sm text-zinc-400">
                   Controle de custos, receita e lojistas
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-200">
-                  <TrendingUp className="h-4 w-4" />
+              <div className="flex items-center gap-2 text-xs md:text-sm text-zinc-400 shrink-0">
+                <span className="inline-flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-200 shrink-0">
+                  <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </span>
-                <div>
-                  <p className="font-medium text-white">Sistema Administrativo</p>
-                  <p className="text-xs text-zinc-500">
+                <div className="min-w-0">
+                  <p className="font-medium text-white truncate">Sistema Administrativo</p>
+                  <p className="text-[10px] md:text-xs text-zinc-500 truncate">
                     {adminEmail}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 md:hidden">
+            <div className="mt-3 md:mt-4 flex flex-wrap gap-1.5 md:gap-2 md:hidden">
               {ADMIN_NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="inline-flex items-center gap-2 rounded-full border border-zinc-800 px-3 py-1.5 text-xs text-zinc-300 transition hover:border-purple-400 hover:text-purple-200"
+                  className="inline-flex items-center gap-1.5 md:gap-2 rounded-full border border-zinc-800 px-2.5 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs text-zinc-300 transition hover:border-purple-400 hover:text-purple-200"
                 >
-                  <item.icon className="h-3.5 w-3.5" />
+                  <item.icon className="h-3 w-3 md:h-3.5 md:w-3.5" />
                   {item.label}
                 </Link>
               ))}
             </div>
           </header>
 
-          <main className="flex-1 rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-6 shadow-[0_40px_120px_-60px_rgba(168,85,247,0.65)] backdrop-blur-xl lg:p-8">
+          <main className="flex-1 rounded-2xl md:rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-3 md:p-6 lg:p-8 shadow-[0_40px_120px_-60px_rgba(168,85,247,0.65)] backdrop-blur-xl overflow-x-auto">
             {children}
           </main>
         </div>

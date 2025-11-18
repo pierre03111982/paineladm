@@ -52,10 +52,15 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const lojistaIdFromQuery = searchParams.get("lojistaId");
 
-    // Prioridade: query string (modo admin) > usuário logado
-    const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
+    // Ler body primeiro para verificar se lojistaId vem do modelo 1
+    const body = await request.json();
+    const { nome, whatsapp, email, observacoes, password, lojistaId: lojistaIdFromBody } = body;
+
+    // Prioridade: query string (modo admin) > body (modelo 1) > usuário logado
+    const lojistaIdFromAuth = (lojistaIdFromQuery || lojistaIdFromBody) ? null : await getCurrentLojistaId();
     const lojistaId =
       lojistaIdFromQuery ||
+      lojistaIdFromBody ||
       lojistaIdFromAuth ||
       process.env.NEXT_PUBLIC_LOJISTA_ID ||
       process.env.LOJISTA_ID ||
@@ -67,9 +72,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const body = await request.json();
-    const { nome, whatsapp, email, observacoes, password } = body;
 
     if (!nome || nome.trim().length === 0) {
       return NextResponse.json(

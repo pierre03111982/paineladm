@@ -42,8 +42,8 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 p-6 lg:p-10">
-        <aside className="hidden w-64 flex-col rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-6 shadow-[0_25px_80px_-45px_rgba(79,70,229,0.65)] backdrop-blur-xl md:flex lojista-content">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-3 md:gap-6 p-3 md:p-6 lg:p-10">
+        <aside className="hidden w-64 flex-col rounded-2xl md:rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-4 md:p-6 shadow-[0_25px_80px_-45px_rgba(79,70,229,0.65)] backdrop-blur-xl md:flex lojista-content">
           <div className="mb-8 space-y-2">
             <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-indigo-500/20">
               {perfil?.logoUrl ? (
@@ -98,23 +98,23 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
           </div>
         </aside>
 
-        <div className="flex flex-1 flex-col">
-          <header className="mb-6 rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-5 backdrop-blur-xl lojista-content">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-indigo-300/70">
+        <div className="flex flex-1 flex-col min-w-0">
+          <header className="mb-3 md:mb-6 rounded-2xl md:rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-3 md:p-5 backdrop-blur-xl lojista-content">
+            <div className="flex flex-col gap-2 md:gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] md:text-xs uppercase tracking-[0.24em] text-indigo-300/70">
                   Painel do lojista
                 </p>
-                <h1 className="text-xl font-semibold text-white md:text-2xl" id="header-loja-nome">
+                <h1 className="text-base md:text-xl lg:text-2xl font-semibold text-white truncate" id="header-loja-nome">
                   {perfil?.nome || ""}
                 </h1>
                 {perfil?.descricao ? (
-                  <p className="text-sm text-zinc-400">{perfil.descricao}</p>
+                  <p className="text-xs md:text-sm text-zinc-400 line-clamp-2">{perfil.descricao}</p>
                 ) : null}
               </div>
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
+              <div className="flex items-center gap-2 text-xs md:text-sm text-zinc-400 shrink-0">
                 {perfil?.logoUrl ? (
-                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20">
+                  <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center overflow-hidden rounded-full bg-indigo-500/20 shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={String(perfil.logoUrl)}
@@ -123,29 +123,29 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                     />
                   </div>
                 ) : (
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
+                  <span className="inline-flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200 shrink-0">
                     AI
                   </span>
                 )}
-                <div>
-                  <p className="font-medium text-white">
+                <div className="min-w-0">
+                  <p className="font-medium text-white truncate">
                     {perfil?.nome || "Equipe Experimente AI"}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-[10px] md:text-xs text-zinc-500">
                     suporte@experimente.ai
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-2 md:hidden">
+            <div className="mt-3 md:mt-4 flex flex-wrap gap-1.5 md:gap-2 md:hidden">
               <Suspense fallback={null}>
                 <MobileNavLinks />
               </Suspense>
             </div>
           </header>
 
-          <main className="flex-1 rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-6 shadow-[0_40px_120px_-60px_rgba(99,102,241,0.65)] backdrop-blur-xl lg:p-8 lojista-content">
+          <main className="flex-1 rounded-2xl md:rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-3 md:p-6 lg:p-8 shadow-[0_40px_120px_-60px_rgba(99,102,241,0.65)] backdrop-blur-xl lojista-content overflow-x-auto">
             <Suspense fallback={null}>
               <LojistaLayoutUpdater />
             </Suspense>
