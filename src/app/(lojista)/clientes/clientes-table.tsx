@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2 } from "lucide-react";
+import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw } from "lucide-react";
 import type { ClienteDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 
@@ -333,6 +333,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 <th className="px-6 py-3">WhatsApp</th>
                 <th className="px-6 py-3">Email</th>
                 <th className="px-6 py-3">Composições</th>
+                <th className="px-6 py-3">Segmentação</th>
+                <th className="px-6 py-3">Histórico</th>
                 <th className="px-6 py-3">Compartilhamentos</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3 text-right">Ações</th>
@@ -341,13 +343,13 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
             <tbody className="divide-y divide-zinc-900/60">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
                     Carregando...
                   </td>
                 </tr>
               ) : filteredClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
                     <Users className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
                     {clientes.length === 0
                       ? "Nenhum cliente cadastrado ainda. Os clientes aparecerão aqui quando começarem a usar o provador virtual."
@@ -401,6 +403,105 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                       <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-200">
                         {cliente.totalComposicoes || 0}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {cliente.tags && cliente.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {cliente.tags.slice(0, 2).map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-200"
+                            >
+                              <Tag className="h-2.5 w-2.5" />
+                              {tag}
+                            </span>
+                          ))}
+                          {cliente.tags.length > 2 && (
+                            <span className="text-xs text-zinc-500">+{cliente.tags.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              setLoading(true);
+                              const response = await fetch("/api/lojista/clientes/segmentation", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ clienteId: cliente.id }),
+                              });
+                              if (response.ok) {
+                                // Recarregar clientes
+                                const url = lojistaIdFromUrl 
+                                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                                  : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setClientes(data.clientes || []);
+                                }
+                              }
+                            } catch (err) {
+                              console.error("Erro ao calcular segmentação:", err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-purple-400/60 hover:text-purple-200"
+                          title="Calcular segmentação"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Calcular
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {cliente.historicoTentativas?.produtosExperimentados &&
+                      cliente.historicoTentativas.produtosExperimentados.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-zinc-300">
+                            {cliente.historicoTentativas.produtosExperimentados.length} produtos
+                          </span>
+                          <span className="text-[10px] text-zinc-500">
+                            {cliente.historicoTentativas.ultimaAtualizacao
+                              ? new Date(cliente.historicoTentativas.ultimaAtualizacao).toLocaleDateString("pt-BR")
+                              : "—"}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              setLoading(true);
+                              const response = await fetch("/api/lojista/clientes/history", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ clienteId: cliente.id }),
+                              });
+                              if (response.ok) {
+                                // Recarregar clientes
+                                const url = lojistaIdFromUrl 
+                                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                                  : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setClientes(data.clientes || []);
+                                }
+                              }
+                            } catch (err) {
+                              console.error("Erro ao atualizar histórico:", err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-blue-400/60 hover:text-blue-200"
+                          title="Atualizar histórico"
+                        >
+                          <History className="h-3 w-3" />
+                          Atualizar
+                        </button>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1">
@@ -529,6 +630,64 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
                   <p className="text-sm text-zinc-100">{(viewingCliente as any).observacoes}</p>
+                </div>
+              )}
+              {viewingCliente.tags && viewingCliente.tags.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Segmentação</label>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingCliente.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-1 text-xs text-purple-200"
+                      >
+                        <Tag className="h-3 w-3" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  {viewingCliente.segmentacao?.tipo && (
+                    <p className="text-xs text-zinc-500 mt-2">
+                      Tipo: {viewingCliente.segmentacao.tipo}
+                    </p>
+                  )}
+                </div>
+              )}
+              {viewingCliente.historicoTentativas?.produtosExperimentados &&
+              viewingCliente.historicoTentativas.produtosExperimentados.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">
+                    Histórico de Tentativas
+                  </label>
+                  <div className="max-h-48 overflow-y-auto space-y-2">
+                    {viewingCliente.historicoTentativas.produtosExperimentados.slice(0, 10).map((produto, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2"
+                      >
+                        <p className="text-xs text-zinc-100">{produto.produtoNome}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-zinc-500">
+                            {new Date(produto.dataTentativa).toLocaleDateString("pt-BR")}
+                          </span>
+                          {produto.liked && (
+                            <span className="text-[10px] text-green-400">✓ Curtiu</span>
+                          )}
+                          {produto.compartilhado && (
+                            <span className="text-[10px] text-blue-400">✓ Compartilhou</span>
+                          )}
+                          {produto.checkout && (
+                            <span className="text-[10px] text-emerald-400">✓ Comprou</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {viewingCliente.historicoTentativas.produtosExperimentados.length > 10 && (
+                      <p className="text-xs text-zinc-500 text-center">
+                        +{viewingCliente.historicoTentativas.produtosExperimentados.length - 10} produtos
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

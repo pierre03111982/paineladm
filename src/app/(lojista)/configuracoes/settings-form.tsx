@@ -124,6 +124,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       salesChannel: (perfil?.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
       salesWhatsapp: perfil?.salesConfig?.salesWhatsapp || perfil?.whatsapp || "",
       checkoutLink: perfil?.salesConfig?.checkoutLink || perfil?.checkoutLink || "",
+      whatsappMessageTemplate: perfil?.salesConfig?.whatsappMessageTemplate || "Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}",
     };
   });
 
@@ -143,6 +144,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         salesChannel: (perfil.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
         salesWhatsapp: perfil.salesConfig?.salesWhatsapp || perfil.whatsapp || "",
         checkoutLink: perfil.salesConfig?.checkoutLink || perfil.checkoutLink || "",
+        whatsappMessageTemplate: perfil.salesConfig?.whatsappMessageTemplate || "Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}",
       });
       if (perfil.logoUrl) {
         setLogoPreview(perfil.logoUrl);
@@ -245,6 +247,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         channel: formData.salesChannel || "whatsapp",
         salesWhatsapp: formData.salesChannel === "whatsapp" ? (formData.salesWhatsapp || null) : null,
         checkoutLink: formData.salesChannel === "checkout" ? (formData.checkoutLink || null) : null,
+        whatsappMessageTemplate: formData.whatsappMessageTemplate || null,
       };
 
       console.log("[SettingsForm] Enviando dados para salvar:", JSON.stringify(payload, null, 2));
@@ -583,6 +586,26 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               />
               <p className="mt-1 text-xs text-zinc-500">
                 Número usado no botão "Comprar agora" do provador virtual
+              </p>
+            </div>
+          )}
+
+          {formData.salesChannel === "whatsapp" && (
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Template da Mensagem de Venda
+              </label>
+              <textarea
+                value={formData.whatsappMessageTemplate}
+                onChange={(e) =>
+                  setFormData({ ...formData, whatsappMessageTemplate: e.target.value })
+                }
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors resize-none"
+                rows={4}
+                placeholder="Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}"
+              />
+              <p className="mt-1 text-xs text-zinc-500">
+                Use <code className="bg-zinc-800 px-1 rounded">{"{{link}}"}</code> para incluir o link do produto automaticamente. Esta mensagem será enviada quando o cliente clicar em "Comprar agora".
               </p>
             </div>
           )}

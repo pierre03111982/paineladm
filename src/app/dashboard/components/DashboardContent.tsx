@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ActiveCustomer,
   CompositionItem,
@@ -19,6 +19,10 @@ import {
   Star,
   TrendingUp,
   Users2,
+  DollarSign,
+  AlertTriangle,
+  BarChart3,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -33,6 +37,8 @@ import {
   YAxis,
   Legend,
   CartesianGrid,
+  BarChart,
+  Bar,
 } from "recharts";
 
 type DashboardContentProps = {
@@ -229,6 +235,34 @@ function CustomersList({ customers }: { customers: ActiveCustomer[] }) {
   );
 }
 
+function FunnelStep({
+  label,
+  value,
+  color,
+  bgColor,
+  conversionRate,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  bgColor: string;
+  conversionRate?: string;
+}) {
+  return (
+    <div className={`rounded-lg border ${bgColor} p-3`}>
+      <div className="flex items-center justify-between">
+        <span className={`text-xs font-medium ${color}`}>{label}</span>
+        <span className={`text-sm font-semibold ${color}`}>{value}</span>
+      </div>
+      {conversionRate && (
+        <p className="text-[10px] text-purple-200/60 mt-1">
+          Taxa: {conversionRate}%
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function DashboardContent({ data }: DashboardContentProps) {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -236,6 +270,34 @@ export function DashboardContent({ data }: DashboardContentProps) {
       currency: "BRL",
       minimumFractionDigits: 2,
     }).format(value);
+
+  // Estados para métricas avançadas
+  const [roiMetrics, setRoiMetrics] = useState<any>(null);
+  const [funnel, setFunnel] = useState<any>(null);
+  const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([]);
+  const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
+
+  // Carregar métricas avançadas
+  useEffect(() => {
+    const loadMetrics = async () => {
+      try {
+        setIsLoadingMetrics(true);
+        const response = await fetch("/api/lojista/dashboard-metrics");
+        if (response.ok) {
+          const metricsData = await response.json();
+          setRoiMetrics(metricsData.roi);
+          setFunnel(metricsData.funnel);
+          setLowStockAlerts(metricsData.lowStockAlerts || []);
+        }
+      } catch (error) {
+        console.error("[DashboardContent] Erro ao carregar métricas:", error);
+      } finally {
+        setIsLoadingMetrics(false);
+      }
+    };
+
+    loadMetrics();
+  }, []);
 
 
   return (
@@ -290,6 +352,152 @@ export function DashboardContent({ data }: DashboardContentProps) {
           </div>
         </div>
       </header>
+
+      {/* Seção de Métricas ROI e Funil */}
+      {roiMetrics && (
+        <section className="grid gap-6 lg:grid-cols-2">
+          {/* Card ROI/Custo por Try-On */}
+          <div className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-6">
+            <div className="flex items-center justify-between text-xs text-emerald-200 mb-4">
+              <span className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                ROI e Custo por Try-On
+              </span>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs text-emerald-200/80">Custo Total</p>
+                <p className="text-2xl font-semibold text-white">
+                  {formatBRL(roiMetrics.totalCostBRL)}
+                </p>
+                <p className="text-xs text-emerald-200/60 mt-1">
+                  {roiMetrics.totalTryOns} Try-Ons realizados
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-emerald-200/80">Custo Médio por Try-On</p>
+                <p className="text-xl font-semibold text-white">
+                  {formatBRL(roiMetrics.costPerTryOn)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/5 p-4">
+                <p className="text-xs text-emerald-200/80">Receita Estimada</p>
+                <p className="text-2xl font-semibold text-emerald-100">
+                  {formatBRL(roiMetrics.estimatedRevenue)}
+                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className={`text-sm font-semibold ${
+                    roiMetrics.roi >= 0 ? "text-emerald-300" : "text-red-300"
+                  }`}>
+                    ROI: {roiMetrics.roi >= 0 ? "+" : ""}{roiMetrics.roi.toFixed(1)}%
+                  </span>
+                  <span className="text-xs text-emerald-200/60">
+                    ({roiMetrics.roiMultiplier.toFixed(2)}x retorno)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Funil de Conversão */}
+          {funnel && (
+            <div className="rounded-2xl border border-purple-400/40 bg-purple-500/10 p-6">
+              <div className="flex items-center justify-between text-xs text-purple-200 mb-4">
+                <span className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Funil de Conversão
+                </span>
+              </div>
+              <div className="space-y-3">
+                <FunnelStep
+                  label="Visitantes"
+                  value={funnel.visitantes}
+                  color="text-blue-200"
+                  bgColor="bg-blue-500/20"
+                />
+                <FunnelStep
+                  label="Try-Ons"
+                  value={funnel.tryOns}
+                  color="text-indigo-200"
+                  bgColor="bg-indigo-500/20"
+                  conversionRate={funnel.visitantes > 0 ? ((funnel.tryOns / funnel.visitantes) * 100).toFixed(1) : "0"}
+                />
+                <FunnelStep
+                  label="Favoritos"
+                  value={funnel.favoritos}
+                  color="text-pink-200"
+                  bgColor="bg-pink-500/20"
+                  conversionRate={funnel.conversionRates.tryOnToFavorito.toFixed(1)}
+                />
+                <FunnelStep
+                  label="Compartilhamentos"
+                  value={funnel.compartilhamentos}
+                  color="text-sky-200"
+                  bgColor="bg-sky-500/20"
+                  conversionRate={funnel.conversionRates.favoritoToCompartilhamento.toFixed(1)}
+                />
+                <FunnelStep
+                  label="Compras"
+                  value={funnel.compras}
+                  color="text-emerald-200"
+                  bgColor="bg-emerald-500/20"
+                  conversionRate={funnel.conversionRates.tryOnToCompra.toFixed(1)}
+                />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Alerta de Estoque Baixo */}
+      {lowStockAlerts.length > 0 && (
+        <section className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-xs text-amber-200">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="font-semibold">Alerta de Estoque Baixo</span>
+            </div>
+            <Link
+              href="/produtos"
+              className="inline-flex items-center gap-1 text-xs text-amber-200 transition hover:text-amber-100"
+            >
+              Ver produtos
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {lowStockAlerts.slice(0, 6).map((alert) => (
+              <div
+                key={alert.produtoId}
+                className={`rounded-xl border p-3 ${
+                  alert.prioridade === "alta"
+                    ? "border-red-400/50 bg-red-500/10"
+                    : alert.prioridade === "media"
+                    ? "border-amber-400/50 bg-amber-500/10"
+                    : "border-yellow-400/50 bg-yellow-500/10"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">
+                      {alert.produtoNome}
+                    </p>
+                    <p className="text-xs text-amber-200/80 mt-1">
+                      Estoque: {alert.estoqueAtual} unidades
+                    </p>
+                    <p className="text-xs text-amber-200/60 mt-1">
+                      {alert.experimentacoes} experimentações
+                    </p>
+                  </div>
+                  {alert.prioridade === "alta" && (
+                    <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 ml-2" />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-6 lg:grid-cols-4">
         <div className="rounded-2xl border border-indigo-400/40 bg-indigo-500/10 p-6">

@@ -6,6 +6,7 @@ import { fetchLojaPerfil } from "@/lib/firestore/server";
 import { NAV_ITEMS } from "@/lib/nav-items";
 import { LojistaLayoutUpdater } from "./components/LojistaLayoutUpdater";
 import { MobileNavLinks } from "./components/MobileNavLinks";
+import { ImpersonationBanner } from "./components/ImpersonationBanner";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 
 type LojistaLayoutProps = {
@@ -40,9 +41,13 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     perfil = null;
   }
 
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-3 md:gap-6 p-3 md:p-6 lg:p-10">
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100">
+        {/* Banner de Impersonificação */}
+        <Suspense fallback={null}>
+          <ImpersonationBanner />
+        </Suspense>
+        <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-3 md:gap-6 p-3 md:p-6 lg:p-10">
         <aside className="hidden w-64 flex-col rounded-2xl md:rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-4 md:p-6 shadow-[0_25px_80px_-45px_rgba(79,70,229,0.65)] backdrop-blur-xl md:flex lojista-content">
           <div className="mb-6 md:mb-8 space-y-2">
             <div className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center overflow-hidden rounded-xl md:rounded-2xl bg-indigo-500/20 shrink-0">
