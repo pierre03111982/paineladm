@@ -61,7 +61,7 @@ export async function getClientesFromComposicoes(
           
           // Encontrar composição associada a este cliente
           const comp = composicoesSelecionadas.find((c) => c.customer?.id === clienteId);
-          if (comp) {
+          if (comp && comp.customer) {
             const produtoNome = comp.products[0]?.nome || "Produto";
             
             return {
