@@ -171,6 +171,7 @@ export async function syncProduct(
 
     // Atualizar timestamp de sincronização
     updates.ecommerceSync = {
+      platform: produtoData.ecommerceSync?.platform || "other",
       ...produtoData.ecommerceSync,
       lastSyncedAt: new Date(),
     };
