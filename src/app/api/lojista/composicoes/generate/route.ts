@@ -350,29 +350,96 @@ export async function POST(request: NextRequest) {
               category.includes("casual"));
     };
 
+    // Detectar se o produto principal é roupa
+    const category = (primaryProduct?.categoria || "").toLowerCase();
+    const isClothing = isProductClothing(primaryProduct?.categoria || "");
+    
+    // Verificar se há ALGUM produto de roupa em todos os produtos selecionados
+    const hasAnyClothingProduct = productsData.some(product => 
+      isProductClothing(product?.categoria || "")
+    );
+
     // Determinar a URL da imagem do produto ANTES de usar
     const finalProductImageUrl = primaryProduct?.productUrl || primaryProduct?.imagemUrl || "";
+    const hasProductUrl = !!primaryProduct?.productUrl;
 
-    console.log("[API] 🔍 Configuração simplificada - apenas Look Criativo com Gemini:", {
+    console.log("[API] 🔍 Detecção de tipo de produto:", {
       produtoId: primaryProduct.id,
       produtoNome: primaryProduct.nome,
       categoria: primaryProduct.categoria,
+      categoriaLower: category,
+      isClothing,
+      hasProductUrl,
+      hasAnyClothingProduct,
       productImageUrl: primaryProduct?.imagemUrl ? primaryProduct.imagemUrl.substring(0, 80) + "..." : "NÃO FORNECIDA",
       scenePrompt: scenePrompt.substring(0, 100) + "...",
     });
+    
+    console.log("[API] ⚙️ Configuração de looks:", {
+      willGenerateNatural: hasAnyClothingProduct,
+      willUseTryOn: isClothing && !hasProductUrl,
+      reason: !hasAnyClothingProduct 
+        ? "Nenhum produto de roupa - apenas Look Criativo será gerado" 
+        : !isClothing 
+        ? "Produto não é roupa" 
+        : hasProductUrl 
+        ? "Produto tem URL (usará Imagen)" 
+        : "Usará Try-On",
+    });
 
-    // Gera apenas 1 look criativo usando Gemini 2.5 Flash
+    // Gera apenas 2 looks usando o primeiro produto
     const orchestrator = getCompositionOrchestrator();
     const allResults: any[] = [];
     const allLooks: any[] = [];
-    let allProductImageUrls: string[] = []; // Declarar fora do try para usar no retorno
 
     try {
       // ========================================
-      // FLUXO SIMPLIFICADO: Apenas Look Criativo usando Gemini 2.5 Flash Image
+      // NOVO FLUXO: Look Natural (apenas se houver roupa), depois Look Criativo
       // ========================================
       
-      // GERAR LOOK CRIATIVO usando Gemini 2.5 Flash Image com TODAS as imagens de produtos
+      let tryonResult: any = null;
+      
+      // 1. GERAR LOOK NATURAL (apenas se houver produto de roupa)
+      if (hasAnyClothingProduct) {
+        console.log("[API] 🎨 Gerando Look Natural (há produtos de roupa)...", {
+          personImageUrl: personImageUrl ? personImageUrl.substring(0, 100) + "..." : "❌ NÃO FORNECIDA",
+          productImageUrl: finalProductImageUrl ? finalProductImageUrl.substring(0, 100) + "..." : "❌ NÃO FORNECIDA",
+          isClothing,
+          hasProductUrl,
+          willUseTryOn: isClothing && !hasProductUrl,
+          lookType: "natural",
+        });
+        
+        tryonResult = await orchestrator.createComposition({
+          personImageUrl,
+          productId: primaryProduct.id,
+          productImageUrl: finalProductImageUrl,
+          lojistaId,
+          customerId: customerId || undefined,
+          productName: primaryProduct?.nome,
+          productPrice: primaryProduct?.preco
+            ? `R$ ${primaryProduct.preco.toFixed(2)}`
+            : undefined,
+          storeName: lojaData?.nome || "Minha Loja",
+          logoUrl: lojaData?.logoUrl,
+          scenePrompts: [], // Look natural não precisa de cenário
+          options: {
+            quality: options?.quality || "high",
+            skipWatermark: options?.skipWatermark || false,
+            productUrl: hasProductUrl ? primaryProduct.productUrl : undefined,
+            isClothing: isClothing && !hasProductUrl, // Try-On só para roupas do catálogo
+            lookType: "natural",
+          },
+        });
+
+        if (!tryonResult.tryonImageUrl) {
+          throw new Error("Falha ao gerar Look Natural");
+        }
+      } else {
+        console.log("[API] ⏭️ Pulando Look Natural - nenhum produto de roupa encontrado. Apenas Look Criativo será gerado.");
+      }
+
+      // 2. GERAR LOOK CRIATIVO usando Gemini 2.5 Flash Image com TODAS as imagens de produtos
       console.log("[API] 🎨 Gerando Look Criativo com Gemini 2.5 Flash Image...");
       console.log("[API] 📦 Produtos recebidos para Look Criativo:", {
         totalProdutos: productsData.length,
@@ -385,7 +452,7 @@ export async function POST(request: NextRequest) {
       });
       
       // Coletar todas as imagens de produtos (incluindo roupas)
-      allProductImageUrls = [];
+      const allProductImageUrls: string[] = [];
       const produtosComImagem: any[] = [];
       const produtosSemImagem: any[] = [];
       
@@ -499,15 +566,20 @@ export async function POST(request: NextRequest) {
         scenePrompts: [], // Não usado no Gemini Flash Image
         options: {
           quality: options?.quality || "high",
-          skipWatermark: true, // Desabilitar watermark para Look Criativo (caixa branca no frontend já exibe as informações)
-          productUrl: primaryProduct.productUrl || undefined,
+          skipWatermark: options?.skipWatermark || false,
+          productUrl: hasProductUrl ? primaryProduct.productUrl : undefined,
+          isClothing: isClothing && !hasProductUrl,
           lookType: "creative",
           allProductImageUrls: allProductImageUrls, // Todas as imagens de produtos
         },
       });
 
-      // Adicionar resultado do Look Criativo
-      allResults.push({ creative: creativeResult });
+      // Adicionar resultados (apenas se foram gerados)
+      if (tryonResult) {
+        allResults.push({ tryon: tryonResult, creative: creativeResult });
+      } else {
+        allResults.push({ creative: creativeResult });
+      }
 
       // Upload das imagens e criar looks
       const uploadTimestamp = Date.now();
@@ -557,7 +629,26 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Look Criativo - usar a imagem gerada pelo Gemini 2.5 Flash
+      // Look Natural (apenas se foi gerado - ou seja, se havia produto de roupa)
+      if (tryonResult && tryonResult.tryonImageUrl) {
+        const tryonImageUrl = await uploadImageIfNeeded(
+          tryonResult.tryonImageUrl,
+          "tryon-natural",
+          0
+        );
+
+        allLooks.push({
+          id: `look-natural-${Date.now()}`,
+          titulo: "Look Natural",
+          descricao: `Visual natural com ${primaryProduct.nome}. O produto foi aplicado de forma realista mantendo suas características originais.`,
+          imagemUrl: tryonImageUrl,
+          produtoNome: primaryProduct.nome,
+          produtoPreco: primaryProduct.preco,
+          watermarkText: "Valor sujeito a alteração. Imagem com marca d'água.",
+        });
+      }
+
+      // Look Criativo - usar a imagem gerada pelo Gemini
       const creativeImageUrl = creativeResult.tryonImageUrl 
         ? await uploadImageIfNeeded(creativeResult.tryonImageUrl, "creative-gemini", 0)
         : "";
@@ -573,7 +664,8 @@ export async function POST(request: NextRequest) {
         desativado: !creativeImageUrl, // Desativado apenas se não houver imagem
       });
 
-      console.log("[API] Look Criativo gerado com sucesso:", {
+      console.log("[API] Looks gerados com sucesso:", {
+        natural: hasAnyClothingProduct ? (tryonResult?.tryonImageUrl ? "✅ Gerado" : "❌ Erro") : "⏭️ Pulado (sem roupas)",
         creative: creativeImageUrl ? creativeImageUrl.substring(0, 50) + "..." : "❌ ERRO",
         totalLooks: allLooks.length,
       });
@@ -603,13 +695,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calcular custo total (apenas Look Criativo com Gemini)
+    // Calcular custo total (Look Natural + Look Criativo)
     const totalCost = allResults.reduce((sum, r) => {
-      return sum + (r.creative?.totalCost || 0);
+      return sum + (r.tryon?.totalCost || 0) + (r.creative?.totalCost || 0);
     }, 0);
     
-    // Custo do Look Criativo (Gemini Flash Image)
-    const creativeCost = totalCost;
+    // Custo separado do Look Criativo (Gemini Flash Image)
+    const creativeCost = allResults.reduce((sum, r) => {
+      return sum + (r.creative?.totalCost || 0);
+    }, 0);
 
     const usdToBrlRate = await fetchUsdToBrlRate();
     const totalCostBRL = Number((totalCost * usdToBrlRate).toFixed(2));
@@ -675,17 +769,17 @@ export async function POST(request: NextRequest) {
       // Não falhar a requisição se o Firestore falhar, apenas logar o erro
     }
 
-    // Retornar no formato esperado pelo frontend (apenas 1 look criativo)
+    // Retornar no formato esperado pelo frontend (sempre 2 looks)
     return applyCors(
       request,
       NextResponse.json({
         success: true,
         composicaoId,
-        looks: allLooks, // Apenas 1 look: Criativo
+        looks: allLooks, // Sempre 2 looks: Natural e Criativo
         totalCost,
         totalCostBRL,
         exchangeRate: usdToBrlRate,
-        productsProcessed: allProductImageUrls.length, // Total de produtos processados
+        productsProcessed: 1, // Apenas 1 produto usado (o primeiro)
         primaryProductId: primaryProduct.id,
         primaryProductName: primaryProduct.nome,
       })

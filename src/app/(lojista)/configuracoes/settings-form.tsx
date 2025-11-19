@@ -15,12 +15,10 @@ type LojaPerfil = {
   checkoutLink?: string | null;
   descontoRedesSociais?: number | null;
    descontoRedesSociaisExpiraEm?: string | null;
-  appModel?: "modelo-1" | "modelo-2" | "modelo-3" | null;
   salesConfig?: {
     channel?: string;
     salesWhatsapp?: string | null;
     checkoutLink?: string | null;
-    whatsappMessageTemplate?: string | null;
   } | null;
 };
 
@@ -121,11 +119,9 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       tiktok: perfil?.tiktok || "",
       descontoRedesSociais: perfil?.descontoRedesSociais || 0,
       descontoRedesSociaisExpiraEm: perfil?.descontoRedesSociaisExpiraEm || "",
-      appModel: (perfil?.appModel as "modelo-1" | "modelo-2" | "modelo-3") || "modelo-1",
       salesChannel: (perfil?.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
       salesWhatsapp: perfil?.salesConfig?.salesWhatsapp || perfil?.whatsapp || "",
       checkoutLink: perfil?.salesConfig?.checkoutLink || perfil?.checkoutLink || "",
-      whatsappMessageTemplate: perfil?.salesConfig?.whatsappMessageTemplate || "Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}",
     };
   });
 
@@ -141,11 +137,9 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         tiktok: perfil.tiktok || "",
         descontoRedesSociais: perfil.descontoRedesSociais || 0,
         descontoRedesSociaisExpiraEm: perfil.descontoRedesSociaisExpiraEm || "",
-        appModel: (perfil.appModel as "modelo-1" | "modelo-2" | "modelo-3") || "modelo-1",
         salesChannel: (perfil.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
         salesWhatsapp: perfil.salesConfig?.salesWhatsapp || perfil.whatsapp || "",
         checkoutLink: perfil.salesConfig?.checkoutLink || perfil.checkoutLink || "",
-        whatsappMessageTemplate: perfil.salesConfig?.whatsappMessageTemplate || "Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}",
       });
       if (perfil.logoUrl) {
         setLogoPreview(perfil.logoUrl);
@@ -235,7 +229,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         instagram: formData.instagram || "",
         facebook: formData.facebook || "",
         tiktok: formData.tiktok || "",
-        appModel: formData.appModel || "modelo-1",
         descontoRedesSociais: formData.descontoRedesSociais || null,
         descontoRedesSociaisExpiraEm: formData.descontoRedesSociaisExpiraEm || null,
       };
@@ -248,7 +241,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         channel: formData.salesChannel || "whatsapp",
         salesWhatsapp: formData.salesChannel === "whatsapp" ? (formData.salesWhatsapp || null) : null,
         checkoutLink: formData.salesChannel === "checkout" ? (formData.checkoutLink || null) : null,
-        whatsappMessageTemplate: formData.whatsappMessageTemplate || null,
       };
 
       console.log("[SettingsForm] Enviando dados para salvar:", JSON.stringify(payload, null, 2));
@@ -351,50 +343,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               </label>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Modelo do App Cliente */}
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
-        <h3 className="mb-4 text-base font-semibold text-white">Modelo do App Cliente</h3>
-        <p className="mb-4 text-sm text-zinc-400">
-          Escolha qual layout do aplicativo cliente será usado para sua loja.
-        </p>
-        <div className="grid gap-3 md:grid-cols-3">
-          {(["modelo-1", "modelo-2", "modelo-3"] as const).map((model) => (
-            <button
-              key={model}
-              type="button"
-              onClick={() => setFormData({ ...formData, appModel: model })}
-              className={`rounded-lg border-2 p-4 text-left transition ${
-                formData.appModel === model
-                  ? "border-indigo-500 bg-indigo-500/10"
-                  : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={`h-4 w-4 rounded-full border-2 ${
-                    formData.appModel === model
-                      ? "border-indigo-500 bg-indigo-500"
-                      : "border-zinc-600"
-                  }`}
-                >
-                  {formData.appModel === model && (
-                    <div className="h-full w-full rounded-full bg-white" />
-                  )}
-                </div>
-                <span className="font-semibold text-white capitalize">
-                  {model.replace("-", " ")}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-zinc-400">
-                {model === "modelo-1" && "Layout padrão com design moderno"}
-                {model === "modelo-2" && "Layout alternativo (em breve)"}
-                {model === "modelo-3" && "Layout premium (em breve)"}
-              </p>
-            </button>
-          ))}
         </div>
       </div>
 
@@ -587,26 +535,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               />
               <p className="mt-1 text-xs text-zinc-500">
                 Número usado no botão "Comprar agora" do provador virtual
-              </p>
-            </div>
-          )}
-
-          {formData.salesChannel === "whatsapp" && (
-            <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
-                Template da Mensagem de Venda
-              </label>
-              <textarea
-                value={formData.whatsappMessageTemplate}
-                onChange={(e) =>
-                  setFormData({ ...formData, whatsappMessageTemplate: e.target.value })
-                }
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors resize-none"
-                rows={4}
-                placeholder="Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}"
-              />
-              <p className="mt-1 text-xs text-zinc-500">
-                Use <code className="bg-zinc-800 px-1 rounded">{"{{link}}"}</code> para incluir o link do produto automaticamente. Esta mensagem será enviada quando o cliente clicar em "Comprar agora".
               </p>
             </div>
           )}

@@ -131,22 +131,18 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
         return credentials;
       } catch (error) {
         lastError = error as Error;
-
-        const code = (error as any)?.code;
-
-        // Só repetir automaticamente para erro de rede do Firebase
-        const isNetworkError =
-          typeof code === "string" && code === "auth/network-request-failed";
-
-        if (!isNetworkError || attempt === maxRetries) {
+        
+        // Se não for erro de rede ou se já tentou todas as vezes, lançar erro
+        if (
+          !(error instanceof FirebaseError) ||
+          error.code !== "auth/network-request-failed" ||
+          attempt === maxRetries
+        ) {
           throw error;
         }
-
+        
         // Log para debug
-        console.log(
-          `[LoginForm] Tentativa ${attempt + 1} falhou com erro de rede, tentando novamente...`,
-          error
-        );
+        console.log(`[LoginForm] Tentativa ${attempt + 1} falhou, tentando novamente...`, error);
       }
     }
     

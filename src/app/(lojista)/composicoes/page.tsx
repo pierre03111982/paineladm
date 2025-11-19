@@ -124,20 +124,6 @@ async function fetchComposicoes(
         if (data.customerId) return;
       }
 
-      // Filtrar por alta conversão
-      const highConversion = searchParams.highConversion === "true";
-      if (highConversion) {
-        const minLikes = parseInt(searchParams.minLikes as string || "1");
-        const minShares = parseInt(searchParams.minShares as string || "0");
-        
-        // Verificar se atende aos critérios de alta conversão
-        const isLiked = data.curtido === true || data.liked === true;
-        const shares = data.shares || 0;
-        
-        if (!isLiked && minLikes > 0) return;
-        if (shares < minShares) return;
-      }
-
       // Pegar o primeiro look (Look Natural) como preview
       const firstLook = data.looks && data.looks.length > 0 ? data.looks[0] : null;
       const previewUrl = firstLook?.imagemUrl || null;
@@ -293,9 +279,6 @@ type SearchParams = {
   liked?: string;
   shared?: string;
   anonymous?: string;
-  highConversion?: string;
-  minLikes?: string;
-  minShares?: string;
   lojistaId?: string;
 };
 
@@ -342,9 +325,6 @@ export default async function ComposicoesPage({
     liked: params.liked === "true",
     shared: params.shared === "true",
     anonymous: params.anonymous === "true",
-    highConversion: params.highConversion === "true",
-    minLikes: params.minLikes ? parseInt(params.minLikes) : undefined,
-    minShares: params.minShares ? parseInt(params.minShares) : undefined,
   };
 
   return (

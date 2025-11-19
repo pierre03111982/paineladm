@@ -11,16 +11,6 @@ function lojaRef(lojistaId: string) {
 }
 
 /**
- * Referência para favoritos de um cliente
- */
-function clienteFavoritosRef(lojistaId: string, customerId: string) {
-  return lojaRef(lojistaId)
-    .collection("clientes")
-    .doc(customerId)
-    .collection("favoritos");
-}
-
-/**
  * Busca o perfil da loja
  */
 export async function fetchLojaPerfil(lojistaId: string): Promise<{
@@ -34,7 +24,6 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
   checkoutLink?: string | null;
   descontoRedesSociais?: number | null;
   descontoRedesSociaisExpiraEm?: string | null;
-  appModel?: "modelo-1" | "modelo-2" | "modelo-3" | null;
   salesConfig?: {
     channel?: string;
     salesWhatsapp?: string | null;
@@ -65,7 +54,6 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         whatsapp: data?.whatsapp || null,
         checkoutLink: data?.checkoutLink || null,
         descontoRedesSociais: data?.descontoRedesSociais || null,
-        appModel: data?.appModel || "modelo-1",
         descontoRedesSociaisExpiraEm: data?.descontoRedesSociaisExpiraEm || null,
         salesConfig: data?.salesConfig || null,
       };
@@ -87,7 +75,6 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
           whatsapp: lojaData?.whatsapp || null,
           checkoutLink: lojaData?.checkoutLink || null,
           descontoRedesSociais: lojaData?.descontoRedesSociais || null,
-          appModel: lojaData?.appModel || "modelo-1",
           salesConfig: lojaData?.salesConfig || null,
         };
       }
@@ -108,7 +95,6 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         whatsapp: data?.whatsapp || null,
         checkoutLink: data?.checkoutLink || null,
         descontoRedesSociais: data?.descontoRedesSociais || null,
-        appModel: data?.appModel || "modelo-1",
         salesConfig: data?.salesConfig || null,
       };
     }
@@ -136,12 +122,10 @@ export async function updateLojaPerfil(
     tiktok?: string;
     descontoRedesSociais?: number | null;
     descontoRedesSociaisExpiraEm?: string | null;
-    appModel?: "modelo-1" | "modelo-2" | "modelo-3";
     salesConfig?: {
       channel?: string;
       salesWhatsapp?: string | null;
       checkoutLink?: string | null;
-      whatsappMessageTemplate?: string | null;
     };
   }
 ): Promise<void> {
@@ -176,7 +160,6 @@ export async function updateLojaPerfil(
         channel: updateData.salesConfig.channel || "whatsapp",
         salesWhatsapp: updateData.salesConfig.salesWhatsapp || null,
         checkoutLink: updateData.salesConfig.checkoutLink || null,
-        whatsappMessageTemplate: updateData.salesConfig.whatsappMessageTemplate || null,
       };
     }
 
@@ -198,133 +181,6 @@ export async function updateLojaPerfil(
 }
 
 /**
- * Registra um favorito de look criativo para um cliente
- */
-export async function registerFavoriteLook(params: {
-  lojistaId: string;
-  customerId: string;
-  customerName?: string | null;
-  compositionId?: string | null;
-  jobId?: string | null;
-  imagemUrl?: string | null;
-  productName?: string | null;
-  productPrice?: number | null;
-}) {
-  const {
-    lojistaId,
-    customerId,
-    customerName,
-    compositionId,
-    jobId,
-    imagemUrl,
-    productName,
-    productPrice,
-  } = params;
-
-  if (!lojistaId || !customerId) {
-    throw new Error("lojistaId e customerId são obrigatórios para favoritos");
-  }
-
-  const ref = clienteFavoritosRef(lojistaId, customerId);
-  await ref.add({
-    lojistaId,
-    customerId,
-    customerName: customerName ?? null,
-    compositionId: compositionId ?? null,
-    jobId: jobId ?? null,
-    imagemUrl: imagemUrl ?? null,
-    productName: productName ?? null,
-    productPrice: typeof productPrice === "number" ? productPrice : null,
-    lookType: "criativo",
-    action: "like", // Garantir que o campo action está presente
-    tipo: "like", // Compatibilidade com código antigo
-    votedType: "like", // Compatibilidade adicional
-    createdAt: new Date(),
-  });
-}
-
-/**
- * Busca os últimos 10 favoritos de um cliente
- */
-export async function fetchFavoriteLooks(params: {
-  lojistaId: string;
-  customerId: string;
-}) {
-  const { lojistaId, customerId } = params;
-  if (!lojistaId || !customerId) return [];
-
-  try {
-    // Tentar buscar com orderBy primeiro
-    let snapshot;
-    try {
-      snapshot = await clienteFavoritosRef(lojistaId, customerId)
-        .orderBy("createdAt", "desc")
-        .limit(10)
-        .get();
-    } catch (orderByError: any) {
-      // Se falhar por falta de índice, buscar todos e ordenar em memória
-      if (orderByError?.code === "failed-precondition") {
-        console.warn("[fetchFavoriteLooks] Índice não encontrado, buscando todos e ordenando em memória");
-        const allSnapshot = await clienteFavoritosRef(lojistaId, customerId)
-          .limit(50) // Buscar mais para garantir que temos os últimos
-          .get();
-        
-        const allDocs: any[] = [];
-        allSnapshot.forEach((doc) => {
-          const data = doc.data();
-          const createdAt = data?.createdAt?.toDate?.() || new Date(data?.createdAt || 0);
-          allDocs.push({ id: doc.id, data, createdAt });
-        });
-        
-        // Ordenar por data em memória
-        allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        
-        // Pegar os 10 mais recentes
-        snapshot = {
-          forEach: (callback: any) => {
-            allDocs.slice(0, 10).forEach((item) => {
-              callback({ id: item.id, data: () => item.data });
-            });
-          },
-          size: Math.min(allDocs.length, 10),
-          empty: allDocs.length === 0,
-        } as any;
-      } else {
-        throw orderByError;
-      }
-    }
-
-    const results: any[] = [];
-    snapshot.forEach((doc: any) => {
-      const data = typeof doc.data === "function" ? doc.data() : doc.data;
-      // Filtrar apenas likes e garantir que tem imagem
-      const isLike = data?.action === "like" || data?.tipo === "like" || data?.votedType === "like" || (!data?.action && !data?.tipo && !data?.votedType);
-      const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
-      
-      if (isLike && hasImage) {
-        results.push({ id: doc.id, ...data });
-      }
-    });
-
-    // Garantir ordenação por data (mais recente primeiro)
-    results.sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-    // Limitar a 10 mais recentes
-    const limitedResults = results.slice(0, 10);
-
-    console.log("[fetchFavoriteLooks] ✅ Favoritos encontrados:", limitedResults.length, "de", results.length, "likes totais");
-    return limitedResults;
-  } catch (error) {
-    console.error("[fetchFavoriteLooks] Erro:", error);
-    return [];
-  }
-}
-
-/**
  * Busca produtos da loja
  */
 export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
@@ -334,20 +190,10 @@ export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
     const snapshot = await lojaRef(lojistaId).collection("produtos").get();
 
     const produtos: ProdutoDoc[] = [];
-    
-    // Função auxiliar para converter Timestamps do Firestore
-    const convertTimestamp = (ts: any): Date => {
-      if (!ts) return new Date();
-      if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
-      if (ts instanceof Date) return ts;
-      if (typeof ts === "string" || typeof ts === "number") return new Date(ts);
-      return new Date();
-    };
-    
     snapshot.forEach((doc) => {
-      const data = doc.data();
+    const data = doc.data();
       produtos.push({
-        id: doc.id,
+      id: doc.id,
         nome: data?.nome || "",
         preco: typeof data?.preco === "number" ? data.preco : 0,
         imagemUrl: data?.imagemUrl || "",
@@ -358,41 +204,9 @@ export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
         obs: data?.obs || data?.observacoes || "",
         estoque: typeof data?.estoque === "number" ? data.estoque : undefined,
         tags: Array.isArray(data?.tags) ? data.tags : [],
-        createdAt: convertTimestamp(data?.createdAt),
-        updatedAt: convertTimestamp(data?.updatedAt),
+        createdAt: data?.createdAt?.toDate?.() || new Date(),
+        updatedAt: data?.updatedAt?.toDate?.() || new Date(),
         arquivado: data?.arquivado === true,
-        // Sincronização de E-commerce
-        ecommerceSync: data?.ecommerceSync
-          ? {
-              platform: data.ecommerceSync.platform || "other",
-              productId: data.ecommerceSync.productId,
-              variantId: data.ecommerceSync.variantId,
-              lastSyncedAt: data.ecommerceSync.lastSyncedAt
-                ? convertTimestamp(data.ecommerceSync.lastSyncedAt)
-                : undefined,
-              autoSync: data.ecommerceSync.autoSync === true,
-              syncPrice: data.ecommerceSync.syncPrice === true,
-              syncStock: data.ecommerceSync.syncStock === true,
-              syncVariations: data.ecommerceSync.syncVariations === true,
-            }
-          : undefined,
-        // Métricas de Qualidade
-        qualityMetrics: data?.qualityMetrics
-          ? {
-              compatibilityScore: typeof data.qualityMetrics.compatibilityScore === "number"
-                ? data.qualityMetrics.compatibilityScore
-                : undefined,
-              conversionRate: typeof data.qualityMetrics.conversionRate === "number"
-                ? data.qualityMetrics.conversionRate
-                : undefined,
-              complaintRate: typeof data.qualityMetrics.complaintRate === "number"
-                ? data.qualityMetrics.complaintRate
-                : undefined,
-              lastCalculatedAt: data.qualityMetrics.lastCalculatedAt
-                ? convertTimestamp(data.qualityMetrics.lastCalculatedAt)
-                : undefined,
-            }
-          : undefined,
       });
     });
 
@@ -612,122 +426,106 @@ export async function fetchClientes(
   includeArchived: boolean = false
 ): Promise<ClienteDoc[]> {
   try {
-    if (!lojistaId) {
-      console.warn("[fetchClientes] lojistaId não fornecido");
-      return [];
-    }
-
-    console.log("[fetchClientes] Buscando clientes:", { lojistaId, limit, includeArchived });
+    if (!lojistaId) return [];
 
     let snapshot;
-    
-    // Tentar buscar com orderBy primeiro, mas ter fallback se falhar
-    try {
-      if (includeArchived) {
-        snapshot = await lojaRef(lojistaId)
-          .collection("clientes")
-          .orderBy("totalComposicoes", "desc")
-          .limit(limit)
-          .get();
-      } else {
-        // Nota: Firestore não permite orderBy após where com !=, então buscamos todos e filtramos
-        snapshot = await lojaRef(lojistaId)
-          .collection("clientes")
-          .orderBy("totalComposicoes", "desc")
-          .limit(limit * 2) // Buscar mais para compensar filtro
-          .get();
-      }
-      console.log("[fetchClientes] Query com orderBy bem-sucedida, documentos encontrados:", snapshot.size);
-    } catch (orderByError: any) {
-      // Se falhar por falta de índice ou campo, buscar sem orderBy
-      if (orderByError?.code === "failed-precondition" || orderByError?.code === "invalid-argument") {
-        console.warn("[fetchClientes] Índice não encontrado ou campo inválido, buscando sem orderBy:", orderByError.message);
-        snapshot = await lojaRef(lojistaId)
-          .collection("clientes")
-          .limit(limit * 3) // Buscar mais para garantir que temos todos
-          .get();
-        console.log("[fetchClientes] Query sem orderBy bem-sucedida, documentos encontrados:", snapshot.size);
-      } else {
-        console.error("[fetchClientes] Erro inesperado na query:", orderByError);
-        throw orderByError;
-      }
+    if (includeArchived) {
+      snapshot = await lojaRef(lojistaId)
+        .collection("clientes")
+        .orderBy("totalComposicoes", "desc")
+        .limit(limit)
+        .get();
+    } else {
+      // Nota: Firestore não permite orderBy após where com !=, então buscamos todos e filtramos
+      snapshot = await lojaRef(lojistaId)
+        .collection("clientes")
+        .orderBy("totalComposicoes", "desc")
+        .limit(limit * 2) // Buscar mais para compensar filtro
+        .get();
     }
 
-    // Função auxiliar para converter Timestamps do Firestore
-    const convertTimestamp = (ts: any): Date => {
-      if (!ts) return new Date();
-      if (ts.toDate && typeof ts.toDate === "function") return ts.toDate();
-      if (ts instanceof Date) return ts;
-      if (typeof ts === "string" || typeof ts === "number") return new Date(ts);
-      return new Date();
-    };
-
     const clientes: ClienteDoc[] = [];
-    snapshot.forEach((doc) => {
+    
+    // Processar documentos de forma assíncrona
+    // Se snapshot tiver docs, usar diretamente, senão usar forEach
+    const docs = (snapshot as any).docs || [];
+    
+    if (docs.length > 0) {
+      // Usar for...of para permitir await
+      for (const doc of docs) {
       const data = doc.data();
       
       // Filtrar arquivados se necessário
       if (!includeArchived && data?.arquivado === true) {
-        return;
+        continue;
+      }
+
+      // Contar composições reais do cliente se totalComposicoes não estiver atualizado
+      let totalComposicoes = typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0;
+      
+      // Se totalComposicoes for 0 ou não existir, contar composições reais
+      if (totalComposicoes === 0 || !data?.totalComposicoes) {
+        try {
+          const composicoesSnapshot = await lojaRef(lojistaId)
+            .collection("composicoes")
+            .where("customerId", "==", doc.id)
+            .get();
+          totalComposicoes = composicoesSnapshot.size;
+          
+          // Atualizar o campo no Firestore se necessário
+          if (totalComposicoes > 0 && (!data?.totalComposicoes || data.totalComposicoes === 0)) {
+            await lojaRef(lojistaId).collection("clientes").doc(doc.id).update({
+              totalComposicoes,
+              updatedAt: new Date(),
+            });
+          }
+        } catch (error) {
+          // Ignorar erros de contagem
+          console.warn(`[fetchClientes] Erro ao contar composições para ${doc.id}:`, error);
+        }
       }
 
       clientes.push({
         id: doc.id,
         nome: data?.nome || "",
         whatsapp: data?.whatsapp || "",
-        email: data?.email || "",
-        totalComposicoes: typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0,
-        createdAt: convertTimestamp(data?.createdAt),
-        updatedAt: convertTimestamp(data?.updatedAt),
+        totalComposicoes,
+        createdAt: data?.createdAt?.toDate?.() || new Date(),
+        updatedAt: data?.updatedAt?.toDate?.() || new Date(),
         arquivado: data?.arquivado === true,
-        // Segmentação Automática
-        tags: Array.isArray(data?.tags) ? data.tags : undefined,
-        segmentacao: data?.segmentacao
-          ? {
-              tipo: data.segmentacao.tipo,
-              ultimaAtualizacao: data.segmentacao.ultimaAtualizacao
-                ? convertTimestamp(data.segmentacao.ultimaAtualizacao)
-                : undefined,
-            }
-          : undefined,
-        // Histórico de Tentativas
-        historicoTentativas: data?.historicoTentativas
-          ? {
-              produtosExperimentados: Array.isArray(data.historicoTentativas.produtosExperimentados)
-                ? data.historicoTentativas.produtosExperimentados.map((prod: any) => ({
-                    produtoId: prod.produtoId || "",
-                    produtoNome: prod.produtoNome || "",
-                    categoria: prod.categoria || "",
-                    dataTentativa: convertTimestamp(prod.dataTentativa),
-                    liked: prod.liked === true,
-                    compartilhado: prod.compartilhado === true,
-                    checkout: prod.checkout === true,
-                  }))
-                : [],
-              ultimaAtualizacao: data.historicoTentativas.ultimaAtualizacao
-                ? convertTimestamp(data.historicoTentativas.ultimaAtualizacao)
-                : undefined,
-            }
-          : undefined,
+        referidoPor: data?.referidoPor || null,
       });
-    });
+      }
+    } else {
+      // Fallback: usar forEach se não tiver docs (compatibilidade)
+      snapshot.forEach((doc: any) => {
+        const data = typeof doc.data === "function" ? doc.data() : doc.data;
+        
+        // Filtrar arquivados se necessário
+        if (!includeArchived && data?.arquivado === true) {
+          return;
+        }
 
-    console.log("[fetchClientes] Clientes processados (antes de filtrar arquivados):", clientes.length);
+        clientes.push({
+          id: doc.id,
+          nome: data?.nome || "",
+          whatsapp: data?.whatsapp || "",
+          totalComposicoes: typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0,
+          createdAt: data?.createdAt?.toDate?.() || new Date(),
+          updatedAt: data?.updatedAt?.toDate?.() || new Date(),
+          arquivado: data?.arquivado === true,
+          referidoPor: data?.referidoPor || null,
+        });
+      });
+    }
 
     // Ordenar e limitar após filtrar
-    // Ordenar por totalComposicoes (desc) e depois por createdAt (desc) para clientes novos aparecerem
-    clientes.sort((a, b) => {
-      if (b.totalComposicoes !== a.totalComposicoes) {
-        return b.totalComposicoes - a.totalComposicoes;
-      }
-      // Se totalComposicoes for igual, ordenar por data de criação (mais recente primeiro)
-      return b.createdAt.getTime() - a.createdAt.getTime();
-    });
+    if (!includeArchived) {
+      clientes.sort((a, b) => b.totalComposicoes - a.totalComposicoes);
+      return clientes.slice(0, limit);
+    }
 
-    const result = !includeArchived ? clientes.slice(0, limit) : clientes;
-    console.log("[fetchClientes] ✅ Retornando clientes:", result.length);
-    
-    return result;
+    return clientes;
   } catch (error) {
     console.error("[fetchClientes] Erro:", error);
     return [];
@@ -737,44 +535,6 @@ export async function fetchClientes(
 /**
  * Cria um novo cliente
  */
-/**
- * Busca cliente por WhatsApp
- */
-export async function fetchClienteByWhatsapp(
-  lojistaId: string,
-  whatsapp: string
-): Promise<ClienteDoc | null> {
-  try {
-    if (!lojistaId || !whatsapp) return null;
-
-    const cleanWhatsapp = whatsapp.replace(/\D/g, "");
-    const snapshot = await lojaRef(lojistaId)
-      .collection("clientes")
-      .where("whatsapp", "==", cleanWhatsapp)
-      .limit(1)
-      .get();
-
-    if (snapshot.empty) return null;
-
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-    
-    return {
-      id: doc.id,
-      nome: data?.nome || "",
-      whatsapp: data?.whatsapp || "",
-      email: data?.email || "",
-      totalComposicoes: data?.totalComposicoes || 0,
-      createdAt: data?.createdAt?.toDate?.() || new Date(),
-      updatedAt: data?.updatedAt?.toDate?.() || new Date(),
-      arquivado: data?.arquivado === true,
-    };
-  } catch (error) {
-    console.error("[fetchClienteByWhatsapp] Erro:", error);
-    return null;
-  }
-}
-
 export async function createCliente(
   lojistaId: string,
   clienteData: {
@@ -782,7 +542,7 @@ export async function createCliente(
     whatsapp?: string;
     email?: string;
     observacoes?: string;
-    passwordHash?: string; // Hash da senha (já deve vir hasheado)
+    referidoPor?: string | null; // ID do cliente que compartilhou o link
   }
 ): Promise<string> {
   try {
@@ -794,54 +554,103 @@ export async function createCliente(
       throw new Error("Nome é obrigatório");
     }
 
-    // Verificar se cliente já existe pelo WhatsApp
-    if (clienteData.whatsapp) {
-      const existing = await fetchClienteByWhatsapp(lojistaId, clienteData.whatsapp);
-      if (existing) {
-        // Se cliente existe e tem senha sendo atualizada, atualizar senha
-        if (clienteData.passwordHash) {
-          const clienteRef = lojaRef(lojistaId).collection("clientes").doc(existing.id);
-          await clienteRef.update({
-            passwordHash: clienteData.passwordHash,
-            updatedAt: new Date(),
-          });
-          console.log("[createCliente] Senha atualizada para cliente existente:", existing.id);
-        }
-        console.log("[createCliente] Cliente já existe, retornando ID existente:", existing.id);
-        return existing.id;
-      }
-    }
-
     const newCliente: any = {
       nome: clienteData.nome.trim(),
-      whatsapp: clienteData.whatsapp?.replace(/\D/g, "") || "",
+      whatsapp: clienteData.whatsapp?.trim() || "",
       email: clienteData.email?.trim() || "",
       obs: clienteData.observacoes?.trim() || "",
-      passwordHash: clienteData.passwordHash || null, // Senha hash (pode ser null se não tiver)
       totalComposicoes: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
       arquivado: false,
     };
 
-    console.log("[createCliente] Criando cliente:", {
-      lojistaId,
-      nome: newCliente.nome,
-      whatsapp: newCliente.whatsapp,
-      temPasswordHash: !!newCliente.passwordHash,
-    });
+    // Adicionar referidoPor se fornecido
+    if (clienteData.referidoPor) {
+      newCliente.referidoPor = clienteData.referidoPor;
+    }
 
     const docRef = await lojaRef(lojistaId).collection("clientes").add(newCliente);
-    console.log("[createCliente] ✅ Cliente criado com sucesso:", {
-      clienteId: docRef.id,
-      lojistaId,
-      nome: newCliente.nome,
-      whatsapp: newCliente.whatsapp,
-    });
+    console.log("[createCliente] Cliente criado com sucesso:", docRef.id, clienteData.referidoPor ? `referido por ${clienteData.referidoPor}` : "");
     return docRef.id;
   } catch (error) {
     console.error("[createCliente] Erro:", error);
     throw error;
+  }
+}
+
+/**
+ * Busca clientes referidos por um cliente específico
+ */
+export async function fetchClientesReferidos(
+  lojistaId: string,
+  clienteId: string
+): Promise<ClienteDoc[]> {
+  try {
+    if (!lojistaId || !clienteId) return [];
+
+    let snapshot;
+    try {
+      snapshot = await lojaRef(lojistaId)
+        .collection("clientes")
+        .where("referidoPor", "==", clienteId)
+        .orderBy("createdAt", "desc")
+        .get();
+    } catch (error: any) {
+      // Se falhar por falta de índice, buscar todos e filtrar em memória
+      if (error?.code === "failed-precondition") {
+        console.warn("[fetchClientesReferidos] Índice não encontrado, buscando todos e filtrando em memória");
+        const allSnapshot = await lojaRef(lojistaId)
+          .collection("clientes")
+          .get();
+        const allDocs: any[] = [];
+        allSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data?.referidoPor === clienteId) {
+            allDocs.push({ id: doc.id, data });
+          }
+        });
+        // Ordenar por data em memória
+        allDocs.sort((a, b) => {
+          const dateA = a.data.createdAt?.toDate?.() || new Date(a.data.createdAt || 0);
+          const dateB = b.data.createdAt?.toDate?.() || new Date(b.data.createdAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        snapshot = {
+          forEach: (callback: any) => {
+            allDocs.forEach((item) => {
+              callback({
+                id: item.id,
+                data: () => item.data,
+                exists: true,
+              });
+            });
+          },
+        } as any;
+      } else {
+        throw error;
+      }
+    }
+
+    const clientes: ClienteDoc[] = [];
+    snapshot.forEach((doc: any) => {
+      const data = typeof doc.data === "function" ? doc.data() : doc.data;
+      clientes.push({
+        id: doc.id,
+        nome: data.nome || "",
+        whatsapp: data.whatsapp || "",
+        totalComposicoes: typeof data.totalComposicoes === "number" ? data.totalComposicoes : 0,
+        createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt || 0),
+        updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt || 0),
+        arquivado: data.arquivado === true,
+        referidoPor: data.referidoPor || null,
+      });
+    });
+
+    return clientes;
+  } catch (error) {
+    console.error("[fetchClientesReferidos] Erro:", error);
+    return [];
   }
 }
 
@@ -964,206 +773,6 @@ export async function fetchLojaMetrics(lojistaId: string): Promise<LojaMetrics |
   } catch (error) {
     console.error("[fetchLojaMetrics] Erro:", error);
     return null;
-  }
-}
-
-/**
- * Calcula ROI e custo por Try-On
- */
-export async function calculateROIMetrics(lojistaId: string): Promise<{
-  totalCostUSD: number;
-  totalCostBRL: number;
-  totalTryOns: number;
-  costPerTryOn: number;
-  estimatedRevenue: number; // Receita estimada baseada em checkouts
-  roi: number; // ROI em porcentagem
-  roiMultiplier: number; // Multiplicador de ROI (receita/custo)
-}> {
-  try {
-    const { getTotalAPICost } = await import("../ai-services/cost-logger");
-    const totalCostUSD = await getTotalAPICost(lojistaId, "USD");
-    // Tentar buscar BRL diretamente, se não existir, converter de USD
-    let totalCostBRL = await getTotalAPICost(lojistaId, "BRL");
-    if (totalCostBRL === 0 && totalCostUSD > 0) {
-      // Converter USD para BRL (taxa aproximada de 5.0)
-      const usdToBrl = 5.0;
-      totalCostBRL = totalCostUSD * usdToBrl;
-    }
-    
-    // Buscar total de composições (Try-Ons)
-    const composicoes = await fetchComposicoesRecentes(lojistaId, 10000); // Buscar todas
-    const totalTryOns = composicoes.length;
-    
-    // Calcular custo médio por Try-On
-    const costPerTryOn = totalTryOns > 0 ? totalCostBRL / totalTryOns : 0;
-    
-    // Estimar receita baseada em checkouts (assumindo valor médio de R$ 150 por checkout)
-    const metrics = await fetchLojaMetrics(lojistaId);
-    const checkoutCount = metrics?.checkoutTotal || 0;
-    const averageOrderValue = 150; // Valor médio por pedido em BRL
-    const estimatedRevenue = checkoutCount * averageOrderValue;
-    
-    // Calcular ROI
-    const roi = totalCostBRL > 0 ? ((estimatedRevenue - totalCostBRL) / totalCostBRL) * 100 : 0;
-    const roiMultiplier = totalCostBRL > 0 ? estimatedRevenue / totalCostBRL : 0;
-    
-    return {
-      totalCostUSD,
-      totalCostBRL,
-      totalTryOns,
-      costPerTryOn,
-      estimatedRevenue,
-      roi,
-      roiMultiplier,
-    };
-  } catch (error) {
-    console.error("[calculateROIMetrics] Erro:", error);
-    return {
-      totalCostUSD: 0,
-      totalCostBRL: 0,
-      totalTryOns: 0,
-      costPerTryOn: 0,
-      estimatedRevenue: 0,
-      roi: 0,
-      roiMultiplier: 0,
-    };
-  }
-}
-
-/**
- * Calcula funil de conversão
- */
-export async function calculateConversionFunnel(lojistaId: string): Promise<{
-  visitantes: number;
-  tryOns: number;
-  favoritos: number;
-  compartilhamentos: number;
-  compras: number;
-  conversionRates: {
-    tryOnToFavorito: number;
-    favoritoToCompartilhamento: number;
-    compartilhamentoToCompra: number;
-    tryOnToCompra: number;
-  };
-}> {
-  try {
-    const metrics = await fetchLojaMetrics(lojistaId);
-    const composicoes = await fetchComposicoesRecentes(lojistaId, 10000);
-    
-    // Contar visitantes únicos (clientes que geraram composições)
-    const uniqueCustomers = new Set(
-      composicoes
-        .map((c) => c.customer?.id)
-        .filter((id): id is string => typeof id === "string" && id.length > 0)
-    );
-    const visitantes = uniqueCustomers.size;
-    
-    const tryOns = composicoes.length;
-    const favoritos = metrics?.likedTotal || 0;
-    const compartilhamentos = metrics?.sharesTotal || 0;
-    const compras = metrics?.checkoutTotal || 0;
-    
-    // Calcular taxas de conversão
-    const tryOnToFavorito = tryOns > 0 ? (favoritos / tryOns) * 100 : 0;
-    const favoritoToCompartilhamento = favoritos > 0 ? (compartilhamentos / favoritos) * 100 : 0;
-    const compartilhamentoToCompra = compartilhamentos > 0 ? (compras / compartilhamentos) * 100 : 0;
-    const tryOnToCompra = tryOns > 0 ? (compras / tryOns) * 100 : 0;
-    
-    return {
-      visitantes,
-      tryOns,
-      favoritos,
-      compartilhamentos,
-      compras,
-      conversionRates: {
-        tryOnToFavorito,
-        favoritoToCompartilhamento,
-        compartilhamentoToCompra,
-        tryOnToCompra,
-      },
-    };
-  } catch (error) {
-    console.error("[calculateConversionFunnel] Erro:", error);
-    return {
-      visitantes: 0,
-      tryOns: 0,
-      favoritos: 0,
-      compartilhamentos: 0,
-      compras: 0,
-      conversionRates: {
-        tryOnToFavorito: 0,
-        favoritoToCompartilhamento: 0,
-        compartilhamentoToCompra: 0,
-        tryOnToCompra: 0,
-      },
-    };
-  }
-}
-
-/**
- * Busca produtos com estoque baixo que são mais experimentados
- */
-export async function getLowStockAlerts(lojistaId: string, lowStockThreshold: number = 10): Promise<Array<{
-  produtoId: string;
-  produtoNome: string;
-  estoqueAtual: number;
-  experimentacoes: number;
-  prioridade: "alta" | "media" | "baixa";
-}>> {
-  try {
-    const produtos = await fetchProdutos(lojistaId);
-    const composicoes = await fetchComposicoesRecentes(lojistaId, 10000);
-    
-    // Contar experimentações por produto
-    const experimentacoesPorProduto: Record<string, number> = {};
-    composicoes.forEach((comp) => {
-      comp.products.forEach((produto) => {
-        if (produto.id) {
-          experimentacoesPorProduto[produto.id] = 
-            (experimentacoesPorProduto[produto.id] || 0) + 1;
-        }
-      });
-    });
-    
-    // Filtrar produtos com estoque baixo e ordenar por experimentações
-    const alerts = produtos
-      .filter((produto) => {
-        const estoque = produto.estoque ?? Infinity;
-        return estoque <= lowStockThreshold && estoque >= 0;
-      })
-      .map((produto) => {
-        const experimentacoes = experimentacoesPorProduto[produto.id] || 0;
-        const estoque = produto.estoque ?? 0;
-        
-        // Determinar prioridade baseada em experimentações e estoque
-        let prioridade: "alta" | "media" | "baixa" = "baixa";
-        if (experimentacoes > 20 && estoque <= 5) {
-          prioridade = "alta";
-        } else if (experimentacoes > 10 && estoque <= 7) {
-          prioridade = "media";
-        }
-        
-        return {
-          produtoId: produto.id,
-          produtoNome: produto.nome,
-          estoqueAtual: estoque,
-          experimentacoes,
-          prioridade,
-        };
-      })
-      .sort((a, b) => {
-        // Ordenar por prioridade e depois por experimentações
-        const priorityOrder = { alta: 3, media: 2, baixa: 1 };
-        if (priorityOrder[a.prioridade] !== priorityOrder[b.prioridade]) {
-          return priorityOrder[b.prioridade] - priorityOrder[a.prioridade];
-        }
-        return b.experimentacoes - a.experimentacoes;
-      });
-    
-    return alerts;
-  } catch (error) {
-    console.error("[getLowStockAlerts] Erro:", error);
-    return [];
   }
 }
 

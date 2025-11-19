@@ -6,6 +6,7 @@ import {
   fetchComposicoesRecentes,
   fetchLojaMetrics,
 } from "../firestore/server";
+import { getAdminDb } from "../firebaseAdmin";
 import type { ProdutoDoc, ClienteDoc, ComposicaoDoc, LojaMetrics } from "../firestore/types";
 import { getAPIUsageStats } from "../ai-services/cost-logger";
 import type { AIProvider } from "../ai-services/types";
@@ -273,7 +274,7 @@ export async function getDashboardData(
     const [perfil, produtos, clientes, composicoes, metrics] = await Promise.all([
       fetchLojaPerfil(lojistaId),
       fetchProdutos(lojistaId),
-      fetchClientes(lojistaId, 10),
+      fetchClientes(lojistaId, 1000), // Buscar mais clientes para calcular novos do dia
       fetchComposicoesRecentes(lojistaId, 50),
       fetchLojaMetrics(lojistaId),
     ]);
@@ -305,11 +306,102 @@ export async function getDashboardData(
     const experimentMonth = countInRange(composicoes, 30);
 
     const computedLiked = composicoes.filter((item) => Boolean(item.liked)).length;
-    const computedShares = composicoes.reduce(
-      (total, item) => total + (typeof item.shares === "number" ? item.shares : 0),
-      0
-    );
+    // Compartilhamentos válidos: contar apenas clientes que se cadastraram através de links de compartilhamento
+    const computedShares = clientes.filter((cliente) => cliente.referidoPor).length;
     const computedAnonymous = composicoes.filter((item) => Boolean(item.isAnonymous)).length;
+    
+    // Calcular métricas do dia
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(today);
+    todayEnd.setHours(23, 59, 59, 999);
+    
+    // Novos clientes do dia
+    const novosClientesDia = clientes.filter((cliente) => {
+      const createdAt = cliente.createdAt instanceof Date ? cliente.createdAt : new Date(cliente.createdAt);
+      return createdAt >= today && createdAt <= todayEnd;
+    }).length;
+    const totalClientes = clientes.length;
+    
+    // Buscar todos os favoritos para calcular likes e dislikes
+    const allFavoritos: any[] = [];
+    try {
+      const db = getAdminDb();
+      const clientesIds = new Set(clientes.map(c => c.id));
+      for (const clienteId of clientesIds) {
+        try {
+          const favoritosRef = db
+            .collection("lojas")
+            .doc(lojistaId)
+            .collection("clientes")
+            .doc(clienteId)
+            .collection("favoritos");
+          const favoritosSnapshot = await favoritosRef.get();
+          favoritosSnapshot.forEach((doc) => {
+            const data = doc.data();
+            allFavoritos.push({
+              action: data?.action || data?.tipo || data?.votedType || "like",
+              createdAt: data?.createdAt?.toDate?.() || new Date(data?.createdAt || 0),
+            });
+          });
+        } catch (error) {
+          // Ignorar erros de clientes sem favoritos
+        }
+      }
+    } catch (error) {
+      console.warn("[getDashboardData] Erro ao buscar favoritos:", error);
+    }
+    
+    // Calcular likes e dislikes por período
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - 7);
+    const monthStart = new Date(today);
+    monthStart.setDate(today.getDate() - 30);
+    
+    const likesDia = allFavoritos.filter((fav) => {
+      const isLike = fav.action === "like";
+      if (!isLike) return false;
+      return fav.createdAt >= today && fav.createdAt <= todayEnd;
+    }).length;
+    
+    const likesSemana = allFavoritos.filter((fav) => {
+      const isLike = fav.action === "like";
+      if (!isLike) return false;
+      return fav.createdAt >= weekStart;
+    }).length;
+    
+    const likesMes = allFavoritos.filter((fav) => {
+      const isLike = fav.action === "like";
+      if (!isLike) return false;
+      return fav.createdAt >= monthStart;
+    }).length;
+    
+    const dislikesDia = allFavoritos.filter((fav) => {
+      const isDislike = fav.action === "dislike";
+      if (!isDislike) return false;
+      return fav.createdAt >= today && fav.createdAt <= todayEnd;
+    }).length;
+    
+    const dislikesSemana = allFavoritos.filter((fav) => {
+      const isDislike = fav.action === "dislike";
+      if (!isDislike) return false;
+      return fav.createdAt >= weekStart;
+    }).length;
+    
+    const dislikesMes = allFavoritos.filter((fav) => {
+      const isDislike = fav.action === "dislike";
+      if (!isDislike) return false;
+      return fav.createdAt >= monthStart;
+    }).length;
+    
+    const totalDislikes = allFavoritos.filter((fav) => fav.action === "dislike").length;
+    
+    // Compartilhamentos do dia: contar apenas clientes que se cadastraram hoje através de links
+    const sharesDia = clientes.filter((cliente) => {
+      if (!cliente.referidoPor) return false;
+      const createdAt = cliente.createdAt instanceof Date ? cliente.createdAt : new Date(cliente.createdAt);
+      return createdAt >= today && createdAt <= todayEnd;
+    }).length;
     const totalCostBRL = composicoes.reduce((sum, item) => {
       const compositionCost =
         typeof (item as any).totalCostBRL === "number"
@@ -404,6 +496,17 @@ export async function getDashboardData(
         conversionLikeRate:
           totalLiked > 0 ? (totalCheckouts / totalLiked) * 100 : 0,
         lastActionLabel: lastSyncLabel,
+        novosClientesDia,
+        totalClientes,
+        likesDia,
+        sharesDia,
+        planoLimite: null, // TODO: Buscar do perfil do lojista
+        likesSemana,
+        likesMes,
+        dislikesDia,
+        dislikesSemana,
+        dislikesMes,
+        totalDislikes,
       },
       experimentsTrend,
       costTrend,

@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Heart, Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles } from "lucide-react";
+import { Heart, Share2, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COMPOSICOES_TIMEFRAMES } from "./constants";
 
@@ -63,9 +63,6 @@ type ActiveFilters = {
   liked: boolean;
   shared: boolean;
   anonymous: boolean;
-  highConversion?: boolean;
-  minLikes?: number;
-  minShares?: number;
 };
 
 function formatRelative(date: Date) {
@@ -191,25 +188,9 @@ export function ComposicoesGallery({
   const [shareHelperMessage, setShareHelperMessage] = useState<string | null>(
     null
   );
-  const [selectedComposicoes, setSelectedComposicoes] = useState<Set<string>>(
-    new Set()
-  );
-  const [bulkPromotionModal, setBulkPromotionModal] = useState<{
-    composicaoIds: string[];
-    mensagemTemplate: string;
-  } | null>(null);
-  const [bulkPromotionSubmitting, setBulkPromotionSubmitting] = useState(false);
-  const [bulkPromotionError, setBulkPromotionError] = useState<string | null>(null);
-  const [generatingVariations, setGeneratingVariations] = useState<string | null>(null);
-  const [variationsModal, setVariationsModal] = useState<{
-    composition: ComposicaoItem;
-    variations: Array<{ id: string; imageUrl: string; style: string; background: string }>;
-  } | null>(null);
 
   useEffect(() => {
     setItems(composicoes);
-    // Limpar seleção quando composições mudarem
-    setSelectedComposicoes(new Set());
   }, [composicoes]);
 
   const handleFilterChange = (next: Partial<ActiveFilters>) => {
@@ -253,24 +234,6 @@ export function ComposicoesGallery({
       params.set("anonymous", "true");
     } else {
       params.delete("anonymous");
-    }
-
-    if (merged.highConversion) {
-      params.set("highConversion", "true");
-    } else {
-      params.delete("highConversion");
-    }
-
-    if (merged.minLikes && merged.minLikes > 0) {
-      params.set("minLikes", merged.minLikes.toString());
-    } else {
-      params.delete("minLikes");
-    }
-
-    if (merged.minShares && merged.minShares > 0) {
-      params.set("minShares", merged.minShares.toString());
-    } else {
-      params.delete("minShares");
     }
 
     const query = params.toString();
@@ -496,143 +459,9 @@ export function ComposicoesGallery({
     }
   };
 
-  const handleToggleSelection = (composicaoId: string) => {
-    setSelectedComposicoes((prev) => {
-      const next = new Set(prev);
-      if (next.has(composicaoId)) {
-        next.delete(composicaoId);
-      } else {
-        next.add(composicaoId);
-      }
-      return next;
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (selectedComposicoes.size === items.length) {
-      setSelectedComposicoes(new Set());
-    } else {
-      setSelectedComposicoes(new Set(items.map((item) => item.id)));
-    }
-  };
-
-  const handleOpenBulkPromotion = () => {
-    if (selectedComposicoes.size === 0) {
-      setFeedback({
-        type: "error",
-        message: "Selecione pelo menos uma composição para enviar promoção.",
-      });
-      return;
-    }
-
-    const mensagemTemplate =
-      whatsappIntegration?.messageTemplate ||
-      "Olá {{cliente}}! Temos uma promoção especial para você! Confira o look {{produto}} que criamos para você.";
-
-    setBulkPromotionModal({
-      composicaoIds: Array.from(selectedComposicoes),
-      mensagemTemplate,
-    });
-    setBulkPromotionError(null);
-  };
-
-  const handleBulkPromotionSubmit = async () => {
-    if (!bulkPromotionModal) return;
-
-    setBulkPromotionSubmitting(true);
-    setBulkPromotionError(null);
-
-    try {
-      const response = await fetch("/api/lojista/composicoes/bulk-promotion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          composicaoIds: bulkPromotionModal.composicaoIds,
-          mensagemTemplate: bulkPromotionModal.mensagemTemplate,
-        }),
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || "Erro ao preparar envio massivo");
-      }
-
-      const data = await response.json();
-      setFeedback({
-        type: "success",
-        message: `${data.totalClientes} mensagens preparadas para envio!`,
-      });
-      setBulkPromotionModal(null);
-      setSelectedComposicoes(new Set());
-    } catch (error) {
-      console.error("[ComposicoesGallery] erro ao enviar promoção massiva:", error);
-      setBulkPromotionError(
-        error instanceof Error ? error.message : "Erro ao enviar promoção massiva"
-      );
-    } finally {
-      setBulkPromotionSubmitting(false);
-    }
-  };
-
-  const handleGenerateVariations = async (composition: ComposicaoItem) => {
-    setGeneratingVariations(composition.id);
-    setFeedback(null);
-
-    try {
-      // Buscar dados da composição para obter productUrls
-      const response = await fetch(`/api/lojista/composicoes/${composition.id}`);
-      if (!response.ok) {
-        throw new Error("Erro ao buscar dados da composição");
-      }
-
-      const compData = await response.json();
-      const baseImageUrl = composition.previewUrl || compData.previewUrl;
-      const productUrls = compData.productImageUrls || [compData.productImageUrl].filter(Boolean);
-
-      if (!baseImageUrl || productUrls.length === 0) {
-        throw new Error("Dados insuficientes para gerar variações");
-      }
-
-      const variationsResponse = await fetch("/api/lojista/composicoes/generate-variations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          baseImageUrl,
-          productUrls,
-          compositionId: composition.id,
-          variationCount: 5,
-        }),
-      });
-
-      if (!variationsResponse.ok) {
-        const body = await variationsResponse.json().catch(() => ({}));
-        throw new Error(body.error || "Erro ao gerar variações");
-      }
-
-      const variationsData = await variationsResponse.json();
-      setVariationsModal({
-        composition,
-        variations: variationsData.variations || [],
-      });
-
-      setFeedback({
-        type: "success",
-        message: `${variationsData.variations?.length || 0} variações geradas com sucesso!`,
-      });
-    } catch (error) {
-      console.error("[ComposicoesGallery] erro ao gerar variações:", error);
-      setFeedback({
-        type: "error",
-        message: error instanceof Error ? error.message : "Erro ao gerar variações",
-      });
-    } finally {
-      setGeneratingVariations(null);
-    }
-  };
-
   const emptyState = items.length === 0;
   const resultsSummaryLabel =
-    filters.liked || filters.shared || filters.anonymous || filters.highConversion
+    filters.liked || filters.shared || filters.anonymous
       ? "resultado(s) filtrado(s)"
       : "composição(ões) recente(s)";
 
@@ -650,31 +479,7 @@ export function ComposicoesGallery({
           {feedback.message}
         </div>
       ) : null}
-      {/* Barra de ações para seleção múltipla */}
-      {selectedComposicoes.size > 0 && (
-        <div className="flex items-center justify-between rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-indigo-200">
-              {selectedComposicoes.size} composição(ões) selecionada(s)
-            </span>
-            <button
-              onClick={handleSelectAll}
-              className="text-xs text-indigo-300 hover:text-indigo-200 underline"
-            >
-              {selectedComposicoes.size === items.length ? "Desmarcar todas" : "Selecionar todas"}
-            </button>
-          </div>
-          <button
-            onClick={handleOpenBulkPromotion}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
-          >
-            <Send className="h-4 w-4" />
-            Enviar Promoção Massiva
-          </button>
-        </div>
-      )}
-
-      <form className="grid gap-3 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4 text-xs text-zinc-400 md:grid-cols-7">
+      <form className="grid gap-3 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4 text-xs text-zinc-400 md:grid-cols-6">
         <label className="flex flex-col gap-1">
           <span>Cliente</span>
           <select
@@ -763,17 +568,6 @@ export function ComposicoesGallery({
           />
           Apenas anônimas
         </label>
-        <label className="mt-5 inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={filters.highConversion || false}
-            onChange={(event) =>
-              handleFilterChange({ highConversion: event.target.checked })
-            }
-            className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900 accent-purple-500"
-          />
-          Alta conversão
-        </label>
       </form>
 
       <div className="text-xs text-zinc-500">
@@ -785,8 +579,7 @@ export function ComposicoesGallery({
           Nenhuma composição encontrada com os filtros selecionados.
         </div>
       ) : (
-        <div className="max-h-[900px] overflow-y-auto pr-1">
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item, index) => {
             const createdAt = new Date(item.createdAtISO);
             return (
@@ -796,28 +589,9 @@ export function ComposicoesGallery({
                   "group relative overflow-hidden rounded-xl border bg-zinc-900/50 shadow-[0_25px_60px_-35px_rgba(79,70,229,0.65)] transition hover:-translate-y-1",
                   item.liked
                     ? "border-rose-500/40 shadow-[0_25px_60px_-35px_rgba(244,63,94,0.65)] hover:border-rose-400/60"
-                    : "border-zinc-800/60 hover:border-indigo-400/60",
-                  selectedComposicoes.has(item.id) && "ring-2 ring-indigo-500 ring-offset-2 ring-offset-zinc-950"
+                    : "border-zinc-800/60 hover:border-indigo-400/60"
                 )}
               >
-                {/* Checkbox de seleção */}
-                <div className="absolute left-4 top-4 z-20">
-                  <button
-                    onClick={() => handleToggleSelection(item.id)}
-                    className={cn(
-                      "rounded-full border-2 bg-zinc-950/80 p-1.5 backdrop-blur-sm transition",
-                      selectedComposicoes.has(item.id)
-                        ? "border-indigo-400 bg-indigo-500/30"
-                        : "border-zinc-600 hover:border-indigo-400"
-                    )}
-                  >
-                    {selectedComposicoes.has(item.id) ? (
-                      <CheckSquare className="h-4 w-4 text-indigo-200" />
-                    ) : (
-                      <Square className="h-4 w-4 text-zinc-400" />
-                    )}
-                  </button>
-                </div>
                 <div
                   className="relative h-56 w-full overflow-hidden"
                   style={{
@@ -830,14 +604,11 @@ export function ComposicoesGallery({
                     <img
                       src={item.previewUrl}
                       alt={`Composição ${item.id}`}
-                      className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
                     />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-70" />
-                  <div className={cn(
-                    "absolute inline-flex items-center gap-2 rounded-full bg-indigo-500/25 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-100",
-                    selectedComposicoes.has(item.id) ? "left-14 top-4" : "left-4 top-4"
-                  )}>
+                  <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-indigo-500/25 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-100">
                     #{String(index + 1).padStart(2, "0")}
                   </div>
                   {item.liked ? (
@@ -873,19 +644,30 @@ export function ComposicoesGallery({
                     </span>
                   </div>
                   
-                  {/* Informações de tempo */}
-                  {item.processingTime !== null && item.processingTime !== undefined ? (
-                    <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-400">Tempo:</span>
-                        <span className="font-semibold text-indigo-400">
-                          {item.processingTime < 1000 
-                            ? `${item.processingTime}ms`
-                            : item.processingTime < 60000
-                            ? `${(item.processingTime / 1000).toFixed(1)}s`
-                            : `${(item.processingTime / 60000).toFixed(1)}min`}
-                        </span>
-                      </div>
+                  {/* Informações de custo e tempo */}
+                  {(item.totalCostBRL !== null && item.totalCostBRL !== undefined) || 
+                   (item.processingTime !== null && item.processingTime !== undefined) ? (
+                    <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3 space-y-2">
+                      {item.totalCostBRL !== null && item.totalCostBRL !== undefined ? (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-400">Custo:</span>
+                          <span className="font-semibold text-emerald-400">
+                            R$ {item.totalCostBRL.toFixed(2)}
+                          </span>
+                        </div>
+                      ) : null}
+                      {item.processingTime !== null && item.processingTime !== undefined ? (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-zinc-400">Tempo:</span>
+                          <span className="font-semibold text-indigo-400">
+                            {item.processingTime < 1000 
+                              ? `${item.processingTime}ms`
+                              : item.processingTime < 60000
+                              ? `${(item.processingTime / 1000).toFixed(1)}s`
+                              : `${(item.processingTime / 60000).toFixed(1)}min`}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -937,79 +719,7 @@ export function ComposicoesGallery({
               </article>
             );
           })}
-          </div>
         </div>
-      )}
-
-      {/* Modal de Envio Massivo */}
-      {bulkPromotionModal && (
-        <Modal
-          open={true}
-          onClose={() => {
-            setBulkPromotionModal(null);
-            setBulkPromotionError(null);
-          }}
-          title="Envio Massivo de Promoções"
-        >
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-zinc-300">
-                {bulkPromotionModal.composicaoIds.length} composição(ões) selecionada(s)
-              </p>
-              <p className="text-xs text-zinc-500 mt-1">
-                As mensagens serão enviadas para os clientes associados a essas composições.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-2">
-                Template da Mensagem
-              </label>
-              <textarea
-                value={bulkPromotionModal.mensagemTemplate}
-                onChange={(e) =>
-                  setBulkPromotionModal({
-                    ...bulkPromotionModal,
-                    mensagemTemplate: e.target.value,
-                  })
-                }
-                rows={6}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
-                placeholder="Olá {{cliente}}! Temos uma promoção especial para você!"
-              />
-              <p className="text-xs text-zinc-500 mt-1">
-                Use <code className="bg-zinc-800 px-1 rounded">{"{{cliente}}"}</code> para o nome do cliente e{" "}
-                <code className="bg-zinc-800 px-1 rounded">{"{{produto}}"}</code> para o nome do produto.
-              </p>
-            </div>
-
-            {bulkPromotionError && (
-              <div className="rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-                {bulkPromotionError}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={() => {
-                  setBulkPromotionModal(null);
-                  setBulkPromotionError(null);
-                }}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleBulkPromotionSubmit}
-                disabled={bulkPromotionSubmitting}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Send className="h-4 w-4" />
-                {bulkPromotionSubmitting ? "Enviando..." : "Enviar Promoções"}
-              </button>
-            </div>
-          </div>
-        </Modal>
       )}
     </div>
   );

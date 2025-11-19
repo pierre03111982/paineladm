@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchClientesReferidos } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { getAdminDb } from "@/lib/firebaseAdmin";
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/lojista/clientes/[clienteId]/referrals
- * Busca clientes referidos por um cliente específico
+ * GET /api/lojista/clientes/[clienteId]/likes-stats
+ * Busca estatísticas de likes e dislikes de um cliente
  */
 export async function GET(
   request: NextRequest,
@@ -40,13 +40,34 @@ export async function GET(
       );
     }
 
-    const clientesReferidos = await fetchClientesReferidos(lojistaId, clienteId);
+    const db = getAdminDb();
+    const favoritosRef = db
+      .collection("lojas")
+      .doc(lojistaId)
+      .collection("clientes")
+      .doc(clienteId)
+      .collection("favoritos");
 
-    return NextResponse.json({ clientes: clientesReferidos });
+    const snapshot = await favoritosRef.get();
+
+    let totalLikes = 0;
+    let totalDislikes = 0;
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      const action = data?.action || data?.tipo || data?.votedType || "like";
+      if (action === "like") {
+        totalLikes++;
+      } else if (action === "dislike") {
+        totalDislikes++;
+      }
+    });
+
+    return NextResponse.json({ totalLikes, totalDislikes });
   } catch (error) {
-    console.error("[API Referrals GET] Erro:", error);
+    console.error("[API Likes Stats GET] Erro:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar clientes referidos" },
+      { error: "Erro ao buscar estatísticas", totalLikes: 0, totalDislikes: 0 },
       { status: 500 }
     );
   }
