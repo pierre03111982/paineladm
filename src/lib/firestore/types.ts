@@ -17,17 +17,54 @@ export type ProdutoDoc = {
   createdAt: Date;
   updatedAt: Date;
   arquivado?: boolean;
+  // Sincronização de E-commerce
+  ecommerceSync?: {
+    platform: "shopify" | "nuvemshop" | "woocommerce" | "other";
+    productId?: string;
+    variantId?: string;
+    lastSyncedAt?: Date;
+    autoSync?: boolean;
+    syncPrice?: boolean;
+    syncStock?: boolean;
+    syncVariations?: boolean;
+  };
+  // Métrica de Qualidade de Imagem/Performance
+  qualityMetrics?: {
+    compatibilityScore?: number; // Nota de 1 a 5
+    conversionRate?: number; // Taxa de conversão (likes/composições)
+    complaintRate?: number; // Taxa de reclamações
+    lastCalculatedAt?: Date;
+  };
 };
 
 export type ClienteDoc = {
   id: string;
   nome: string;
   whatsapp: string;
+  email?: string;
   totalComposicoes: number;
   createdAt: Date;
   updatedAt: Date;
   arquivado?: boolean;
-  referidoPor?: string | null; // ID do cliente que compartilhou o link
+  // Segmentação Automática
+  tags?: string[]; // Tags automáticas baseadas em comportamento
+  segmentacao?: {
+    tipo?: "abandonou-carrinho" | "fa-vestidos" | "high-spender" | "somente-tryon" | "comprador-frequente" | "novo-cliente";
+    ultimaAtualizacao?: Date;
+  };
+  // Histórico de Tentativas
+  historicoTentativas?: {
+    produtosExperimentados: Array<{
+      produtoId: string;
+      produtoNome: string;
+      categoria: string;
+      dataTentativa: Date;
+      liked?: boolean;
+      compartilhado?: boolean;
+      checkout?: boolean;
+    }>;
+    ultimaAtualizacao?: Date;
+  };
 };
 
 export type ComposicaoDoc = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info } from "lucide-react";
+import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2 } from "lucide-react";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
@@ -241,6 +241,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
                 <th className="px-6 py-3">Categoria</th>
                 <th className="px-6 py-3">Preço</th>
                 <th className="px-6 py-3">Tamanhos</th>
+                <th className="px-6 py-3">Qualidade</th>
+                <th className="px-6 py-3">Sincronização</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3 text-right">Ações</th>
               </tr>
@@ -248,13 +250,13 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
             <tbody className="divide-y divide-zinc-900/60">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={8} className="px-6 py-14 text-center text-sm text-zinc-500">
                     Carregando...
                   </td>
                 </tr>
               ) : filteredProdutos.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={8} className="px-6 py-14 text-center text-sm text-zinc-500">
                     <Package className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
                     {produtos.length === 0
                       ? "Nenhum produto cadastrado ainda. Clique em 'Adicionar Produto' para começar."
@@ -289,6 +291,87 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
                       {produto.tamanhos && produto.tamanhos.length > 0
                         ? produto.tamanhos.join(", ")
                         : "—"}
+                    </td>
+                    <td className="px-6 py-4">
+                      {produto.qualityMetrics?.compatibilityScore ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-3.5 w-3.5 ${
+                                  star <= Math.round(produto.qualityMetrics!.compatibilityScore!)
+                                    ? "fill-amber-400 text-amber-400"
+                                    : "text-zinc-600"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-zinc-400">
+                            {produto.qualityMetrics.compatibilityScore.toFixed(1)}/5
+                          </span>
+                          {produto.qualityMetrics.conversionRate !== undefined && (
+                            <span className="text-[10px] text-zinc-500">
+                              ({produto.qualityMetrics.conversionRate.toFixed(1)}%)
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              setLoading(true);
+                              const response = await fetch("/api/lojista/products/quality", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ produtoId: produto.id }),
+                              });
+                              if (response.ok) {
+                                // Recarregar produtos
+                                const url = lojistaIdFromUrl 
+                                  ? `/api/lojista/products?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                                  : `/api/lojista/products?includeArchived=${showArchived}`;
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  const produtosArray = Array.isArray(data) ? data : (data?.produtos || []);
+                                  setProdutos(produtosArray);
+                                }
+                              }
+                            } catch (err) {
+                              console.error("Erro ao atualizar métricas:", err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-indigo-400/60 hover:text-indigo-200"
+                          title="Calcular métricas de qualidade"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Calcular
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {produto.ecommerceSync ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-200">
+                            <Link2 className="h-3 w-3" />
+                            {produto.ecommerceSync.platform === "shopify" ? "Shopify" : 
+                             produto.ecommerceSync.platform === "nuvemshop" ? "Nuvemshop" : 
+                             produto.ecommerceSync.platform}
+                          </span>
+                          {produto.ecommerceSync.lastSyncedAt && (
+                            <span className="text-[10px] text-zinc-500">
+                              {produto.ecommerceSync.lastSyncedAt instanceof Date
+                                ? produto.ecommerceSync.lastSyncedAt.toLocaleDateString("pt-BR")
+                                : new Date(produto.ecommerceSync.lastSyncedAt).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-zinc-500">Não sincronizado</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -402,6 +485,82 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
                   <p className="text-sm text-zinc-100">{viewingProduto.obs}</p>
+                </div>
+              )}
+              {viewingProduto.qualityMetrics && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Métricas de Qualidade</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-400">Compatibilidade:</span>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= Math.round(viewingProduto.qualityMetrics!.compatibilityScore || 0)
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-zinc-600"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-zinc-100">
+                        {viewingProduto.qualityMetrics.compatibilityScore?.toFixed(1)}/5
+                      </span>
+                    </div>
+                    {viewingProduto.qualityMetrics.conversionRate !== undefined && (
+                      <p className="text-xs text-zinc-400">
+                        Taxa de conversão: {viewingProduto.qualityMetrics.conversionRate.toFixed(1)}%
+                      </p>
+                    )}
+                    {viewingProduto.qualityMetrics.complaintRate !== undefined && (
+                      <p className="text-xs text-zinc-400">
+                        Taxa de reclamações: {viewingProduto.qualityMetrics.complaintRate.toFixed(1)}%
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {viewingProduto.ecommerceSync && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Sincronização E-commerce</label>
+                  <div className="space-y-1">
+                    <p className="text-sm text-zinc-100">
+                      Plataforma: {viewingProduto.ecommerceSync.platform === "shopify" ? "Shopify" : 
+                                   viewingProduto.ecommerceSync.platform === "nuvemshop" ? "Nuvemshop" : 
+                                   viewingProduto.ecommerceSync.platform}
+                    </p>
+                    {viewingProduto.ecommerceSync.productId && (
+                      <p className="text-xs text-zinc-400">
+                        ID do Produto: {viewingProduto.ecommerceSync.productId}
+                      </p>
+                    )}
+                    {viewingProduto.ecommerceSync.lastSyncedAt && (
+                      <p className="text-xs text-zinc-400">
+                        Última sincronização: {viewingProduto.ecommerceSync.lastSyncedAt instanceof Date
+                          ? viewingProduto.ecommerceSync.lastSyncedAt.toLocaleString("pt-BR")
+                          : new Date(viewingProduto.ecommerceSync.lastSyncedAt).toLocaleString("pt-BR")}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {viewingProduto.ecommerceSync.syncPrice && (
+                        <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-200">
+                          Preço
+                        </span>
+                      )}
+                      {viewingProduto.ecommerceSync.syncStock && (
+                        <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs text-green-200">
+                          Estoque
+                        </span>
+                      )}
+                      {viewingProduto.ecommerceSync.syncVariations && (
+                        <span className="inline-flex items-center rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-200">
+                          Variações
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -21,22 +21,44 @@ function initializeAdminApp(): App {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
-  if (!projectId || !clientEmail || !privateKey) {
-    throw new Error(
-      "Firebase Admin SDK não configurado. Verifique as variáveis de ambiente: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY"
-    );
-  }
-
-  adminApp = initializeApp({
-    credential: cert({
-      projectId,
-      clientEmail,
-      privateKey,
-    }),
-    projectId,
+  console.log("[FirebaseAdmin] Verificando variáveis de ambiente:", {
+    hasProjectId: !!projectId,
+    hasClientEmail: !!clientEmail,
+    hasPrivateKey: !!privateKey,
+    projectIdLength: projectId?.length || 0,
+    clientEmailLength: clientEmail?.length || 0,
+    privateKeyLength: privateKey?.length || 0,
   });
 
-  return adminApp;
+  if (!projectId || !clientEmail || !privateKey) {
+    const missing = [];
+    if (!projectId) missing.push("FIREBASE_PROJECT_ID ou NEXT_PUBLIC_FIREBASE_PROJECT_ID");
+    if (!clientEmail) missing.push("FIREBASE_CLIENT_EMAIL");
+    if (!privateKey) missing.push("FIREBASE_PRIVATE_KEY");
+    
+    const errorMsg = `Firebase Admin SDK não configurado. Variáveis faltando: ${missing.join(", ")}`;
+    console.error("[FirebaseAdmin]", errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  try {
+    adminApp = initializeApp({
+      credential: cert({
+        projectId,
+        clientEmail,
+        privateKey,
+      }),
+      projectId,
+    });
+    console.log("[FirebaseAdmin] ✅ Firebase Admin inicializado com sucesso");
+    return adminApp;
+  } catch (error: any) {
+    console.error("[FirebaseAdmin] ❌ Erro ao inicializar Firebase Admin:", {
+      message: error?.message,
+      stack: error?.stack?.substring(0, 500),
+    });
+    throw error;
+  }
 }
 
 export function getAdminDb(): Firestore {

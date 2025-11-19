@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchClientes, createCliente } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import bcrypt from "bcryptjs";
 
 export const dynamic = 'force-dynamic';
 
@@ -51,10 +52,15 @@ export async function POST(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const lojistaIdFromQuery = searchParams.get("lojistaId");
 
-    // Prioridade: query string (modo admin) > usuário logado
-    const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
+    // Ler body primeiro para verificar se lojistaId vem do modelo 1
+    const body = await request.json();
+    const { nome, whatsapp, email, observacoes, password, lojistaId: lojistaIdFromBody } = body;
+
+    // Prioridade: query string (modo admin) > body (modelo 1) > usuário logado
+    const lojistaIdFromAuth = (lojistaIdFromQuery || lojistaIdFromBody) ? null : await getCurrentLojistaId();
     const lojistaId =
       lojistaIdFromQuery ||
+      lojistaIdFromBody ||
       lojistaIdFromAuth ||
       process.env.NEXT_PUBLIC_LOJISTA_ID ||
       process.env.LOJISTA_ID ||
@@ -67,9 +73,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { nome, whatsapp, email, observacoes, referidoPor } = body;
-
     if (!nome || nome.trim().length === 0) {
       return NextResponse.json(
         { error: "Nome é obrigatório" },
@@ -77,12 +80,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fazer hash da senha se fornecida
+    let passwordHash: string | undefined = undefined;
+    if (password && password.trim().length > 0) {
+      if (password.length < 6) {
+        return NextResponse.json(
+          { error: "Senha deve ter no mínimo 6 caracteres" },
+          { status: 400 }
+        );
+      }
+      passwordHash = await bcrypt.hash(password, 10);
+    }
+
     const clienteId = await createCliente(lojistaId, {
       nome,
       whatsapp,
       email,
       observacoes,
-      referidoPor: referidoPor || null,
+      passwordHash,
     });
 
     return NextResponse.json({

@@ -340,69 +340,6 @@ export function AdminDashboardContent({ data }: AdminDashboardContentProps) {
         </div>
       </section>
 
-      {/* ROI e Custo por Looks Gerados (por Loja) */}
-      <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/70 p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">
-          ROI e Custo por Looks Gerados (por Loja)
-        </h2>
-        <div className="space-y-4">
-          {data.topLojistasByUsage.length > 0 ? (
-            data.topLojistasByUsage.map((lojista) => {
-              // Calcular métricas simplificadas (na prática, buscaria dados reais)
-              const totalLooks = lojista.totalComposicoes;
-              const custoTotal = lojista.totalCost;
-              const custoMedio = totalLooks > 0 ? custoTotal / totalLooks : 0;
-              const receitaEstimada = 0; // TODO: Buscar receita real
-              const roi = receitaEstimada > 0 && custoTotal > 0 
-                ? ((receitaEstimada - custoTotal) / custoTotal) * 100 
-                : -100;
-              
-              return (
-                <div
-                  key={lojista.id}
-                  className="rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-white">{lojista.nome}</h3>
-                    <span className="text-xs text-zinc-400">{totalLooks} Looks Gerados</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <p className="text-zinc-400">Custo Total</p>
-                      <p className="text-lg font-semibold text-white mt-1">
-                        {formatUSD(custoTotal)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-400">Custo Médio por Look</p>
-                      <p className="text-lg font-semibold text-emerald-400 mt-1">
-                        {formatBRL(custoMedio * 5)} {/* Aproximação USD->BRL */}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-400">Receita Estimada</p>
-                      <p className="text-lg font-semibold text-white mt-1">
-                        {formatBRL(receitaEstimada)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-400">ROI</p>
-                      <p className={`text-lg font-semibold mt-1 ${roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {roi.toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-sm text-zinc-500 text-center py-4">
-              Nenhum lojista encontrado
-            </p>
-          )}
-        </div>
-      </section>
-
       {/* Distribuição de Planos */}
       <section className="rounded-2xl border border-zinc-800/70 bg-zinc-900/70 p-6">
         <h2 className="text-lg font-semibold text-white mb-4">

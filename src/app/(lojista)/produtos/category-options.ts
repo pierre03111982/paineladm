@@ -6,7 +6,6 @@ export const PRODUCT_CATEGORY_OPTIONS = [
   "Óculos",
   "Joias",
   "Relógios",
-  "Perfumes",
   "Cosméticos",
   "Tintura (Cabelo)",
   "Outros",

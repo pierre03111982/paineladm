@@ -11,6 +11,7 @@ import {
   DollarSign,
   Package,
   AlertCircle,
+  LogIn,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -39,6 +40,7 @@ export function LojistasTable({ initialLojistas }: LojistasTableProps) {
   const router = useRouter();
   const [lojistas, setLojistas] = useState(initialLojistas);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = async (
@@ -68,6 +70,34 @@ export function LojistasTable({ initialLojistas }: LojistasTableProps) {
       alert(error instanceof Error ? error.message : "Erro ao atualizar status");
     } finally {
       setPendingId(null);
+    }
+  };
+
+  const handleImpersonate = async (lojistaId: string) => {
+    setImpersonatingId(lojistaId);
+    try {
+      const response = await fetch(`/api/admin/impersonate/${lojistaId}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || "Não foi possível acessar o painel do lojista.");
+      }
+
+      const data = await response.json();
+      
+      if (data.impersonationUrl) {
+        // Redirecionar para a URL de impersonificação
+        window.location.href = data.impersonationUrl;
+      } else {
+        throw new Error("URL de impersonificação não retornada");
+      }
+    } catch (error) {
+      console.error("[LojistasTable] Erro ao impersonar:", error);
+      alert(error instanceof Error ? error.message : "Erro ao acessar painel do lojista");
+      setImpersonatingId(null);
     }
   };
 
@@ -269,6 +299,19 @@ export function LojistasTable({ initialLojistas }: LojistasTableProps) {
                           Ativar
                         </button>
                       )}
+                      <button
+                        onClick={() => handleImpersonate(lojista.id)}
+                        disabled={impersonatingId === lojista.id}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-lg border border-blue-400/40 bg-blue-500/10 px-3 py-1 text-blue-200 transition hover:border-blue-300/60",
+                          impersonatingId === lojista.id &&
+                            "cursor-not-allowed opacity-60"
+                        )}
+                        title="Acessar painel do lojista como administrador"
+                      >
+                        <LogIn className="h-3.5 w-3.5" />
+                        {impersonatingId === lojista.id ? "Acessando..." : "Acessar Painel"}
+                      </button>
                       <a
                         href={`/dashboard?lojistaId=${lojista.id}`}
                         target="_blank"

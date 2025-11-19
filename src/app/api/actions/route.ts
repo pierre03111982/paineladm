@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-// import { registerLojaAction } from "@/lib/firestore/server";
+import { registerFavoriteLook } from "@/lib/firestore/server";
 
 const ALLOWED_METHODS = ["POST", "OPTIONS"];
 
@@ -23,14 +23,27 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
   try {
-    const { action, compositionId, jobId, lojistaId, customerName, productName } =
+    const {
+      action,
+      compositionId,
+      jobId,
+      lojistaId,
+      customerId,
+      customerName,
+      productName,
+      productPrice,
+      imagemUrl,
+    } =
       (await request.json()) as {
-        action?: "like" | "share" | "checkout";
+        action?: "like" | "dislike" | "share" | "checkout";
         compositionId?: string | null;
         jobId?: string | null;
         lojistaId?: string | null;
+        customerId?: string | null;
         customerName?: string | null;
         productName?: string | null;
+        productPrice?: number | null;
+        imagemUrl?: string | null;
       };
 
     if (!action) {
@@ -47,15 +60,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // TODO: Implementar registerLojaAction
-    // await registerLojaAction(lojistaId, {
-    //   action,
-    //   compositionId,
-    //   jobId,
-    //   customerName,
-    //   productName,
-    // });
-    console.log("[api/actions] Ação registrada:", { action, lojistaId, compositionId });
+    // Registrar favorito apenas para likes
+    if (action === "like" && customerId) {
+      await registerFavoriteLook({
+        lojistaId,
+        customerId,
+        customerName,
+        compositionId: compositionId ?? null,
+        jobId: jobId ?? null,
+        imagemUrl: imagemUrl ?? null,
+        productName: productName ?? null,
+        productPrice: typeof productPrice === "number" ? productPrice : null,
+      });
+    }
+
+    console.log("[api/actions] Ação registrada:", {
+      action,
+      lojistaId,
+      compositionId,
+      customerId,
+    });
 
     return NextResponse.json(
       { success: true, message: "Ação registrada." },

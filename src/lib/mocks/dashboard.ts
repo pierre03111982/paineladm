@@ -56,19 +56,6 @@ export type DashboardMock = {
     conversionCheckoutRate: number;
     conversionLikeRate: number;
     lastActionLabel: string;
-    // Novas métricas
-    novosClientesDia: number;
-    totalClientes: number;
-    sharesDia: number;
-    planoLimite?: number | null; // Limite do plano (null = ilimitado)
-    // Likes e Dislikes por período
-    likesDia: number;
-    likesSemana: number;
-    likesMes: number;
-    dislikesDia: number;
-    dislikesSemana: number;
-    dislikesMes: number;
-    totalDislikes: number;
   };
   experimentsTrend: ExperimentPoint[];
   costTrend: Array<ExperimentPoint & { average: number }>;
@@ -123,17 +110,6 @@ export const dashboardMockData: DashboardMock = {
     conversionCheckoutRate: 47.4,
     conversionLikeRate: 28.2,
     lastActionLabel: "Última ação há 8 minutos",
-    novosClientesDia: 3,
-    totalClientes: 156,
-    likesDia: 12,
-    sharesDia: 8,
-    planoLimite: null,
-    likesSemana: 45,
-    likesMes: 180,
-    dislikesDia: 2,
-    dislikesSemana: 8,
-    dislikesMes: 32,
-    totalDislikes: 32,
   },
   experimentsTrend: [
     { day: "Seg", total: 28 },

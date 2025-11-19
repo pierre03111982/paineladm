@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Loader2, User, MessageCircle, Image, Heart, ThumbsUp, ThumbsDown, Star } from "lucide-react";
+import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw } from "lucide-react";
 import type { ClienteDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 
@@ -25,8 +25,16 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [clientesStats, setClientesStats] = useState<Record<string, { likes: number; dislikes: number }>>({});
-  const [showFavoritosModal, setShowFavoritosModal] = useState<{ clienteId: string; clienteNome: string } | null>(null);
+  const [shareStats, setShareStats] = useState<Record<string, {
+    totalShares: number;
+    totalAccesses: number;
+    totalSignups: number;
+    totalReferrals: number;
+  }>>({});
+  const [viewingReferrals, setViewingReferrals] = useState<{
+    cliente: ClienteDoc;
+    referrals: any[];
+  } | null>(null);
 
   // Recarregar clientes quando showArchived mudar
   useEffect(() => {
@@ -41,6 +49,28 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
         if (!response.ok) throw new Error("Erro ao carregar clientes");
         const data = await response.json();
         setClientes(data.clientes || []);
+        
+        // Carregar estatísticas de compartilhamento
+        const lojistaId = lojistaIdFromUrl || "";
+        if (lojistaId && data.clientes) {
+          const stats: Record<string, any> = {};
+          for (const cliente of data.clientes) {
+            try {
+              const url = `/api/lojista/clientes/${cliente.id}/shares?lojistaId=${encodeURIComponent(lojistaId)}`;
+              const statsResponse = await fetch(url);
+              if (statsResponse.ok) {
+                const statsData = await statsResponse.json();
+                stats[cliente.id] = statsData.stats;
+              } else {
+                stats[cliente.id] = { totalShares: 0, totalAccesses: 0, totalSignups: 0, totalReferrals: 0 };
+              }
+            } catch (err) {
+              console.error(`[ClientesTable] Erro ao carregar stats de ${cliente.id}:`, err);
+              stats[cliente.id] = { totalShares: 0, totalAccesses: 0, totalSignups: 0, totalReferrals: 0 };
+            }
+          }
+          setShareStats(stats);
+        }
       } catch (err) {
         console.error("[ClientesTable] Erro ao carregar:", err);
       } finally {
@@ -50,39 +80,29 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
 
     loadClientes();
   }, [showArchived, lojistaIdFromUrl]);
-
-  // Carregar estatísticas de likes/dislikes para todos os clientes
-  useEffect(() => {
-    const loadStats = async () => {
-      const stats: Record<string, { likes: number; dislikes: number }> = {};
+  
+  const handleViewReferrals = async (cliente: ClienteDoc) => {
+    try {
+      setLoading(true);
+      const lojistaId = lojistaIdFromUrl || "";
+      if (!lojistaId) return;
       
-      for (const cliente of clientes) {
-        try {
-          const url = lojistaIdFromUrl
-            ? `/api/lojista/clientes/${cliente.id}/likes-stats?lojistaId=${lojistaIdFromUrl}`
-            : `/api/lojista/clientes/${cliente.id}/likes-stats`;
-          
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            stats[cliente.id] = {
-              likes: data.totalLikes || 0,
-              dislikes: data.totalDislikes || 0,
-            };
-          }
-        } catch (error) {
-          console.error(`[ClientesTable] Erro ao carregar stats para ${cliente.id}:`, error);
-          stats[cliente.id] = { likes: 0, dislikes: 0 };
-        }
+      const url = `/api/lojista/clientes/${cliente.id}/referrals?lojistaId=${encodeURIComponent(lojistaId)}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error("Erro ao carregar referrals");
       }
       
-      setClientesStats(stats);
-    };
-
-    if (clientes.length > 0) {
-      loadStats();
+      const data = await response.json();
+      setViewingReferrals({ cliente, referrals: data.referrals || [] });
+    } catch (err) {
+      console.error("[ClientesTable] Erro ao carregar referrals:", err);
+      setError("Erro ao carregar clientes referenciados");
+    } finally {
+      setLoading(false);
     }
-  }, [clientes, lojistaIdFromUrl]);
+  };
 
   const filteredClientes = useMemo(() => {
     let filtered = clientes;
@@ -307,62 +327,29 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-zinc-800 text-sm">
-            <thead className="bg-zinc-900/40 text-left text-xs">
+            <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
-                <th className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-indigo-400" />
-                    <span className="text-zinc-400">Cliente</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4 text-emerald-400" />
-                    <span className="text-zinc-400">WhatsApp</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Image className="h-4 w-4 text-purple-400" />
-                    <span className="text-zinc-400">Looks Gerados</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-pink-400" />
-                    <span className="text-zinc-400">Favoritos</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <ThumbsUp className="h-4 w-4 text-blue-400" />
-                    <span className="text-zinc-400">Likes</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <ThumbsDown className="h-4 w-4 text-red-400" />
-                    <span className="text-zinc-400">Dislikes</span>
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Star className="h-4 w-4 text-amber-400" />
-                    <span className="text-zinc-400">Ações</span>
-                  </div>
-                </th>
+                <th className="px-6 py-3">Cliente</th>
+                <th className="px-6 py-3">WhatsApp</th>
+                <th className="px-6 py-3">Email</th>
+                <th className="px-6 py-3">Composições</th>
+                <th className="px-6 py-3">Segmentação</th>
+                <th className="px-6 py-3">Histórico</th>
+                <th className="px-6 py-3">Compartilhamentos</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900/60">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
                     Carregando...
                   </td>
                 </tr>
               ) : filteredClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
                     <Users className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
                     {clientes.length === 0
                       ? "Nenhum cliente cadastrado ainda. Os clientes aparecerão aqui quando começarem a usar o provador virtual."
@@ -372,99 +359,210 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
               ) : (
                 filteredClientes.map((cliente) => (
                   <tr key={cliente.id} className="hover:bg-zinc-900/40">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full border border-zinc-800/60 bg-zinc-900/60 flex items-center justify-center">
-                          <User className="h-6 w-6 text-zinc-400" />
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 overflow-hidden rounded-full border border-zinc-800/60 bg-zinc-900/60 flex items-center justify-center">
+                          {(cliente as any).avatarUrl ? (
+                            <img
+                              src={(cliente as any).avatarUrl}
+                              alt={cliente.nome}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
+                              {cliente.nome.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-zinc-100 truncate">{cliente.nome}</p>
-                            <button
-                              onClick={() => setViewingCliente(cliente)}
-                              className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition flex-shrink-0"
-                              title="Ver detalhes"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 truncate">
+                        <div>
+                          <p className="font-medium text-zinc-100">{cliente.nome}</p>
+                          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
                             ID {cliente.id.slice(0, 6)}
                           </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-zinc-300">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {cliente.whatsapp ? (
-                          <a
-                            href={`https://wa.me/${cliente.whatsapp.replace(/\D/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 transition truncate"
-                          >
-                            {formatWhatsApp(cliente.whatsapp)}
-                          </a>
-                        ) : (
-                          <span className="text-zinc-500">—</span>
-                        )}
-                        {cliente.whatsapp && (
-                          <button
-                            onClick={() => setViewingCliente(cliente)}
-                            className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition flex-shrink-0"
-                            title="Ver detalhes"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
+                    <td className="px-6 py-4 text-zinc-300">
+                      {cliente.whatsapp ? (
+                        <a
+                          href={`https://wa.me/${cliente.whatsapp.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-400 hover:text-indigo-300 transition"
+                        >
+                          {formatWhatsApp(cliente.whatsapp)}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
                     </td>
-                    <td className="px-4 py-4 text-zinc-100">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-200 whitespace-nowrap">
+                    <td className="px-6 py-4 text-zinc-300">
+                      {(cliente as any).email || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-zinc-100">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-200">
                         {cliente.totalComposicoes || 0}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
-                      <button
-                        onClick={() => setShowFavoritosModal({ clienteId: cliente.id, clienteNome: cliente.nome })}
-                        className="inline-flex items-center gap-1 rounded-lg border border-pink-400/40 bg-pink-500/10 px-2.5 py-1 text-xs font-medium text-pink-200 transition hover:border-pink-300/60 whitespace-nowrap"
-                        title="Ver favoritos"
+                    <td className="px-6 py-4">
+                      {cliente.tags && cliente.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {cliente.tags.slice(0, 2).map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-xs text-purple-200"
+                            >
+                              <Tag className="h-2.5 w-2.5" />
+                              {tag}
+                            </span>
+                          ))}
+                          {cliente.tags.length > 2 && (
+                            <span className="text-xs text-zinc-500">+{cliente.tags.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              setLoading(true);
+                              const response = await fetch("/api/lojista/clientes/segmentation", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ clienteId: cliente.id }),
+                              });
+                              if (response.ok) {
+                                // Recarregar clientes
+                                const url = lojistaIdFromUrl 
+                                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                                  : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setClientes(data.clientes || []);
+                                }
+                              }
+                            } catch (err) {
+                              console.error("Erro ao calcular segmentação:", err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-purple-400/60 hover:text-purple-200"
+                          title="Calcular segmentação"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          Calcular
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {cliente.historicoTentativas?.produtosExperimentados &&
+                      cliente.historicoTentativas.produtosExperimentados.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-zinc-300">
+                            {cliente.historicoTentativas.produtosExperimentados.length} produtos
+                          </span>
+                          <span className="text-[10px] text-zinc-500">
+                            {cliente.historicoTentativas.ultimaAtualizacao
+                              ? new Date(cliente.historicoTentativas.ultimaAtualizacao).toLocaleDateString("pt-BR")
+                              : "—"}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            try {
+                              setLoading(true);
+                              const response = await fetch("/api/lojista/clientes/history", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ clienteId: cliente.id }),
+                              });
+                              if (response.ok) {
+                                // Recarregar clientes
+                                const url = lojistaIdFromUrl 
+                                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                                  : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                                const res = await fetch(url);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setClientes(data.clientes || []);
+                                }
+                              }
+                            } catch (err) {
+                              console.error("Erro ao atualizar histórico:", err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-blue-400/60 hover:text-blue-200"
+                          title="Atualizar histórico"
+                        >
+                          <History className="h-3 w-3" />
+                          Atualizar
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        {shareStats[cliente.id] ? (
+                          <>
+                            <div className="flex items-center gap-2 text-xs">
+                              <Share2 className="h-3 w-3 text-blue-400" />
+                              <span className="text-zinc-300">
+                                {shareStats[cliente.id].totalShares} links
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <Users2 className="h-3 w-3 text-green-400" />
+                              <span className="text-zinc-300">
+                                {shareStats[cliente.id].totalReferrals} referenciados
+                              </span>
+                            </div>
+                            {shareStats[cliente.id].totalReferrals > 0 && (
+                              <button
+                                onClick={() => handleViewReferrals(cliente)}
+                                className="mt-1 text-xs text-indigo-400 hover:text-indigo-300 underline"
+                              >
+                                Ver referenciados
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-xs text-zinc-500">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                          cliente.arquivado
+                            ? "bg-zinc-500/10 text-zinc-400"
+                            : "bg-emerald-500/10 text-emerald-200"
+                        }`}
                       >
-                        <Heart className="h-3.5 w-3.5" />
-                        Ver
-                      </button>
-                    </td>
-                    <td className="px-4 py-4 text-zinc-100">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-200 whitespace-nowrap">
-                        <ThumbsUp className="h-3 w-3" />
-                        {clientesStats[cliente.id]?.likes || 0}
+                        {cliente.arquivado ? "Arquivado" : "Ativo"}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-zinc-100">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-200 whitespace-nowrap">
-                        <ThumbsDown className="h-3 w-3" />
-                        {clientesStats[cliente.id]?.dislikes || 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
+                    <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setViewingCliente(cliente)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-200 transition hover:border-indigo-300/60"
+                          className="inline-flex items-center gap-1 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1 text-indigo-200 transition hover:border-indigo-300/60"
                           title="Visualizar"
                         >
                           <Eye className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setEditingCliente(cliente)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-purple-400/40 bg-purple-500/10 px-2.5 py-1 text-xs text-purple-200 transition hover:border-purple-300/60"
+                          className="inline-flex items-center gap-1 rounded-lg border border-purple-400/40 bg-purple-500/10 px-3 py-1 text-purple-200 transition hover:border-purple-300/60"
                           title="Editar"
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => handleArchive(cliente, !cliente.arquivado)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-200 transition hover:border-amber-300/60"
+                          className="inline-flex items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-amber-200 transition hover:border-amber-300/60"
                           title={cliente.arquivado ? "Desarquivar" : "Arquivar"}
                         >
                           {cliente.arquivado ? (
@@ -476,7 +574,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                         {isAdminView && (
                           <button
                             onClick={() => handleDelete(cliente)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-400/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-200 transition hover:border-red-300/60"
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-1 text-red-200 transition hover:border-red-300/60"
                             title="Excluir"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -494,11 +592,115 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
 
       {/* Modal de Visualização */}
       {viewingCliente && (
-        <ClienteDetailsModal
-          cliente={viewingCliente}
-          lojistaIdFromUrl={lojistaIdFromUrl}
-          onClose={() => setViewingCliente(null)}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Detalhes do Cliente</h2>
+              <button
+                onClick={() => setViewingCliente(null)}
+                className="text-zinc-400 hover:text-zinc-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Nome</label>
+                <p className="text-sm text-zinc-100">{viewingCliente.nome}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">WhatsApp</label>
+                <p className="text-sm text-zinc-100">{viewingCliente.whatsapp || "—"}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
+                <p className="text-sm text-zinc-100">{(viewingCliente as any).email || "—"}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Total de Composições</label>
+                <p className="text-sm text-zinc-100">{viewingCliente.totalComposicoes || 0}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">Status</label>
+                <p className="text-sm text-zinc-100">
+                  {viewingCliente.arquivado ? "Arquivado" : "Ativo"}
+                </p>
+              </div>
+              {(viewingCliente as any).observacoes && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
+                  <p className="text-sm text-zinc-100">{(viewingCliente as any).observacoes}</p>
+                </div>
+              )}
+              {viewingCliente.tags && viewingCliente.tags.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Segmentação</label>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingCliente.tags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-1 text-xs text-purple-200"
+                      >
+                        <Tag className="h-3 w-3" />
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  {viewingCliente.segmentacao?.tipo && (
+                    <p className="text-xs text-zinc-500 mt-2">
+                      Tipo: {viewingCliente.segmentacao.tipo}
+                    </p>
+                  )}
+                </div>
+              )}
+              {viewingCliente.historicoTentativas?.produtosExperimentados &&
+              viewingCliente.historicoTentativas.produtosExperimentados.length > 0 && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">
+                    Histórico de Tentativas
+                  </label>
+                  <div className="max-h-48 overflow-y-auto space-y-2">
+                    {viewingCliente.historicoTentativas.produtosExperimentados.slice(0, 10).map((produto, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2"
+                      >
+                        <p className="text-xs text-zinc-100">{produto.produtoNome}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-zinc-500">
+                            {new Date(produto.dataTentativa).toLocaleDateString("pt-BR")}
+                          </span>
+                          {produto.liked && (
+                            <span className="text-[10px] text-green-400">✓ Curtiu</span>
+                          )}
+                          {produto.compartilhado && (
+                            <span className="text-[10px] text-blue-400">✓ Compartilhou</span>
+                          )}
+                          {produto.checkout && (
+                            <span className="text-[10px] text-emerald-400">✓ Comprou</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {viewingCliente.historicoTentativas.produtosExperimentados.length > 10 && (
+                      <p className="text-xs text-zinc-500 text-center">
+                        +{viewingCliente.historicoTentativas.produtosExperimentados.length - 10} produtos
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setViewingCliente(null)}
+                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Edição */}
@@ -510,21 +712,85 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
         />
       )}
 
-      {/* Modal de Favoritos */}
-      {showFavoritosModal && (
-        <FavoritosModal
-          clienteId={showFavoritosModal.clienteId}
-          clienteNome={showFavoritosModal.clienteNome}
-          lojistaIdFromUrl={lojistaIdFromUrl}
-          onClose={() => setShowFavoritosModal(null)}
-        />
+      {/* Modal de Referenciados */}
+      {viewingReferrals && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg max-h-[80vh] overflow-y-auto">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white">
+                  Clientes Referenciados por {viewingReferrals.cliente.nome}
+                </h2>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Clientes que acessaram o app via links compartilhados por este cliente
+                </p>
+              </div>
+              <button
+                onClick={() => setViewingReferrals(null)}
+                className="text-zinc-400 hover:text-zinc-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {viewingReferrals.referrals.length === 0 ? (
+              <div className="py-8 text-center text-zinc-500">
+                <Users2 className="mx-auto h-12 w-12 text-zinc-700 mb-4" />
+                <p>Nenhum cliente referenciado ainda.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {viewingReferrals.referrals.map((referral) => (
+                  <div
+                    key={referral.id}
+                    className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 hover:bg-zinc-800/60 transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-zinc-100">{referral.referredClienteNome}</p>
+                        <p className="text-sm text-zinc-400 mt-1">
+                          WhatsApp: {referral.referredClienteWhatsapp || "—"}
+                        </p>
+                        <p className="text-xs text-zinc-500 mt-1">
+                          Acessou em: {new Date(referral.accessedAt).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          // Buscar cliente e abrir modal de visualização
+                          const cliente = clientes.find(c => c.id === referral.referredClienteId);
+                          if (cliente) {
+                            setViewingCliente(cliente);
+                            setViewingReferrals(null);
+                          }
+                        }}
+                        className="ml-4 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-200 transition hover:border-indigo-300/60"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setViewingReferrals(null)}
+                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Cadastro */}
       {showCreateModal && (
         <CreateClienteModal
           onClose={() => setShowCreateModal(false)}
-          onSave={async (data) => {
+              onSave={async (data) => {
             try {
               setLoading(true);
               setError(null);
@@ -533,10 +799,23 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}`
                 : `/api/lojista/clientes`;
               
+              // Preparar dados (incluir senha se fornecida)
+              const requestData: any = {
+                nome: data.nome,
+                whatsapp: data.whatsapp,
+                email: data.email,
+                observacoes: data.observacoes,
+              };
+              
+              // Incluir senha apenas se fornecida
+              if (data.password && data.password.trim().length > 0) {
+                requestData.password = data.password;
+              }
+              
               const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
+                body: JSON.stringify(requestData),
               });
 
               if (!response.ok) {
@@ -677,7 +956,7 @@ function EditClienteModal({ cliente, onClose, onSave }: EditClienteModalProps) {
 
 type CreateClienteModalProps = {
   onClose: () => void;
-  onSave: (data: { nome: string; whatsapp?: string; email?: string; observacoes?: string }) => Promise<void>;
+  onSave: (data: { nome: string; whatsapp?: string; email?: string; observacoes?: string; password?: string }) => Promise<void>;
 };
 
 function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
@@ -686,6 +965,7 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
     whatsapp: "",
     email: "",
     observacoes: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -702,6 +982,7 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
         whatsapp: formData.whatsapp || undefined,
         email: formData.email || undefined,
         observacoes: formData.observacoes || undefined,
+        password: formData.password || undefined,
       });
     } catch (error) {
       console.error("[CreateClienteModal] Erro:", error);
@@ -762,6 +1043,21 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Senha (opcional)
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Mínimo 6 caracteres (deixe vazio se o cliente vai criar no app)"
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              Se deixar vazio, o cliente precisará criar a senha no primeiro acesso ao app.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
               Observações
             </label>
             <textarea
@@ -789,266 +1085,6 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  );
-}
-
-type ClienteDetailsModalProps = {
-  cliente: ClienteDoc;
-  lojistaIdFromUrl?: string | null;
-  onClose: () => void;
-};
-
-function ClienteDetailsModal({ cliente, lojistaIdFromUrl, onClose }: ClienteDetailsModalProps) {
-  const [clientesReferidos, setClientesReferidos] = useState<ClienteDoc[]>([]);
-  const [loadingReferidos, setLoadingReferidos] = useState(false);
-  const [viewingReferido, setViewingReferido] = useState<ClienteDoc | null>(null);
-
-  useEffect(() => {
-    const loadReferidos = async () => {
-      try {
-        setLoadingReferidos(true);
-        const url = lojistaIdFromUrl
-          ? `/api/lojista/clientes/${cliente.id}/referrals?lojistaId=${lojistaIdFromUrl}`
-          : `/api/lojista/clientes/${cliente.id}/referrals`;
-        
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          setClientesReferidos(data.clientes || []);
-        }
-      } catch (error) {
-        console.error("[ClienteDetailsModal] Erro ao carregar referidos:", error);
-      } finally {
-        setLoadingReferidos(false);
-      }
-    };
-
-    loadReferidos();
-  }, [cliente.id, lojistaIdFromUrl]);
-
-  const formatWhatsApp = (whatsapp: string | null) => {
-    if (!whatsapp) return "—";
-    const cleaned = whatsapp.replace(/\D/g, "");
-    if (cleaned.length === 11) {
-      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
-    }
-    return whatsapp;
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg my-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">Detalhes do Cliente</h2>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-200"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Nome</label>
-              <p className="text-sm text-zinc-100">{cliente.nome}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">WhatsApp</label>
-              <p className="text-sm text-zinc-100">{cliente.whatsapp || "—"}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
-              <p className="text-sm text-zinc-100">{(cliente as any).email || "—"}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Total de Composições</label>
-              <p className="text-sm text-zinc-100">{cliente.totalComposicoes || 0}</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Status</label>
-              <p className="text-sm text-zinc-100">
-                {cliente.arquivado ? "Arquivado" : "Ativo"}
-              </p>
-            </div>
-          </div>
-          {(cliente as any).observacoes && (
-            <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
-              <p className="text-sm text-zinc-100">{(cliente as any).observacoes}</p>
-            </div>
-          )}
-
-          {/* Seção Meus Compartilhamentos */}
-          <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Share2 className="h-4 w-4 text-indigo-400" />
-              <h3 className="text-sm font-semibold text-white">Meus Compartilhamentos</h3>
-            </div>
-            {loadingReferidos ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
-              </div>
-            ) : clientesReferidos.length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-4">
-                Nenhum cliente se cadastrou através dos compartilhamentos deste cliente.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {clientesReferidos.map((referido) => (
-                  <div
-                    key={referido.id}
-                    className="flex items-center justify-between rounded-lg border border-zinc-800/60 bg-zinc-900/60 px-4 py-3 hover:bg-zinc-900/80 transition"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="h-10 w-10 overflow-hidden rounded-full border border-zinc-800/60 bg-zinc-900/60 flex items-center justify-center">
-                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
-                          {referido.nome.charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-zinc-100">{referido.nome}</p>
-                          <button
-                            onClick={() => setViewingReferido(referido)}
-                            className="inline-flex items-center text-indigo-400 hover:text-indigo-300 transition"
-                            title="Ver detalhes"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <p className="text-xs text-zinc-400">
-                          {referido.whatsapp ? formatWhatsApp(referido.whatsapp) : "Sem WhatsApp"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-xs text-zinc-500">
-                      {new Date(referido.createdAt).toLocaleDateString("pt-BR")}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
-          >
-            Fechar
-          </button>
-        </div>
-      </div>
-      {/* Modal aninhado para cliente referido */}
-      {viewingReferido && (
-        <ClienteDetailsModal
-          cliente={viewingReferido}
-          lojistaIdFromUrl={lojistaIdFromUrl}
-          onClose={() => setViewingReferido(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-type FavoritosModalProps = {
-  clienteId: string;
-  clienteNome: string;
-  lojistaIdFromUrl?: string | null;
-  onClose: () => void;
-};
-
-function FavoritosModal({ clienteId, clienteNome, lojistaIdFromUrl, onClose }: FavoritosModalProps) {
-  const [favoritos, setFavoritos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadFavoritos = async () => {
-      try {
-        setLoading(true);
-        const url = lojistaIdFromUrl
-          ? `/api/lojista/clientes/${clienteId}/favoritos?lojistaId=${lojistaIdFromUrl}&limit=20`
-          : `/api/lojista/clientes/${clienteId}/favoritos?limit=20`;
-        
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          setFavoritos(data.favoritos || []);
-        }
-      } catch (error) {
-        console.error("[FavoritosModal] Erro ao carregar favoritos:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFavoritos();
-  }, [clienteId, lojistaIdFromUrl]);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-4xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg my-8">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Favoritos de {clienteNome}</h2>
-            <p className="text-sm text-zinc-400 mt-1">Últimos 20 looks curtidos</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-200"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-          </div>
-        ) : favoritos.length === 0 ? (
-          <div className="text-center py-12">
-            <Heart className="mx-auto h-12 w-12 text-zinc-700 mb-4" />
-            <p className="text-sm text-zinc-500">Nenhum look favoritado ainda.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {favoritos.map((favorito) => (
-              <div
-                key={favorito.id}
-                className="relative group rounded-lg border border-zinc-800/60 bg-zinc-950/40 overflow-hidden aspect-square"
-              >
-                {favorito.imagemUrl ? (
-                  <img
-                    src={favorito.imagemUrl}
-                    alt="Look favoritado"
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-zinc-900/60">
-                    <Image className="h-8 w-8 text-zinc-600" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="absolute bottom-2 left-2 right-2">
-                    <p className="text-xs text-white">
-                      {new Date(favorito.createdAt).toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
-          >
-            Fechar
-          </button>
-        </div>
       </div>
     </div>
   );

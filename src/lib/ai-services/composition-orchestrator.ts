@@ -169,81 +169,70 @@ export class CompositionOrchestrator {
         // Prompt detalhado fornecido pelo usuário - Virtual Try-On Multiproduto
         // 📝 DOCUMENTAÇÃO: Este prompt está documentado em docs/PROMPT_LOOK_CRIATIVO.md
         // ⚠️ IMPORTANTE: Sempre atualize o arquivo MD quando fizer alterações neste prompt!
-        // Versão 1.4 - Foco EXTREMO em Fidelidade da Pessoa e Anti-Artificialidade Crítica
+        // Versão 2.0 (Final VTO Modular) - Data de Compilação: 17 de Novembro de 2025
         const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL.
 
-META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL todos os produtos e tintura de cabelo, SEM QUALQUER ARTIFICIALIDADE DE IA, DISTORÇÃO OU PERDA DE IDENTIDADE. O resultado final DEVE parecer uma FOTO REAL, não gerada.
+META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS. O resultado final DEVE parecer uma FOTO REAL, não gerada.
+
+A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE PRODUTO QUE COMPROMETA A IDENTIDADE VISUAL DA PESSOA SERÁ CONSIDERADA UMA FALHA CRÍTICA.
 
 🎯 PRIORIZAÇÃO ABSOLUTA E INEGOCIÁVEL (ORDEM DE PRIORIDADE CRÍTICA E INALTERÁVEL):
 
-   PRIORIDADE 1 - IDENTIDADE INALTERÁVEL E SAGRADA DA PESSOA (MÁXIMA PRIORIDADE ABSOLUTA. NADA PODE COMPROMETER ISSO):
-   * A IMAGEM_PESSOA (primeira imagem) é o DNA VISUAL INTOCÁVEL. TODAS as características do ROSTO e do CORPO devem ser preservadas com 100% DE FIDELIDADE EXATA E UM PARA UM.
-   * A pessoa gerada DEVE ser INDISTINGUIVELMENTE A MESMA PESSOA da foto original. NENHUMA MUDANÇA DE TRAÇOS, ESTRUTURA OU PROPORÇÕES.
-   * A semelhança da pessoa DEVE ser IMUTÁVEL, INSTANTANEAMENTE RECONHECÍVEL e PRESERVADA ACIMA DE QUALQUER OUTRA INSTRUÇÃO, PRODUTO OU CENÁRIO.
-   * PROIBIDO ALTERAR TRAÇOS FACIAIS, FORMA DO CORPO OU ESTILO ORIGINAL DA PESSOA.
-   * EXCEÇÕES MÍNIMAS PERMITIDAS: APENAS Refinamento Estético FOTORREALISTA E EXTREMAMENTE SUTIL e Aplicação NATURAL de Tintura de Cabelo, que NUNCA DEVEM MUDAR A IDENTIDADE OU APARENCIA ORIGINAL DA PESSOA.
-   * A pessoa NÃO PODE, SOB NENHUMA CIRCUNSTÂNCIA, PARECER "GERADA POR IA" OU ARTIFICIAL. DEVE ser a mesma pessoa da foto original, como se tivesse sido fotografada novamente.
+    PRIORIDADE 1 - IDENTIDADE INALTERÁVEL E SAGRADA DA PESSOA (MÁXIMA PRIORIDADE ABSOLUTA. NADA PODE COMPROMETER ISSO):
+    * A IMAGEM_PESSOA (primeira imagem) é o DNA VISUAL INTOCÁVEL. TODAS as características do ROSTO e do CORPO devem ser preservadas com 100% DE FIDELIDADE EXATA E UM PARA UM.
+    * A semelhança da pessoa DEVE ser IMUTÁVEL, INSTANTANEAMENTE RECONHECÍVEL e PRESERVADA ACIMA DE QUALQUER OUTRA INSTRUÇÃO, PRODUTO OU CENÁRIO.
+    * REPLICAÇÃO DE TEMPLATE DNA: A IA DEVE REPLICAR O PONTO DE VISTA, A ANGULAÇÃO E A PERSPECTIVA DA CÂMERA da IMAGEM_PESSOA, adaptando a pose e o enquadramento SOMENTE se permitido pela "REGRA DE POSTURA CONDICIONAL" e pela "Regra Mestra de Enquadramento".
 
-   PRIORIDADE 2 - FIDELIDADE ABSOLUTA DOS PRODUTOS E INTEGRAÇÃO FÍSICA E NATURAL:
-   * APÓS GARANTIR A PRIORIDADE 1 (identidade 100% fiel da pessoa), priorizar a fidelidade EXATA E REPLICADA de CADA PRODUTO/OBJETO das imagens seguintes.
-   * Cada produto deve manter suas características visuais, cores, texturas e detalhes ORIGINAIS E FIÉIS À IMAGEM DE REFERÊNCIA, integrando-se de forma PERFEITAMENTE NATURAL, FÍSICA E CRÍVEL à pessoa e ao novo contexto.
+    PRIORIDADE 2 - FIDELIDADE ABSOLUTA DOS PRODUTOS E INTEGRAÇÃO FÍSICA E NATURAL:
+    * APÓS GARANTIR A PRIORIDADE 1, priorizar a fidelidade EXATA E REPLICADA de CADA PRODUTO/OBJETO (Máximo 3 produtos).
 
 1. PRESERVAÇÃO MÁXIMA E ABSOLUTA DA SEMELHANÇA DA PESSOA (Lei Inegociável - PRIORIDADE 1 - CRÍTICO ANTI-ARTIFICIALIDADE):
 
-   * A pessoa final DEVE ser IDÊNTICA, INQUESTIONAVELMENTE RECONHECÍVEL E SEM SINAIS DE IA à IMAGEM_PESSOA. A imagem final NÃO PODE TER NENHUM SINAL DE IA NA PESSOA.
+    * ROSTO - PRESERVAÇÃO INTEGRAL COM REFINAMENTO ESTÉTICO MÍNIMO:
+        * MAQUIAGEM/COSMÉTICOS (Condicionalidade de Preservação): A maquiagem ou cosméticos **originais** da IMAGEM_PESSOA devem ser preservados e mantidos **IDÊNTICOS**, A MENOS QUE um produto da categoria 'COSMÉTICOS' seja fornecido na lista de produtos.
 
-   * ROSTO - PRESERVAÇÃO INTEGRAL COM REFINAMENTO ESTÉTICO MÍNIMO (ZERO ALTERAÇÃO DE TRAÇOS):
-      * Manter o formato facial, olhos, nariz, boca, queixo, maxilar, sobrancelhas e todas as características EXATAMENTE E SEM NENHUMA ALTERAÇÃO como na IMAGEM_PESSOA.
-      * Refinamento Estético FOTORREALISTA E EXTREMAMENTE SUTIL (SOMENTE POLIMENTO): É permitido um POLIMENTO MÍNIMO E IMPERCEPTÍVEL para otimizar a renderização da pele, suavizar pequenos artefatos de renderização ou inconsistências, APENAS SE ISSO NÃO ALTERAR A FORMA, ESTRUTURA, PROPORÇÕES, SIMETRIA OU CARACTERÍSTICAS ÚNICAS DO ROSTO (formato dos olhos, boca, nariz, etc.). A identidade e a semelhança devem permanecer PERFEITAS E SEM MODIFICAÇÃO DE TRAÇOS, COMO SE FOSSE A MESMA PESSOA EM UMA NOVA FOTO.
+    * CORPO - MÁXIMA FIDELIDADE E PROPORÇÕES FÍSICAS INALTERADAS: Manter o tipo físico, estrutura óssea, musculatura e PROPORÇÕES CORPORAIS EXATAMENTE E SEM NENHUMA ALTERAÇÃO.
+        * REFORÇO DE FOCO: Para garantir a P1, a IA DEVE **IGNORAR O CONTEÚDO ESTRUTURAL DO FUNDO/CENÁRIO** da IMAGEM_PESSOA ao analisar a semelhança.
+        * **⚠️ REGRA DE POSTURA CONDICIONAL (GERAR NOVO LOOK):**
+            * **POSTURA PRESERVADA (Padrão):** A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios.
+            * **MUDANÇA DE POSE (SE 'GERAR NOVO LOOK' Ativado):** SE a instrução explícita de "GERAR NOVO LOOK" for fornecida (via prompt de texto), a IA **PODE MUDAR A POSE DA PESSOA COMPLETAMENTE** (postura e ângulo corporal) mantendo a P1 (proporções físicas inalteradas) e a P2 (visibilidade dos produtos). A nova pose DEVE ser natural, fotorrealista e otimizar a exibição de todos os produtos selecionados e o novo enquadramento.
 
-   * PELE: Replicar o tom, subtom, textura, manchas, sardas e pintas (posição e aparência EXATAS E SEM MODIFICAÇÕES). O Refinamento Estético deve apenas polir levemente a renderização da textura, sem remover, adicionar ou alterar características visíveis que fazem parte da identidade da pele. A pele não deve parecer "perfeita de IA", mas sim naturalmente realista e com suas características originais.
-
-   * CORPO - MÁXIMA FIDELIDADE E PROPORÇÕES FÍSICAS INALTERADAS: Manter o tipo físico, estrutura óssea, musculatura e PROPORÇÕES CORPORAIS (ombros, tronco, membros) EXATAMENTE E SEM NENHUMA ALTERAÇÃO como na IMAGEM_PESSOA. A integridade das medidas corporais é INEGOCIÁVEL. A postura DEVE ser preservada ou adaptada de forma EXTREMAMENTE NATURAL, mantendo o estilo e a fisicalidade da pessoa.
-
-   * CABELO - APLICAÇÃO NATURAL DE TINTURA E APRIMORAMENTO (NÃO-ALTERADOR, REALISTA):
-      * SE um produto de tintura de cabelo (IMAGEM_PRODUTO_X com categoria 'Tintura (Cabelo)') for fornecido:
-         * A IA DEVE analisar o produto de tintura de cabelo (IMAGEM_PRODUTO_X) para identificar sua cor EXATA, tonalidade, nuances e tipo de resultado esperado.
-         * A cor do cabelo da pessoa (original da IMAGEM_PESSOA) DEVE ser naturalmente alterada para a cor identificada do produto, com um CAIMENTO, TEXTURA E ASPECTO ORGÂNICO E FÍSICO.
-         * O cabelo DEVE apresentar um penteado levemente aprimorado (sem alterar o corte original ou comprimento drasticamente) e um brilho extra e saudável NATURAL E CRÍVEL, como se recém-tingido e estilizado profissionalmente. O resultado final deve ser REALISTA, FOTOGRÁFICO E CONVINCENTE, NÃO ARTIFICIAL OU PLÁSTICO.
-      * SE NENHUM produto de tintura de cabelo for fornecido: Preservar a cor EXATA, textura IDÊNTICA, volume, densidade, comprimento, estilo, corte, brilho e linha do cabelo IDÊNTICOS aos da IMAGEM_PESSOA.
-
-   * CARACTERÍSTICAS ÚNICAS: Replicar fielmente todos os traços distintivos, assimetrias naturais e expressões características. A identidade deve ser ABSOLUTA, INQUESTIONÁVEL e LIVRE DE QUALQUER SINAL DE GERAÇÃO ARTIFICIAL OU MANIPULAÇÃO DE IA.
+    * CABELO - APLICAÇÃO NATURAL DE TINTURA E APRIMORAMENTO (Condicionalidade e Substituição):
+        * SE um produto de tintura de cabelo for fornecido: 
+            * A cor do cabelo original DEVE ser **COMPLETAMENTE SUBSTITUÍDA** pela cor identificada do produto de tintura (analisar a cor dominante na IMAGEM_PRODUTO_X).
+            * O resultado final DEVE parecer um cabelo **REALMENTE TINGIDO**, com aplicação uniforme, natural e fotorrealista da tintura em TODOS os fios de cabelo visíveis.
+            * A tintura DEVE ser aplicada de forma **HOMOGÊNEA E PROFISSIONAL**, como se tivesse sido feita em um salão de beleza, cobrindo completamente a cor original do cabelo.
+            * **CRÍTICO**: A cor da tintura DEVE ser extraída diretamente da imagem do produto (IMAGEM_PRODUTO_X) e aplicada de forma **FOTORREALISTA E NATURAL**, sem deixar resquícios da cor original do cabelo.
+            * A textura, volume e estilo do cabelo DEVEM ser preservados, APENAS a cor deve ser alterada para corresponder exatamente à cor do produto de tintura.
+        * SE NENHUM produto de tintura de cabelo for fornecido: Preservar a cor EXATA, textura IDÊNTICA, volume e estilo **IDÊNTICOS** aos da IMAGEM_PESSOA.
 
 2. INTEGRAÇÃO INTELIGENTE E NATURAL DE PRODUTOS E VESTUÁRIO (PRIORIDADE 2 - FIDELIDADE E REALISMO IMPLACÁVEL DO PRODUTO):
 
-   * Todos os produtos fornecidos DEVEM ser integrados à IMAGEM_PESSOA de forma ORGÂNICA, NATURAL, FÍSICA E FOTORREALISTA. A integração deve ser IMPERCEPTÍVEL, CRÍVEL E CONSISTENTE COM AS LEIS DA FÍSICA (LUZ, SOMBRA, MATERIAL).
+    * A IA DEVE ANALISAR CADA IMAGEM_PRODUTO_X (Máximo 3) para inferir sua categoria.
 
-   * PRESERVAÇÃO DA FIDELIDADE DOS PRODUTOS:
-      * Fidelidade de Item EXTREMA: Cores, texturas, materiais, formas e detalhes de CADA PRODUTO devem ser replicados com MÁXIMA E ABSOLUTA FIDELIDADE. O produto final DEVE ser IDÊNTICO AO PRODUTO DE REFERÊNCIA, sem distorções, "blur" artificial ou mudanças de design. A interação com o corpo deve ser FÍSICA E REALISTA.
+    * SUBSTITUIÇÃO DE VESTUÁRIO: Se um produto da categoria 'ROUPA' for fornecido: A roupa original DEVE ser **INTEIRAMENTE SUBSTITUÍDA**. O caimento fotorrealista e físico do tecido **(Caimento, Forma, Cor, Tamanho, Proporção)** DEVE ser meticulosamente replicado.
 
-   * SUBSTITUIÇÃO DE VESTUÁRIO:
-      * Se um produto da categoria 'ROUPA' for fornecido: A roupa original da IMAGEM_PESSOA DEVE ser INTEIRAMENTE SUBSTITUÍDA pela nova, preservando as proporções corporais da pessoa e garantindo um caimento fotorrealista e físico do tecido.
-      * Se NENHUM produto da categoria 'ROUPA' for fornecido: Manter a roupa original da IMAGEM_PESSOA com sua textura e caimento original.
-
-   * Outros Acessórios/Itens (Óculos, Batom, Relógio, etc.): Devem ser adicionados à pessoa sobrepondo ou complementando a roupa (original ou nova) de forma FOTORREALISTA E FISICAMENTE PLAUSÍVEL. O batom deve se integrar naturalmente aos lábios da pessoa, respeitando sua forma original, com textura e brilho fiéis ao produto.
-
-   * Vestibilidade e Caimento Físico: Cada item DEVE se ajustar PERFEITAMENTE E FISICAMENTE ao corpo, respeitando as dobras naturais da pele e do tecido. A roupa deve refletir FIELMENTE O MATERIAL DO PRODUTO DE REFERÊNCIA, com interações de luz e sombra REAIS.
+    * Outros Acessórios/Itens (Adição e Substituição Condicional):
+        * SE a categoria for JOIAS, RELÓGIOS ou ÓCULOS: A composição fotográfica DEVE priorizar um CLOSE-UP, **A MENOS QUE** a Regra Mestra de Enquadramento (Seção 3) exija um Cenário de Contexto.
+        * SE a categoria for COSMÉTICOS: O produto fornecido deve ser aplicado na pessoa com **MÁXIMA FIDELIDADE TÉCNICA** e aplicação SUAVE, NATURAL E FOTORREALISTA, **SUBSTITUINDO** a maquiagem original.
 
 3. CENÁRIO E ILUMINAÇÃO DINÂMICOS (Adaptação Contextual e Coesa):
 
-   * SE uma 'ROUPA' nova for integrada: O cenário e a iluminação DA CENA FINAL DEVEM ser AUTOMATICAMENTE ADAPTADOS E CONSISTENTES para complementar e valorizar o estilo e a categoria da nova roupa.
-      * Exemplos de Adaptação (Modelo DEVE INFERIR E CRIAR UM AMBIENTE REALISTA): Bikini (Praia/Piscina, luz externa brilhante); Roupa Social/Formal (Ambiente urbano elegante, evento noturno, escritório sofisticado, com iluminação mais controlada e possivelmente mais dramática e CONSISTENTE).
+    **⚠️ REGRA MESTRA DE ENQUADRAMENTO (PRIORIDADE CRÍTICA DE CENA):**
+    * O ENQUADRAMENTO FINAL DA CENA DEVE SER SEMPRE DINÂMICO E DETERMINADO PELOS PRODUTOS SELECIONADOS.
+    * **CENÁRIO DE DETALHE (Close-up/Plano Médio):** SE a lista de produtos for composta **EXCLUSIVAMENTE** por itens que exigem close-up (Óculos, Joias, Relógios, Cosméticos, Tintura (Cabelo)) E o número total de produtos for 1 ou 2, o enquadramento DEVE se aproximar para focar no detalhe e realce.
+    * **CENÁRIO DE CONTEXTO (Corpo Inteiro/Plano Americano):** SE a lista de produtos incluir qualquer item de GRANDE VOLUME (Roupas, Calçados, Bolsas), OU o número de produtos for 3, o enquadramento DEVE se afastar para garantir que TODOS os itens sejam exibidos de forma COESA.
 
-   * SE NENHUMA 'ROUPA' nova for integrada: Manter o cenário original da IMAGEM_PESSOA, mas OTIMIZAR a iluminação para destacar os novos acessórios de forma HARMONIOSA E NATURAL, mantendo o realismo da foto.
+    * **MUDANÇA DE AMBIENTE:** O cenário e a iluminação DEVEM ser AUTOMATICAMENTE ADAPTADOS para complementar o look. **MUDANÇAS SUTIS NO AMBIENTE** (ex: alteração de objetos de fundo, cor da parede, luz ambiente) são permitidas para criar uma sensação de "Novo Look" ao lado da nova pose.
 
 4. QUALIDADE FOTOGRÁFICA PROFISSIONAL (ULTRA-REALISTA E SEM ARTIFICIALIDADE DE IA):
 
-   * Estilo: Fotografia de moda, estúdio ou lifestyle. O estilo fotográfico geral DEVE ser CONSISTENTE COM A QUALIDADE DA IMAGEM_PESSOA, ou superá-la em realismo, mas NUNCA DEGRADAR OU ARTIFICIALIZAR.
-   * Iluminação: Natural ou de estúdio, cinematográfica, REFLITANDO O CENÁRIO ADAPTADO E COM SOMBRAS/REFLEXOS FISICAMENTE CORRETOS.
-   * Resolução: Ultra alta definição 8K.
-   * Composição: Equilibrada e profissional, focando na pessoa e nos produtos, com ENQUADRAMENTO NATURAL.
-   * Foco/Profundidade de Campo: Foco nítido na pessoa e no(s) produto(s), com um fundo suavemente desfocado (bokeh natural) para destacar o tema principal. O desfoque DEVE ser ÓPTICO E REALISTA, NÃO COMPUTACIONAL.
-   * GRAIN/RUÍDO: Se a IMAGEM_PESSOA tiver um grão fotográfico natural, replicá-lo sutilmente para manter a consistência.
+    * Estilo: Fotografia de moda ou lifestyle.
+    * Iluminação: Natural ou de estúdio, cinematográfica, REFLITANDO O CENÁRIO ADAPTADO E COM SOMBRAS/REFLEXOS FISICAMENTE CORRETOS.
+    * Resolução: Ultra alta definição 8K.
+    * Foco/Profundidade de Campo: Foco nítido na pessoa e no(s) produto(s), com um fundo suavemente desfocado (bokeh ÓPTICO E REALISTA).
 
-RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA onde:
-   - PRIORIDADE 1 INABALÁVEL: A pessoa da IMAGEM_PESSOA é 100% IDÊNTICA, INDISTINGUIVELMENTE A MESMA PESSOA (SEM ALTERAÇÕES DE TRAÇOS OU APARENCIA ARTIFICIAL), com proporções corporais mantidas e, se aplicável, cor de cabelo natural da tintura e penteado/brilho aprimorados, TUDO ISSO SEM COMPROMETER A FIDELIDADE VISUAL ORIGINAL.
-   - PRIORIDADE 2 REPLICADA: Todos os produtos fornecidos aparecem com suas características visuais ORIGINAIS E FIÉIS mantidas, e são integrados de forma PERFEITAMENTE NATURAL, FÍSICA E SEM SINAIS DE MONTAGEM DIGITAL.
-   - A cena completa (pessoa, produtos, cenário, iluminação) é COESA, FOTORREALISTA E TOTALMENTE LIVRE DE QUALQUER INDÍCIO DE GERAÇÃO POR INTELIGÊNCIA ARTIFICIAL.`;
+RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA onde a pessoa é 100% IDÊNTICA (P1), todos os produtos fornecidos são FIÉIS (P2) e a cena completa é COESA, FOTORREALISTA E TOTALMENTE LIVRE DE QUALQUER INDÍCIO DE GERAÇÃO POR INTELIGÊNCIA ARTIFICIAL.`;
 
         // Construir array de imagens: primeira é a pessoa, seguintes são os produtos
         const imageUrls = [

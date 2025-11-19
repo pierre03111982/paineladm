@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchClientesReferidos } from "@/lib/firestore/server";
-import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { getClientReferrals } from "@/lib/firestore/shares";
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/lojista/clientes/[clienteId]/referrals
- * Busca clientes referidos por um cliente específico
+ * Retorna lista de clientes referenciados por um cliente
  */
 export async function GET(
   request: NextRequest,
@@ -15,38 +14,22 @@ export async function GET(
   try {
     const { clienteId } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const lojistaIdFromQuery = searchParams.get("lojistaId");
-
-    // Prioridade: query string (modo admin) > usuário logado
-    const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
-    const lojistaId =
-      lojistaIdFromQuery ||
-      lojistaIdFromAuth ||
-      process.env.NEXT_PUBLIC_LOJISTA_ID ||
-      process.env.LOJISTA_ID ||
-      "";
+    const lojistaId = searchParams.get("lojistaId");
 
     if (!lojistaId) {
       return NextResponse.json(
-        { error: "lojistaId não encontrado" },
+        { error: "lojistaId é obrigatório" },
         { status: 400 }
       );
     }
 
-    if (!clienteId) {
-      return NextResponse.json(
-        { error: "clienteId é obrigatório" },
-        { status: 400 }
-      );
-    }
+    const referrals = await getClientReferrals(lojistaId, clienteId);
 
-    const clientesReferidos = await fetchClientesReferidos(lojistaId, clienteId);
-
-    return NextResponse.json({ clientes: clientesReferidos });
-  } catch (error) {
-    console.error("[API Referrals GET] Erro:", error);
+    return NextResponse.json({ referrals });
+  } catch (error: any) {
+    console.error("[API Cliente Referrals] Erro:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar clientes referidos" },
+      { error: error.message || "Erro ao buscar referrals" },
       { status: 500 }
     );
   }

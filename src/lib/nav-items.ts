@@ -48,6 +48,11 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Monitor,
   },
   {
+    href: "/app-cliente",
+    label: "Aplicativo Cliente",
+    icon: QrCode,
+  },
+  {
     href: "/compartilhamento",
     label: "Compartilhar",
     icon: Share2,
