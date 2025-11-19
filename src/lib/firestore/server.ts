@@ -141,6 +141,7 @@ export async function updateLojaPerfil(
       channel?: string;
       salesWhatsapp?: string | null;
       checkoutLink?: string | null;
+      whatsappMessageTemplate?: string | null;
     };
   }
 ): Promise<void> {
