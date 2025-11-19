@@ -830,7 +830,7 @@ export function ComposicoesGallery({
                     <img
                       src={item.previewUrl}
                       alt={`Composição ${item.id}`}
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                      className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
                     />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-70" />
@@ -873,30 +873,19 @@ export function ComposicoesGallery({
                     </span>
                   </div>
                   
-                  {/* Informações de custo e tempo */}
-                  {(item.totalCostBRL !== null && item.totalCostBRL !== undefined) || 
-                   (item.processingTime !== null && item.processingTime !== undefined) ? (
-                    <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3 space-y-2">
-                      {item.totalCostBRL !== null && item.totalCostBRL !== undefined ? (
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-zinc-400">Custo:</span>
-                          <span className="font-semibold text-emerald-400">
-                            R$ {item.totalCostBRL.toFixed(2)}
-                          </span>
-                        </div>
-                      ) : null}
-                      {item.processingTime !== null && item.processingTime !== undefined ? (
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-zinc-400">Tempo:</span>
-                          <span className="font-semibold text-indigo-400">
-                            {item.processingTime < 1000 
-                              ? `${item.processingTime}ms`
-                              : item.processingTime < 60000
-                              ? `${(item.processingTime / 1000).toFixed(1)}s`
-                              : `${(item.processingTime / 60000).toFixed(1)}min`}
-                          </span>
-                        </div>
-                      ) : null}
+                  {/* Informações de tempo */}
+                  {item.processingTime !== null && item.processingTime !== undefined ? (
+                    <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-400">Tempo:</span>
+                        <span className="font-semibold text-indigo-400">
+                          {item.processingTime < 1000 
+                            ? `${item.processingTime}ms`
+                            : item.processingTime < 60000
+                            ? `${(item.processingTime / 1000).toFixed(1)}s`
+                            : `${(item.processingTime / 60000).toFixed(1)}min`}
+                        </span>
+                      </div>
                     </div>
                   ) : null}
 
