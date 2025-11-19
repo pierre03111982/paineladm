@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         lojistaId,
         compositionId,
         provider: "gemini-flash-image",
-        operation: "refinement",
+        operation: "other",
         cost: refinementCost,
         currency: "USD",
       }).catch((error) => {
