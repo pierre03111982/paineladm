@@ -20,6 +20,7 @@ type LojaPerfil = {
     channel?: string;
     salesWhatsapp?: string | null;
     checkoutLink?: string | null;
+    whatsappMessageTemplate?: string | null;
   } | null;
 };
 

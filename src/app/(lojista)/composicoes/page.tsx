@@ -293,6 +293,9 @@ type SearchParams = {
   liked?: string;
   shared?: string;
   anonymous?: string;
+  highConversion?: string;
+  minLikes?: string;
+  minShares?: string;
   lojistaId?: string;
 };
 
