@@ -29,9 +29,8 @@ export default async function AppClientePage() {
             Link e QR Code para seus clientes
           </h1>
           <p className="mt-2 text-sm text-zinc-400 max-w-xl">
-            Este é o link único do seu provador para compartilhar com os
-            clientes. Quando o cliente abrir pela primeira vez, o app solicitará
-            nome e WhatsApp para continuar.
+            Aqui estão os links e QR codes para os 3 modelos disponíveis do seu provador virtual. 
+            Quando o cliente abrir pela primeira vez, o app solicitará nome e WhatsApp para continuar.
           </p>
         </div>
       </header>
