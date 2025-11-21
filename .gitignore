@@ -35,6 +35,15 @@ yarn-error.log*
 # vercel
 .vercel
 
+# certificates and secrets
+PROJETOS/certs/
+**/certs/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
