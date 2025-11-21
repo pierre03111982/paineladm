@@ -59,12 +59,15 @@ export function AppClienteContent({ lojistaId, perfil }: AppClienteContentProps)
   const modeloRaw = perfil?.appModel || "1";
   const modeloPadrao = (modeloRaw.replace("modelo-", "") as "1" | "2" | "3") || "1";
 
-  // Array com os 3 modelos
+  // Array com os 3 modelos - SEMPRE mostrar os 3 modelos
   const modelos: Array<{ id: "1" | "2" | "3"; nome: string }> = [
     { id: "1", nome: "Modelo 1" },
     { id: "2", nome: "Modelo 2" },
     { id: "3", nome: "Modelo 3" },
   ];
+
+  // Forçar renderização dos 3 modelos (não usar modelo único)
+  // Versão: 2.0 - Sempre mostrar os 3 modelos
 
   return (
     <div className="space-y-6">
