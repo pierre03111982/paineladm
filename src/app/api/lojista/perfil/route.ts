@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
     if (perfil && perfil.nome && (perfil.nome === "Moda Tailandesa" || perfil.nome === "moda tailandesa" || perfil.nome === "MODA TAILANDESA")) {
       console.warn("[API Perfil] Nome incorreto detectado:", perfil.nome);
       // Não corrigir automaticamente aqui, apenas logar
-      // A correção deve ser feita manualmente ou via script
     }
     
     const response = NextResponse.json(perfil);
@@ -68,6 +67,7 @@ export async function POST(request: NextRequest) {
       logoUrl,
       descontoRedesSociais,
       descontoRedesSociaisExpiraEm,
+      appModel, // Campo adicionado
       salesConfig,
     } = body;
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response);
     }
 
-    console.log("[API Perfil POST] Recebido:", { lojistaId, nome, logoUrl, salesConfig });
+    console.log("[API Perfil POST] 📥 Recebido:", { lojistaId, appModel, nome }); // Log melhorado
 
     // Preparar dados para atualização
     const updateData: any = {};
@@ -91,7 +91,13 @@ export async function POST(request: NextRequest) {
     if (tiktok !== undefined) updateData.tiktok = tiktok;
     if (descontoRedesSociais !== undefined) updateData.descontoRedesSociais = descontoRedesSociais;
     if (descontoRedesSociaisExpiraEm !== undefined) updateData.descontoRedesSociaisExpiraEm = descontoRedesSociaisExpiraEm;
-    
+    if (appModel !== undefined) {
+        updateData.appModel = appModel;
+        console.log("[API Perfil POST] ✅ appModel incluído no update:", appModel);
+    } else {
+        console.warn("[API Perfil POST] ⚠️ appModel é undefined no body!");
+    }
+
     // LogoUrl - sempre incluir se fornecido
     if (logoUrl !== undefined) {
       updateData.logoUrl = logoUrl || null;
@@ -111,7 +117,7 @@ export async function POST(request: NextRequest) {
       console.log("[API Perfil POST] salesConfig preparado:", updateData.salesConfig);
     }
 
-    console.log("[API Perfil POST] Dados para atualizar:", JSON.stringify(updateData, null, 2));
+    console.log("[API Perfil POST] 💾 Dados para atualizar:", JSON.stringify(updateData, null, 2));
 
     await updateLojaPerfil(lojistaId, updateData);
     
@@ -128,4 +134,3 @@ export async function POST(request: NextRequest) {
     return addCorsHeaders(response);
   }
 }
-

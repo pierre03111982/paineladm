@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Image as ImageIcon, Instagram, MessageCircle, ShoppingCart, Loader2, Facebook } from "lucide-react";
+import { ModeloAppSelector } from "./components/modelo-app-selector";
 
 type LojaPerfil = {
   nome?: string | null;
@@ -14,7 +15,7 @@ type LojaPerfil = {
   tiktok?: string | null;
   checkoutLink?: string | null;
   descontoRedesSociais?: number | null;
-   descontoRedesSociaisExpiraEm?: string | null;
+  descontoRedesSociaisExpiraEm?: string | null;
   appModel?: "modelo-1" | "modelo-2" | "modelo-3" | null;
   salesConfig?: {
     channel?: string;
@@ -113,6 +114,21 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   // Inicializar formData com os dados do perfil
   const [formData, setFormData] = useState(() => {
     console.log("[SettingsForm] Inicializando formData com perfil:", perfil);
+    const appModelMap: Record<string, "1" | "2" | "3"> = {
+        "modelo-1": "1",
+        "modelo-2": "2",
+        "modelo-3": "3",
+        "1": "1",
+        "2": "2",
+        "3": "3"
+    };
+
+    // Normalizar appModel para "1", "2" ou "3"
+    let normalizedAppModel: "1" | "2" | "3" = "1";
+    if (perfil?.appModel) {
+        normalizedAppModel = appModelMap[perfil.appModel] || "1";
+    }
+
     return {
       nome: perfil?.nome || "",
       descricao: perfil?.descricao || "",
@@ -121,7 +137,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       tiktok: perfil?.tiktok || "",
       descontoRedesSociais: perfil?.descontoRedesSociais || 0,
       descontoRedesSociaisExpiraEm: perfil?.descontoRedesSociaisExpiraEm || "",
-      appModel: (perfil?.appModel as "modelo-1" | "modelo-2" | "modelo-3") || "modelo-1",
+      appModel: normalizedAppModel,
       salesChannel: (perfil?.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
       salesWhatsapp: perfil?.salesConfig?.salesWhatsapp || perfil?.whatsapp || "",
       checkoutLink: perfil?.salesConfig?.checkoutLink || perfil?.checkoutLink || "",
@@ -133,6 +149,20 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   useEffect(() => {
     if (perfil) {
       console.log("[SettingsForm] Perfil atualizado, sincronizando formData:", perfil);
+      const appModelMap: Record<string, "1" | "2" | "3"> = {
+        "modelo-1": "1",
+        "modelo-2": "2",
+        "modelo-3": "3",
+        "1": "1",
+        "2": "2",
+        "3": "3"
+      };
+
+      let normalizedAppModel: "1" | "2" | "3" = "1";
+      if (perfil.appModel) {
+        normalizedAppModel = appModelMap[perfil.appModel] || "1";
+      }
+
       setFormData({
         nome: perfil.nome || "",
         descricao: perfil.descricao || "",
@@ -141,7 +171,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         tiktok: perfil.tiktok || "",
         descontoRedesSociais: perfil.descontoRedesSociais || 0,
         descontoRedesSociaisExpiraEm: perfil.descontoRedesSociaisExpiraEm || "",
-        appModel: (perfil.appModel as "modelo-1" | "modelo-2" | "modelo-3") || "modelo-1",
+        appModel: normalizedAppModel,
         salesChannel: (perfil.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
         salesWhatsapp: perfil.salesConfig?.salesWhatsapp || perfil.whatsapp || "",
         checkoutLink: perfil.salesConfig?.checkoutLink || perfil.checkoutLink || "",
@@ -228,6 +258,15 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
 
     try {
       // Preparar payload - garantir que logoUrl e salesConfig sejam sempre enviados
+      // Converter modelo de volta para "modelo-X" se necessário ou enviar como "1","2","3"
+      // O backend provavelmente espera "modelo-1", mas vamos padronizar para "1", "2", "3" no futuro.
+      // Por enquanto, vou manter compatibilidade enviando "1", "2", "3" e o backend que lide, ou mapear de volta.
+      // Como ajustamos o app-cliente para ler "1", "2", "3", é melhor salvar assim.
+      // Mas o tipo LojaPerfil no topo diz "modelo-1" | ...
+      // Vou forçar salvar como "modelo-1", "modelo-2" se for o que o backend espera, ou "1" se mudamos.
+      // Dado o arquivo anterior, ele salvava "modelo-1". Vou salvar "1", "2", "3" pois é o que o novo componente usa.
+      // E vou atualizar o tipo LojaPerfil no backend se precisar (mas Firestore aceita qualquer string).
+      
       const payload: any = {
         lojistaId,
         nome: formData.nome || "",
@@ -235,7 +274,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         instagram: formData.instagram || "",
         facebook: formData.facebook || "",
         tiktok: formData.tiktok || "",
-        appModel: formData.appModel || "modelo-1",
+        appModel: formData.appModel, // Sem fallback hardcoded
         descontoRedesSociais: formData.descontoRedesSociais || null,
         descontoRedesSociaisExpiraEm: formData.descontoRedesSociaisExpiraEm || null,
       };
@@ -252,6 +291,9 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       };
 
       console.log("[SettingsForm] Enviando dados para salvar:", JSON.stringify(payload, null, 2));
+      
+      // DEBUG: Alertar o modelo sendo enviado
+      // alert(`DEBUG: Enviando modelo: ${payload.appModel}`);
 
       const response = await fetch("/api/lojista/perfil", {
         method: "POST",
@@ -274,9 +316,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         // Manter os dados atuais (já estão corretos)
       });
       
-      // O logoPreview já está atualizado após o upload
-      // Não precisa atualizar aqui
-
       alert("Configurações salvas com sucesso!");
       
       // Aguardar um pouco para garantir que o Firestore foi atualizado
@@ -290,6 +329,10 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleModeloChange = (modelo: "1" | "2" | "3") => {
+    setFormData(prev => ({ ...prev, appModel: modelo }));
   };
 
   return (
@@ -354,48 +397,13 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         </div>
       </div>
 
-      {/* Modelo do App Cliente */}
+      {/* Modelo do App Cliente - NOVO COMPONENTE */}
       <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
-        <h3 className="mb-4 text-base font-semibold text-white">Modelo do App Cliente</h3>
-        <p className="mb-4 text-sm text-zinc-400">
-          Escolha qual layout do aplicativo cliente será usado para sua loja.
-        </p>
-        <div className="grid gap-3 md:grid-cols-3">
-          {(["modelo-1", "modelo-2", "modelo-3"] as const).map((model) => (
-            <button
-              key={model}
-              type="button"
-              onClick={() => setFormData({ ...formData, appModel: model })}
-              className={`rounded-lg border-2 p-4 text-left transition ${
-                formData.appModel === model
-                  ? "border-indigo-500 bg-indigo-500/10"
-                  : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={`h-4 w-4 rounded-full border-2 ${
-                    formData.appModel === model
-                      ? "border-indigo-500 bg-indigo-500"
-                      : "border-zinc-600"
-                  }`}
-                >
-                  {formData.appModel === model && (
-                    <div className="h-full w-full rounded-full bg-white" />
-                  )}
-                </div>
-                <span className="font-semibold text-white capitalize">
-                  {model.replace("-", " ")}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-zinc-400">
-                {model === "modelo-1" && "Layout padrão com design moderno"}
-                {model === "modelo-2" && "Layout alternativo (em breve)"}
-                {model === "modelo-3" && "Layout premium (em breve)"}
-              </p>
-            </button>
-          ))}
-        </div>
+        <ModeloAppSelector 
+            modeloAtual={formData.appModel} 
+            lojistaId={lojistaId} 
+            onModeloChange={handleModeloChange} 
+        />
       </div>
 
       {/* Informações Básicas */}
@@ -655,4 +663,3 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
     </form>
   );
 }
-

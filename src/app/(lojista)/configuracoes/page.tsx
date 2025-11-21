@@ -36,5 +36,3 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
     </div>
   );
 }
-
-
