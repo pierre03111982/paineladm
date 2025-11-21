@@ -23,8 +23,7 @@ Para cada modelo (1, 2, 3), faça o deploy no Vercel:
 
 ### Passo 2: Configurar Domínio Personalizado
 
-Para cada projeto no Vercel:
-
+é mel
 1. **Vá em Settings → Domains**
 2. **Adicione o subdomínio**:
    - Para Modelo 1: `app1.experimenteai.com.br`

@@ -12,6 +12,8 @@
 - **Gerenciar Lojistas:** http://localhost:3000/admin/lojistas
 - **Gerenciar Planos:** http://localhost:3000/admin/planos
 
+NEXT_PUBLIC_PAINELADM_URL=https://paineladmexperimenteai.vercel.app
+NEXT_PUBLIC_BACKEND_URL=https://paineladmexperimenteai.vercel.app
 ---
 
 ## 🎯 Funcionalidades do Painel Administrativo
