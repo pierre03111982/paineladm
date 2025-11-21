@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ExternalLink, Copy, Check, QrCode, Smartphone, Download } from "lucide-react";
+import { ExternalLink, Copy, Check, QrCode, Smartphone, Download, Star } from "lucide-react";
 import Link from "next/link";
 
 type AppClienteContentProps = {
@@ -13,7 +13,15 @@ type AppClienteContentProps = {
 function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" = "1"): string {
   const isDev = process.env.NODE_ENV === "development";
   
-  // Mapeamento de portas por modelo (ATUALIZADO PARA PORTAS CORRETAS)
+  // Mapeamento de subdomínios por modelo (PROFISSIONAL)
+  // Prioridade: Variável de ambiente > Subdomínio padrão > Fallback localhost
+  const modeloSubdomains: Record<"1" | "2" | "3", string> = {
+    "1": process.env.NEXT_PUBLIC_MODELO_1_URL || process.env.NEXT_PUBLIC_MODELO_1_SUBDOMAIN || "app1.experimenteai.com.br",
+    "2": process.env.NEXT_PUBLIC_MODELO_2_URL || process.env.NEXT_PUBLIC_MODELO_2_SUBDOMAIN || "app2.experimenteai.com.br",
+    "3": process.env.NEXT_PUBLIC_MODELO_3_URL || process.env.NEXT_PUBLIC_MODELO_3_SUBDOMAIN || "app3.experimenteai.com.br",
+  };
+
+  // Mapeamento de portas por modelo (apenas para desenvolvimento local)
   const portMap: Record<"1" | "2" | "3", string> = {
     "1": process.env.NEXT_PUBLIC_MODELO_1_PORT || "3004",
     "2": process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005",
@@ -23,16 +31,21 @@ function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" =
   let baseUrl: string;
   
   if (isDev) {
-    // Em desenvolvimento, usar localhost com porta específica do modelo
-    baseUrl = `http://localhost:${portMap[modelo]}`;
+    // Em desenvolvimento, verificar se há variável de ambiente para subdomínio local
+    // Se não houver, usar localhost com porta
+    const devSubdomain = modeloSubdomains[modelo];
+    if (devSubdomain && !devSubdomain.includes("experimenteai.com.br")) {
+      // Se a variável apontar para um subdomínio local (ex: modelo1.local)
+      baseUrl = `http://${devSubdomain}`;
+    } else {
+      // Fallback: usar localhost com porta
+      baseUrl = `http://localhost:${portMap[modelo]}`;
+    }
   } else {
-    // Em produção, usar URLs oficiais
-    const modeloUrls: Record<"1" | "2" | "3", string> = {
-      "1": "https://app.experimenteai.com.br",
-      "2": "https://app2.experimenteai.com.br",
-      "3": "https://app3.experimenteai.com.br",
-    };
-    baseUrl = modeloUrls[modelo] || modeloUrls["1"];
+    // Em produção, usar subdomínios profissionais
+    const subdomain = modeloSubdomains[modelo];
+    // Garantir que tenha protocolo https
+    baseUrl = subdomain.startsWith("http") ? subdomain : `https://${subdomain}`;
   }
   
   // A URL padrão já inclui o ID e acessa os dados da loja
@@ -40,19 +53,68 @@ function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" =
 }
 
 export function AppClienteContent({ lojistaId, perfil }: AppClienteContentProps) {
-  const [copied, setCopied] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-
   // Obter modelo do perfil (padrão: modelo 1)
   // O campo no perfil vem como 'appModel' (definido em fetchLojaPerfil)
   // Normalizar para garantir que seja "1", "2" ou "3"
   const modeloRaw = perfil?.appModel || "1";
-  const modeloSelecionado = (modeloRaw.replace("modelo-", "") as "1" | "2" | "3") || "1";
+  const modeloPadrao = (modeloRaw.replace("modelo-", "") as "1" | "2" | "3") || "1";
 
-  // Construir URL do app cliente usando o modelo selecionado
-  const appClienteUrl = buildClientAppUrlWithModel(lojistaId, modeloSelecionado);
+  // Array com os 3 modelos
+  const modelos: Array<{ id: "1" | "2" | "3"; nome: string }> = [
+    { id: "1", nome: "Modelo 1" },
+    { id: "2", nome: "Modelo 2" },
+    { id: "3", nome: "Modelo 3" },
+  ];
 
-  // Gerar QR Code
+  return (
+    <div className="space-y-6">
+      {/* Descrição */}
+      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/40 p-6 shadow-lg backdrop-blur-xl">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Links e QR Codes dos Modelos
+        </h2>
+        <p className="text-base text-zinc-400">
+          Aqui estão os links e QR codes para os 3 modelos disponíveis. O modelo selecionado como padrão nas configurações está destacado.
+        </p>
+      </div>
+
+      {/* Grid com os 3 Modelos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {modelos.map((modelo) => {
+          const isPadrao = modelo.id === modeloPadrao;
+          const appClienteUrl = buildClientAppUrlWithModel(lojistaId, modelo.id);
+
+          return (
+            <ModeloCard
+              key={modelo.id}
+              modelo={modelo}
+              appClienteUrl={appClienteUrl}
+              isPadrao={isPadrao}
+              lojistaId={lojistaId}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Componente para cada card de modelo
+function ModeloCard({
+  modelo,
+  appClienteUrl,
+  isPadrao,
+  lojistaId,
+}: {
+  modelo: { id: "1" | "2" | "3"; nome: string };
+  appClienteUrl: string;
+  isPadrao: boolean;
+  lojistaId: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+
+  // Gerar QR Code para este modelo
   useEffect(() => {
     if (appClienteUrl) {
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(appClienteUrl)}`;
@@ -74,92 +136,107 @@ export function AppClienteContent({ lojistaId, perfil }: AppClienteContentProps)
     if (qrCodeUrl) {
       const link = document.createElement('a');
       link.href = qrCodeUrl;
-      link.download = `qrcode-app-cliente-${lojistaId}-modelo-${modeloSelecionado}.png`;
+      link.download = `qrcode-app-cliente-${lojistaId}-modelo-${modelo.id}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
   };
-
   return (
-    <div className="space-y-6">
-      {/* Card Principal */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/40 p-8 shadow-lg backdrop-blur-xl">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
-          
-          {/* Lado Esquerdo: Link e Informações */}
-          <div className="flex-1 space-y-6 w-full">
-            <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-indigo-200 mb-3">
-                Modelo {modeloSelecionado} Selecionado
-              </span>
-              <h2 className="text-2xl font-bold text-white">
-                Seu Link Exclusivo
-              </h2>
-              <p className="text-base text-zinc-400 mt-2">
-                Este link carrega automaticamente o <strong>Modelo {modeloSelecionado}</strong> com o nome, logotipo e produtos da sua loja.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 flex items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-900/70 p-4 shadow-inner">
-                <Smartphone className="h-5 w-5 text-indigo-400 flex-shrink-0" />
-                <input
-                  type="text"
-                  readOnly
-                  value={appClienteUrl}
-                  className="flex-1 bg-transparent text-sm text-white outline-none font-mono"
-                />
-              </div>
-              <button
-                onClick={handleCopy}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-4 text-sm font-medium text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95"
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copiado!" : "Copiar Link"}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-4 pt-2">
-              <Link
-                href={appClienteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors hover:underline"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Testar link no navegador
-              </Link>
-            </div>
-          </div>
-
-          {/* Lado Direito: QR Code em destaque */}
-          <div className="flex flex-col items-center space-y-4 bg-white/5 p-6 rounded-2xl border border-white/10">
-            <div className="relative h-56 w-56 rounded-xl bg-white p-3 shadow-2xl">
-              {qrCodeUrl ? (
-                <img
-                  src={qrCodeUrl}
-                  alt="QR Code do Aplicativo Cliente"
-                  width={224}
-                  height={224}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-zinc-500">
-                  <QrCode className="h-16 w-16 animate-pulse" />
-                </div>
-              )}
-            </div>
-            <button
-              onClick={handleDownloadQrCode}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-800/80 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              Baixar QR Code PNG
-            </button>
-          </div>
-
+    <div
+      className={`relative rounded-2xl border-2 p-6 shadow-lg backdrop-blur-xl transition-all ${
+        isPadrao
+          ? "border-green-500/80 bg-green-500/10 ring-2 ring-green-500/30"
+          : "border-zinc-800/60 bg-zinc-950/40"
+      }`}
+    >
+      {/* Badge de Modelo Padrão */}
+      {isPadrao && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-lg">
+            <Star className="h-3 w-3 fill-white" />
+            Modelo Padrão
+          </span>
         </div>
+      )}
+
+      {/* Header do Card */}
+      <div className="mb-4 text-center">
+        <h3 className={`text-xl font-bold ${isPadrao ? "text-green-300" : "text-white"}`}>
+          {modelo.nome}
+        </h3>
+        {isPadrao && (
+          <p className="mt-1 text-xs text-green-400">
+            Selecionado nas configurações
+          </p>
+        )}
+      </div>
+
+      {/* Link Input */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/70 p-3 shadow-inner">
+          <Smartphone className="h-4 w-4 text-indigo-400 shrink-0" />
+          <input
+            type="text"
+            readOnly
+            value={appClienteUrl}
+            className="flex-1 bg-transparent text-xs text-white outline-none font-mono truncate"
+          />
+        </div>
+        <button
+          onClick={handleCopy}
+          className={`mt-2 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all active:scale-95 ${
+            isPadrao
+              ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
+              : "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20"
+          }`}
+        >
+          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? "Copiado!" : "Copiar Link"}
+        </button>
+      </div>
+
+      {/* QR Code */}
+      <div className="mb-4 flex flex-col items-center space-y-3 bg-white/5 p-4 rounded-xl border border-white/10">
+        <div className="relative h-40 w-40 rounded-lg bg-white p-2 shadow-xl">
+          {qrCodeUrl ? (
+            <img
+              src={qrCodeUrl}
+              alt={`QR Code do ${modelo.nome}`}
+              width={160}
+              height={160}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-zinc-500">
+              <QrCode className="h-12 w-12 animate-pulse" />
+            </div>
+          )}
+        </div>
+        <button
+          onClick={handleDownloadQrCode}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-800/80 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-700 transition-colors"
+        >
+          <Download className="h-3 w-3" />
+          Baixar QR Code
+        </button>
+      </div>
+
+      {/* Link para testar */}
+      <div className="text-center">
+        <Link
+          href={appClienteUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-2 text-xs transition-colors hover:underline ${
+            isPadrao
+              ? "text-green-400 hover:text-green-300"
+              : "text-indigo-400 hover:text-indigo-300"
+          }`}
+        >
+          <ExternalLink className="h-3 w-3" />
+          Testar no navegador
+        </Link>
       </div>
     </div>
   );
