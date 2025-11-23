@@ -296,14 +296,17 @@ export async function fetchFavoriteLooks(params: {
   try {
     let snapshot;
     try {
+      // Buscar mais documentos (50) para garantir que temos likes suficientes após filtrar dislikes
+      // Depois limitaremos a 10 likes
       snapshot = await clienteFavoritosRef(lojistaId, customerId)
         .orderBy("createdAt", "desc")
-        .limit(10)
+        .limit(50)
         .get();
     } catch (orderByError: any) {
       if (orderByError?.code === "failed-precondition") {
+        // Se não houver índice, buscar mais documentos para garantir que temos likes suficientes
         const allSnapshot = await clienteFavoritosRef(lojistaId, customerId)
-          .limit(50)
+          .limit(100)
           .get();
         
         const allDocs: any[] = [];
