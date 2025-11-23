@@ -36,13 +36,19 @@ export async function POST(request: NextRequest) {
 
     if (!clientesSnapshot.empty) {
       const clienteDoc = clientesSnapshot.docs[0];
+      const clienteData = clienteDoc.data();
       
-      // Limpar sessão ativa
+      // SEMPRE limpar sessão ativa, independente do deviceId
+      // Isso permite que o usuário faça logout e login novamente no mesmo ou outro dispositivo
       await clienteDoc.ref.update({
         activeSession: false,
         activeDeviceId: null,
         lastLogoutAt: new Date(),
       });
+      
+      console.log(`[API Cliente Logout] Sessão limpa para ${whatsapp} (lojista: ${lojistaId})`);
+    } else {
+      console.log(`[API Cliente Logout] Cliente não encontrado para ${whatsapp} (lojista: ${lojistaId})`);
     }
 
     // Limpar sessões na coleção clienteSessions também
