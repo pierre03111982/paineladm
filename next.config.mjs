@@ -5,10 +5,7 @@ const finalConfig = {
     return `build-${Date.now()}`;
   },
   // Forçar rebuild dinâmico
-  experimental: {
-    // Desabilitar cache de ISR
-    isrMemoryCacheSize: 0,
-  },
+  // Nota: isrMemoryCacheSize não é mais suportado no Next.js 16
   async headers() {
     return [
       {
