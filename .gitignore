@@ -48,3 +48,10 @@ next-env.d.ts
 Thumbs.db
 
 .vercel
+
+# Arquivos de backup
+*BACKUP*
+*backup*
+*_backup.*
+*.bak
+*.old

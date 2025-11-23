@@ -115,8 +115,8 @@ Blusa Primavera,149.90,Roupas,https://exemplo.com/imagem2.jpg,branco - preto,PP;
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 sm:pt-12 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg mb-8">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">Importar catálogo de produtos</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">

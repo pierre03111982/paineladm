@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2 } from "lucide-react";
+import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, CheckSquare, Square } from "lucide-react";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
@@ -31,6 +31,7 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   // Recarregar produtos quando showArchived mudar
   useEffect(() => {
@@ -130,11 +131,141 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
       if (!response.ok) throw new Error("Erro ao excluir produto");
 
       setProdutos((prev) => prev.filter((p) => p.id !== produto.id));
+      setSelectedProducts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(produto.id);
+        return newSet;
+      });
       setSuccess("Produto excluído");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error("[ProductsTable] Erro ao excluir:", err);
       setError("Erro ao excluir produto");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle seleção de produto
+  const toggleProductSelection = (productId: string) => {
+    setSelectedProducts((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  // Selecionar todos os produtos visíveis
+  const handleSelectAll = () => {
+    if (selectedProducts.size === filteredProdutos.length) {
+      // Se todos estão selecionados, desselecionar todos
+      setSelectedProducts(new Set());
+    } else {
+      // Selecionar todos os produtos filtrados
+      setSelectedProducts(new Set(filteredProdutos.map(p => p.id)));
+    }
+  };
+
+  // Excluir produtos selecionados
+  const handleDeleteSelected = async () => {
+    if (selectedProducts.size === 0) {
+      setError("Nenhum produto selecionado");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    const count = selectedProducts.size;
+    if (!confirm(`Tem certeza que deseja excluir ${count} produto(s) selecionado(s)? Esta ação não pode ser desfeita.`)) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const selectedIds = Array.from(selectedProducts);
+      console.log("[ProductsTable] Excluindo produtos:", selectedIds);
+      
+      const deleteResults = await Promise.allSettled(
+        selectedIds.map(async (productId) => {
+          const url = lojistaIdFromUrl
+            ? `/api/lojista/products/${productId}?lojistaId=${lojistaIdFromUrl}`
+            : `/api/lojista/products/${productId}`;
+          
+          console.log("[ProductsTable] Excluindo produto:", productId, "URL:", url);
+          
+          const response = await fetch(url, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro ao excluir produto ${productId}`);
+          }
+          
+          return productId;
+        })
+      );
+
+      // Verificar resultados
+      const successfulResults = deleteResults.filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled');
+      const failed = deleteResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      const successful = successfulResults.length;
+      const successfulIds = successfulResults.map(r => r.value);
+      
+      console.log("[ProductsTable] Resultados da exclusão:", { successful, failed: failed.length, successfulIds });
+      
+      // Remover produtos excluídos com sucesso da lista local imediatamente
+      if (successfulIds.length > 0) {
+        const successfulIdsSet = new Set(successfulIds);
+        setProdutos((prev) => prev.filter((p) => !successfulIdsSet.has(p.id)));
+        // Remover também da seleção
+        setSelectedProducts((prev) => {
+          const newSet = new Set(prev);
+          successfulIds.forEach(id => newSet.delete(id));
+          return newSet;
+        });
+      }
+      
+      // Recarregar produtos do servidor para garantir sincronização completa
+      try {
+        const url = lojistaIdFromUrl 
+          ? `/api/lojista/products?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+          : `/api/lojista/products?includeArchived=${showArchived}`;
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          const produtosArray = Array.isArray(data) ? data : (data?.produtos || []);
+          console.log("[ProductsTable] Produtos recarregados após exclusão:", produtosArray.length);
+          setProdutos(produtosArray);
+        } else {
+          console.warn("[ProductsTable] Erro ao recarregar produtos, mas produtos já foram removidos localmente");
+        }
+      } catch (reloadError) {
+        console.error("[ProductsTable] Erro ao recarregar produtos:", reloadError);
+        // Produtos já foram removidos localmente, então está ok
+      }
+      
+      // Mostrar mensagens de sucesso/erro
+      if (failed.length > 0) {
+        console.error("[ProductsTable] Erros ao excluir:", failed);
+        const errorMessages = failed.map((f: any) => f.reason?.message || 'Erro desconhecido').join(', ');
+        if (successful > 0) {
+          setError(`${successful} produto(s) excluído(s), mas ${failed.length} falharam: ${errorMessages}`);
+        } else {
+          setError(`Erro ao excluir produtos: ${errorMessages}`);
+        }
+        setTimeout(() => setError(null), 5000);
+      } else if (successful > 0) {
+        setSuccess(`${successful} produto(s) excluído(s) com sucesso`);
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err: any) {
+      console.error("[ProductsTable] Erro ao excluir produtos:", err);
+      setError(err.message || "Erro ao excluir produtos selecionados");
+      setTimeout(() => setError(null), 5000);
     } finally {
       setLoading(false);
     }
@@ -193,6 +324,27 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
                 Mostrar arquivados
               </label>
             </div>
+            {selectedProducts.size > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30">
+                  {selectedProducts.size} selecionado(s)
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (!loading) {
+                      handleDeleteSelected();
+                    }
+                  }}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-red-500/60 bg-red-600/20 px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:border-red-400 hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/10 active:scale-95"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {loading ? "Excluindo..." : `Excluir selecionados (${selectedProducts.size})`}
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex w-full gap-2 md:w-auto md:flex-row">
             <div className="relative flex-1 md:w-72">
@@ -237,6 +389,26 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
           <table className="min-w-full divide-y divide-zinc-800 text-sm">
             <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
+                <th className="px-6 py-3 w-16">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (!loading && filteredProdutos.length > 0) {
+                        handleSelectAll();
+                      }
+                    }}
+                    className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-indigo-400/30"
+                    title={selectedProducts.size === filteredProdutos.length && filteredProdutos.length > 0 ? "Desselecionar todos" : "Selecionar todos"}
+                    disabled={filteredProdutos.length === 0 || loading}
+                  >
+                    {selectedProducts.size === filteredProdutos.length && filteredProdutos.length > 0 ? (
+                      <CheckSquare className="h-6 w-6 text-indigo-400" />
+                    ) : (
+                      <Square className="h-6 w-6 text-zinc-500 hover:text-indigo-400 transition" />
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-3">Produto</th>
                 <th className="px-6 py-3">Categoria</th>
                 <th className="px-6 py-3">Preço</th>
@@ -250,13 +422,13 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
             <tbody className="divide-y divide-zinc-900/60">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
                     Carregando...
                   </td>
                 </tr>
               ) : filteredProdutos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
                     <Package className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
                     {produtos.length === 0
                       ? "Nenhum produto cadastrado ainda. Clique em 'Adicionar Produto' para começar."
@@ -266,6 +438,26 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
               ) : (
                 filteredProdutos.map((produto) => (
                   <tr key={produto.id} className="hover:bg-zinc-900/40">
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (!loading) {
+                            toggleProductSelection(produto.id);
+                          }
+                        }}
+                        className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-indigo-400/30 active:scale-95"
+                        title={selectedProducts.has(produto.id) ? "Desselecionar" : "Selecionar"}
+                        disabled={loading}
+                      >
+                        {selectedProducts.has(produto.id) ? (
+                          <CheckSquare className="h-6 w-6 text-indigo-400" />
+                        ) : (
+                          <Square className="h-6 w-6 text-zinc-500 hover:text-indigo-400 transition" />
+                        )}
+                      </button>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {produto.imagemUrl && (
@@ -432,8 +624,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
 
       {/* Modal de Visualização */}
       {viewingProduto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 sm:pt-12 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg mb-8">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">Detalhes do Produto</h2>
               <button
@@ -693,8 +885,8 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 sm:pt-12 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg mb-8">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Editar produto</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">
