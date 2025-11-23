@@ -144,6 +144,15 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
       filtered = filtered.filter((cliente) => !cliente.arquivado);
     }
 
+    // Ordenar por nome A-Z
+    filtered.sort((a, b) => {
+      const nomeA = a.nome.toUpperCase().trim();
+      const nomeB = b.nome.toUpperCase().trim();
+      if (nomeA < nomeB) return -1;
+      if (nomeA > nomeB) return 1;
+      return 0;
+    });
+
     return filtered;
   }, [clientes, searchTerm, statusFilter, showArchived]);
 
@@ -508,26 +517,11 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 overflow-hidden rounded-full border border-zinc-800/60 bg-zinc-900/60 flex items-center justify-center">
-                          {(cliente as any).avatarUrl ? (
-                            <img
-                              src={(cliente as any).avatarUrl}
-                              alt={cliente.nome}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs text-zinc-500">
-                              {cliente.nome.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-zinc-100">{cliente.nome}</p>
-                          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-                            ID {cliente.id.slice(0, 6)}
-                          </p>
-                        </div>
+                      <div>
+                        <p className="font-medium text-zinc-100">{cliente.nome}</p>
+                        <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          ID {cliente.id.slice(0, 6)}
+                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-zinc-300 whitespace-nowrap">
