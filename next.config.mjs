@@ -28,7 +28,17 @@ const finalConfig = {
         // Headers para desabilitar cache nas páginas do lojista
         source: "/(lojista)/:path*",
         headers: [
-          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" },
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+          { key: "X-Cache-Status", value: "BYPASS" },
+        ],
+      },
+      {
+        // Headers para desabilitar cache na página de produtos especificamente
+        source: "/produtos",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0" },
           { key: "Pragma", value: "no-cache" },
           { key: "Expires", value: "0" },
         ],
