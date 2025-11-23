@@ -364,18 +364,80 @@ export async function fetchFavoriteLooks(params: {
         return; // Pular se não tiver imagem
       }
       
-      results.push({ id: doc.id, ...data });
+      // Garantir que createdAt está presente e é um objeto Date válido
+      let createdAt = data?.createdAt;
+      if (createdAt?.toDate) {
+        createdAt = createdAt.toDate();
+      } else if (createdAt?.seconds) {
+        createdAt = new Date(createdAt.seconds * 1000);
+      } else if (typeof createdAt === 'string') {
+        createdAt = new Date(createdAt);
+      } else if (!createdAt || !(createdAt instanceof Date)) {
+        // Se não tiver createdAt válido, usar data atual (favorito recém-criado)
+        createdAt = new Date();
+        console.warn(`[fetchFavoriteLooks] Favorito ${doc.id} sem createdAt válido - usando data atual`);
+      }
+      
+      results.push({ 
+        id: doc.id, 
+        ...data,
+        createdAt: createdAt // Garantir que createdAt é sempre um Date válido
+      });
     });
     
     console.log(`[fetchFavoriteLooks] Total de documentos: ${totalDocs}, Likes com imagem: ${results.length}, Dislikes: ${skippedDislikes}, Sem imagem: ${skippedNoImage}, Sem like: ${skippedNoLike}`);
 
+    // Ordenar por data de criação (mais recente primeiro) - garantir que funciona mesmo com diferentes formatos
     results.sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
-      const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+      let dateA: Date;
+      let dateB: Date;
+      
+      // Processar dateA
+      if (a.createdAt instanceof Date) {
+        dateA = a.createdAt;
+      } else if (a.createdAt?.toDate) {
+        dateA = a.createdAt.toDate();
+      } else if (a.createdAt?.seconds) {
+        dateA = new Date(a.createdAt.seconds * 1000);
+      } else if (typeof a.createdAt === 'string') {
+        dateA = new Date(a.createdAt);
+      } else if (a.createdAt) {
+        dateA = new Date(a.createdAt);
+      } else {
+        dateA = new Date(0); // Data muito antiga se não houver
+      }
+      
+      // Processar dateB
+      if (b.createdAt instanceof Date) {
+        dateB = b.createdAt;
+      } else if (b.createdAt?.toDate) {
+        dateB = b.createdAt.toDate();
+      } else if (b.createdAt?.seconds) {
+        dateB = new Date(b.createdAt.seconds * 1000);
+      } else if (typeof b.createdAt === 'string') {
+        dateB = new Date(b.createdAt);
+      } else if (b.createdAt) {
+        dateB = new Date(b.createdAt);
+      } else {
+        dateB = new Date(0); // Data muito antiga se não houver
+      }
+      
+      // Ordenar do mais recente para o mais antigo
       return dateB.getTime() - dateA.getTime();
     });
 
-    return results.slice(0, 10);
+    const limitedResults = results.slice(0, 10);
+    
+    if (limitedResults.length > 0) {
+      console.log(`[fetchFavoriteLooks] Primeiro favorito (mais recente):`, {
+        id: limitedResults[0].id,
+        imagemUrl: limitedResults[0].imagemUrl?.substring(0, 50),
+        createdAt: limitedResults[0].createdAt,
+        action: limitedResults[0].action
+      });
+    }
+
+    return limitedResults;
   } catch (error) {
     console.error("[fetchFavoriteLooks] Erro:", error);
     return [];
