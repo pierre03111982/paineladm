@@ -330,7 +330,13 @@ export async function fetchFavoriteLooks(params: {
     }
 
     const results: any[] = [];
+    let totalDocs = 0;
+    let skippedDislikes = 0;
+    let skippedNoImage = 0;
+    let skippedNoLike = 0;
+    
     snapshot.forEach((doc: any) => {
+      totalDocs++;
       const data = typeof doc.data === "function" ? doc.data() : doc.data;
       
       // IMPORTANTE: Favoritos são apenas imagens com LIKE (não dislike)
@@ -341,15 +347,27 @@ export async function fetchFavoriteLooks(params: {
       
       // Filtrar apenas likes (não mostrar dislikes como favoritos)
       if (isDislike) {
+        skippedDislikes++;
         return; // Pular dislikes
+      }
+      
+      if (!isLike) {
+        skippedNoLike++;
+        return; // Pular se não for like
       }
       
       const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
       
-      if (isLike && hasImage) {
-        results.push({ id: doc.id, ...data });
+      if (!hasImage) {
+        skippedNoImage++;
+        console.warn(`[fetchFavoriteLooks] Favorito ${doc.id} sem imagemUrl - será ignorado`);
+        return; // Pular se não tiver imagem
       }
+      
+      results.push({ id: doc.id, ...data });
     });
+    
+    console.log(`[fetchFavoriteLooks] Total de documentos: ${totalDocs}, Likes com imagem: ${results.length}, Dislikes: ${skippedDislikes}, Sem imagem: ${skippedNoImage}, Sem like: ${skippedNoLike}`);
 
     results.sort((a, b) => {
       const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
