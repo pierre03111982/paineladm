@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       alreadyLoggedIn: true,
       message: "Cliente já está logado em outro dispositivo",
       lastLoginAt: lastLoginDate.toISOString(),
+      activeDeviceId: activeDeviceId, // Incluir deviceId ativo para comparação no frontend
     });
   } catch (error: any) {
     console.error("[API Cliente Check Session] Erro:", error);
