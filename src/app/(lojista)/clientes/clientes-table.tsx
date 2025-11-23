@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw, Heart, ThumbsDown, Phone, Mail, Image as ImageIcon, TrendingUp, Share, CheckCircle } from "lucide-react";
+import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw, Heart, ThumbsDown, ThumbsUp, Phone, Mail, Image as ImageIcon, TrendingUp, Share, CheckCircle, Gift, CheckSquare, Square } from "lucide-react";
 import type { ClienteDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 
@@ -35,6 +35,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
     cliente: ClienteDoc;
     referrals: any[];
   } | null>(null);
+  const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set());
 
   // Recarregar clientes quando showArchived mudar
   useEffect(() => {
@@ -329,6 +330,22 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
           <table className="min-w-full divide-y divide-zinc-800 text-sm">
             <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
+                <th className="px-6 py-3 w-12">
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedClientes.size === filteredClientes.length && filteredClientes.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedClientes(new Set(filteredClientes.map(c => c.id)));
+                        } else {
+                          setSelectedClientes(new Set());
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0"
+                    />
+                  </div>
+                </th>
                 <th className="px-6 py-3">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
@@ -355,7 +372,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 </th>
                 <th className="px-6 py-3">
                   <div className="flex items-center gap-2">
-                    <Heart className="h-4 w-4 fill-current" />
+                    <ThumbsUp className="h-4 w-4" />
                     <span className="sr-only">Likes</span>
                   </div>
                 </th>
@@ -373,13 +390,13 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 </th>
                 <th className="px-6 py-3">
                   <div className="flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    <span className="sr-only">Histórico</span>
+                    <Gift className="h-4 w-4" />
+                    <span className="sr-only">Produtos</span>
                   </div>
                 </th>
                 <th className="px-6 py-3">
                   <div className="flex items-center gap-2">
-                    <Share className="h-4 w-4" />
+                    <Share2 className="h-4 w-4" />
                     <span className="sr-only">Compartilhamentos</span>
                   </div>
                 </th>
@@ -400,13 +417,13 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
             <tbody className="divide-y divide-zinc-900/60">
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={12} className="px-6 py-14 text-center text-sm text-zinc-500">
                     Carregando...
                   </td>
                 </tr>
               ) : filteredClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={12} className="px-6 py-14 text-center text-sm text-zinc-500">
                     <Users className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
                     {clientes.length === 0
                       ? "Nenhum cliente cadastrado ainda. Os clientes aparecerão aqui quando começarem a usar o provador virtual."
@@ -416,6 +433,24 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
               ) : (
                 filteredClientes.map((cliente) => (
                   <tr key={cliente.id} className="hover:bg-zinc-900/40">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedClientes.has(cliente.id)}
+                          onChange={(e) => {
+                            const newSelected = new Set(selectedClientes);
+                            if (e.target.checked) {
+                              newSelected.add(cliente.id);
+                            } else {
+                              newSelected.delete(cliente.id);
+                            }
+                            setSelectedClientes(newSelected);
+                          }}
+                          className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-indigo-600 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0"
+                        />
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 overflow-hidden rounded-full border border-zinc-800/60 bg-zinc-900/60 flex items-center justify-center">
@@ -439,7 +474,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-zinc-300">
+                    <td className="px-6 py-4 text-zinc-300 whitespace-nowrap">
                       {cliente.whatsapp ? (
                         <a
                           href={`https://wa.me/${cliente.whatsapp.replace(/\D/g, "")}`}
@@ -463,7 +498,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                     </td>
                     <td className="px-6 py-4 text-zinc-100">
                       <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-medium text-rose-200">
-                        <Heart className="h-3 w-3 fill-current" />
+                        <ThumbsUp className="h-3 w-3" />
                         {cliente.totalLikes || 0}
                       </span>
                     </td>
@@ -527,7 +562,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                     <td className="px-6 py-4">
                       {cliente.historicoTentativas?.produtosExperimentados &&
                       cliente.historicoTentativas.produtosExperimentados.length > 0 ? (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Gift className="h-4 w-4 text-yellow-400" />
                           <span className="text-xs text-zinc-300">
                             {cliente.historicoTentativas.produtosExperimentados.length} produtos
                           </span>
