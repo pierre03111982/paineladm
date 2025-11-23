@@ -197,11 +197,11 @@ async function fetchComposicoes(
     // Buscar composições para gerar opções de filtro (limitado para performance)
     // Usar os mesmos dados já carregados acima em vez de buscar novamente
     allComposicoes.forEach((comp) => {
-      if (comp.customerId) {
-        clientesSet.add(comp.customerId);
+      if (comp.customerKey) {
+        clientesSet.add(comp.customerKey);
       }
-      if (comp.primaryProductId) {
-        produtosSet.add(comp.primaryProductId);
+      if (comp.productKey) {
+        produtosSet.add(comp.productKey);
       }
     });
 
