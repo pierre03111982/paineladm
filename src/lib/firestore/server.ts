@@ -597,7 +597,8 @@ export async function archiveProduto(lojistaId: string, productId: string): Prom
 export async function fetchClientes(
   lojistaId: string,
   limit: number = 100,
-  includeArchived: boolean = false
+  includeArchived: boolean = false,
+  includeBlocked: boolean = false
 ): Promise<ClienteDoc[]> {
   try {
     if (!lojistaId) return [];
@@ -641,6 +642,10 @@ export async function fetchClientes(
       const data = doc.data();
       
       if (!includeArchived && data?.arquivado === true) {
+        return;
+      }
+      
+      if (!includeBlocked && data?.acessoBloqueado === true) {
         return;
       }
 

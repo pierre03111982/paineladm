@@ -18,6 +18,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
   const [clientes, setClientes] = useState(initialClientes);
   const [searchTerm, setSearchTerm] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingCliente, setEditingCliente] = useState<ClienteDoc | null>(null);
   const [viewingCliente, setViewingCliente] = useState<ClienteDoc | null>(null);
@@ -37,14 +38,14 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
   } | null>(null);
   const [selectedClientes, setSelectedClientes] = useState<Set<string>>(new Set());
 
-  // Recarregar clientes quando showArchived mudar
+  // Recarregar clientes quando showArchived ou showBlocked mudar
   useEffect(() => {
     const loadClientes = async () => {
       try {
         setLoading(true);
         const url = lojistaIdFromUrl 
-          ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
-          : `/api/lojista/clientes?includeArchived=${showArchived}`;
+          ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+          : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`;
         
         const response = await fetch(url);
         if (!response.ok) throw new Error("Erro ao carregar clientes");
@@ -80,7 +81,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
     };
 
     loadClientes();
-  }, [showArchived, lojistaIdFromUrl]);
+  }, [showArchived, showBlocked, lojistaIdFromUrl]);
   
   const handleViewReferrals = async (cliente: ClienteDoc) => {
     try {
@@ -143,6 +144,11 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
     if (!showArchived) {
       filtered = filtered.filter((cliente) => !cliente.arquivado);
     }
+    
+    // Se não mostrar bloqueados, filtrar
+    if (!showBlocked) {
+      filtered = filtered.filter((cliente) => !cliente.acessoBloqueado);
+    }
 
     // Ordenar por nome A-Z
     filtered.sort((a, b) => {
@@ -154,7 +160,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
     });
 
     return filtered;
-  }, [clientes, searchTerm, statusFilter, showArchived]);
+  }, [clientes, searchTerm, statusFilter, showArchived, showBlocked]);
 
   const formatWhatsApp = (whatsapp: string | null) => {
     if (!whatsapp) return "—";
@@ -187,13 +193,68 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
       // Atualizar lista
       setClientes((prev) =>
         prev.map((c) =>
-          c.id === cliente.id ? { ...c, arquivado: archive } : c
+          c.id === cliente.id ? { ...c, arquivado: archive, acessoBloqueado: archive ? true : c.acessoBloqueado } : c
         )
       );
+
+      // Recarregar clientes
+      const reloadUrl = lojistaIdFromUrl 
+        ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+        : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`;
+      const res = await fetch(reloadUrl);
+      if (res.ok) {
+        const data = await res.json();
+        setClientes(data.clientes || []);
+      }
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || "Erro ao arquivar cliente");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUnblock = async (cliente: ClienteDoc, unblock: boolean) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const url = lojistaIdFromUrl
+        ? `/api/lojista/clientes/${cliente.id}?lojistaId=${lojistaIdFromUrl}`
+        : `/api/lojista/clientes/${cliente.id}`;
+      
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acessoBloqueado: !unblock }),
+      });
+
+      if (!response.ok) throw new Error("Erro ao bloquear/desbloquear cliente");
+
+      setSuccess(`Cliente ${unblock ? "desbloqueado" : "bloqueado"} com sucesso!`);
+      
+      // Atualizar lista
+      setClientes((prev) =>
+        prev.map((c) =>
+          c.id === cliente.id ? { ...c, acessoBloqueado: !unblock } : c
+        )
+      );
+
+      // Recarregar clientes
+      const reloadUrl = lojistaIdFromUrl 
+        ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+        : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`;
+      const res = await fetch(reloadUrl);
+      if (res.ok) {
+        const data = await res.json();
+        setClientes(data.clientes || []);
+      }
+
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Erro ao bloquear/desbloquear cliente");
       setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
@@ -288,6 +349,15 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                   className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 accent-indigo-500"
                 />
                 Mostrar arquivados
+              </label>
+              <label className="flex items-center gap-2 text-xs text-zinc-400">
+                <input
+                  type="checkbox"
+                  checked={showBlocked}
+                  onChange={(e) => setShowBlocked(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 accent-indigo-500"
+                />
+                Mostrar bloqueados
               </label>
             </div>
           </div>
@@ -748,12 +818,14 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                          cliente.arquivado
+                          cliente.acessoBloqueado
+                            ? "bg-red-500/10 text-red-200"
+                            : cliente.arquivado
                             ? "bg-zinc-500/10 text-zinc-400"
                             : "bg-emerald-500/10 text-emerald-200"
                         }`}
                       >
-                        {cliente.arquivado ? "Arquivado" : "Ativo"}
+                        {cliente.acessoBloqueado ? "Bloqueado" : cliente.arquivado ? "Arquivado" : "Ativo"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -772,6 +844,24 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </button>
+                        {cliente.acessoBloqueado && (
+                          <button
+                            onClick={() => handleUnblock(cliente, true)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-green-400/40 bg-green-500/10 px-3 py-1 text-green-200 transition hover:border-green-300/60"
+                            title="Desbloquear"
+                          >
+                            <Unlock className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {!cliente.acessoBloqueado && (
+                          <button
+                            onClick={() => handleUnblock(cliente, false)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-1 text-red-200 transition hover:border-red-300/60"
+                            title="Bloquear"
+                          >
+                            <Lock className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleArchive(cliente, !cliente.arquivado)}
                           className="inline-flex items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-amber-200 transition hover:border-amber-300/60"

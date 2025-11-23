@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const lojistaIdFromQuery = searchParams.get("lojistaId");
     const includeArchived = searchParams.get("includeArchived") === "true";
+    const includeBlocked = searchParams.get("includeBlocked") === "true";
 
     // Prioridade: query string (modo admin) > usuário logado
     const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const clientes = await fetchClientes(lojistaId, 1000, includeArchived);
+    const clientes = await fetchClientes(lojistaId, 1000, includeArchived, includeBlocked);
 
     return NextResponse.json({ clientes });
   } catch (error) {
