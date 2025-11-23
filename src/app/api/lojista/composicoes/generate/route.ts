@@ -639,6 +639,29 @@ export async function POST(request: NextRequest) {
       primaryProduct: primaryProduct.nome,
     });
 
+    // Buscar nome e WhatsApp do cliente se houver customerId
+    let customerName: string | null = null;
+    let customerWhatsapp: string | null = null;
+    
+    if (customerId) {
+      try {
+        const customerDoc = await db
+          .collection("lojas")
+          .doc(lojistaId)
+          .collection("clientes")
+          .doc(customerId)
+          .get();
+        
+        if (customerDoc.exists) {
+          const customerData = customerDoc.data();
+          customerName = customerData?.nome || null;
+          customerWhatsapp = customerData?.whatsapp || null;
+        }
+      } catch (error) {
+        console.error(`[API] Erro ao buscar dados do cliente ${customerId}:`, error);
+      }
+    }
+
     // Salvar composição no Firestore
     let composicaoId: string | null = null;
     try {
@@ -647,6 +670,8 @@ export async function POST(request: NextRequest) {
         id: composicaoId,
         lojistaId,
         customerId: customerId || null,
+        customerName: customerName || null,
+        customerWhatsapp: customerWhatsapp || null,
         createdAt: new Date(),
         updatedAt: new Date(),
         looks: allLooks.map((look) => ({
