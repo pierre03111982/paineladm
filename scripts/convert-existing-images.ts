@@ -3,6 +3,17 @@
  * Execute com: npx tsx scripts/convert-existing-images.ts
  */
 
+// Carregar variáveis de ambiente do .env.local
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Carregar .env.local se existir
+const envPath = resolve(process.cwd(), ".env.local");
+config({ path: envPath });
+
+// Também tentar carregar .env se existir
+config();
+
 import { getAdminDb, getAdminStorage } from "../src/lib/firebaseAdmin";
 import { convertImageUrlToPng } from "../src/lib/utils/image-converter";
 
