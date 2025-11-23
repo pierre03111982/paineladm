@@ -193,7 +193,11 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
       // Atualizar lista
       setClientes((prev) =>
         prev.map((c) =>
-          c.id === cliente.id ? { ...c, arquivado: archive, acessoBloqueado: archive ? true : c.acessoBloqueado } : c
+          c.id === cliente.id ? { 
+            ...c, 
+            arquivado: archive, 
+            acessoBloqueado: archive ? true : false // Ao desarquivar, também desbloquear acesso
+          } : c
         )
       );
 

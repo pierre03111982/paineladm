@@ -169,16 +169,35 @@ export async function POST(
     const { action } = body; // "archive" ou "unarchive"
 
     const db = getAdminDb();
+    
+    // Buscar dados atuais do cliente para verificar acessoBloqueado
+    const clienteDoc = await db
+      .collection("lojas")
+      .doc(lojistaId)
+      .collection("clientes")
+      .doc(clienteId)
+      .get();
+    
+    const clienteData = clienteDoc.data();
+    const updateData: any = {
+      arquivado: action === "archive",
+      updatedAt: new Date(),
+    };
+    
+    if (action === "archive") {
+      // Ao arquivar, também bloquear acesso
+      updateData.acessoBloqueado = true;
+    } else if (action === "unarchive") {
+      // Ao desarquivar, também desbloquear acesso (permitir que o cliente acesse novamente)
+      updateData.acessoBloqueado = false;
+    }
+    
     await db
       .collection("lojas")
       .doc(lojistaId)
       .collection("clientes")
       .doc(clienteId)
-      .update({
-        arquivado: action === "archive",
-        acessoBloqueado: action === "archive" ? true : undefined, // Quando arquivar, também bloquear acesso
-        updatedAt: new Date(),
-      });
+      .update(updateData);
 
     return NextResponse.json({ success: true });
   } catch (error) {
