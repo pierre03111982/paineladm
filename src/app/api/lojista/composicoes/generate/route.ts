@@ -684,6 +684,20 @@ export async function POST(request: NextRequest) {
         .set(composicaoData);
 
       console.log("[API] Composição salva no Firestore:", composicaoId);
+
+      // Atualizar totalComposicoes do cliente se houver customerId
+      // Nota: totalComposicoes conta apenas composições com like e sem duplicidade
+      // Será atualizado quando o cliente der like na composição
+      if (customerId) {
+        try {
+          const { updateClienteTotalComposicoes } = await import("@/lib/firestore/server");
+          // Atualizar mesmo sem like, pois a composição foi gerada (será contabilizada quando der like)
+          await updateClienteTotalComposicoes(lojistaId, customerId);
+        } catch (updateError) {
+          console.error("[API] Erro ao atualizar totalComposicoes:", updateError);
+          // Não falhar a requisição se a atualização falhar
+        }
+      }
     } catch (firestoreError) {
       console.error("[API] Erro ao salvar composição no Firestore:", firestoreError);
       // Não falhar a requisição se o Firestore falhar, apenas logar o erro

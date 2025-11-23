@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { registerFavoriteLook } from "@/lib/firestore/server";
+import { registerFavoriteLook, updateClienteTotalComposicoes } from "@/lib/firestore/server";
 
 const ALLOWED_METHODS = ["POST", "OPTIONS"];
 
@@ -72,6 +72,36 @@ export async function POST(request: Request) {
         productName: productName ?? null,
         productPrice: typeof productPrice === "number" ? productPrice : null,
       });
+
+      // Atualizar totalComposicoes do cliente (apenas composições com like e sem duplicidade)
+      try {
+        await updateClienteTotalComposicoes(lojistaId, customerId);
+      } catch (updateError) {
+        console.error("[api/actions] Erro ao atualizar totalComposicoes:", updateError);
+        // Não falhar a requisição se a atualização falhar
+      }
+    }
+
+    // Atualizar composição como curtida ou não curtida
+    if (compositionId && (action === "like" || action === "dislike")) {
+      try {
+        const { getAdminDb } = await import("@/lib/firebaseAdmin");
+        const db = getAdminDb();
+        const composicaoRef = db
+          .collection("lojas")
+          .doc(lojistaId)
+          .collection("composicoes")
+          .doc(compositionId);
+
+        await composicaoRef.update({
+          curtido: action === "like",
+          liked: action === "like",
+          updatedAt: new Date(),
+        });
+      } catch (updateError) {
+        console.error("[api/actions] Erro ao atualizar composição:", updateError);
+        // Não falhar a requisição se a atualização falhar
+      }
     }
 
     console.log("[api/actions] Ação registrada:", {

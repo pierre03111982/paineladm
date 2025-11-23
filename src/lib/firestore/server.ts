@@ -1084,3 +1084,216 @@ export async function getLowStockAlerts(lojistaId: string, lowStockThreshold: nu
     return [];
   }
 }
+
+/**
+ * Atualiza totalComposicoes para um cliente específico
+ * Conta apenas composições com like e sem duplicidade (baseado em imagemUrl)
+ */
+export async function updateClienteTotalComposicoes(
+  lojistaId: string,
+  customerId: string
+): Promise<number> {
+  try {
+    if (!lojistaId || !customerId) return 0;
+
+    const composicoesRef = lojaRef(lojistaId).collection("composicoes");
+    
+    // Buscar todas as composições do cliente
+    const snapshot = await composicoesRef
+      .where("customerId", "==", customerId)
+      .get();
+
+    if (snapshot.empty) {
+      // Atualizar totalComposicoes para 0
+      const clienteRef = lojaRef(lojistaId)
+        .collection("clientes")
+        .doc(customerId);
+      await clienteRef.update({ totalComposicoes: 0 });
+      return 0;
+    }
+
+    // Filtrar apenas composições com like
+    const composicoesComLike: Array<{ imagemUrl: string; createdAt: Date }> = [];
+    
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      
+      // Verificar se tem like
+      const hasLike = data.curtido === true || data.liked === true;
+      
+      if (!hasLike) return;
+
+      // Buscar primeira imagemUrl dos looks
+      let imagemUrl: string | null = null;
+      if (Array.isArray(data.looks) && data.looks.length > 0) {
+        imagemUrl = data.looks[0]?.imagemUrl || null;
+      }
+
+      if (!imagemUrl) return;
+
+      const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date();
+      
+      composicoesComLike.push({ imagemUrl, createdAt });
+    });
+
+    // Remover duplicatas baseadas em imagemUrl (manter apenas o mais recente)
+    const seenUrls = new Map<string, Date>();
+    composicoesComLike.forEach((comp) => {
+      const imageUrl = comp.imagemUrl.trim();
+      const existing = seenUrls.get(imageUrl);
+      
+      if (!existing || comp.createdAt.getTime() > existing.getTime()) {
+        seenUrls.set(imageUrl, comp.createdAt);
+      }
+    });
+
+    const totalComposicoes = seenUrls.size;
+
+    // Atualizar totalComposicoes no documento do cliente
+    const clienteRef = lojaRef(lojistaId)
+      .collection("clientes")
+      .doc(customerId);
+    
+    await clienteRef.update({ 
+      totalComposicoes,
+      updatedAt: new Date(),
+    });
+
+    return totalComposicoes;
+  } catch (error) {
+    console.error("[updateClienteTotalComposicoes] Erro:", error);
+    return 0;
+  }
+}
+
+/**
+ * Busca composições com like e sem duplicidade para exibir no painel
+ * Retorna apenas composições que foram curtidas
+ */
+export async function fetchComposicoesComLike(
+  lojistaId: string,
+  customerId?: string,
+  limit: number = 50
+): Promise<ComposicaoDoc[]> {
+  try {
+    if (!lojistaId) return [];
+
+    const composicoesRef = lojaRef(lojistaId).collection("composicoes");
+    
+    let query: any = composicoesRef;
+    
+    // Se customerId fornecido, filtrar por cliente
+    if (customerId) {
+      query = query.where("customerId", "==", customerId);
+    }
+
+    let snapshot;
+    try {
+      snapshot = await query
+        .orderBy("createdAt", "desc")
+        .limit(limit * 2) // Buscar mais para filtrar duplicatas
+        .get();
+    } catch (error: any) {
+      if (error?.code === "failed-precondition") {
+        // Se não houver índice, buscar todas e filtrar
+        const allSnapshot = customerId
+          ? await composicoesRef.where("customerId", "==", customerId).get()
+          : await composicoesRef.get();
+        
+        const allDocs: any[] = [];
+        allSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data?.createdAt && (data.curtido === true || data.liked === true)) {
+            const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            allDocs.push({ id: doc.id, data, createdAt });
+          }
+        });
+        allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        snapshot = {
+          forEach: (callback: any) => {
+            allDocs.slice(0, limit * 2).forEach((item) => {
+              callback({
+                id: item.id,
+                data: () => item.data,
+                exists: true,
+              });
+            });
+          },
+        } as any;
+      } else {
+        throw error;
+      }
+    }
+
+    const composicoes: ComposicaoDoc[] = [];
+    const seenUrls = new Map<string, ComposicaoDoc>();
+
+    snapshot.forEach((doc: any) => {
+      const data = typeof doc.data === "function" ? doc.data() : doc.data;
+      if (!data) return;
+
+      // Filtrar apenas composições com like
+      const hasLike = data.curtido === true || data.liked === true;
+      if (!hasLike) return;
+
+      // Buscar primeira imagemUrl dos looks
+      let imagemUrl: string | null = null;
+      if (Array.isArray(data.looks) && data.looks.length > 0) {
+        imagemUrl = data.looks[0]?.imagemUrl || null;
+      }
+
+      if (!imagemUrl) return;
+
+      const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date();
+
+      const composicao: ComposicaoDoc = {
+        id: doc.id,
+        customer: data.customerId
+          ? {
+              id: data.customerId,
+              nome: data.customerName || "Cliente",
+            }
+          : null,
+        products: Array.isArray(data.looks) && data.looks.length > 0
+          ? data.looks.map((look: any) => ({
+              id: data.primaryProductId || "",
+              nome: look.produtoNome || data.primaryProductName || "Produto",
+            }))
+          : data.primaryProductId
+          ? [
+              {
+                id: data.primaryProductId,
+                nome: data.primaryProductName || "Produto",
+              },
+            ]
+          : [],
+        createdAt,
+        liked: true,
+        shares: typeof data.shares === "number" ? data.shares : 0,
+        isAnonymous: !data.customerId,
+        metrics: data.metrics || null,
+        totalCostBRL: typeof data.totalCostBRL === "number" ? data.totalCostBRL : undefined,
+        processingTime: typeof data.processingTime === "number" ? data.processingTime : undefined,
+      };
+
+      // Remover duplicatas baseadas em imagemUrl (manter apenas o mais recente)
+      const imageUrlKey = imagemUrl.trim();
+      const existing = seenUrls.get(imageUrlKey);
+      
+      if (!existing || createdAt.getTime() > existing.createdAt.getTime()) {
+        seenUrls.set(imageUrlKey, composicao);
+      }
+    });
+
+    // Converter Map para Array e ordenar por data
+    const uniqueComposicoes = Array.from(seenUrls.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    );
+
+    // Limitar ao número solicitado
+    return uniqueComposicoes.slice(0, limit);
+  } catch (error) {
+    console.error("[fetchComposicoesComLike] Erro:", error);
+    return [];
+  }
+}
