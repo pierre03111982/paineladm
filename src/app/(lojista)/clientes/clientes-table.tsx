@@ -399,8 +399,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                       
                       // Recarregar clientes
                       const url = lojistaIdFromUrl 
-                        ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
-                        : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                        ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+                        : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`;
                       const res = await fetch(url);
                       if (res.ok) {
                         const data = await res.json();
@@ -714,8 +714,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                               if (response.ok) {
                                 // Recarregar clientes
                                 const url = lojistaIdFromUrl 
-                                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
-                                  : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+                                  : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`;
                                 const res = await fetch(url);
                                 if (res.ok) {
                                   const data = await res.json();
@@ -1131,8 +1131,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
               // Recarregar lista
               const reloadResponse = await fetch(
                 lojistaIdFromUrl 
-                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
-                  : `/api/lojista/clientes?includeArchived=${showArchived}`
+                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+                  : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`
               );
               if (reloadResponse.ok) {
                 const reloadData = await reloadResponse.json();
