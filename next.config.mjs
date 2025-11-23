@@ -1,5 +1,14 @@
 /** @type {import('next').NextConfig} */
 const finalConfig = {
+  // Desabilitar cache completamente
+  generateBuildId: async () => {
+    return `build-${Date.now()}`;
+  },
+  // Forçar rebuild dinâmico
+  experimental: {
+    // Desabilitar cache de ISR
+    isrMemoryCacheSize: 0,
+  },
   async headers() {
     return [
       {

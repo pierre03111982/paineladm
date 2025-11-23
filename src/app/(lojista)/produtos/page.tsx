@@ -5,8 +5,10 @@ import { PageHeader } from "../components/page-header";
 import { ProductsPageContent } from "./products-page-content";
 
 export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 export const revalidate = 0; // Sempre renderizar do zero, sem cache
 export const fetchCache = 'force-no-store'; // Forçar busca sem cache
+export const runtime = 'nodejs'; // Forçar runtime Node.js (não Edge)
 
 type ProdutosPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
