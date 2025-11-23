@@ -284,7 +284,8 @@ export async function registerFavoriteLook(params: {
 }
 
 /**
- * Busca os últimos 10 favoritos de um cliente
+ * Busca os últimos 10 favoritos REAIS de um cliente
+ * CORREÇÃO: Filtra 'like' no banco para evitar que dislikes ocupem o limite
  */
 export async function fetchFavoriteLooks(params: {
   lojistaId: string;
@@ -295,79 +296,60 @@ export async function fetchFavoriteLooks(params: {
 
   try {
     let snapshot;
+    const ref = clienteFavoritosRef(lojistaId, customerId);
+
     try {
-      // Buscar mais documentos (50) para garantir que temos likes suficientes após filtrar dislikes
-      // Depois limitaremos a 10 likes
-      snapshot = await clienteFavoritosRef(lojistaId, customerId)
+      // --- SOLUÇÃO DO MISTÉRIO ---
+      // Filtramos APENAS onde action == 'like'.
+      // Assim, mesmo que existam 1000 dislikes recentes, o banco vai pular eles
+      // e buscar os likes que estão salvos atrás deles.
+      snapshot = await ref
+        .where("action", "==", "like") 
         .orderBy("createdAt", "desc")
-        .limit(50)
+        .limit(10) // Agora podemos limitar a 10 com segurança
         .get();
-    } catch (orderByError: any) {
-      if (orderByError?.code === "failed-precondition") {
-        // Se não houver índice, buscar mais documentos para garantir que temos likes suficientes
-        const allSnapshot = await clienteFavoritosRef(lojistaId, customerId)
-          .limit(100)
+
+    } catch (error: any) {
+      // ERRO DE ÍNDICE NO FIRESTORE
+      // Se der erro porque falta o índice composto (action + createdAt),
+      // o link para criar estará no console.log do servidor.
+      if (error?.code === 'failed-precondition') {
+        console.error("⚠️ FALTA ÍNDICE NO FIRESTORE! Crie o índice clicando no link do erro abaixo:");
+        console.error(error);
+        
+        // FALLBACK (PLANO B):
+        // Se não tiver índice, busca MUITOS itens para tentar achar os likes
+        // Aumentei de 50 para 200 para garantir
+        console.log("[fetchFavoriteLooks] Usando fallback sem índice (limit 200)");
+        snapshot = await ref
+          .orderBy("createdAt", "desc")
+          .limit(200) 
           .get();
-        
-        const allDocs: any[] = [];
-        allSnapshot.forEach((doc) => {
-          const data = doc.data();
-          const createdAt = data?.createdAt?.toDate?.() || new Date(data?.createdAt || 0);
-          allDocs.push({ id: doc.id, data, createdAt });
-        });
-        
-        allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        
-        snapshot = {
-          forEach: (callback: any) => {
-            allDocs.slice(0, 10).forEach((item) => {
-              callback({ id: item.id, data: () => item.data });
-            });
-          },
-          size: Math.min(allDocs.length, 10),
-          empty: allDocs.length === 0,
-        } as any;
       } else {
-        throw orderByError;
+        throw error;
       }
     }
 
     const results: any[] = [];
-    let totalDocs = 0;
-    let skippedDislikes = 0;
-    let skippedNoImage = 0;
-    let skippedNoLike = 0;
-    
+
     snapshot.forEach((doc: any) => {
-      totalDocs++;
       const data = typeof doc.data === "function" ? doc.data() : doc.data;
       
-      // IMPORTANTE: Favoritos são apenas imagens com LIKE (não dislike)
-      // Dislikes são registrados para contabilização, mas não aparecem como favoritos
+      // Dupla verificação (caso use o fallback ou dados legados)
       const action = data?.action || data?.tipo || data?.votedType;
-      const isLike = action === "like" || (!action && !data?.action && !data?.tipo && !data?.votedType); // Compatibilidade com dados antigos
+      
+      // Se a query principal funcionou, isso aqui é redundante mas seguro.
+      // Se caiu no fallback, isso aqui é essencial.
+      const isLike = action === "like" || (!action && !data?.action); 
       const isDislike = action === "dislike";
-      
-      // Filtrar apenas likes (não mostrar dislikes como favoritos)
-      if (isDislike) {
-        skippedDislikes++;
-        return; // Pular dislikes
-      }
-      
-      if (!isLike) {
-        skippedNoLike++;
-        return; // Pular se não for like
-      }
-      
+
+      if (isDislike) return; // Ignora dislikes
+      if (!isLike) return;   // Ignora outros tipos
+
       const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
-      
-      if (!hasImage) {
-        skippedNoImage++;
-        console.warn(`[fetchFavoriteLooks] Favorito ${doc.id} sem imagemUrl - será ignorado`);
-        return; // Pular se não tiver imagem
-      }
-      
-      // Garantir que createdAt está presente e é um objeto Date válido
+      if (!hasImage) return;
+
+      // Tratamento de Data
       let createdAt = data?.createdAt;
       if (createdAt?.toDate) {
         createdAt = createdAt.toDate();
@@ -375,63 +357,25 @@ export async function fetchFavoriteLooks(params: {
         createdAt = new Date(createdAt.seconds * 1000);
       } else if (typeof createdAt === 'string') {
         createdAt = new Date(createdAt);
-      } else if (!createdAt || !(createdAt instanceof Date)) {
-        // Se não tiver createdAt válido, usar data atual (favorito recém-criado)
+      } else {
         createdAt = new Date();
-        console.warn(`[fetchFavoriteLooks] Favorito ${doc.id} sem createdAt válido - usando data atual`);
       }
-      
-      results.push({ 
-        id: doc.id, 
+
+      results.push({
+        id: doc.id,
         ...data,
-        createdAt: createdAt // Garantir que createdAt é sempre um Date válido
+        createdAt: createdAt
       });
     });
-    
-    console.log(`[fetchFavoriteLooks] Total de documentos: ${totalDocs}, Likes com imagem: ${results.length}, Dislikes: ${skippedDislikes}, Sem imagem: ${skippedNoImage}, Sem like: ${skippedNoLike}`);
 
-    // Ordenar por data de criação (mais recente primeiro) - garantir que funciona mesmo com diferentes formatos
-    results.sort((a, b) => {
-      let dateA: Date;
-      let dateB: Date;
-      
-      // Processar dateA
-      if (a.createdAt instanceof Date) {
-        dateA = a.createdAt;
-      } else if (a.createdAt?.toDate) {
-        dateA = a.createdAt.toDate();
-      } else if (a.createdAt?.seconds) {
-        dateA = new Date(a.createdAt.seconds * 1000);
-      } else if (typeof a.createdAt === 'string') {
-        dateA = new Date(a.createdAt);
-      } else if (a.createdAt) {
-        dateA = new Date(a.createdAt);
-      } else {
-        dateA = new Date(0); // Data muito antiga se não houver
-      }
-      
-      // Processar dateB
-      if (b.createdAt instanceof Date) {
-        dateB = b.createdAt;
-      } else if (b.createdAt?.toDate) {
-        dateB = b.createdAt.toDate();
-      } else if (b.createdAt?.seconds) {
-        dateB = new Date(b.createdAt.seconds * 1000);
-      } else if (typeof b.createdAt === 'string') {
-        dateB = new Date(b.createdAt);
-      } else if (b.createdAt) {
-        dateB = new Date(b.createdAt);
-      } else {
-        dateB = new Date(0); // Data muito antiga se não houver
-      }
-      
-      // Ordenar do mais recente para o mais antigo
-      return dateB.getTime() - dateA.getTime();
-    });
+    // Ordenação final (para garantir)
+    results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
+    // Retorna os top 10
     const limitedResults = results.slice(0, 10);
     
     if (limitedResults.length > 0) {
+      console.log(`[fetchFavoriteLooks] Favoritos encontrados: ${limitedResults.length}`);
       console.log(`[fetchFavoriteLooks] Primeiro favorito (mais recente):`, {
         id: limitedResults[0].id,
         imagemUrl: limitedResults[0].imagemUrl?.substring(0, 50),
