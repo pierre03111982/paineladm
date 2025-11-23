@@ -643,56 +643,62 @@ export async function fetchClientes(
 
     const clientes: ClienteDoc[] = [];
     snapshot.forEach((doc) => {
-      const data = doc.data();
-      
-      if (!includeArchived && data?.arquivado === true) {
-        return;
-      }
-      
-      if (!includeBlocked && data?.acessoBloqueado === true) {
-        return;
-      }
+      try {
+        const data = doc.data();
+        if (!data) return;
+        
+        if (!includeArchived && data?.arquivado === true) {
+          return;
+        }
+        
+        if (!includeBlocked && data?.acessoBloqueado === true) {
+          return;
+        }
 
-      clientes.push({
-        id: doc.id,
-        nome: data?.nome || "",
-        whatsapp: data?.whatsapp || "",
-        email: data?.email || "",
-        totalComposicoes: typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0,
-        totalLikes: typeof data?.totalLikes === "number" ? data.totalLikes : 0,
-        totalDislikes: typeof data?.totalDislikes === "number" ? data.totalDislikes : 0,
-        createdAt: convertTimestamp(data?.createdAt),
-        updatedAt: convertTimestamp(data?.updatedAt),
-        arquivado: data?.arquivado === true,
-        acessoBloqueado: data?.acessoBloqueado === true,
-        tags: Array.isArray(data?.tags) ? data.tags : undefined,
-        segmentacao: data?.segmentacao
-          ? {
-              tipo: data.segmentacao.tipo,
-              ultimaAtualizacao: data.segmentacao.ultimaAtualizacao
-                ? convertTimestamp(data.segmentacao.ultimaAtualizacao)
-                : undefined,
-            }
-          : undefined,
-        historicoTentativas: data?.historicoTentativas
-          ? {
-              produtosExperimentados: Array.isArray(data.historicoTentativas.produtosExperimentados)
-                ? data.historicoTentativas.produtosExperimentados.map((prod: any) => ({
-                    produtoId: prod.produtoId || "",
-                    produtoNome: prod.produtoNome || "",
-                    categoria: prod.categoria || "",
-                    dataTentativa: convertTimestamp(prod.dataTentativa),
-                    liked: prod.liked === true,
-                    compartilhado: prod.compartilhado === true,
-                    checkout: prod.checkout === true,
-                  }))
-                : [],
-              ultimaAtualizacao: data.historicoTentativas.ultimaAtualizacao
-                ? convertTimestamp(data.historicoTentativas.ultimaAtualizacao)
-                : undefined,
-            }
-          : undefined,
-      });
+        clientes.push({
+          id: doc.id,
+          nome: data?.nome || "",
+          whatsapp: data?.whatsapp || "",
+          email: data?.email || "",
+          totalComposicoes: typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0,
+          totalLikes: typeof data?.totalLikes === "number" ? data.totalLikes : 0,
+          totalDislikes: typeof data?.totalDislikes === "number" ? data.totalDislikes : 0,
+          createdAt: convertTimestamp(data?.createdAt),
+          updatedAt: convertTimestamp(data?.updatedAt),
+          arquivado: data?.arquivado === true,
+          acessoBloqueado: data?.acessoBloqueado === true || false,
+          tags: Array.isArray(data?.tags) ? data.tags : undefined,
+          segmentacao: data?.segmentacao
+            ? {
+                tipo: data.segmentacao.tipo,
+                ultimaAtualizacao: data.segmentacao.ultimaAtualizacao
+                  ? convertTimestamp(data.segmentacao.ultimaAtualizacao)
+                  : undefined,
+              }
+            : undefined,
+          historicoTentativas: data?.historicoTentativas
+            ? {
+                produtosExperimentados: Array.isArray(data.historicoTentativas.produtosExperimentados)
+                  ? data.historicoTentativas.produtosExperimentados.map((prod: any) => ({
+                      produtoId: prod.produtoId || "",
+                      produtoNome: prod.produtoNome || "",
+                      categoria: prod.categoria || "",
+                      dataTentativa: convertTimestamp(prod.dataTentativa),
+                      liked: prod.liked === true,
+                      compartilhado: prod.compartilhado === true,
+                      checkout: prod.checkout === true,
+                    }))
+                  : [],
+                ultimaAtualizacao: data.historicoTentativas.ultimaAtualizacao
+                  ? convertTimestamp(data.historicoTentativas.ultimaAtualizacao)
+                  : undefined,
+              }
+            : undefined,
+        });
+      } catch (docError: any) {
+        console.error(`[fetchClientes] Erro ao processar documento ${doc.id}:`, docError);
+        // Continuar processando outros documentos mesmo se um falhar
+      }
     });
 
     clientes.sort((a, b) => {

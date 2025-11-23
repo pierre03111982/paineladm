@@ -35,10 +35,14 @@ export async function GET(request: NextRequest) {
     const clientes = await fetchClientes(lojistaId, 1000, includeArchived, includeBlocked);
 
     return NextResponse.json({ clientes });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API Clientes GET] Erro:", error);
+    console.error("[API Clientes GET] Stack:", error?.stack);
     return NextResponse.json(
-      { error: "Erro ao listar clientes" },
+      { 
+        error: "Erro ao listar clientes",
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     );
   }
