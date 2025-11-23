@@ -43,6 +43,8 @@ export type ClienteDoc = {
   whatsapp: string;
   email?: string;
   totalComposicoes: number;
+  totalLikes?: number;
+  totalDislikes?: number;
   createdAt: Date;
   updatedAt: Date;
   arquivado?: boolean;

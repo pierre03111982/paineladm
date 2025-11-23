@@ -639,6 +639,8 @@ export async function fetchClientes(
         whatsapp: data?.whatsapp || "",
         email: data?.email || "",
         totalComposicoes: typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0,
+        totalLikes: typeof data?.totalLikes === "number" ? data.totalLikes : 0,
+        totalDislikes: typeof data?.totalDislikes === "number" ? data.totalDislikes : 0,
         createdAt: convertTimestamp(data?.createdAt),
         updatedAt: convertTimestamp(data?.updatedAt),
         arquivado: data?.arquivado === true,
@@ -1086,15 +1088,17 @@ export async function getLowStockAlerts(lojistaId: string, lowStockThreshold: nu
 }
 
 /**
- * Atualiza totalComposicoes para um cliente específico
- * Conta apenas composições com like e sem duplicidade (baseado em imagemUrl)
+ * Atualiza estatísticas de composições para um cliente específico
+ * Conta TODAS as composições geradas, likes e dislikes
  */
-export async function updateClienteTotalComposicoes(
+export async function updateClienteComposicoesStats(
   lojistaId: string,
   customerId: string
-): Promise<number> {
+): Promise<{ totalComposicoes: number; totalLikes: number; totalDislikes: number }> {
   try {
-    if (!lojistaId || !customerId) return 0;
+    if (!lojistaId || !customerId) {
+      return { totalComposicoes: 0, totalLikes: 0, totalDislikes: 0 };
+    }
 
     const composicoesRef = lojaRef(lojistaId).collection("composicoes");
     
@@ -1104,66 +1108,110 @@ export async function updateClienteTotalComposicoes(
       .get();
 
     if (snapshot.empty) {
-      // Atualizar totalComposicoes para 0
+      // Atualizar todas as estatísticas para 0
       const clienteRef = lojaRef(lojistaId)
         .collection("clientes")
         .doc(customerId);
-      await clienteRef.update({ totalComposicoes: 0 });
-      return 0;
+      await clienteRef.update({ 
+        totalComposicoes: 0,
+        totalLikes: 0,
+        totalDislikes: 0,
+        updatedAt: new Date(),
+      });
+      return { totalComposicoes: 0, totalLikes: 0, totalDislikes: 0 };
     }
 
-    // Filtrar apenas composições com like
-    const composicoesComLike: Array<{ imagemUrl: string; createdAt: Date }> = [];
-    
+    let totalComposicoes = 0;
+    let totalLikes = 0;
+    let totalDislikes = 0;
+
     snapshot.forEach((doc) => {
       const data = doc.data();
       
+      // Contar TODAS as composições geradas (mesmo sem like/dislike)
+      totalComposicoes++;
+
       // Verificar se tem like
       const hasLike = data.curtido === true || data.liked === true;
-      
-      if (!hasLike) return;
-
-      // Buscar primeira imagemUrl dos looks
-      let imagemUrl: string | null = null;
-      if (Array.isArray(data.looks) && data.looks.length > 0) {
-        imagemUrl = data.looks[0]?.imagemUrl || null;
+      if (hasLike) {
+        totalLikes++;
       }
 
-      if (!imagemUrl) return;
-
-      const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date();
-      
-      composicoesComLike.push({ imagemUrl, createdAt });
+      // Verificar se tem dislike (se foi marcado explicitamente como não curtido)
+      // Nota: dislike pode ser inferido quando não há like mas há uma ação de dislike registrada
+      // Por enquanto, vamos contar apenas likes explícitos e deixar dislikes para ser contado via ações
     });
 
-    // Remover duplicatas baseadas em imagemUrl (manter apenas o mais recente)
-    const seenUrls = new Map<string, Date>();
-    composicoesComLike.forEach((comp) => {
-      const imageUrl = comp.imagemUrl.trim();
-      const existing = seenUrls.get(imageUrl);
+    // Contar dislikes nas composições (quando disliked: true ou curtido: false após ação)
+    snapshot.forEach((doc) => {
+      const data = doc.data();
       
-      if (!existing || comp.createdAt.getTime() > existing.getTime()) {
-        seenUrls.set(imageUrl, comp.createdAt);
+      // Verificar se tem dislike explícito
+      const hasDislike = data.disliked === true || 
+                       (data.curtido === false && data.liked === false && data.action === "dislike");
+      
+      if (hasDislike) {
+        totalDislikes++;
       }
     });
 
-    const totalComposicoes = seenUrls.size;
+    // Também buscar ações de dislike na coleção de favoritos
+    try {
+      const favoritosRef = lojaRef(lojistaId)
+        .collection("clientes")
+        .doc(customerId)
+        .collection("favoritos");
 
-    // Atualizar totalComposicoes no documento do cliente
+      const favoritosSnapshot = await favoritosRef.get();
+      
+      favoritosSnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Verificar se é uma ação de dislike
+        if (data.action === "dislike" || data.tipo === "dislike" || data.votedType === "dislike") {
+          // Verificar se já não foi contado na composição
+          const compositionId = data.compositionId;
+          if (compositionId) {
+            // Se já foi contado na composição, não contar novamente
+            return;
+          }
+          totalDislikes++;
+        }
+      });
+    } catch (error) {
+      console.error("[updateClienteComposicoesStats] Erro ao buscar dislikes:", error);
+      // Continuar mesmo se não conseguir buscar dislikes
+    }
+
+    // Atualizar estatísticas no documento do cliente
     const clienteRef = lojaRef(lojistaId)
       .collection("clientes")
       .doc(customerId);
     
     await clienteRef.update({ 
       totalComposicoes,
+      totalLikes,
+      totalDislikes,
       updatedAt: new Date(),
     });
 
-    return totalComposicoes;
+    return { totalComposicoes, totalLikes, totalDislikes };
   } catch (error) {
-    console.error("[updateClienteTotalComposicoes] Erro:", error);
-    return 0;
+    console.error("[updateClienteComposicoesStats] Erro:", error);
+    return { totalComposicoes: 0, totalLikes: 0, totalDislikes: 0 };
   }
+}
+
+/**
+ * Atualiza totalComposicoes para um cliente específico
+ * Conta apenas composições com like e sem duplicidade (baseado em imagemUrl)
+ * @deprecated Use updateClienteComposicoesStats instead
+ */
+export async function updateClienteTotalComposicoes(
+  lojistaId: string,
+  customerId: string
+): Promise<number> {
+  const stats = await updateClienteComposicoesStats(lojistaId, customerId);
+  return stats.totalComposicoes;
 }
 
 /**

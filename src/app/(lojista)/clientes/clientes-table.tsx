@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw } from "lucide-react";
+import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw, Heart, ThumbsDown, Phone, Mail, Image as ImageIcon, TrendingUp, Share, CheckCircle } from "lucide-react";
 import type { ClienteDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 
@@ -329,27 +329,84 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
           <table className="min-w-full divide-y divide-zinc-800 text-sm">
             <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
-                <th className="px-6 py-3">Cliente</th>
-                <th className="px-6 py-3">WhatsApp</th>
-                <th className="px-6 py-3">Email</th>
-                <th className="px-6 py-3">Composições</th>
-                <th className="px-6 py-3">Segmentação</th>
-                <th className="px-6 py-3">Histórico</th>
-                <th className="px-6 py-3">Compartilhamentos</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Ações</th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span className="sr-only">Cliente</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span className="sr-only">WhatsApp</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="sr-only">Email</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    <span className="sr-only">Composições</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-4 w-4 fill-current" />
+                    <span className="sr-only">Likes</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <ThumbsDown className="h-4 w-4" />
+                    <span className="sr-only">Dislikes</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    <span className="sr-only">Segmentação</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    <span className="sr-only">Histórico</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Share className="h-4 w-4" />
+                    <span className="sr-only">Compartilhamentos</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="sr-only">Status</span>
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Ações</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900/60">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={11} className="px-6 py-14 text-center text-sm text-zinc-500">
                     Carregando...
                   </td>
                 </tr>
               ) : filteredClientes.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
+                  <td colSpan={11} className="px-6 py-14 text-center text-sm text-zinc-500">
                     <Users className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
                     {clientes.length === 0
                       ? "Nenhum cliente cadastrado ainda. Os clientes aparecerão aqui quando começarem a usar o provador virtual."
@@ -402,6 +459,18 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                     <td className="px-6 py-4 text-zinc-100">
                       <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-200">
                         {cliente.totalComposicoes || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-100">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-medium text-rose-200">
+                        <Heart className="h-3 w-3 fill-current" />
+                        {cliente.totalLikes || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-100">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-200">
+                        <ThumbsDown className="h-3 w-3" />
+                        {cliente.totalDislikes || 0}
                       </span>
                     </td>
                     <td className="px-6 py-4">

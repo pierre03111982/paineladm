@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { registerFavoriteLook, updateClienteTotalComposicoes } from "@/lib/firestore/server";
+import { registerFavoriteLook, updateClienteComposicoesStats } from "@/lib/firestore/server";
 
 const ALLOWED_METHODS = ["POST", "OPTIONS"];
 
@@ -73,11 +73,11 @@ export async function POST(request: Request) {
         productPrice: typeof productPrice === "number" ? productPrice : null,
       });
 
-      // Atualizar totalComposicoes do cliente (apenas composições com like e sem duplicidade)
+      // Atualizar estatísticas do cliente (totalComposicoes, totalLikes, totalDislikes)
       try {
-        await updateClienteTotalComposicoes(lojistaId, customerId);
+        await updateClienteComposicoesStats(lojistaId, customerId);
       } catch (updateError) {
-        console.error("[api/actions] Erro ao atualizar totalComposicoes:", updateError);
+        console.error("[api/actions] Erro ao atualizar estatísticas:", updateError);
         // Não falhar a requisição se a atualização falhar
       }
     }
@@ -96,8 +96,18 @@ export async function POST(request: Request) {
         await composicaoRef.update({
           curtido: action === "like",
           liked: action === "like",
+          disliked: action === "dislike",
           updatedAt: new Date(),
         });
+
+        // Atualizar estatísticas do cliente também para dislike
+        if (action === "dislike" && customerId) {
+          try {
+            await updateClienteComposicoesStats(lojistaId, customerId);
+          } catch (updateError) {
+            console.error("[api/actions] Erro ao atualizar estatísticas após dislike:", updateError);
+          }
+        }
       } catch (updateError) {
         console.error("[api/actions] Erro ao atualizar composição:", updateError);
         // Não falhar a requisição se a atualização falhar
