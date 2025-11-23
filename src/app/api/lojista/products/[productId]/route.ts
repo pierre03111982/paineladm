@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateProduto, archiveProduto } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { convertImageUrlToPng } from "@/lib/utils/image-converter";
 
 export const dynamic = 'force-dynamic';
 
@@ -56,11 +57,35 @@ export async function PATCH(
       observacoes,
     } = body;
 
+    // Converter imagem de link para PNG se necessário
+    let imagemUrlFinal = imagemUrl;
+    if (imagemUrl && String(imagemUrl).trim()) {
+      const urlTrimmed = String(imagemUrl).trim();
+      try {
+        new URL(urlTrimmed); // Validar URL
+        
+        // Se não for do Firebase Storage, converter para PNG e fazer upload
+        if (!urlTrimmed.includes("storage.googleapis.com") && !urlTrimmed.includes("firebasestorage.googleapis.com")) {
+          console.log("[api/lojista/products/[productId]] Convertendo imagem de link para PNG:", urlTrimmed);
+          try {
+            imagemUrlFinal = await convertImageUrlToPng(urlTrimmed, lojistaId, productId);
+            console.log("[api/lojista/products/[productId]] Imagem convertida com sucesso:", imagemUrlFinal);
+          } catch (conversionError: any) {
+            console.error("[api/lojista/products/[productId]] Erro ao converter imagem, usando URL original:", conversionError);
+            imagemUrlFinal = urlTrimmed;
+          }
+        }
+      } catch {
+        console.warn("[api/lojista/products/[productId]] URL de imagem inválida, ignorando:", urlTrimmed);
+        imagemUrlFinal = undefined;
+      }
+    }
+
     const updateData = {
       nome,
       categoria,
       preco,
-      imagemUrl,
+      imagemUrl: imagemUrlFinal,
       cores,
       tamanhos,
       estoque,
