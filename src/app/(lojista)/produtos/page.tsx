@@ -4,7 +4,7 @@ import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { PageHeader } from "../components/page-header";
 import { ProductsPageContent } from "./products-page-content";
 
-// Force new deploy - 2025-01-23
+// Force new deploy - 2025-01-23 - Git connected
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0; // Sempre renderizar do zero, sem cache
