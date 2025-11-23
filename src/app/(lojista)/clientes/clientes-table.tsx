@@ -356,53 +356,53 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                       return;
                     }
 
-                  try {
-                    setLoading(true);
-                    const lojistaId = lojistaIdFromUrl || "";
-                    if (!lojistaId) {
-                      setError("LojistaId não encontrado");
-                      return;
-                    }
+                    try {
+                      setLoading(true);
+                      const lojistaId = lojistaIdFromUrl || "";
+                      if (!lojistaId) {
+                        setError("LojistaId não encontrado");
+                        return;
+                      }
 
-                    const count = selectedClientes.size;
-                    const promises = Array.from(selectedClientes).map(async (clienteId) => {
-                      const response = await fetch(`/api/lojista/clientes/${clienteId}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ 
-                          arquivado: true,
-                          acessoBloqueado: true, // Bloquear acesso ao arquivar
-                          lojistaId 
-                        }),
+                      const count = selectedClientes.size;
+                      const promises = Array.from(selectedClientes).map(async (clienteId) => {
+                        const response = await fetch(`/api/lojista/clientes/${clienteId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ 
+                            arquivado: true,
+                            acessoBloqueado: true, // Bloquear acesso ao arquivar
+                            lojistaId 
+                          }),
+                        });
+                        if (!response.ok) throw new Error(`Erro ao arquivar cliente ${clienteId}`);
                       });
-                      if (!response.ok) throw new Error(`Erro ao arquivar cliente ${clienteId}`);
-                    });
 
-                    await Promise.all(promises);
-                    setSelectedClientes(new Set());
-                    setSuccess(`${count} cliente(s) arquivado(s) com sucesso!`);
-                    
-                    // Recarregar clientes
-                    const url = lojistaIdFromUrl 
-                      ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
-                      : `/api/lojista/clientes?includeArchived=${showArchived}`;
-                    const res = await fetch(url);
-                    if (res.ok) {
-                      const data = await res.json();
-                      setClientes(data.clientes || []);
+                      await Promise.all(promises);
+                      setSelectedClientes(new Set());
+                      setSuccess(`${count} cliente(s) arquivado(s) com sucesso!`);
+                      
+                      // Recarregar clientes
+                      const url = lojistaIdFromUrl 
+                        ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                        : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                      const res = await fetch(url);
+                      if (res.ok) {
+                        const data = await res.json();
+                        setClientes(data.clientes || []);
+                      }
+                    } catch (err: any) {
+                      console.error("Erro ao arquivar clientes:", err);
+                      setError(err.message || "Erro ao arquivar clientes selecionados");
+                    } finally {
+                      setLoading(false);
                     }
-                  } catch (err: any) {
-                    console.error("Erro ao arquivar clientes:", err);
-                    setError(err.message || "Erro ao arquivar clientes selecionados");
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-500"
-              >
-                <Archive className="h-4 w-4" />
-                Arquivar Selecionados ({selectedClientes.size})
-              </button>
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-500"
+                >
+                  <Archive className="h-4 w-4" />
+                  Arquivar Selecionados ({selectedClientes.size})
+                </button>
               </>
             )}
             <button
