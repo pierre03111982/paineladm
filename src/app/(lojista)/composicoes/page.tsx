@@ -152,55 +152,8 @@ async function fetchComposicoes(
 
       // Extrair informações do cliente
       const customerId = data.customerId || "";
-      let customerName = data.customerName || null;
-      let customerWhatsapp = data.customerWhatsapp || null;
-      
-      // Se não tiver nome ou WhatsApp, buscar do documento do cliente
-      if (customerId && (!customerName || !customerWhatsapp)) {
-        try {
-          const customerDoc = await db
-            .collection("lojas")
-            .doc(lojistaId)
-            .collection("clientes")
-            .doc(customerId)
-            .get();
-          
-          if (customerDoc.exists) {
-            const customerData = customerDoc.data();
-            if (!customerName && customerData?.nome) {
-              customerName = customerData.nome;
-            }
-            if (!customerWhatsapp && customerData?.whatsapp) {
-              customerWhatsapp = customerData.whatsapp;
-            }
-          }
-        } catch (error) {
-          console.error(`[ComposicoesPage] Erro ao buscar dados do cliente ${customerId}:`, error);
-        }
-      }
-      
-      // Se ainda não tiver nome, usar WhatsApp formatado ou "Cliente"
-      if (!customerName) {
-        if (customerWhatsapp) {
-          // Formatar WhatsApp: (XX) XXXXX-XXXX
-          const cleanWhatsapp = customerWhatsapp.replace(/\D/g, "");
-          if (cleanWhatsapp.length >= 10) {
-            const ddd = cleanWhatsapp.slice(0, 2);
-            const numero = cleanWhatsapp.slice(2);
-            if (numero.length === 9) {
-              customerName = `(${ddd}) ${numero.slice(0, 5)}-${numero.slice(5)}`;
-            } else if (numero.length === 8) {
-              customerName = `(${ddd}) ${numero.slice(0, 4)}-${numero.slice(4)}`;
-            } else {
-              customerName = customerWhatsapp;
-            }
-          } else {
-            customerName = customerWhatsapp;
-          }
-        } else {
-          customerName = "Cliente";
-        }
-      }
+      const customerName = data.customerName || "Cliente Anônimo";
+      const customerWhatsapp = data.customerWhatsapp || null;
 
       // Contar compartilhamentos (buscar em actions se disponível)
       const shares = data.shares || 0;

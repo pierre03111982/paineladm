@@ -1395,3 +1395,615 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
     </div>
   );
 }
+
+      )}
+
+      {/* Modal de Cadastro */}
+      {showCreateModal && (
+        <CreateClienteModal
+          onClose={() => setShowCreateModal(false)}
+              onSave={async (data) => {
+            try {
+              setLoading(true);
+              setError(null);
+              
+              const url = lojistaIdFromUrl
+                ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}`
+                : `/api/lojista/clientes`;
+              
+              // Preparar dados (incluir senha se fornecida)
+              const requestData: any = {
+                nome: data.nome,
+                whatsapp: data.whatsapp,
+                email: data.email,
+                observacoes: data.observacoes,
+              };
+              
+              // Incluir senha apenas se fornecida
+              if (data.password && data.password.trim().length > 0) {
+                requestData.password = data.password;
+              }
+              
+              const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Erro ao cadastrar cliente");
+              }
+
+              setSuccess("Cliente cadastrado com sucesso!");
+              setShowCreateModal(false);
+              
+              // Recarregar lista
+              const reloadResponse = await fetch(
+                lojistaIdFromUrl 
+                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+                  : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+              );
+              if (reloadResponse.ok) {
+                const reloadData = await reloadResponse.json();
+                setClientes(reloadData.clientes || []);
+              }
+
+              setTimeout(() => setSuccess(null), 3000);
+            } catch (err: any) {
+              setError(err.message || "Erro ao cadastrar cliente");
+              setTimeout(() => setError(null), 3000);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+type EditClienteModalProps = {
+  cliente: ClienteDoc;
+  onClose: () => void;
+  onSave: (data: Partial<ClienteDoc>) => void;
+};
+
+function EditClienteModal({ cliente, onClose, onSave }: EditClienteModalProps) {
+  const [formData, setFormData] = useState({
+    nome: cliente.nome,
+    whatsapp: cliente.whatsapp || "",
+    email: (cliente as any).email || "",
+    observacoes: (cliente as any).observacoes || (cliente as any).obs || "",
+    status: (cliente as any).status || "ativo",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Editar Cliente</h2>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Nome *</label>
+            <input
+              type="text"
+              required
+              value={formData.nome}
+              onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">WhatsApp</label>
+            <input
+              type="text"
+              value={formData.whatsapp}
+              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
+            <textarea
+              value={formData.observacoes}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+              rows={3}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+type CreateClienteModalProps = {
+  onClose: () => void;
+  onSave: (data: { nome: string; whatsapp?: string; email?: string; observacoes?: string; password?: string }) => Promise<void>;
+};
+
+function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
+  const [formData, setFormData] = useState({
+    nome: "",
+    whatsapp: "",
+    email: "",
+    observacoes: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nome.trim()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await onSave({
+        nome: formData.nome,
+        whatsapp: formData.whatsapp || undefined,
+        email: formData.email || undefined,
+        observacoes: formData.observacoes || undefined,
+        password: formData.password || undefined,
+      });
+    } catch (error) {
+      console.error("[CreateClienteModal] Erro:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg mt-4 mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Cadastrar Novo Cliente</h2>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Nome *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.nome}
+              onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Nome completo do cliente"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              WhatsApp
+            </label>
+            <input
+              type="text"
+              value={formData.whatsapp}
+              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="cliente@email.com"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Senha (opcional)
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Mínimo 6 caracteres (deixe vazio se o cliente vai criar no app)"
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              Se deixar vazio, o cliente precisará criar a senha no primeiro acesso ao app.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Observações
+            </label>
+            <textarea
+              value={formData.observacoes}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+              rows={3}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Observações sobre o cliente..."
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !formData.nome.trim()}
+              className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Cadastrando..." : "Cadastrar Cliente"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+      )}
+
+      {/* Modal de Cadastro */}
+      {showCreateModal && (
+        <CreateClienteModal
+          onClose={() => setShowCreateModal(false)}
+              onSave={async (data) => {
+            try {
+              setLoading(true);
+              setError(null);
+              
+              const url = lojistaIdFromUrl
+                ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}`
+                : `/api/lojista/clientes`;
+              
+              // Preparar dados (incluir senha se fornecida)
+              const requestData: any = {
+                nome: data.nome,
+                whatsapp: data.whatsapp,
+                email: data.email,
+                observacoes: data.observacoes,
+              };
+              
+              // Incluir senha apenas se fornecida
+              if (data.password && data.password.trim().length > 0) {
+                requestData.password = data.password;
+              }
+              
+              const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData),
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Erro ao cadastrar cliente");
+              }
+
+              setSuccess("Cliente cadastrado com sucesso!");
+              setShowCreateModal(false);
+              
+              // Recarregar lista
+              const reloadResponse = await fetch(
+                lojistaIdFromUrl 
+                  ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+                  : `/api/lojista/clientes?includeArchived=${showArchived}&includeBlocked=${showBlocked}`
+              );
+              if (reloadResponse.ok) {
+                const reloadData = await reloadResponse.json();
+                setClientes(reloadData.clientes || []);
+              }
+
+              setTimeout(() => setSuccess(null), 3000);
+            } catch (err: any) {
+              setError(err.message || "Erro ao cadastrar cliente");
+              setTimeout(() => setError(null), 3000);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+type EditClienteModalProps = {
+  cliente: ClienteDoc;
+  onClose: () => void;
+  onSave: (data: Partial<ClienteDoc>) => void;
+};
+
+function EditClienteModal({ cliente, onClose, onSave }: EditClienteModalProps) {
+  const [formData, setFormData] = useState({
+    nome: cliente.nome,
+    whatsapp: cliente.whatsapp || "",
+    email: (cliente as any).email || "",
+    observacoes: (cliente as any).observacoes || (cliente as any).obs || "",
+    status: (cliente as any).status || "ativo",
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Editar Cliente</h2>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Nome *</label>
+            <input
+              type="text"
+              required
+              value={formData.nome}
+              onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">WhatsApp</label>
+            <input
+              type="text"
+              value={formData.whatsapp}
+              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
+            <textarea
+              value={formData.observacoes}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+              rows={3}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+type CreateClienteModalProps = {
+  onClose: () => void;
+  onSave: (data: { nome: string; whatsapp?: string; email?: string; observacoes?: string; password?: string }) => Promise<void>;
+};
+
+function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
+  const [formData, setFormData] = useState({
+    nome: "",
+    whatsapp: "",
+    email: "",
+    observacoes: "",
+    password: "",
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.nome.trim()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await onSave({
+        nome: formData.nome,
+        whatsapp: formData.whatsapp || undefined,
+        email: formData.email || undefined,
+        observacoes: formData.observacoes || undefined,
+        password: formData.password || undefined,
+      });
+    } catch (error) {
+      console.error("[CreateClienteModal] Erro:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg mt-4 mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Cadastrar Novo Cliente</h2>
+          <button
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Nome *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.nome}
+              onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Nome completo do cliente"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              WhatsApp
+            </label>
+            <input
+              type="text"
+              value={formData.whatsapp}
+              onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="cliente@email.com"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Senha (opcional)
+            </label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Mínimo 6 caracteres (deixe vazio se o cliente vai criar no app)"
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              Se deixar vazio, o cliente precisará criar a senha no primeiro acesso ao app.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-400 mb-1">
+              Observações
+            </label>
+            <textarea
+              value={formData.observacoes}
+              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+              rows={3}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              placeholder="Observações sobre o cliente..."
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !formData.nome.trim()}
+              className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Cadastrando..." : "Cadastrar Cliente"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

@@ -866,16 +866,9 @@ export function ComposicoesGallery({
                       <p className="text-sm font-semibold text-white">
                         {item.productName}
                       </p>
-                      <div className="space-y-0.5">
-                        <p className="text-xs text-zinc-300 font-medium">
-                          {item.customerName}
-                        </p>
-                        {item.customerWhatsapp && (
-                          <p className="text-xs text-zinc-500">
-                            {item.customerWhatsapp}
-                          </p>
-                        )}
-                      </div>
+                      <p className="text-xs text-zinc-500">
+                        {item.customerName}
+                      </p>
                     </div>
                     <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-400">
                       {formatRelative(createdAt)}
@@ -1023,6 +1016,10 @@ export function ComposicoesGallery({
     </div>
   );
 }
+
+
+
+
 
 
 
