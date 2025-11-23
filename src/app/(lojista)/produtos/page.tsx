@@ -5,6 +5,8 @@ import { PageHeader } from "../components/page-header";
 import { ProductsPageContent } from "./products-page-content";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0; // Sempre renderizar do zero, sem cache
+export const fetchCache = 'force-no-store'; // Forçar busca sem cache
 
 type ProdutosPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
