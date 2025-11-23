@@ -250,6 +250,50 @@ export async function registerFavoriteLook(params: {
 
   try {
     const ref = clienteFavoritosRef(lojistaId, customerId);
+    
+    // Verificar se já existe um favorito com a mesma imagemUrl ou compositionId
+    // Isso evita duplicatas quando o usuário atualiza a página e dá like novamente
+    let existingFavorite = null;
+    
+    if (imagemUrl && imagemUrl.trim() !== "") {
+      // Buscar por imagemUrl
+      const byImageQuery = ref
+        .where("imagemUrl", "==", imagemUrl)
+        .where("action", "==", "like")
+        .limit(1);
+      
+      const byImageSnapshot = await byImageQuery.get();
+      if (!byImageSnapshot.empty) {
+        existingFavorite = byImageSnapshot.docs[0];
+        console.log("[registerFavoriteLook] Favorito já existe com mesma imagemUrl. ID:", existingFavorite.id);
+      }
+    }
+    
+    // Se não encontrou por imagemUrl e tem compositionId, buscar por compositionId
+    if (!existingFavorite && compositionId) {
+      const byCompositionQuery = ref
+        .where("compositionId", "==", compositionId)
+        .where("action", "==", "like")
+        .limit(1);
+      
+      const byCompositionSnapshot = await byCompositionQuery.get();
+      if (!byCompositionSnapshot.empty) {
+        existingFavorite = byCompositionSnapshot.docs[0];
+        console.log("[registerFavoriteLook] Favorito já existe com mesmo compositionId. ID:", existingFavorite.id);
+      }
+    }
+    
+    // Se já existe, atualizar a data de criação e retornar o ID existente
+    if (existingFavorite) {
+      await existingFavorite.ref.update({
+        createdAt: new Date(), // Atualizar data para manter como mais recente
+        updatedAt: new Date(),
+      });
+      console.log("[registerFavoriteLook] Favorito existente atualizado. ID:", existingFavorite.id);
+      return existingFavorite.id;
+    }
+    
+    // Se não existe, criar novo favorito
     const favoriteData = {
       lojistaId,
       customerId,
