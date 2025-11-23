@@ -93,7 +93,8 @@ export async function POST(request: Request) {
           // O like ainda será contabilizado na composição
         }
       } else if (action === "dislike") {
-        // Registrar dislike na coleção de favoritos para contabilização (mas não será exibido como favorito)
+        // Registrar dislike APENAS para contabilização (SEM salvar imagemUrl)
+        // Apenas coletar informações de custo e contabilizar o dislike
         const { getAdminDb } = await import("@/lib/firebaseAdmin");
         const db = getAdminDb();
         const favoritosRef = db
@@ -109,7 +110,8 @@ export async function POST(request: Request) {
           customerName: customerName ?? null,
           compositionId: compositionId ?? null,
           jobId: jobId ?? null,
-          imagemUrl: imagemUrl ?? null,
+          // NÃO salvar imagemUrl para dislikes - apenas contabilizar
+          imagemUrl: null,
           productName: productName ?? null,
           productPrice: typeof productPrice === "number" ? productPrice : null,
           lookType: "criativo",
@@ -117,6 +119,13 @@ export async function POST(request: Request) {
           tipo: "dislike",
           votedType: "dislike",
           createdAt: new Date(),
+        });
+        
+        console.log("[api/actions] Dislike registrado para contabilização (sem imagemUrl):", {
+          lojistaId,
+          customerId,
+          compositionId,
+          jobId,
         });
       }
 

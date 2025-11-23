@@ -111,8 +111,10 @@ async function fetchComposicoes(
         if (primaryProductId !== produto) return;
       }
 
-      // Filtrar por curtida
-      if (liked && !data.curtido) return;
+      // Filtrar por curtida - POR PADRÃO só mostrar composições com like
+      // Se o filtro "liked" estiver ativo OU se não houver filtro específico, mostrar apenas curtidas
+      const shouldShowOnlyLiked = liked !== false; // Por padrão, mostrar apenas curtidas
+      if (shouldShowOnlyLiked && !data.curtido && !data.liked) return;
 
       // Filtrar por compartilhamento
       if (shared) {
