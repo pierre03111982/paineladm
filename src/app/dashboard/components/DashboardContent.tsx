@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   ActiveCustomer,
-  CompositionItem,
   DashboardMock,
   ExperimentPoint,
   ProductBreakdown,
@@ -44,91 +43,6 @@ import {
 type DashboardContentProps = {
   data: DashboardMock;
 };
-
-function GradientComposition({ item }: { item: CompositionItem }) {
-  const detailParams = new URLSearchParams();
-  if (item.customerKey) {
-    detailParams.set("cliente", item.customerKey);
-  }
-  if (item.productKey) {
-    detailParams.set("produto", item.productKey);
-  }
-  const detailsHref = `/composicoes${detailParams.toString() ? `?${detailParams.toString()}` : ""}`;
-
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-zinc-800/70 bg-zinc-900/60 transition hover:-translate-y-1 hover:border-indigo-400/50 hover:shadow-[0_25px_60px_-20px_rgba(99,102,241,0.45)]">
-      <div
-        aria-hidden
-        className="h-44 w-full"
-        style={{
-          backgroundImage: `linear-gradient(135deg, ${item.palette.from}, ${
-            item.palette.via ?? item.palette.to
-          }, ${item.palette.to})`,
-        }}
-      />
-      <div className="flex flex-col gap-3 p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-white">
-              {item.productName}
-            </p>
-            <p className="text-xs text-zinc-400">
-              por {item.customerName} · {item.createdAt}
-            </p>
-            {/* Informações de tempo */}
-            {item.processingTime !== null && item.processingTime !== undefined ? (
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-zinc-500">
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-0.5 text-indigo-300">
-                  {item.processingTime < 1000 
-                    ? `${item.processingTime}ms`
-                    : item.processingTime < 60000
-                    ? `${(item.processingTime / 1000).toFixed(1)}s`
-                    : `${(item.processingTime / 60000).toFixed(1)}min`}
-                </span>
-              </div>
-            ) : null}
-          </div>
-          <div className="flex items-center gap-2">
-            {item.isAnonymous ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/20 px-3 py-1 text-xs font-medium text-sky-200">
-                <ShieldCheck className="h-3.5 w-3.5" /> Anônimo
-              </span>
-            ) : null}
-            {item.liked ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-200">
-                <Heart className="h-3.5 w-3.5 fill-current" />
-                Curtida
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300">
-                <Heart className="h-3.5 w-3.5" />
-                Visualização
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center justify-between text-xs text-zinc-400">
-          <Link
-            href={detailsHref}
-            className="inline-flex items-center gap-2 text-indigo-200 transition hover:text-indigo-100"
-          >
-            Ver detalhes
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 text-emerald-200 transition hover:text-emerald-100"
-          >
-            <MessageCircle className="h-3.5 w-3.5" />
-            {item.shareCount && item.shareCount > 0
-              ? `${item.shareCount} envio(s)`
-              : "Enviar via WhatsApp"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ExperimentsLineChart({ points }: { points: ExperimentPoint[] }) {
   return (
@@ -682,48 +596,6 @@ export function DashboardContent({ data }: DashboardContentProps) {
           <div className="mt-6">
             <CustomersList customers={data.activeCustomers} />
           </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Galeria de composições recentes
-            </h2>
-            <p className="text-sm text-zinc-400">
-              Acompanhe os looks mais recentes criados pelos clientes e compartilhe em segundos.
-            </p>
-            <p className="text-xs text-zinc-500">
-              {data.metrics.anonymousTotal} composições estão protegidas com anonimização ativa.
-            </p>
-          </div>
-          <div className="flex gap-3 text-xs">
-            <button
-              type="button"
-              className="rounded-full border border-zinc-700/70 bg-zinc-900 px-4 py-2 text-zinc-300 transition hover:border-indigo-400/50 hover:text-white"
-            >
-              Todos
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-zinc-700/70 bg-zinc-900 px-4 py-2 text-zinc-300 transition hover:border-emerald-400/60 hover:text-emerald-200"
-            >
-              Apenas curtidos
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-zinc-700/70 bg-zinc-900 px-4 py-2 text-zinc-300 transition hover:border-sky-400/60 hover:text-sky-200"
-            >
-              Exportar coleção
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {data.compositions.map((item) => (
-            <GradientComposition key={item.id} item={item} />
-          ))}
         </div>
       </section>
     </div>
