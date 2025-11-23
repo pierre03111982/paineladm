@@ -76,30 +76,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Verificar se a sessão anterior é muito antiga (mais de 24 horas)
-    const lastLoginDate = lastLoginAt?.toDate ? lastLoginAt.toDate() : new Date(lastLoginAt);
-    const hoursSinceLastLogin = (Date.now() - lastLoginDate.getTime()) / (1000 * 60 * 60);
+    // NOVA LÓGICA: "Último a logar ganha"
+    // Se há sessão ativa em outro dispositivo, desconectar o anterior e permitir o novo login
+    console.log(`[API Cliente Check Session] Sessão ativa em outro dispositivo (${activeDeviceId}). Desconectando e permitindo novo login.`);
+    
+    // Desconectar dispositivo anterior e permitir novo login
+    await clienteDoc.ref.update({
+      activeSession: true,
+      activeDeviceId: deviceId || "unknown",
+      lastLoginAt: new Date(),
+      lastLogoutAt: new Date(), // Marcar logout do dispositivo anterior
+    });
 
-    if (hoursSinceLastLogin > 24) {
-      // Sessão antiga, permitir novo login e invalidar a anterior
-      await clienteDoc.ref.update({
-        activeSession: true,
-        activeDeviceId: deviceId || "unknown",
-        lastLoginAt: new Date(),
-      });
-
-      return NextResponse.json({
-        alreadyLoggedIn: false,
-        message: "Sessão anterior expirada, nova sessão iniciada",
-      });
-    }
-
-    // Cliente já está logado em outro dispositivo
     return NextResponse.json({
-      alreadyLoggedIn: true,
-      message: "Cliente já está logado em outro dispositivo",
-      lastLoginAt: lastLoginDate.toISOString(),
-      activeDeviceId: activeDeviceId, // Incluir deviceId ativo para comparação no frontend
+      alreadyLoggedIn: false,
+      message: "Sessão anterior desconectada, nova sessão iniciada",
+      previousDeviceDisconnected: true,
     });
   } catch (error: any) {
     console.error("[API Cliente Check Session] Erro:", error);
