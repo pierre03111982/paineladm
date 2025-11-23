@@ -283,6 +283,62 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
             </div>
           </div>
           <div className="flex w-full gap-2 md:w-auto md:flex-row">
+            {selectedClientes.size > 0 && (
+              <button
+                onClick={async () => {
+                  if (selectedClientes.size === 0) return;
+                  
+                  if (!confirm(`Deseja arquivar ${selectedClientes.size} cliente(s) selecionado(s)?`)) {
+                    return;
+                  }
+
+                  try {
+                    setLoading(true);
+                    const lojistaId = lojistaIdFromUrl || "";
+                    if (!lojistaId) {
+                      setError("LojistaId não encontrado");
+                      return;
+                    }
+
+                    const count = selectedClientes.size;
+                    const promises = Array.from(selectedClientes).map(async (clienteId) => {
+                      const response = await fetch(`/api/lojista/clientes/${clienteId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                          arquivado: true,
+                          lojistaId 
+                        }),
+                      });
+                      if (!response.ok) throw new Error(`Erro ao arquivar cliente ${clienteId}`);
+                    });
+
+                    await Promise.all(promises);
+                    setSelectedClientes(new Set());
+                    setSuccess(`${count} cliente(s) arquivado(s) com sucesso!`);
+                    
+                    // Recarregar clientes
+                    const url = lojistaIdFromUrl 
+                      ? `/api/lojista/clientes?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                      : `/api/lojista/clientes?includeArchived=${showArchived}`;
+                    const res = await fetch(url);
+                    if (res.ok) {
+                      const data = await res.json();
+                      setClientes(data.clientes || []);
+                    }
+                  } catch (err: any) {
+                    console.error("Erro ao arquivar clientes:", err);
+                    setError(err.message || "Erro ao arquivar clientes selecionados");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-500"
+              >
+                <Archive className="h-4 w-4" />
+                Arquivar Selecionados ({selectedClientes.size})
+              </button>
+            )}
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
