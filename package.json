@@ -13,7 +13,8 @@
     "deploy:check": "bash scripts/check-env.sh",
     "deploy:vercel": "vercel --prod",
     "deploy:build": "npm run build && npm run start",
-    "convert-images": "npx tsx scripts/convert-existing-images.ts"
+    "convert-images": "npx tsx scripts/convert-existing-images.ts",
+    "force-rebuild": "npx tsx scripts/force-rebuild.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
