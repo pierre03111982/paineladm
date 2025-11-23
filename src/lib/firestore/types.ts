@@ -48,6 +48,7 @@ export type ClienteDoc = {
   createdAt: Date;
   updatedAt: Date;
   arquivado?: boolean;
+  acessoBloqueado?: boolean;
   // Segmentação Automática
   tags?: string[]; // Tags automáticas baseadas em comportamento
   segmentacao?: {

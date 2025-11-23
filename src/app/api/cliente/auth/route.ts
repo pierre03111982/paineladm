@@ -56,6 +56,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar se o acesso está bloqueado
+    if (clienteData?.acessoBloqueado === true || clienteData?.arquivado === true) {
+      return NextResponse.json(
+        { error: "Seu acesso ao aplicativo foi bloqueado. Entre em contato com a loja." },
+        { status: 403 }
+      );
+    }
+
     // Verificar senha
     const passwordMatch = await bcrypt.compare(password, hashedPassword);
 

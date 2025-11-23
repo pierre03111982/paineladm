@@ -644,6 +644,7 @@ export async function fetchClientes(
         createdAt: convertTimestamp(data?.createdAt),
         updatedAt: convertTimestamp(data?.updatedAt),
         arquivado: data?.arquivado === true,
+        acessoBloqueado: data?.acessoBloqueado === true,
         tags: Array.isArray(data?.tags) ? data.tags : undefined,
         segmentacao: data?.segmentacao
           ? {

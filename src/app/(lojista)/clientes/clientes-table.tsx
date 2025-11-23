@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw, Heart, ThumbsDown, ThumbsUp, Phone, Mail, Image as ImageIcon, TrendingUp, Share, CheckCircle, Gift, CheckSquare, Square } from "lucide-react";
+import { Users, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Plus, Share2, Users2, Tag, History, RefreshCw, Heart, ThumbsDown, ThumbsUp, Phone, Mail, Image as ImageIcon, TrendingUp, Share, CheckCircle, Gift, CheckSquare, Square, Lock, Unlock } from "lucide-react";
 import type { ClienteDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 
@@ -316,6 +316,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ 
                           arquivado: true,
+                          acessoBloqueado: true, // Bloquear acesso ao arquivar
                           lojistaId 
                         }),
                       });
@@ -347,6 +348,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 <Archive className="h-4 w-4" />
                 Arquivar Selecionados ({selectedClientes.size})
               </button>
+              </>
             )}
             <button
               onClick={() => setShowCreateModal(true)}

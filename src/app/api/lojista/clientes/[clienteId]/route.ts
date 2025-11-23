@@ -58,6 +58,7 @@ export async function GET(
       observacoes: data?.observacoes || null,
       status: data?.status || "ativo",
       arquivado: data?.arquivado || false,
+      acessoBloqueado: data?.acessoBloqueado || false,
       createdAt: data?.createdAt?.toDate?.()?.toISOString() || null,
       updatedAt: data?.updatedAt?.toDate?.()?.toISOString() || null,
     });
@@ -110,6 +111,14 @@ export async function PATCH(
     if (body.email !== undefined) updateData.email = body.email;
     if (body.observacoes !== undefined) updateData.observacoes = body.observacoes;
     if (body.status !== undefined) updateData.status = body.status;
+    if (body.acessoBloqueado !== undefined) updateData.acessoBloqueado = body.acessoBloqueado;
+    if (body.arquivado !== undefined) {
+      updateData.arquivado = body.arquivado;
+      // Quando arquivar, também bloquear acesso
+      if (body.arquivado === true) {
+        updateData.acessoBloqueado = true;
+      }
+    }
 
     await db
       .collection("lojas")
@@ -167,6 +176,7 @@ export async function POST(
       .doc(clienteId)
       .update({
         arquivado: action === "archive",
+        acessoBloqueado: action === "archive" ? true : undefined, // Quando arquivar, também bloquear acesso
         updatedAt: new Date(),
       });
 
