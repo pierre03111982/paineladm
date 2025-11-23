@@ -337,7 +337,11 @@ export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
   try {
     if (!lojistaId) return [];
 
-    const snapshot = await lojaRef(lojistaId).collection("produtos").get();
+    // Limitar busca de produtos para melhor performance (máximo 1000 produtos)
+    const snapshot = await lojaRef(lojistaId)
+      .collection("produtos")
+      .limit(1000)
+      .get();
 
     const produtos: ProdutoDoc[] = [];
     

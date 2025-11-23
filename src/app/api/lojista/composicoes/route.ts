@@ -77,10 +77,15 @@ export async function GET(request: NextRequest) {
         .limit(limit);
       snapshot = await query.get();
     } catch (error: any) {
-      // Se falhar por falta de índice, buscar todas e ordenar em memória
+      // Se falhar por falta de índice, buscar com limite e ordenar em memória
       if (error?.code === "failed-precondition") {
-        console.warn("[API Composicoes] Índice não encontrado, buscando todas e ordenando em memória");
-        const allSnapshot = await composicoesRef.get();
+        console.warn("[API Composicoes] Índice não encontrado, buscando com limite e ordenando em memória");
+        // Buscar apenas os últimos 500 documentos (não todas) para performance
+        const maxFetch = Math.max(limit * 5, 500); // Buscar 5x o limite ou 500, o que for maior
+        const allSnapshot = await composicoesRef
+          .orderBy("createdAt", "desc")
+          .limit(maxFetch)
+          .get();
         const allDocs: any[] = [];
         allSnapshot.forEach((doc) => {
           const data = doc.data();

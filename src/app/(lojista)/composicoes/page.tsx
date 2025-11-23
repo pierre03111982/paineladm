@@ -52,10 +52,14 @@ async function fetchComposicoes(
         .limit(100);
       snapshot = await query.get();
     } catch (error: any) {
-      // Se falhar por falta de índice, buscar todas e ordenar em memória
+      // Se falhar por falta de índice, buscar com limite e ordenar em memória
       if (error?.code === "failed-precondition") {
-        console.warn("[ComposicoesPage] Índice não encontrado, buscando todas e ordenando em memória");
-        const allSnapshot = await composicoesRef.get();
+        console.warn("[ComposicoesPage] Índice não encontrado, buscando com limite e ordenando em memória");
+        // Buscar apenas os últimos 500 documentos (não todas) para performance
+        const allSnapshot = await composicoesRef
+          .orderBy("createdAt", "desc")
+          .limit(500)
+          .get();
         const allDocs: any[] = [];
         allSnapshot.forEach((doc) => {
           const data = doc.data();
@@ -190,18 +194,14 @@ async function fetchComposicoes(
     const clientesSet = new Set<string>();
     const produtosSet = new Set<string>();
 
-    // Buscar todas as composições para gerar opções de filtro
-    const allSnapshot = await composicoesRef
-      .where("createdAt", ">=", dateLimit)
-      .get();
-
-    allSnapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data?.customerId) {
-        clientesSet.add(data.customerId);
+    // Buscar composições para gerar opções de filtro (limitado para performance)
+    // Usar os mesmos dados já carregados acima em vez de buscar novamente
+    allComposicoes.forEach((comp) => {
+      if (comp.customerId) {
+        clientesSet.add(comp.customerId);
       }
-      if (data?.primaryProductId) {
-        produtosSet.add(data.primaryProductId);
+      if (comp.primaryProductId) {
+        produtosSet.add(comp.primaryProductId);
       }
     });
 

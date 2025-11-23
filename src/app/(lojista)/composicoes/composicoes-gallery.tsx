@@ -831,6 +831,8 @@ export function ComposicoesGallery({
                       src={item.previewUrl}
                       alt={`Composição ${item.id}`}
                       className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-70" />
