@@ -298,7 +298,18 @@ export async function fetchFavoriteLooks(params: {
     const results: any[] = [];
     snapshot.forEach((doc: any) => {
       const data = typeof doc.data === "function" ? doc.data() : doc.data;
-      const isLike = data?.action === "like" || data?.tipo === "like" || data?.votedType === "like" || (!data?.action && !data?.tipo && !data?.votedType);
+      
+      // IMPORTANTE: Favoritos são apenas imagens com LIKE (não dislike)
+      // Dislikes são registrados para contabilização, mas não aparecem como favoritos
+      const action = data?.action || data?.tipo || data?.votedType;
+      const isLike = action === "like" || (!action && !data?.action && !data?.tipo && !data?.votedType); // Compatibilidade com dados antigos
+      const isDislike = action === "dislike";
+      
+      // Filtrar apenas likes (não mostrar dislikes como favoritos)
+      if (isDislike) {
+        return; // Pular dislikes
+      }
+      
       const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
       
       if (isLike && hasImage) {
@@ -1126,37 +1137,10 @@ export async function updateClienteComposicoesStats(
     let totalLikes = 0;
     let totalDislikes = 0;
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      
-      // Contar TODAS as composições geradas (mesmo sem like/dislike)
-      totalComposicoes++;
+    // Contar TODAS as composições geradas
+    totalComposicoes = snapshot.size;
 
-      // Verificar se tem like
-      const hasLike = data.curtido === true || data.liked === true;
-      if (hasLike) {
-        totalLikes++;
-      }
-
-      // Verificar se tem dislike (se foi marcado explicitamente como não curtido)
-      // Nota: dislike pode ser inferido quando não há like mas há uma ação de dislike registrada
-      // Por enquanto, vamos contar apenas likes explícitos e deixar dislikes para ser contado via ações
-    });
-
-    // Contar dislikes nas composições (quando disliked: true ou curtido: false após ação)
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      
-      // Verificar se tem dislike explícito
-      const hasDislike = data.disliked === true || 
-                       (data.curtido === false && data.liked === false && data.action === "dislike");
-      
-      if (hasDislike) {
-        totalDislikes++;
-      }
-    });
-
-    // Também buscar ações de dislike na coleção de favoritos
+    // Buscar likes e dislikes na coleção de favoritos (fonte mais confiável)
     try {
       const favoritosRef = lojaRef(lojistaId)
         .collection("clientes")
@@ -1167,20 +1151,36 @@ export async function updateClienteComposicoesStats(
       
       favoritosSnapshot.forEach((doc) => {
         const data = doc.data();
-        // Verificar se é uma ação de dislike
-        if (data.action === "dislike" || data.tipo === "dislike" || data.votedType === "dislike") {
-          // Verificar se já não foi contado na composição
-          const compositionId = data.compositionId;
-          if (compositionId) {
-            // Se já foi contado na composição, não contar novamente
-            return;
-          }
+        const action = data.action || data.tipo || data.votedType;
+        
+        // Contar likes
+        if (action === "like") {
+          totalLikes++;
+        }
+        // Contar dislikes
+        else if (action === "dislike") {
           totalDislikes++;
         }
       });
     } catch (error) {
-      console.error("[updateClienteComposicoesStats] Erro ao buscar dislikes:", error);
-      // Continuar mesmo se não conseguir buscar dislikes
+      console.error("[updateClienteComposicoesStats] Erro ao buscar favoritos:", error);
+      
+      // Fallback: contar likes/dislikes das composições se não conseguir buscar favoritos
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // Verificar se tem like
+        const hasLike = data.curtido === true || data.liked === true;
+        if (hasLike) {
+          totalLikes++;
+        }
+        
+        // Verificar se tem dislike explícito
+        const hasDislike = data.disliked === true;
+        if (hasDislike) {
+          totalDislikes++;
+        }
+      });
     }
 
     // Atualizar estatísticas no documento do cliente

@@ -60,18 +60,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // Registrar favorito apenas para likes
-    if (action === "like" && customerId) {
-      await registerFavoriteLook({
-        lojistaId,
-        customerId,
-        customerName,
-        compositionId: compositionId ?? null,
-        jobId: jobId ?? null,
-        imagemUrl: imagemUrl ?? null,
-        productName: productName ?? null,
-        productPrice: typeof productPrice === "number" ? productPrice : null,
-      });
+    // Registrar favorito para likes e dislikes (para contabilização)
+    if ((action === "like" || action === "dislike") && customerId) {
+      if (action === "like") {
+        // Registrar like como favorito
+        await registerFavoriteLook({
+          lojistaId,
+          customerId,
+          customerName,
+          compositionId: compositionId ?? null,
+          jobId: jobId ?? null,
+          imagemUrl: imagemUrl ?? null,
+          productName: productName ?? null,
+          productPrice: typeof productPrice === "number" ? productPrice : null,
+        });
+      } else if (action === "dislike") {
+        // Registrar dislike na coleção de favoritos para contabilização (mas não será exibido como favorito)
+        const { getAdminDb } = await import("@/lib/firebaseAdmin");
+        const db = getAdminDb();
+        const favoritosRef = db
+          .collection("lojas")
+          .doc(lojistaId)
+          .collection("clientes")
+          .doc(customerId)
+          .collection("favoritos");
+        
+        await favoritosRef.add({
+          lojistaId,
+          customerId,
+          customerName: customerName ?? null,
+          compositionId: compositionId ?? null,
+          jobId: jobId ?? null,
+          imagemUrl: imagemUrl ?? null,
+          productName: productName ?? null,
+          productPrice: typeof productPrice === "number" ? productPrice : null,
+          lookType: "criativo",
+          action: "dislike",
+          tipo: "dislike",
+          votedType: "dislike",
+          createdAt: new Date(),
+        });
+      }
 
       // Atualizar estatísticas do cliente (totalComposicoes, totalLikes, totalDislikes)
       try {
