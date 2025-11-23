@@ -227,26 +227,60 @@ export async function registerFavoriteLook(params: {
     productPrice,
   } = params;
 
-  if (!lojistaId || !customerId) {
-    throw new Error("lojistaId e customerId são obrigatórios para favoritos");
-  }
-
-  const ref = clienteFavoritosRef(lojistaId, customerId);
-  await ref.add({
+  console.log("[registerFavoriteLook] Iniciando registro de favorito:", {
     lojistaId,
     customerId,
-    customerName: customerName ?? null,
-    compositionId: compositionId ?? null,
-    jobId: jobId ?? null,
-    imagemUrl: imagemUrl ?? null,
-    productName: productName ?? null,
-    productPrice: typeof productPrice === "number" ? productPrice : null,
-    lookType: "criativo",
-    action: "like",
-    tipo: "like",
-    votedType: "like",
-    createdAt: new Date(),
+    hasImagemUrl: !!imagemUrl,
+    imagemUrl: imagemUrl?.substring(0, 100), // Log parcial da URL
+    compositionId,
+    jobId,
   });
+
+  if (!lojistaId || !customerId) {
+    const error = new Error("lojistaId e customerId são obrigatórios para favoritos");
+    console.error("[registerFavoriteLook] Erro de validação:", error);
+    throw error;
+  }
+
+  // Validar se imagemUrl está presente (obrigatório para favoritos)
+  if (!imagemUrl || imagemUrl.trim() === "") {
+    console.warn("[registerFavoriteLook] AVISO: imagemUrl vazio ou ausente. Favorito será salvo mesmo assim para contabilização.");
+    // Não bloquear, mas avisar
+  }
+
+  try {
+    const ref = clienteFavoritosRef(lojistaId, customerId);
+    const favoriteData = {
+      lojistaId,
+      customerId,
+      customerName: customerName ?? null,
+      compositionId: compositionId ?? null,
+      jobId: jobId ?? null,
+      imagemUrl: imagemUrl ?? null,
+      productName: productName ?? null,
+      productPrice: typeof productPrice === "number" ? productPrice : null,
+      lookType: "criativo",
+      action: "like",
+      tipo: "like",
+      votedType: "like",
+      createdAt: new Date(),
+    };
+    
+    console.log("[registerFavoriteLook] Dados do favorito a serem salvos:", {
+      ...favoriteData,
+      imagemUrl: favoriteData.imagemUrl?.substring(0, 100), // Log parcial
+    });
+    
+    const docRef = await ref.add(favoriteData);
+    
+    console.log("[registerFavoriteLook] Favorito salvo com sucesso. ID:", docRef.id);
+    
+    return docRef.id;
+  } catch (error: any) {
+    console.error("[registerFavoriteLook] Erro ao salvar favorito:", error);
+    console.error("[registerFavoriteLook] Stack:", error?.stack);
+    throw error;
+  }
 }
 
 /**

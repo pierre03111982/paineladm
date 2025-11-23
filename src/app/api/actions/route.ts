@@ -64,16 +64,34 @@ export async function POST(request: Request) {
     if ((action === "like" || action === "dislike") && customerId) {
       if (action === "like") {
         // Registrar like como favorito
-        await registerFavoriteLook({
-          lojistaId,
-          customerId,
-          customerName,
-          compositionId: compositionId ?? null,
-          jobId: jobId ?? null,
-          imagemUrl: imagemUrl ?? null,
-          productName: productName ?? null,
-          productPrice: typeof productPrice === "number" ? productPrice : null,
-        });
+        try {
+          console.log("[api/actions] Registrando favorito para like:", {
+            lojistaId,
+            customerId,
+            hasImagemUrl: !!imagemUrl,
+            imagemUrl: imagemUrl?.substring(0, 100),
+            compositionId,
+            jobId,
+          });
+          
+          await registerFavoriteLook({
+            lojistaId,
+            customerId,
+            customerName,
+            compositionId: compositionId ?? null,
+            jobId: jobId ?? null,
+            imagemUrl: imagemUrl ?? null,
+            productName: productName ?? null,
+            productPrice: typeof productPrice === "number" ? productPrice : null,
+          });
+          
+          console.log("[api/actions] Favorito registrado com sucesso");
+        } catch (favoriteError: any) {
+          console.error("[api/actions] Erro ao registrar favorito:", favoriteError);
+          console.error("[api/actions] Stack do erro:", favoriteError?.stack);
+          // Não falhar a requisição se o favorito falhar, mas logar o erro
+          // O like ainda será contabilizado na composição
+        }
       } else if (action === "dislike") {
         // Registrar dislike na coleção de favoritos para contabilização (mas não será exibido como favorito)
         const { getAdminDb } = await import("@/lib/firebaseAdmin");
