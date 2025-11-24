@@ -92,19 +92,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
-    return NextResponse.json(
-      { error: error.message || "Erro ao autenticar cliente" },
-      { status: 500 }
-    );
-  }
-}
-
-
-    return NextResponse.json(
-      { error: error.message || "Erro ao autenticar cliente" },
-      { status: 500 }
-    );
-  }
-}
-
