@@ -49,19 +49,3 @@ export default async function ProdutosPage({ searchParams }: ProdutosPageProps) 
     />
   );
 }
-
-
-    />
-  );
-}
-
-
-    />
-  );
-}
-
-
-    />
-  );
-}
-
