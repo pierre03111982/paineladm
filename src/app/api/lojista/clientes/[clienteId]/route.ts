@@ -279,32 +279,3 @@ export async function DELETE(
   }
 }
 
-
-    const { clienteId } = await params;
-    const lojistaId = request.nextUrl.searchParams.get("lojistaId");
-    
-    if (!lojistaId) {
-      return NextResponse.json(
-        { error: "lojistaId é obrigatório" },
-        { status: 400 }
-      );
-    }
-
-    const db = getAdminDb();
-    await db
-      .collection("lojas")
-      .doc(lojistaId)
-      .collection("clientes")
-      .doc(clienteId)
-      .delete();
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(`[API Cliente DELETE] Erro:`, error);
-    return NextResponse.json(
-      { error: "Erro ao excluir cliente" },
-      { status: 500 }
-    );
-  }
-}
-
