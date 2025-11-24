@@ -55,3 +55,24 @@ Thumbs.db
 *_backup.*
 *.bak
 *.old
+
+# Arquivos de backup
+*BACKUP*
+*backup*
+*_backup.*
+*.bak
+*.old
+
+# Arquivos de backup
+*BACKUP*
+*backup*
+*_backup.*
+*.bak
+*.old
+
+# Arquivos de backup
+*BACKUP*
+*backup*
+*_backup.*
+*.bak
+*.old

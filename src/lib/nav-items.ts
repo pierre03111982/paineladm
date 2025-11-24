@@ -7,6 +7,7 @@ import {
   Monitor,
   Share2,
   QrCode,
+  Radar,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -31,6 +32,11 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/clientes",
     label: "Clientes",
     icon: Users,
+  },
+  {
+    href: "/crm",
+    label: "Radar de Oportunidades",
+    icon: Radar,
   },
   {
     href: "/composicoes",

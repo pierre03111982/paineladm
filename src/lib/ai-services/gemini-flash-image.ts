@@ -9,13 +9,22 @@ import { APIResponse } from "./types";
 /**
  * Configuração do Gemini 2.5 Flash Image
  */
+/**
+ * Configuração do Gemini 2.5 Flash Image
+ * 
+ * Documentação:
+ * - Modelo: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image?hl=pt_br
+ * - Preços: https://cloud.google.com/vertex-ai/generative-ai/pricing?hl=pt-br
+ */
 const GEMINI_FLASH_IMAGE_CONFIG = {
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || "",
   location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
   modelId: "gemini-2.5-flash-image",
-  // Custo por imagem gerada (em USD)
-  // Fonte: https://cloud.google.com/vertex-ai/generative-ai/pricing
-  // Gemini 2.5 Flash Image: verificar preços na documentação oficial
+  // Custo por imagem gerada (em USD) - Valor padrão estimado
+  // ⚠️ IMPORTANTE: Consultar https://cloud.google.com/vertex-ai/generative-ai/pricing?hl=pt-br para valores atualizados
+  // O custo real varia por região e pode incluir:
+  // - Custo de entrada (imagens + texto)
+  // - Custo de saída (imagem gerada)
   costPerRequest: parseFloat(process.env.GEMINI_FLASH_IMAGE_COST || "0.02"),
 };
 
@@ -206,6 +215,10 @@ export class GeminiFlashImageService {
         },
       ];
 
+      // Estrutura do requestBody para Gemini Flash Image
+      // NOTA: O modelo gemini-2.5-flash-image gera imagens automaticamente quando recebe
+      // imagens de entrada junto com um prompt. Não é necessário especificar responseModalities
+      // para o endpoint do Vertex AI (diferente de outros provedores).
       const requestBody: any = {
         contents,
         generationConfig: {
@@ -213,6 +226,8 @@ export class GeminiFlashImageService {
           topP: 0.95,
           topK: 40,
           maxOutputTokens: 8192,
+          // Removido responseModalities - não é suportado pelo Vertex AI endpoint
+          // O modelo detecta automaticamente que deve gerar imagens quando recebe imagens de entrada
         },
         safetySettings: params.safetySettings || [
           {
@@ -312,23 +327,79 @@ export class GeminiFlashImageService {
           });
 
           // Extrair a imagem gerada da resposta
+          // O Gemini Flash Image pode retornar a imagem em diferentes estruturas
           let imageUrl: string | null = null;
+
+          console.log("[GeminiFlashImage] 🔍 Analisando estrutura da resposta:", {
+            hasCandidates: !!data.candidates,
+            candidatesLength: data.candidates?.length || 0,
+            firstCandidate: data.candidates?.[0] ? {
+              hasContent: !!data.candidates[0].content,
+              hasParts: !!data.candidates[0].content?.parts,
+              partsLength: data.candidates[0].content?.parts?.length || 0,
+            } : null,
+          });
 
           if (data.candidates && data.candidates.length > 0) {
             const candidate = data.candidates[0];
             
+            // Verificar se há finishReason que indique bloqueio
+            if (candidate.finishReason && candidate.finishReason !== "STOP") {
+              console.warn("[GeminiFlashImage] ⚠️ FinishReason não é STOP:", candidate.finishReason);
+            }
+            
             if (candidate.content?.parts) {
+              console.log("[GeminiFlashImage] 🔍 Analisando parts:", {
+                partsCount: candidate.content.parts.length,
+                partsStructure: candidate.content.parts.map((part: any, index: number) => ({
+                  index,
+                  hasInlineData: !!part.inlineData,
+                  hasText: !!part.text,
+                  inlineDataMimeType: part.inlineData?.mimeType,
+                  inlineDataHasData: !!part.inlineData?.data,
+                  inlineDataLength: part.inlineData?.data?.length || 0,
+                  textPreview: part.text?.substring(0, 100),
+                })),
+              });
+
               for (const part of candidate.content.parts) {
+                // Tentar encontrar imagem em inlineData
                 if (part.inlineData?.data) {
-                  imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+                  const mimeType = part.inlineData.mimeType || "image/png";
+                  imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+                  console.log("[GeminiFlashImage] ✅ Imagem encontrada em inlineData:", {
+                    mimeType,
+                    dataLength: part.inlineData.data.length,
+                  });
                   break;
+                }
+                
+                // Verificar se há texto que possa conter URL de imagem
+                if (part.text) {
+                  console.log("[GeminiFlashImage] 📝 Texto encontrado na resposta:", part.text.substring(0, 200));
+                  // Se o texto contém uma URL de imagem, usar ela
+                  const urlMatch = part.text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
+                  if (urlMatch) {
+                    imageUrl = urlMatch[0];
+                    console.log("[GeminiFlashImage] ✅ URL de imagem encontrada no texto:", imageUrl);
+                    break;
+                  }
                 }
               }
             }
           }
 
           if (!imageUrl) {
-            console.error("[GeminiFlashImage] ❌ Resposta completa:", JSON.stringify(data, null, 2));
+            console.error("[GeminiFlashImage] ❌ Resposta completa da API:", JSON.stringify(data, null, 2));
+            console.error("[GeminiFlashImage] ❌ Estrutura da resposta:", {
+              topLevelKeys: Object.keys(data),
+              candidates: data.candidates?.map((c: any) => ({
+                finishReason: c.finishReason,
+                hasContent: !!c.content,
+                contentKeys: c.content ? Object.keys(c.content) : [],
+                partsCount: c.content?.parts?.length || 0,
+              })),
+            });
             throw new Error("Resposta da API não contém imagem gerada. Verifique os logs para mais detalhes.");
           }
 

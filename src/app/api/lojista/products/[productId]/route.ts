@@ -221,3 +221,78 @@ export async function DELETE(
   }
 }
 
+
+      );
+    }
+
+    const { productId } = await params;
+    if (!productId) {
+      return NextResponse.json(
+        { error: "productId é obrigatório." },
+        { status: 400 }
+      );
+    }
+
+    const db = getAdminDb();
+    await db.collection("lojas").doc(lojistaId).collection("produtos").doc(productId).delete();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[api/lojista/products/[productId]] erro ao excluir:", error);
+    return NextResponse.json(
+      { error: "Erro ao excluir produto." },
+      { status: 500 }
+    );
+  }
+}
+
+
+      );
+    }
+
+    const { productId } = await params;
+    if (!productId) {
+      return NextResponse.json(
+        { error: "productId é obrigatório." },
+        { status: 400 }
+      );
+    }
+
+    const db = getAdminDb();
+    await db.collection("lojas").doc(lojistaId).collection("produtos").doc(productId).delete();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[api/lojista/products/[productId]] erro ao excluir:", error);
+    return NextResponse.json(
+      { error: "Erro ao excluir produto." },
+      { status: 500 }
+    );
+  }
+}
+
+
+      );
+    }
+
+    const { productId } = await params;
+    if (!productId) {
+      return NextResponse.json(
+        { error: "productId é obrigatório." },
+        { status: 400 }
+      );
+    }
+
+    const db = getAdminDb();
+    await db.collection("lojas").doc(lojistaId).collection("produtos").doc(productId).delete();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[api/lojista/products/[productId]] erro ao excluir:", error);
+    return NextResponse.json(
+      { error: "Erro ao excluir produto." },
+      { status: 500 }
+    );
+  }
+}
+

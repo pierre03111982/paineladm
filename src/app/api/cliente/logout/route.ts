@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
 
     if (!clientesSnapshot.empty) {
       const clienteDoc = clientesSnapshot.docs[0];
-      const clienteData = clienteDoc.data();
       
       // SEMPRE limpar sessão ativa, independente do deviceId
       // Isso permite que o usuário faça logout e login novamente no mesmo ou outro dispositivo

@@ -85,10 +85,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("[API Cliente Auth] Erro:", error);
+    console.error("[API Cliente Auth] Stack:", error.stack);
     return NextResponse.json(
       { error: error.message || "Erro ao autenticar cliente" },
       { status: 500 }
     );
   }
 }
-

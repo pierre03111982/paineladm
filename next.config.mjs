@@ -75,5 +75,3 @@ const finalConfig = {
 };
 
 export default finalConfig;
-
-

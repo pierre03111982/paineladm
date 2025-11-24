@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
       : produtos.filter((p) => !p.arquivado);
 
     // Retornar array direto para compatibilidade com appmelhorado
-    const response = NextResponse.json(filteredProdutos);
+    // Garantir que sempre retornamos um array, mesmo que vazio
+    const response = NextResponse.json(Array.isArray(filteredProdutos) ? filteredProdutos : []);
     return addCorsHeaders(response);
-  } catch (error) {
+  } catch (error: any) {
     console.error("[API Products GET] Erro:", error);
-    const response = NextResponse.json(
-      { error: "Erro ao listar produtos" },
-      { status: 500 }
-    );
+    console.error("[API Products GET] Stack:", error?.stack);
+    // Retornar array vazio em caso de erro para não quebrar o frontend
+    const response = NextResponse.json([]);
     return addCorsHeaders(response);
   }
 }
@@ -186,4 +186,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

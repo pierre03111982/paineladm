@@ -31,5 +31,5 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const data = await getDashboardData(lojistaId);
 
-  return <DashboardContent data={data} />;
+  return <DashboardContent data={data} lojistaId={lojistaId} />;
 }

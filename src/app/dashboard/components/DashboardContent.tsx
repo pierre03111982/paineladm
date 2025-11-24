@@ -39,9 +39,11 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { CreditsManager } from "../../(lojista)/dashboard/credits-manager";
 
 type DashboardContentProps = {
   data: DashboardMock;
+  lojistaId?: string;
 };
 
 function ExperimentsLineChart({ points }: { points: ExperimentPoint[] }) {
@@ -177,7 +179,7 @@ function FunnelStep({
   );
 }
 
-export function DashboardContent({ data }: DashboardContentProps) {
+export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
   const formatBRL = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -266,6 +268,9 @@ export function DashboardContent({ data }: DashboardContentProps) {
           </div>
         </div>
       </header>
+
+      {/* Gerenciador de Créditos */}
+      <CreditsManager lojistaId={lojistaId} />
 
       {/* Seção de Métricas ROI e Funil */}
       {roiMetrics && (
