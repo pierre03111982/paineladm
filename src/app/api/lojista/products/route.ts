@@ -132,8 +132,14 @@ export async function POST(request: NextRequest) {
         if (!urlTrimmed.includes("storage.googleapis.com") && !urlTrimmed.includes("firebasestorage.googleapis.com")) {
           console.log("[API Products POST] Convertendo imagem de link para PNG:", urlTrimmed);
           try {
-            imagemUrlFinal = await convertImageUrlToPng(urlTrimmed, lojistaId);
-            console.log("[API Products POST] Imagem convertida com sucesso:", imagemUrlFinal);
+            const convertedUrl = await convertImageUrlToPng(urlTrimmed, lojistaId);
+            if (convertedUrl) {
+              imagemUrlFinal = convertedUrl;
+              console.log("[API Products POST] Imagem convertida com sucesso:", imagemUrlFinal);
+            } else {
+              console.warn("[API Products POST] Conversão retornou null, usando URL original");
+              imagemUrlFinal = urlTrimmed;
+            }
           } catch (conversionError: any) {
             console.error("[API Products POST] Erro ao converter imagem, usando URL original:", conversionError);
             // Se falhar a conversão, usar a URL original

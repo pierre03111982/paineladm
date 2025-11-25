@@ -68,8 +68,14 @@ export async function PATCH(
         if (!urlTrimmed.includes("storage.googleapis.com") && !urlTrimmed.includes("firebasestorage.googleapis.com")) {
           console.log("[api/lojista/products/[productId]] Convertendo imagem de link para PNG:", urlTrimmed);
           try {
-            imagemUrlFinal = await convertImageUrlToPng(urlTrimmed, lojistaId, productId);
-            console.log("[api/lojista/products/[productId]] Imagem convertida com sucesso:", imagemUrlFinal);
+            const convertedUrl = await convertImageUrlToPng(urlTrimmed, lojistaId, productId);
+            if (convertedUrl) {
+              imagemUrlFinal = convertedUrl;
+              console.log("[api/lojista/products/[productId]] Imagem convertida com sucesso:", imagemUrlFinal);
+            } else {
+              console.warn("[api/lojista/products/[productId]] Conversão retornou null, usando URL original");
+              imagemUrlFinal = urlTrimmed;
+            }
           } catch (conversionError: any) {
             console.error("[api/lojista/products/[productId]] Erro ao converter imagem, usando URL original:", conversionError);
             imagemUrlFinal = urlTrimmed;
