@@ -559,7 +559,7 @@ export function ProductsTable({
         )}
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-zinc-800 text-sm">
+          <table className="w-full min-w-[1400px] divide-y divide-zinc-800 text-sm">
             <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
                 <th className="px-6 py-3 w-16">

@@ -24,7 +24,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
   const draftProducts = initialProdutos.filter(p => p.arquivado);
 
   return (
-    <div className="space-y-8">
+    <div className="w-full space-y-8">
       {/* Seção Produtos */}
       <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -60,7 +60,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
       </div>
 
       {/* Seção Inventário */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-6">
+      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-900/50 p-6 overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Inventário</h2>
           <div className="flex items-center gap-2">
