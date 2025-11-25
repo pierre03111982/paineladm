@@ -55,6 +55,11 @@ export async function PATCH(
       estoque,
       tags,
       observacoes,
+      // Fase 13: Campos para catálogo e display
+      imagemUrlCatalogo,
+      displayReady,
+      catalogImageUrl,
+      catalogGeneratedAt,
     } = body;
 
     // Converter imagem de link para PNG se necessário
@@ -87,7 +92,7 @@ export async function PATCH(
       }
     }
 
-    const updateData = {
+    const updateData: any = {
       nome,
       categoria,
       preco,
@@ -98,6 +103,20 @@ export async function PATCH(
       tags,
       observacoes,
     };
+
+    // Fase 13: Adicionar campos de catálogo/display se fornecidos
+    if (imagemUrlCatalogo) {
+      updateData.imagemUrlCatalogo = imagemUrlCatalogo;
+    }
+    if (displayReady !== undefined) {
+      updateData.displayReady = displayReady;
+    }
+    if (catalogImageUrl) {
+      updateData.catalogImageUrl = catalogImageUrl;
+    }
+    if (catalogGeneratedAt) {
+      updateData.catalogGeneratedAt = catalogGeneratedAt;
+    }
 
     // Remover campos undefined
     Object.keys(updateData).forEach(key => {

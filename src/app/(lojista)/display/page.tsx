@@ -9,36 +9,32 @@ function resolveDisplayUrl(
   panelBaseUrl: string
 ): URL {
   try {
-    // Usar a mesma função do DisplayLinkPanel para garantir URL idêntica ao QR code
+    // Usar buildClientAppDisplayUrl que já retorna a URL completa correta
     const clientAppUrl = buildClientAppDisplayUrl(lojistaId);
-    const panelUrl = new URL(panelBaseUrl);
     
-    // Construir URL completa
-    let target: URL;
-    if (clientAppUrl.startsWith("http")) {
-      // URL absoluta
-      target = new URL(clientAppUrl);
-    } else {
-      // URL relativa, usar a mesma origem do painel
-      target = new URL(clientAppUrl, panelBaseUrl);
-    }
+    // A função já retorna URL absoluta com o path correto: https://display.experimenteai.com.br/[lojistaId]/experimentar
+    const target = new URL(clientAppUrl);
 
-    // Adicionar parâmetros do display (mesmos do QR code)
-    if (lojistaId) {
-      target.searchParams.set("lojista", lojistaId);
+    // Adicionar parâmetros adicionais se necessário
+    // O middleware já adiciona display=1, mas vamos garantir
+    if (!target.searchParams.has("display")) {
+      target.searchParams.set("display", "1");
     }
-    target.searchParams.set("display", "1");
+    
+    // Adicionar backend para comunicação com API
     target.searchParams.set("backend", panelBaseUrl);
 
     return target;
   } catch (error) {
     console.error("[resolveDisplayUrl] Error:", error);
-    // Fallback final - usar subdomínio padrão
+    // Fallback final - usar domínio de display
     const isDev = process.env.NODE_ENV === "development";
+    const displayDomain = process.env.NEXT_PUBLIC_DISPLAY_DOMAIN || "display.experimenteai.com.br";
     const fallbackBase = isDev 
-      ? `http://localhost:${process.env.NEXT_PUBLIC_APPMELHORADO_PORT || "3001"}`
-      : "https://app.experimenteai.com.br";
-    const fallbackUrl = new URL("/display", fallbackBase);
+      ? `http://localhost:${process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005"}`
+      : `https://${displayDomain}`;
+    const fallbackPath = lojistaId ? `/${lojistaId}/experimentar` : "/experimentar";
+    const fallbackUrl = new URL(fallbackPath, fallbackBase);
     if (lojistaId) {
       fallbackUrl.searchParams.set("lojista", lojistaId);
     }

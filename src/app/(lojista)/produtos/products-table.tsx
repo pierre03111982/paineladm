@@ -811,6 +811,11 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fase 13: Estados para Estúdio IA
+  const [generatedCatalogImage, setGeneratedCatalogImage] = useState<string | null>(null);
+  const [generatingCatalog, setGeneratingCatalog] = useState(false);
+  const [corManequim, setCorManequim] = useState<string>("branco fosco");
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -972,6 +977,158 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
               />
             </div>
           </div>
+
+          {/* Fase 13: Estúdio Virtual & Display */}
+          {(formData.imagemUrl || uploadedImageUrl) && (
+            <div className="border-t border-zinc-800 pt-4">
+              <label className="block text-xs font-medium text-zinc-300 mb-2">
+                ✨ ESTÚDIO VIRTUAL & DISPLAY
+              </label>
+              <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-3">
+                {/* Seletor de Cor do Manequim */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                    Cor do Manequim
+                  </label>
+                  <select
+                    value={corManequim}
+                    onChange={(e) => setCorManequim(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 focus:border-indigo-400 focus:outline-none"
+                  >
+                    <option value="branco fosco">Branco Fosco</option>
+                    <option value="preto fosco">Preto Fosco</option>
+                    <option value="invisível">Invisível</option>
+                  </select>
+                </div>
+
+                {/* Botão Gerar */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const imagemUrlParaUsar = formData.imagemUrl || uploadedImageUrl;
+                    if (!imagemUrlParaUsar || !lojistaIdFromUrl) {
+                      setError("Imagem e ID da loja são necessários");
+                      return;
+                    }
+
+                    try {
+                      setGeneratingCatalog(true);
+                      setError(null);
+
+                      const response = await fetch("/api/ai/catalog", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          produtoId: produto.id,
+                          imagemUrl: imagemUrlParaUsar,
+                          corManequim,
+                          lojistaId: lojistaIdFromUrl,
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || "Erro ao gerar imagem");
+                      }
+
+                      const data = await response.json();
+                      setGeneratedCatalogImage(data.imageUrl);
+                    } catch (err: any) {
+                      console.error("[EditProdutoModal] Erro ao gerar catálogo:", err);
+                      setError(err.message || "Erro ao gerar imagem de catálogo");
+                    } finally {
+                      setGeneratingCatalog(false);
+                    }
+                  }}
+                  disabled={generatingCatalog || !formData.imagemUrl && !uploadedImageUrl}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-purple-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingCatalog ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      ✨ Gerar Imagem de Catálogo
+                    </>
+                  )}
+                </button>
+
+                {/* Preview da Imagem Gerada */}
+                {generatedCatalogImage && (
+                  <div className="space-y-2">
+                    <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">
+                      <img
+                        src={generatedCatalogImage}
+                        alt="Imagem de catálogo gerada"
+                        className="w-full rounded-lg object-contain max-h-64"
+                      />
+                    </div>
+
+                    {/* Botões de Ação */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          // Definir como imagem principal
+                          setFormData({ ...formData, imagemUrl: generatedCatalogImage });
+                          setUploadedImageUrl("");
+                          setGeneratedCatalogImage(null);
+                        }}
+                        className="rounded-lg bg-indigo-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-400"
+                      >
+                        Salvar como Principal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          // Salvar para display (subcoleção display_assets)
+                          try {
+                            const response = await fetch(
+                              `/api/lojista/products/${produto.id}/display-asset?lojistaId=${lojistaIdFromUrl}`,
+                              {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  imagemUrl: generatedCatalogImage,
+                                  metadata: {
+                                    generatedAt: new Date().toISOString(),
+                                    corManequim,
+                                  },
+                                }),
+                              }
+                            );
+
+                            if (!response.ok) {
+                              const errorData = await response.json();
+                              throw new Error(errorData.error || "Erro ao salvar para display");
+                            }
+
+                            alert("Imagem salva para o display da loja com sucesso!");
+                            setGeneratedCatalogImage(null);
+                          } catch (err: any) {
+                            setError(err.message || "Erro ao salvar para display");
+                          }
+                        }}
+                        className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-emerald-400"
+                      >
+                        Salvar para Display
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info */}
+                <div className="flex items-start gap-2 rounded-lg border border-purple-500/20 bg-purple-500/10 p-2">
+                  <Info className="h-3.5 w-3.5 mt-0.5 text-purple-400 flex-shrink-0" />
+                  <p className="text-xs text-purple-200">
+                    Gere uma imagem profissional de catálogo com etiqueta de preço integrada, ideal para exibição na TV da loja sem riscos de direitos de imagem.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Nome */}
           <div>

@@ -382,3 +382,159 @@ async function saveToFirebaseStorage(
   }
 }
 
+/**
+ * Gera imagem de catálogo para produto (Fase 13)
+ * Usa Imagen 3 para criar imagem profissional com etiqueta de preço
+ */
+export async function generateCatalogImage(
+  prompt: string,
+  productImageUrl: string,
+  lojistaId: string,
+  produtoId: string
+): Promise<string> {
+  console.log("[ImagenGenerate] Iniciando geração de imagem de catálogo", {
+    promptLength: prompt.length,
+    productImageUrl: productImageUrl.substring(0, 100) + "...",
+    lojistaId,
+    produtoId,
+  });
+
+  if (!IMAGEN_CONFIG.projectId) {
+    throw new Error("GOOGLE_CLOUD_PROJECT_ID não configurado");
+  }
+
+  try {
+    // Obter token de acesso
+    const adminApp = getAdminApp();
+    const credential = adminApp.options.credential;
+    if (!credential) {
+      throw new Error("Credenciais do Firebase Admin não encontradas");
+    }
+
+    const tokenResponse = await credential.getAccessToken();
+    const accessToken = tokenResponse?.access_token;
+
+    if (!accessToken) {
+      throw new Error("Não foi possível obter token de acesso");
+    }
+
+    // Converter imagem do produto para base64
+    const productImageData = await imageUrlToBase64(productImageUrl);
+
+    // Preparar array de imagens de referência (apenas o produto)
+    const referenceImagesArray = [{
+      image: {
+        bytesBase64Encoded: productImageData.base64,
+        mimeType: productImageData.mimeType,
+      },
+    }];
+
+    const instances = [
+      {
+        prompt: prompt,
+        referenceImages: referenceImagesArray,
+      },
+    ];
+
+    // Endpoint para Imagen 3
+    const endpoint = `https://${IMAGEN_CONFIG.location}-aiplatform.googleapis.com/v1/projects/${IMAGEN_CONFIG.projectId}/locations/${IMAGEN_CONFIG.location}/publishers/google/models/${IMAGEN_CONFIG.model}:predict`;
+
+    console.log("[ImagenGenerate] Enviando requisição para Imagen 3 (catálogo)...");
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        instances,
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: "16:9",
+          negativePrompt: "low quality, blurry, distorted, watermark, text overlay, people, faces",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[ImagenGenerate] Erro na resposta da API:", errorText);
+      throw new Error(`Erro ao gerar imagem: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("[ImagenGenerate] Resposta recebida da API:", {
+      hasPredictions: !!data.predictions,
+      predictionsCount: data.predictions?.length || 0,
+    });
+
+    if (!data.predictions || data.predictions.length === 0) {
+      throw new Error("Nenhuma imagem foi gerada");
+    }
+
+    const generatedImageBase64 = data.predictions[0].bytesBase64Encoded;
+    if (!generatedImageBase64) {
+      throw new Error("Imagem gerada não contém dados base64");
+    }
+
+    // Salvar no Firebase Storage
+    const publicUrl = await saveCatalogImageToStorage(
+      generatedImageBase64,
+      lojistaId,
+      produtoId
+    );
+
+    console.log("[ImagenGenerate] Imagem de catálogo gerada com sucesso:", publicUrl);
+    return publicUrl;
+  } catch (error: any) {
+    console.error("[ImagenGenerate] Erro ao gerar imagem de catálogo:", error);
+    throw error;
+  }
+}
+
+/**
+ * Salva imagem de catálogo no Firebase Storage
+ */
+async function saveCatalogImageToStorage(
+  imageBase64: string,
+  lojistaId: string,
+  produtoId: string
+): Promise<string> {
+  try {
+    const adminApp = getAdminApp();
+    const storage = getStorage(adminApp);
+    const bucket = storage.bucket();
+
+    // Criar nome único para o arquivo
+    const timestamp = Date.now();
+    const fileName = `catalogos/${lojistaId}/${produtoId}/${timestamp}.jpg`;
+
+    // Converter base64 para buffer
+    const imageBuffer = Buffer.from(imageBase64, "base64");
+
+    // Upload para Firebase Storage
+    const file = bucket.file(fileName);
+    await file.save(imageBuffer, {
+      metadata: {
+        contentType: "image/jpeg",
+        metadata: {
+          lojistaId,
+          produtoId,
+          tipo: "catalogo",
+          generatedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Tornar público e obter URL
+    await file.makePublic();
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+    return publicUrl;
+  } catch (error) {
+    console.error("[ImagenGenerate] Erro ao salvar catálogo no Firebase Storage:", error);
+    throw error;
+  }
+}
+
