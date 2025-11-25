@@ -299,6 +299,13 @@ export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   const referer = request.headers.get("referer");
   
+  // Declarar variáveis no escopo da função para uso no catch
+  let body: any = null;
+  let lojistaId: string | undefined;
+  let customerId: string | undefined;
+  let userImageUrl: string | undefined;
+  let productImageUrl: string | string[] | undefined;
+  
   // Log para debug
   console.log("[API/AI/Generate] Requisição recebida:", {
     origin,
@@ -319,8 +326,8 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, origin);
     }
 
-    const body = await request.json();
-    const { lojistaId, customerId, userImageUrl, productImageUrl } = body;
+    body = await request.json();
+    ({ lojistaId, customerId, userImageUrl, productImageUrl } = body);
 
     // Validação de entrada
     if (!lojistaId || !userImageUrl) {
@@ -535,25 +542,13 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[API/AI/Generate] Erro:", error);
     
-    // Tentar extrair lojistaId e customerId do erro ou do contexto
-    let errorLojistaId: string | undefined;
-    let errorCustomerId: string | undefined;
-    
-    try {
-      const errorBody = await request.json().catch(() => null);
-      errorLojistaId = errorBody?.lojistaId;
-      errorCustomerId = errorBody?.customerId;
-    } catch (e) {
-      // Se não conseguir ler o body novamente, usar valores do contexto se disponíveis
-    }
-    
-    // Log erro crítico (usar variáveis do escopo externo se disponíveis)
+    // Log erro crítico (usar variáveis do escopo da função)
     await logger.critical(
       "Erro ao gerar imagem",
       error instanceof Error ? error : new Error(error.message || "Erro desconhecido"),
       {
-        lojistaId: lojistaId || errorLojistaId,
-        customerId: customerId || errorCustomerId,
+        lojistaId: lojistaId || body?.lojistaId,
+        customerId: customerId || body?.customerId,
         ip: getClientIP(request),
         origin,
       }
