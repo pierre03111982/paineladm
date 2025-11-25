@@ -58,59 +58,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
     setFormData((prev) => ({ ...prev, salesWhatsapp: formatted }));
   };
 
-  const handleClearDiscount = async () => {
-    if (typeof window !== "undefined") {
-      const confirmed = window.confirm(
-        "Tem certeza que deseja limpar o desconto? O aviso de desconto deixará de aparecer para todos os clientes."
-      );
-      if (!confirmed) return;
-    }
-
-    setIsLoading(true);
-    try {
-      const payload: any = {
-        lojistaId,
-        descontoRedesSociais: null,
-        descontoRedesSociaisExpiraEm: null,
-      };
-
-      console.log("[SettingsForm] Limpando desconto:", JSON.stringify(payload, null, 2));
-
-      const response = await fetch("/api/lojista/perfil", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("[SettingsForm] Erro ao limpar desconto:", response.status, errorData);
-        throw new Error(errorData.error || "Erro ao limpar desconto");
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        descontoRedesSociais: 0,
-        descontoRedesSociaisExpiraEm: "",
-      }));
-
-      alert("Desconto limpo com sucesso para todos os clientes.");
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 800);
-    } catch (error) {
-      console.error("[SettingsForm] Erro ao limpar desconto:", error);
-      alert(
-        `Erro ao limpar desconto: ${
-          error instanceof Error ? error.message : "Erro desconhecido"
-        }`
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Inicializar formData com os dados do perfil
   const [formData, setFormData] = useState(() => {
     console.log("[SettingsForm] Inicializando formData com perfil:", perfil);
@@ -135,8 +82,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       instagram: perfil?.instagram || "",
       facebook: perfil?.facebook || "",
       tiktok: perfil?.tiktok || "",
-      descontoRedesSociais: perfil?.descontoRedesSociais || 0,
-      descontoRedesSociaisExpiraEm: perfil?.descontoRedesSociaisExpiraEm || "",
       appModel: normalizedAppModel,
       salesChannel: (perfil?.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
       salesWhatsapp: perfil?.salesConfig?.salesWhatsapp || perfil?.whatsapp || "",
@@ -169,8 +114,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         instagram: perfil.instagram || "",
         facebook: perfil.facebook || "",
         tiktok: perfil.tiktok || "",
-        descontoRedesSociais: perfil.descontoRedesSociais || 0,
-        descontoRedesSociaisExpiraEm: perfil.descontoRedesSociaisExpiraEm || "",
         appModel: normalizedAppModel,
         salesChannel: (perfil.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
         salesWhatsapp: perfil.salesConfig?.salesWhatsapp || perfil.whatsapp || "",
@@ -275,8 +218,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         facebook: formData.facebook || "",
         tiktok: formData.tiktok || "",
         appModel: formData.appModel, // Sem fallback hardcoded
-        descontoRedesSociais: formData.descontoRedesSociais || null,
-        descontoRedesSociaisExpiraEm: formData.descontoRedesSociaisExpiraEm || null,
       };
 
       // LogoUrl - sempre incluir (pode ser null se não houver logo)
@@ -448,59 +389,14 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           Configure suas redes sociais e defina um desconto para clientes que seguirem sua loja.
         </p>
         
-        <div className="mb-6 rounded-lg border border-purple-500/30 bg-purple-500/10 p-4">
-          <label className="block text-sm font-medium text-zinc-300 mb-2">
-            Desconto por Seguir Redes Sociais (%)
-          </label>
-          <div className="space-y-3">
-            <div>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={formData.descontoRedesSociais}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    descontoRedesSociais: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
-                placeholder="Ex: 10 (para 10% de desconto)"
-              />
-              <p className="mt-1 text-xs text-zinc-500">
-                O desconto será aplicado automaticamente em todos os produtos quando o cliente seguir qualquer uma das suas redes sociais.
-              </p>
-            </div>
-            
-            <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleClearDiscount}
-              disabled={isLoading}
-              className="inline-flex items-center justify-center rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-[11px] font-semibold text-red-300 shadow-sm shadow-red-500/30 transition hover:bg-red-500/20 disabled:opacity-50"
-            >
-              Excluir descontos
-            </button>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
-              Data de expiração do desconto (opcional)
-            </label>
-            <input
-              type="date"
-              value={formData.descontoRedesSociaisExpiraEm || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, descontoRedesSociaisExpiraEm: e.target.value })
-              }
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
-            />
-            <p className="mt-1 text-xs text-zinc-500">
-              Após essa data o aviso de desconto deixará de aparecer automaticamente no Passo 2.
-            </p>
-          </div>
+        <div className="mb-6 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4">
+          <p className="text-sm text-purple-100">
+            O desconto por seguir suas redes agora é configurado na tela <span className="font-semibold">Produtos &gt; Inventário</span>.
+            Lá você escolhe rapidamente entre 1% e 20% ou define outro valor para aplicar automaticamente em todo o catálogo.
+          </p>
+          <p className="mt-2 text-xs text-purple-200">
+            Precisa de um incentivo maior para um item específico? Abra o produto e use o campo <span className="font-semibold">Desconto Especial</span>.
+          </p>
         </div>
         <div className="space-y-4">
           <div>

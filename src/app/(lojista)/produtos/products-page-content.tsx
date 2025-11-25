@@ -10,9 +10,12 @@ import { ImportCatalogModal } from "./import-catalog-modal";
 type ProductsPageContentProps = {
   initialProdutos: ProdutoDoc[];
   lojistaId: string;
+  perfil?: {
+    descontoRedesSociais?: number | null;
+  } | null;
 };
 
-export function ProductsPageContent({ initialProdutos, lojistaId }: ProductsPageContentProps) {
+export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: ProductsPageContentProps) {
   const [showManualForm, setShowManualForm] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showEcommerceWaitlist, setShowEcommerceWaitlist] = useState(false);
@@ -98,7 +101,11 @@ export function ProductsPageContent({ initialProdutos, lojistaId }: ProductsPage
           </div>
         </div>
 
-        <ProductsTable initialProdutos={initialProdutos} />
+        <ProductsTable
+          initialProdutos={initialProdutos}
+          lojistaId={lojistaId}
+          initialLojaDiscount={perfil?.descontoRedesSociais ?? null}
+        />
       </div>
 
       {/* Seção Manual */}

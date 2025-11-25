@@ -12,7 +12,17 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { produtoId, imagemUrl, corManequim, lojistaId } = body
+    const { 
+      produtoId, 
+      imagemUrl, 
+      corManequim, 
+      cenario,
+      lojistaId,
+      preco: precoEnviado,
+      precoPromocional: precoPromocionalEnviado,
+      descontoRedesSociais: descontoRedesSociaisEnviado,
+      descontoEspecial: descontoEspecialEnviado,
+    } = body
 
     // Validações
     if (!produtoId) {
@@ -40,6 +50,11 @@ export async function POST(request: NextRequest) {
       produtoId,
       lojistaId,
       corManequim: corManequim || "branco fosco",
+      cenario: cenario ? cenario.substring(0, 50) + "..." : "não fornecido",
+      precoEnviado,
+      precoPromocionalEnviado,
+      descontoRedesSociaisEnviado,
+      descontoEspecialEnviado,
     })
 
     // Buscar dados do produto no Firestore (Admin)
@@ -64,16 +79,49 @@ export async function POST(request: NextRequest) {
     }
 
     // Preparar dados do produto para o prompt
+    // Prioridade: valores enviados no body > valores do Firestore
+    const precoBase = precoEnviado ?? produtoData.preco ?? 0
+    
+    // Calcular preço promocional se não foi enviado
+    let precoPromocionalFinal: number | null = null
+    if (precoPromocionalEnviado !== undefined) {
+      // Usar valor enviado diretamente
+      precoPromocionalFinal = precoPromocionalEnviado > 0 ? precoPromocionalEnviado : null
+    } else if (descontoRedesSociaisEnviado !== undefined || descontoEspecialEnviado !== undefined) {
+      // Calcular baseado nos descontos enviados
+      const descontoRedes = descontoRedesSociaisEnviado ?? 0
+      const descontoEspecial = descontoEspecialEnviado ?? 0
+      const descontoTotal = descontoRedes + descontoEspecial
+      
+      if (precoBase > 0 && descontoTotal > 0) {
+        precoPromocionalFinal = precoBase * (1 - descontoTotal / 100)
+      }
+    } else {
+      // Fallback para valores do Firestore
+      precoPromocionalFinal = produtoData.precoPromocional || produtoData.precoPromo || null
+    }
+
     const produto = {
       nome: produtoData.nome || "Produto",
-      preco: produtoData.preco || 0,
-      precoPromocional: produtoData.precoPromocional || produtoData.precoPromo || null,
+      preco: precoBase,
+      precoPromocional: precoPromocionalFinal,
       tamanhos: produtoData.tamanhos || [],
       corManequim: corManequim || "branco fosco",
     }
 
+    console.log("[api/ai/catalog] Dados do produto para prompt:", {
+      nome: produto.nome,
+      preco: produto.preco,
+      precoPromocional: produto.precoPromocional,
+      temDesconto: produto.precoPromocional != null && produto.precoPromocional < produto.preco,
+    })
+
     // Gerar prompt
-    const prompt = buildCatalogPrompt(produto, corManequim || "branco fosco")
+    const prompt = buildCatalogPrompt(
+      produto, 
+      corManequim || "branco fosco",
+      cenario || null
+    )
 
     console.log("[api/ai/catalog] Prompt gerado:", {
       promptLength: prompt.length,
@@ -91,10 +139,38 @@ export async function POST(request: NextRequest) {
 
     console.log("[api/ai/catalog] Imagem de catálogo gerada com sucesso:", imageUrl)
 
+    // ATUALIZAÇÃO: Salvar automaticamente como imagem principal do catálogo
+    // Salvar a imagem original separadamente (se ainda não existir)
+    const imagemUrlOriginal = produtoData.imagemUrlOriginal || produtoData.imagemUrl || imagemUrl
+    
+    // Atualizar produto no Firestore com:
+    // - imagemUrlCatalogo: imagem gerada (principal, será exibida em todos os lugares)
+    // - imagemUrlOriginal: foto original (se ainda não tiver)
+    const updateData: any = {
+      imagemUrlCatalogo: imageUrl,
+      catalogGeneratedAt: new Date(),
+      displayReady: true,
+    }
+
+    // Se não tiver imagemUrlOriginal ainda, salvar a original
+    if (!produtoData.imagemUrlOriginal) {
+      updateData.imagemUrlOriginal = imagemUrlOriginal
+    }
+
+    await db
+      .collection("lojas")
+      .doc(lojistaId)
+      .collection("produtos")
+      .doc(produtoId)
+      .update(updateData)
+
+    console.log("[api/ai/catalog] Produto atualizado com imagem de catálogo como principal")
+
     return NextResponse.json({
       success: true,
       imageUrl,
       produtoId,
+      savedAsMain: true, // Indica que foi salvo automaticamente
     })
   } catch (error: any) {
     console.error("[api/ai/catalog] Erro:", error)

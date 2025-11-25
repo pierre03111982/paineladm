@@ -1,5 +1,5 @@
 import { ProductsTable } from "./products-table";
-import { fetchProdutos } from "@/lib/firestore/server";
+import { fetchProdutos, fetchLojaPerfil } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { PageHeader } from "../components/page-header";
 import { ProductsPageContent } from "./products-page-content";
@@ -31,6 +31,7 @@ export default async function ProdutosPage({ searchParams }: ProdutosPageProps) 
 
   const includeArchived = params.includeArchived === "true";
   const produtos = await fetchProdutos(lojistaId);
+  const perfil = await fetchLojaPerfil(lojistaId);
   
   console.log("[ProdutosPage] lojistaId:", lojistaId);
   console.log("[ProdutosPage] Produtos encontrados:", produtos.length);
@@ -45,6 +46,7 @@ export default async function ProdutosPage({ searchParams }: ProdutosPageProps) 
   return (
     <ProductsPageContent 
       initialProdutos={filteredProdutos}
+      perfil={perfil}
       lojistaId={lojistaId}
     />
   );

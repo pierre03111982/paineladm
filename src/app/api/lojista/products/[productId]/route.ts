@@ -55,8 +55,11 @@ export async function PATCH(
       estoque,
       tags,
       observacoes,
-      // Fase 13: Campos para catálogo e display
+      // Campos novos: imagem original, catálogo e desconto específico
+      imagemUrlOriginal,
       imagemUrlCatalogo,
+      descontoProduto,
+      // Fase 13: Campos para catálogo e display (legados)
       displayReady,
       catalogImageUrl,
       catalogGeneratedAt,
@@ -104,10 +107,24 @@ export async function PATCH(
       observacoes,
     };
 
-    // Fase 13: Adicionar campos de catálogo/display se fornecidos
-    if (imagemUrlCatalogo) {
+    // Campos novos: imagem original, catálogo e desconto
+    if (imagemUrlOriginal !== undefined) {
+      updateData.imagemUrlOriginal = imagemUrlOriginal;
+    }
+    if (imagemUrlCatalogo !== undefined) {
       updateData.imagemUrlCatalogo = imagemUrlCatalogo;
     }
+    if (descontoProduto !== undefined) {
+      // Validar que é um número entre 0 e 100
+      const desconto = parseFloat(String(descontoProduto));
+      if (!isNaN(desconto) && desconto >= 0 && desconto <= 100) {
+        updateData.descontoProduto = desconto;
+      } else if (descontoProduto === null || descontoProduto === "") {
+        // Permitir remover desconto
+        updateData.descontoProduto = null;
+      }
+    }
+    // Fase 13: Campos legados para catálogo/display
     if (displayReady !== undefined) {
       updateData.displayReady = displayReady;
     }

@@ -6,7 +6,10 @@ export type ProdutoDoc = {
   id: string;
   nome: string;
   preco: number;
-  imagemUrl: string;
+  imagemUrl: string; // DEPRECATED: usar imagemUrlCatalogo ou imagemUrlOriginal
+  imagemUrlOriginal?: string; // Foto original do produto (upload inicial)
+  imagemUrlCatalogo?: string; // Foto gerada com IA (imagem principal exibida)
+  descontoProduto?: number; // % de desconto específico deste produto (sobrescreve desconto universal)
   categoria: string;
   tamanhos: string[];
   cores?: string[];
@@ -17,6 +20,7 @@ export type ProdutoDoc = {
   createdAt: Date;
   updatedAt: Date;
   arquivado?: boolean;
+  catalogGeneratedAt?: Date; // Data de geração da imagem de catálogo
   // Sincronização de E-commerce
   ecommerceSync?: {
     platform: "shopify" | "nuvemshop" | "woocommerce" | "other";

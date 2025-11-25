@@ -55,7 +55,19 @@ Analise a foto anexada milímetro por milímetro. Memorize: Categoria, Material 
     * Use um manequim de loja de alto padrão, cor: [COR_DO_MANEQUIM].
     * *Roupas (Look Completo):* Manequim de corpo inteiro, pose elegante.
     * *Roupas (Peça Parcial):* Enquadramento que valorize a peça, evitando manequim "vazio".
-* **CENÁRIO:** Fundo que sugira o ambiente de uso, mas extremamente desfocado (bokeh suave).
+[DESCRICAO_DO_CENARIO]: (O backend deve injetar UMA das 10 descrições da lista abaixo).
+Lista de Valores para [DESCRICAO_DO_CENARIO] (Para o seu formulário):
+1.	Apartamento Parisiense: "Crie um fundo extremamente desfocado (bokeh cremoso) que sugira um apartamento parisiense clássico, com painéis de parede brancos ornamentados (boiserie), piso de madeira chevron e luz natural suave entrando por uma janela alta distante."
+2.	Villa de Concreto Minimalista: "O fundo deve ser uma sugestão fortemente desfocada de arquitetura contemporânea de concreto polido e grandes painéis de vidro. Use uma luz fria e sofisticada que crie reflexos suaves e difusos no piso, sugerindo um ambiente de design exclusivo."
+3.	Boutique Flagship de Luxo: "Gere um fundo que evoque o interior de uma loja de alta costura, mas mantenha-o completamente fora de foco. Use tons quentes de madeira escura, reflexos sutis de latão dourado e luzes de prateleira distantes transformadas em um bokeh suave e rico."
+4.	Grand Hotel Lobby: "O cenário deve sugerir o saguão de um hotel cinco estrelas histórico. O fundo extremamente desfocado deve apresentar tons de mármore quente, brilhos distantes de lustres de cristal e uma atmosfera dourada e envolvente."
+5.	Galeria de Arte Minimalista: "Use um fundo de galeria minimalista e etéreo. Paredes brancas imaculadas e piso de cimento claro, com formas indistintas e suaves de esculturas modernas ao longe, mantidas em um desfoque limpo com luz difusa de claraboia."
+6.	Rooftop Urbano "Blue Hour": "O fundo deve capturar a atmosfera de um rooftop sofisticado durante a "hora azul". Crie um bokeh dramático com as luzes da cidade distante e tons profundos de azul e laranja no céu, sugerindo um evento noturno de luxo."
+7.	Parede de Gesso Veneziano: "Crie um fundo focado na textura de uma parede de gesso veneziano (stucco) artesanal em um tom neutro e quente (como areia ou terracota pálida). Mantenha a textura extremamente desfocada para criar um pano de fundo orgânico, rico e tátil."
+8.	Jardim Privado Noturno: "Sugira um jardim manicurado em uma propriedade privada logo após o pôr do sol. O fundo deve ser um mix de tons de verde escuro da folhagem e o azul profundo do céu, com pequenas luzes quentes (fairy lights) criando um bokeh cintilante e romântico ao longe."
+9.	Pátio de Villa Toscana: "O fundo deve evocar um pátio de pedra antigo e ensolarado na Itália. Use paredes de pedra rústica bege e a sugestão de luz solar filtrada por oliveiras ou pérgolas, criando sombras suaves e um ambiente quente e desfocado."
+10.	Estúdio com Sombra Arquitetônica: "Use um fundo de estúdio ciclorama em tom off-white. Adicione profundidade projetando uma grande sombra arquitetônica suave e difusa (como a forma de um arco ou janela grande) na parede de fundo curva, mantendo tudo em um desfoque artístico."
+
 * **ETIQUETA DE INFORMAÇÃO COM LÓGICA DE PROMOÇÃO:**
     * Adicione uma etiqueta (tag) flutuante ao lado do produto, estilo minimalista.
     * **Conteúdo:**

@@ -8,13 +8,20 @@ import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
 
 type ProductsTableProps = {
   initialProdutos: ProdutoDoc[];
+  lojistaId: string;
+  initialLojaDiscount?: number | null;
 };
 
-export function ProductsTable({ initialProdutos }: ProductsTableProps) {
+export function ProductsTable({
+  initialProdutos,
+  lojistaId,
+  initialLojaDiscount = null,
+}: ProductsTableProps) {
   const searchParams = useSearchParams();
   const isAdminView = searchParams?.get("admin") === "true";
   // Tentar ler tanto lojistaId quanto lojistald (para compatibilidade com typos)
   const lojistaIdFromUrl = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
+  const lojistaIdParam = lojistaIdFromUrl || lojistaId;
   
   const [produtos, setProdutos] = useState(initialProdutos);
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,14 +39,44 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [lojaDiscount, setLojaDiscount] = useState<number>(initialLojaDiscount ?? 0);
+  const [selectedDiscountOption, setSelectedDiscountOption] = useState<string>(() => {
+    if (!initialLojaDiscount) return "0";
+    if (initialLojaDiscount >= 1 && initialLojaDiscount <= 20) {
+      return initialLojaDiscount.toString();
+    }
+    return "custom";
+  });
+  const [customDiscount, setCustomDiscount] = useState<string>(
+    initialLojaDiscount && initialLojaDiscount > 20 ? String(initialLojaDiscount) : ""
+  );
+  const [isUpdatingGlobalDiscount, setIsUpdatingGlobalDiscount] = useState(false);
+  const discountOptions = useMemo(() => Array.from({ length: 20 }, (_, index) => (index + 1).toString()), []);
+
+  useEffect(() => {
+    const fallback = initialLojaDiscount ?? 0;
+    setLojaDiscount(fallback);
+    if (!initialLojaDiscount) {
+      setSelectedDiscountOption("0");
+      setCustomDiscount("");
+      return;
+    }
+    if (initialLojaDiscount >= 1 && initialLojaDiscount <= 20) {
+      setSelectedDiscountOption(initialLojaDiscount.toString());
+      setCustomDiscount("");
+    } else {
+      setSelectedDiscountOption("custom");
+      setCustomDiscount(String(initialLojaDiscount));
+    }
+  }, [initialLojaDiscount]);
 
   // Recarregar produtos quando showArchived mudar
   useEffect(() => {
     const loadProdutos = async () => {
       try {
         setLoading(true);
-        const url = lojistaIdFromUrl 
-          ? `/api/lojista/products?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+        const url = lojistaIdParam 
+          ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}`
           : `/api/lojista/products?includeArchived=${showArchived}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error("Erro ao carregar produtos");
@@ -56,7 +93,7 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
       }
     };
     loadProdutos();
-  }, [showArchived, lojistaIdFromUrl]);
+  }, [showArchived, lojistaIdParam]);
 
   const filteredProdutos = useMemo(() => {
     let filtered = produtos;
@@ -89,8 +126,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
     try {
       setLoading(true);
       setError(null);
-      const url = lojistaIdFromUrl
-        ? `/api/lojista/products/${produto.id}?lojistaId=${lojistaIdFromUrl}`
+      const url = lojistaIdParam
+        ? `/api/lojista/products/${produto.id}?lojistaId=${lojistaIdParam}`
         : `/api/lojista/products/${produto.id}`;
       
       const response = await fetch(url, {
@@ -120,8 +157,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
     try {
       setLoading(true);
       setError(null);
-      const url = lojistaIdFromUrl
-        ? `/api/lojista/products/${produto.id}?lojistaId=${lojistaIdFromUrl}`
+      const url = lojistaIdParam
+        ? `/api/lojista/products/${produto.id}?lojistaId=${lojistaIdParam}`
         : `/api/lojista/products/${produto.id}`;
       
       const response = await fetch(url, {
@@ -190,8 +227,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
       
       const deleteResults = await Promise.allSettled(
         selectedIds.map(async (productId) => {
-          const url = lojistaIdFromUrl
-            ? `/api/lojista/products/${productId}?lojistaId=${lojistaIdFromUrl}`
+          const url = lojistaIdParam
+            ? `/api/lojista/products/${productId}?lojistaId=${lojistaIdParam}`
             : `/api/lojista/products/${productId}`;
           
           console.log("[ProductsTable] Excluindo produto:", productId, "URL:", url);
@@ -231,8 +268,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
       
       // Recarregar produtos do servidor para garantir sincronização completa
       try {
-        const url = lojistaIdFromUrl 
-          ? `/api/lojista/products?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+        const url = lojistaIdParam 
+          ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}`
           : `/api/lojista/products?includeArchived=${showArchived}`;
         const response = await fetch(url);
         if (response.ok) {
@@ -271,14 +308,81 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
     }
   };
 
+  const updateGlobalDiscount = async (value: number) => {
+    if (!lojistaIdParam) {
+      setError("ID da loja não disponível para atualizar o desconto.");
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+    try {
+      setIsUpdatingGlobalDiscount(true);
+      setError(null);
+      const response = await fetch("/api/lojista/perfil", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lojistaId: lojistaIdParam,
+          descontoRedesSociais: value,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Erro ao atualizar desconto");
+      }
+
+      setLojaDiscount(value);
+      setSuccess(
+        value > 0
+          ? `Desconto aplicado: ${value.toFixed(1).replace(".0", "")}%`
+          : "Desconto das redes removido"
+      );
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (err: any) {
+      console.error("[ProductsTable] Erro ao atualizar desconto global:", err);
+      setError(err.message || "Erro ao atualizar desconto");
+      setTimeout(() => setError(null), 4000);
+    } finally {
+      setIsUpdatingGlobalDiscount(false);
+    }
+  };
+
+  const handleDiscountSelection = (value: string) => {
+    setSelectedDiscountOption(value);
+    if (value === "custom") {
+      return;
+    }
+    const numeric = parseFloat(value);
+    if (isNaN(numeric)) {
+      updateGlobalDiscount(0);
+      return;
+    }
+    updateGlobalDiscount(numeric);
+  };
+
+  const handleApplyCustomDiscount = () => {
+    const numeric = parseFloat(customDiscount.replace(",", "."));
+    if (isNaN(numeric)) {
+      setError("Informe um percentual válido para o desconto.");
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+    if (numeric < 0 || numeric > 80) {
+      setError("Use valores entre 0% e 80%.");
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+    updateGlobalDiscount(numeric);
+  };
+
   const handleSaveEdit = async (data: Partial<ProdutoDoc>) => {
     if (!editingProduto) return;
 
     try {
       setLoading(true);
       setError(null);
-      const url = lojistaIdFromUrl
-        ? `/api/lojista/products/${editingProduto.id}?lojistaId=${lojistaIdFromUrl}`
+      const url = lojistaIdParam
+        ? `/api/lojista/products/${editingProduto.id}?lojistaId=${lojistaIdParam}`
         : `/api/lojista/products/${editingProduto.id}`;
       
       const response = await fetch(url, {
@@ -374,6 +478,75 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
           </div>
         </div>
 
+      {/* Controle de desconto global */}
+      <div className="mx-6 mt-4 rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-white">Desconto Redes Sociais</p>
+            <p className="text-xs text-indigo-100/80">
+              Quando o cliente seguir suas redes, este percentual será aplicado em todos os produtos automaticamente.
+            </p>
+            <p className="text-[11px] text-indigo-200/80">
+              Use o campo <span className="font-semibold">Desconto Especial</span> dentro do formulário do produto para bonificar itens específicos.
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end md:w-auto">
+            <div className="w-full sm:w-48">
+              <label className="block text-[11px] font-medium uppercase tracking-wide text-indigo-100 mb-1">
+                Percentual padrão
+              </label>
+              <select
+                value={selectedDiscountOption}
+                onChange={(e) => handleDiscountSelection(e.target.value)}
+                className="w-full rounded-lg border border-indigo-500/50 bg-indigo-800/50 px-3 py-2 text-sm text-white focus:border-white focus:outline-none"
+                disabled={isUpdatingGlobalDiscount}
+              >
+                <option value="0">Sem desconto</option>
+                {discountOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}%
+                  </option>
+                ))}
+                <option value="custom">Outro valor…</option>
+              </select>
+            </div>
+            {selectedDiscountOption === "custom" && (
+              <div className="flex flex-1 items-end gap-2">
+                <div className="w-full">
+                  <label className="block text-[11px] font-medium uppercase tracking-wide text-indigo-100 mb-1">
+                    Informe o percentual
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={80}
+                    step={0.1}
+                    value={customDiscount}
+                    onChange={(e) => setCustomDiscount(e.target.value)}
+                    className="w-full rounded-lg border border-indigo-500/50 bg-indigo-800/50 px-3 py-2 text-sm text-white focus:border-white focus:outline-none"
+                    placeholder="Ex: 25"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyCustomDiscount}
+                  disabled={isUpdatingGlobalDiscount}
+                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:opacity-50"
+                >
+                  {isUpdatingGlobalDiscount ? "Aplicando..." : "Aplicar"}
+                </button>
+              </div>
+            )}
+            {selectedDiscountOption !== "custom" && (
+              <div className="rounded-xl border border-indigo-400/40 bg-indigo-400/10 px-4 py-2 text-center">
+                <p className="text-xs text-indigo-100">Atual</p>
+                <p className="text-base font-bold text-white">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
         {error && (
           <div className="mx-6 mt-4 rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {error}
@@ -460,13 +633,17 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {produto.imagemUrl && (
-                          <img
-                            src={produto.imagemUrl}
-                            alt={produto.nome}
-                            className="h-12 w-12 rounded-lg object-cover"
-                          />
-                        )}
+                        {(() => {
+                          const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
+                          if (!imagemPrincipal) return null;
+                          return (
+                            <img
+                              src={imagemPrincipal}
+                              alt={produto.nome}
+                              className="h-12 w-12 rounded-lg object-cover"
+                            />
+                          );
+                        })()}
                         <div>
                           <p className="font-medium text-zinc-100">{produto.nome}</p>
                           <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
@@ -520,8 +697,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
                               });
                               if (response.ok) {
                                 // Recarregar produtos
-                                const url = lojistaIdFromUrl 
-                                  ? `/api/lojista/products?lojistaId=${lojistaIdFromUrl}&includeArchived=${showArchived}`
+                                const url = lojistaIdParam 
+                                  ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}`
                                   : `/api/lojista/products?includeArchived=${showArchived}`;
                                 const res = await fetch(url);
                                 if (res.ok) {
@@ -772,6 +949,8 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
       {editingProduto && (
         <EditProdutoModal
           produto={editingProduto}
+          lojistaId={lojistaIdParam || undefined}
+          descontoRedesSociais={lojaDiscount}
           onClose={() => setEditingProduto(null)}
           onSave={handleSaveEdit}
         />
@@ -783,13 +962,16 @@ export function ProductsTable({ initialProdutos }: ProductsTableProps) {
 
 type EditProdutoModalProps = {
   produto: ProdutoDoc;
+  lojistaId?: string;
+  descontoRedesSociais?: number | null;
   onClose: () => void;
   onSave: (data: Partial<ProdutoDoc>) => Promise<void>;
 };
 
-function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
+function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onClose, onSave }: EditProdutoModalProps) {
   const searchParams = useSearchParams();
   const lojistaIdFromUrl = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
+  const lojistaIdParam = lojistaIdFromUrl || lojistaId;
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>(""); // URL da imagem do upload (não preenche o campo URL)
@@ -800,6 +982,9 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
     categoria: produto.categoria || "Roupas",
     preco: produto.preco ? produto.preco.toString().replace(".", ",") : "",
     imagemUrl: produto.imagemUrl || "", // Campo manual para URL
+    imagemUrlOriginal: produto.imagemUrlOriginal || produto.imagemUrl || "",
+    imagemUrlCatalogo: produto.imagemUrlCatalogo || null,
+    descontoProduto: produto.descontoProduto?.toString() || "", // % de desconto específico
     tamanhos: produto.tamanhos?.join(";") || "", // Separador: ponto e vírgula
     cores: produto.cores?.join(" - ") || "", // Separador: hífen
     medidas: produto.medidas || "",
@@ -810,11 +995,27 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Fase 13: Estados para Estúdio IA
   const [generatedCatalogImage, setGeneratedCatalogImage] = useState<string | null>(null);
   const [generatingCatalog, setGeneratingCatalog] = useState(false);
   const [corManequim, setCorManequim] = useState<string>("branco fosco");
+  const [cenarioEscolhido, setCenarioEscolhido] = useState<string>("1");
+
+  // Lista de cenários conforme documentação Fase 13
+  const cenarios = [
+    { id: "1", titulo: "Apartamento Parisiense", descricao: "Crie um fundo extremamente desfocado (bokeh cremoso) que sugira um apartamento parisiense clássico, com painéis de parede brancos ornamentados (boiserie), piso de madeira chevron e luz natural suave entrando por uma janela alta distante." },
+    { id: "2", titulo: "Villa Minimalista", descricao: "O fundo deve ser uma sugestão fortemente desfocada de arquitetura contemporânea de concreto polido e grandes painéis de vidro. Use uma luz fria e sofisticada que crie reflexos suaves e difusos no piso, sugerindo um ambiente de design exclusivo." },
+    { id: "3", titulo: "Boutique de Luxo", descricao: "Gere um fundo que evoque o interior de uma loja de alta costura, mas mantenha-o completamente fora de foco. Use tons quentes de madeira escura, reflexos sutis de latão dourado e luzes de prateleira distantes transformadas em um bokeh suave e rico." },
+    { id: "4", titulo: "Hotel Lobby", descricao: "O cenário deve sugerir o saguão de um hotel cinco estrelas histórico. O fundo extremamente desfocado deve apresentar tons de mármore quente, brilhos distantes de lustres de cristal e uma atmosfera dourada e envolvente." },
+    { id: "5", titulo: "Galeria de Arte", descricao: "Use um fundo de galeria minimalista e etéreo. Paredes brancas imaculadas e piso de cimento claro, com formas indistintas e suaves de esculturas modernas ao longe, mantidas em um desfoque limpo com luz difusa de claraboia." },
+    { id: "6", titulo: "Rooftop Urbano", descricao: "O fundo deve capturar a atmosfera de um rooftop sofisticado durante a \"hora azul\". Crie um bokeh dramático com as luzes da cidade distante e tons profundos de azul e laranja no céu, sugerindo um evento noturno de luxo." },
+    { id: "7", titulo: "Parede Veneziana", descricao: "Crie um fundo focado na textura de uma parede de gesso veneziano (stucco) artesanal em um tom neutro e quente (como areia ou terracota pálida). Mantenha a textura extremamente desfocada para criar um pano de fundo orgânico, rico e tátil." },
+    { id: "8", titulo: "Jardim Privado", descricao: "Sugira um jardim manicurado em uma propriedade privada logo após o pôr do sol. O fundo deve ser um mix de tons de verde escuro da folhagem e o azul profundo do céu, com pequenas luzes quentes (fairy lights) criando um bokeh cintilante e romântico ao longe." },
+    { id: "9", titulo: "Villa Toscana", descricao: "O fundo deve evocar um pátio de pedra antigo e ensolarado na Itália. Use paredes de pedra rústica bege e a sugestão de luz solar filtrada por oliveiras ou pérgolas, criando sombras suaves e um ambiente quente e desfocado." },
+    { id: "10", titulo: "Estúdio Arquitetônico", descricao: "Use um fundo de estúdio ciclorama em tom off-white. Adicione profundidade projetando uma grande sombra arquitetônica suave e difusa (como a forma de um arco ou janela grande) na parede de fundo curva, mantendo tudo em um desfoque artístico." },
+  ];
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -824,12 +1025,12 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
       setUploadingImage(true);
       const formDataUpload = new FormData();
       formDataUpload.append("image", file);
-      if (lojistaIdFromUrl) {
-        formDataUpload.append("lojistaId", lojistaIdFromUrl);
+      if (lojistaIdParam) {
+        formDataUpload.append("lojistaId", lojistaIdParam);
       }
 
-      const url = lojistaIdFromUrl
-        ? `/api/lojista/products/upload-image?lojistaId=${lojistaIdFromUrl}`
+      const url = lojistaIdParam
+        ? `/api/lojista/products/upload-image?lojistaId=${lojistaIdParam}`
         : `/api/lojista/products/upload-image`;
       
       const response = await fetch(url, {
@@ -862,7 +1063,7 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
       // Prioriza URL manual, se não houver, usa a do upload
       const imagemUrlFinal = formData.imagemUrl.trim() || uploadedImageUrl;
       
-      const payload = {
+      const payload: any = {
         nome: formData.nome.trim(),
         categoria: formData.categoria.trim(),
         preco: parseFloat(formData.preco.replace(",", ".")) || 0,
@@ -874,6 +1075,25 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
         estoque: formData.estoque ? parseInt(formData.estoque) : undefined,
         tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
       };
+
+      // Campos novos: imagem original, catálogo e desconto
+      if (formData.imagemUrlOriginal) {
+        payload.imagemUrlOriginal = formData.imagemUrlOriginal;
+      }
+      if (formData.imagemUrlCatalogo) {
+        payload.imagemUrlCatalogo = formData.imagemUrlCatalogo;
+      }
+      if (formData.descontoProduto !== undefined) {
+        const raw = formData.descontoProduto.trim();
+        if (!raw) {
+          payload.descontoProduto = null;
+        } else {
+          const desconto = parseFloat(raw.replace(",", "."));
+          if (!isNaN(desconto) && desconto >= 0 && desconto <= 100) {
+            payload.descontoProduto = desconto;
+          }
+        }
+      }
 
       console.log("[EditProdutoModal] Enviando payload:", JSON.stringify(payload, null, 2));
 
@@ -908,41 +1128,71 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
             {error}
           </div>
         )}
+        {success && (
+          <div className="mb-2 rounded-lg border border-emerald-500/60 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">
+            {success}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Foto Principal */}
+          {/* Foto Principal - Mostrar Original e Catálogo lado a lado */}
           <div>
             <label className="block text-xs font-medium text-zinc-300 mb-1.5">FOTO PRINCIPAL</label>
-            <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 flex gap-4 items-start">
-              {/* Área de Preview */}
-              <div className="flex-shrink-0 w-32 h-32 rounded-lg border border-zinc-700 bg-zinc-900/50 flex items-center justify-center overflow-hidden">
-                {(formData.imagemUrl || uploadedImageUrl) ? (
-                  <img
-                    src={formData.imagemUrl || uploadedImageUrl}
-                    alt="Preview"
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <div className="text-center">
-                    <Upload className="h-8 w-8 text-zinc-600 mx-auto mb-1" />
-                    <p className="text-xs text-zinc-500">Sem imagem</p>
+            <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-3">
+              {/* Preview lado a lado: Original e Catálogo */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Foto Original */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Foto Original</label>
+                  <div className="w-full h-32 rounded-lg border border-zinc-700 bg-zinc-900/50 flex items-center justify-center overflow-hidden">
+                    {(formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl) ? (
+                      <img
+                        src={formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl}
+                        alt="Foto Original"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <Upload className="h-8 w-8 text-zinc-600 mx-auto mb-1" />
+                        <p className="text-xs text-zinc-500">Sem imagem</p>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+                
+                {/* Foto Catálogo (IA) */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                    Foto Catálogo (IA) {formData.imagemUrlCatalogo && <span className="text-emerald-400">✓</span>}
+                  </label>
+                  <div className="w-full h-32 rounded-lg border border-zinc-700 bg-zinc-900/50 flex items-center justify-center overflow-hidden">
+                    {(formData.imagemUrlCatalogo || generatedCatalogImage) ? (
+                      <img
+                        src={formData.imagemUrlCatalogo || generatedCatalogImage || ""}
+                        alt="Foto Catálogo IA"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-xs text-zinc-500">Gere com IA</p>
+                        <p className="text-[10px] text-zinc-600 mt-1">Esta será exibida em todos os lugares</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               
-              {/* Texto e Botão */}
-              <div className="flex-1 flex flex-col justify-between">
-                <div className="space-y-1">
-                  <p className="text-xs text-zinc-400">
-                    Utilize imagens em PNG ou JPG com fundo limpo. O upload é salvo automaticamente no Firebase Storage.
+              {/* Botão de Upload e Campo URL */}
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-400">
+                  Utilize imagens em PNG ou JPG com fundo limpo. O upload é salvo automaticamente no Firebase Storage.
+                </p>
+                {uploadedImageUrl && (
+                  <p className="text-xs text-emerald-400">
+                    Arquivo pronto para envio junto com o cadastro.
                   </p>
-                  {uploadedImageUrl && (
-                    <p className="text-xs text-emerald-400">
-                      Arquivo pronto para envio junto com o cadastro.
-                    </p>
-                  )}
-                </div>
-                <div className="mt-2">
+                )}
+                <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
@@ -960,21 +1210,26 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                     onChange={handleImageUpload}
                   />
                 </div>
+                {/* Campo URL */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">
+                    Ou adicione a imagem por URL
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.imagemUrl}
+                    onChange={(e) => {
+                      setFormData({ 
+                        ...formData, 
+                        imagemUrl: e.target.value,
+                        imagemUrlOriginal: e.target.value || formData.imagemUrlOriginal
+                      });
+                    }}
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                  />
+                </div>
               </div>
-            </div>
-            
-            {/* Campo URL */}
-            <div className="mt-2">
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
-                Ou adicione a imagem por URL
-              </label>
-              <input
-                type="url"
-                value={formData.imagemUrl}
-                onChange={(e) => setFormData({ ...formData, imagemUrl: e.target.value })}
-                placeholder="https://exemplo.com/imagem.jpg"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
-              />
             </div>
           </div>
 
@@ -1001,12 +1256,33 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                   </select>
                 </div>
 
+                {/* Seletor de Cenário */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                    Cenário de Fundo
+                  </label>
+                  <select
+                    value={cenarioEscolhido}
+                    onChange={(e) => setCenarioEscolhido(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-100 focus:border-indigo-400 focus:outline-none"
+                  >
+                    {cenarios.map((cenario) => (
+                      <option key={cenario.id} value={cenario.id}>
+                        {cenario.id}. {cenario.titulo}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Escolha o ambiente visual para o fundo da imagem
+                  </p>
+                </div>
+
                 {/* Botão Gerar */}
                 <button
                   type="button"
                   onClick={async () => {
                     const imagemUrlParaUsar = formData.imagemUrl || uploadedImageUrl;
-                    if (!imagemUrlParaUsar || !lojistaIdFromUrl) {
+                    if (!imagemUrlParaUsar || !lojistaIdParam) {
                       setError("Imagem e ID da loja são necessários");
                       return;
                     }
@@ -1015,6 +1291,19 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                       setGeneratingCatalog(true);
                       setError(null);
 
+                      // Calcular preço promocional com base nos descontos
+                      const preco = parseFloat(formData.preco.replace(",", ".")) || 0;
+                      const descontoRedes = descontoRedesSociais || 0;
+                      const descontoEspecial = parseFloat(formData.descontoProduto || "0") || 0;
+                      const descontoTotal = descontoRedes + descontoEspecial;
+                      const precoPromocional = descontoTotal > 0 && preco > 0
+                        ? preco * (1 - descontoTotal / 100)
+                        : null;
+
+                      // Obter descrição do cenário escolhido
+                      const cenarioSelecionado = cenarios.find(c => c.id === cenarioEscolhido);
+                      const descricaoCenario = cenarioSelecionado?.descricao || cenarios[0].descricao;
+
                       const response = await fetch("/api/ai/catalog", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -1022,7 +1311,12 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                           produtoId: produto.id,
                           imagemUrl: imagemUrlParaUsar,
                           corManequim,
-                          lojistaId: lojistaIdFromUrl,
+                          cenario: descricaoCenario,
+                          lojistaId: lojistaIdParam,
+                          preco,
+                          precoPromocional,
+                          descontoRedesSociais: descontoRedes,
+                          descontoEspecial: descontoEspecial,
                         }),
                       });
 
@@ -1032,6 +1326,21 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                       }
 
                       const data = await response.json();
+                      
+                      // A imagem foi salva automaticamente como imagemUrlCatalogo pela API
+                      // Atualizar estado para mostrar que foi salva
+                      if (data.savedAsMain) {
+                        setSuccess("Imagem de catálogo gerada e salva automaticamente como imagem principal!");
+                        setTimeout(() => setSuccess(null), 5000);
+                        
+                        // Atualizar formData para refletir a mudança
+                        setFormData({
+                          ...formData,
+                          imagemUrlCatalogo: data.imageUrl,
+                          imagemUrlOriginal: formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl,
+                        });
+                      }
+                      
                       setGeneratedCatalogImage(data.imageUrl);
                     } catch (err: any) {
                       console.error("[EditProdutoModal] Erro ao gerar catálogo:", err);
@@ -1055,67 +1364,28 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                   )}
                 </button>
 
-                {/* Preview da Imagem Gerada */}
+                {/* Preview da Imagem Gerada - Agora salva automaticamente */}
                 {generatedCatalogImage && (
                   <div className="space-y-2">
-                    <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">
-                      <img
-                        src={generatedCatalogImage}
-                        alt="Imagem de catálogo gerada"
-                        className="w-full rounded-lg object-contain max-h-64"
-                      />
+                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
+                      <p className="text-xs text-emerald-300 mb-2 font-semibold">
+                        ✅ Imagem salva automaticamente como imagem principal do catálogo!
+                      </p>
+                      <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">
+                        <img
+                          src={generatedCatalogImage}
+                          alt="Imagem de catálogo gerada"
+                          className="w-full rounded-lg object-contain max-h-64"
+                        />
+                      </div>
                     </div>
-
-                    {/* Botões de Ação */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          // Definir como imagem principal
-                          setFormData({ ...formData, imagemUrl: generatedCatalogImage });
-                          setUploadedImageUrl("");
-                          setGeneratedCatalogImage(null);
-                        }}
-                        className="rounded-lg bg-indigo-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-indigo-400"
-                      >
-                        Salvar como Principal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          // Salvar para display (subcoleção display_assets)
-                          try {
-                            const response = await fetch(
-                              `/api/lojista/products/${produto.id}/display-asset?lojistaId=${lojistaIdFromUrl}`,
-                              {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  imagemUrl: generatedCatalogImage,
-                                  metadata: {
-                                    generatedAt: new Date().toISOString(),
-                                    corManequim,
-                                  },
-                                }),
-                              }
-                            );
-
-                            if (!response.ok) {
-                              const errorData = await response.json();
-                              throw new Error(errorData.error || "Erro ao salvar para display");
-                            }
-
-                            alert("Imagem salva para o display da loja com sucesso!");
-                            setGeneratedCatalogImage(null);
-                          } catch (err: any) {
-                            setError(err.message || "Erro ao salvar para display");
-                          }
-                        }}
-                        className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-emerald-400"
-                      >
-                        Salvar para Display
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setGeneratedCatalogImage(null)}
+                      className="w-full rounded-lg bg-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-600"
+                    >
+                      Fechar Preview
+                    </button>
                   </div>
                 )}
 
@@ -1171,6 +1441,90 @@ function EditProdutoModal({ produto, onClose, onSave }: EditProdutoModalProps) {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Descontos e Valor Final Calculado */}
+          <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-3">
+            <label className="block text-xs font-medium text-zinc-300 mb-2">
+              💰 DESCONTOS E PREÇO FINAL
+            </label>
+            
+            <div className="grid gap-3 md:grid-cols-3">
+              {/* Desconto Redes Sociais (somente leitura) */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                  DESCONTO REDES SOCIAIS (%)
+                </label>
+                <input
+                  type="text"
+                  value={descontoRedesSociais ? `${descontoRedesSociais}%` : "0%"}
+                  disabled
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-xs text-zinc-400 cursor-not-allowed"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  Definido na tela de Produtos
+                </p>
+              </div>
+
+              {/* Desconto Especial */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  DESCONTO ESPECIAL (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={formData.descontoProduto}
+                  onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
+                  placeholder="Ex: 10"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  Somado ao desconto das redes sociais
+                </p>
+              </div>
+
+              {/* Valor Final Calculado */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  PREÇO FINAL COM DESCONTOS
+                </label>
+                <input
+                  type="text"
+                  value={(() => {
+                    const preco = parseFloat(formData.preco.replace(",", ".")) || 0;
+                    const descontoRedes = descontoRedesSociais || 0;
+                    const descontoEspecial = parseFloat(formData.descontoProduto || "0") || 0;
+                    const descontoTotal = descontoRedes + descontoEspecial;
+                    
+                    if (preco === 0 || descontoTotal === 0) {
+                      return new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(preco);
+                    }
+                    
+                    const precoFinal = preco * (1 - descontoTotal / 100);
+                    return new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    }).format(precoFinal);
+                  })()}
+                  disabled
+                  className="w-full rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300 cursor-not-allowed"
+                />
+                <p className="text-[10px] text-emerald-400 mt-1">
+                  {(() => {
+                    const descontoRedes = descontoRedesSociais || 0;
+                    const descontoEspecial = parseFloat(formData.descontoProduto || "0") || 0;
+                    const descontoTotal = descontoRedes + descontoEspecial;
+                    return descontoTotal > 0 ? `Total: ${descontoTotal.toFixed(1)}% de desconto` : "Sem desconto aplicado";
+                  })()}
+                </p>
+              </div>
             </div>
           </div>
 

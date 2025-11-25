@@ -20,11 +20,13 @@ export interface ProdutoParaCatalogo {
  * 
  * @param produto - Dados do produto
  * @param corManequim - Cor do manequim (default: "branco fosco")
+ * @param descricaoCenario - Descrição do cenário de fundo (opcional)
  * @returns Prompt formatado para enviar ao Gemini/Imagen
  */
 export function buildCatalogPrompt(
   produto: ProdutoParaCatalogo,
-  corManequim: string = "branco fosco"
+  corManequim: string = "branco fosco",
+  descricaoCenario: string | null = null
 ): string {
   // Calcular se existe desconto (Passo A: Lógica V6.0)
   // Verificar se há desconto: precoPromocional > 0 e precoPromocional < precoOriginal
@@ -74,7 +76,7 @@ Analise a foto anexada milímetro por milímetro. Memorize: Categoria, Material 
     * Use um manequim de loja de alto padrão, cor: ${COR_DO_MANEQUIM}.
     * *Roupas (Look Completo):* Manequim de corpo inteiro, pose elegante.
     * *Roupas (Peça Parcial):* Enquadramento que valorize a peça, evitando manequim "vazio".
-* **CENÁRIO:** Fundo que sugira o ambiente de uso, mas extremamente desfocado (bokeh suave).
+* **CENÁRIO:** ${descricaoCenario ? descricaoCenario : "Fundo que sugira o ambiente de uso, mas extremamente desfocado (bokeh suave)."}
 * **ETIQUETA DE INFORMAÇÃO COM LÓGICA DE PROMOÇÃO:**
     * Adicione uma etiqueta (tag) flutuante ao lado do produto, estilo minimalista.
     * **Conteúdo:**

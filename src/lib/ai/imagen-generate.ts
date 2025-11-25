@@ -275,9 +275,22 @@ export async function generateImagenImage(
  */
 async function imageUrlToBase64(imageUrl: string): Promise<{ base64: string; mimeType: string }> {
   try {
-    const response = await fetch(imageUrl);
+    // Validar URL
+    if (!imageUrl || typeof imageUrl !== "string" || imageUrl.trim().length === 0) {
+      throw new Error("URL da imagem é inválida ou vazia");
+    }
+
+    console.log(`[ImagenGenerate] Baixando imagem de: ${imageUrl.substring(0, 150)}...`);
+    
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; ExperimenteAI/1.0)',
+      },
+    });
+    
     if (!response.ok) {
-      throw new Error(`Falha ao baixar imagem: ${response.status}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`Falha ao baixar imagem: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`);
     }
     
     // Detectar tipo MIME do Content-Type ou da extensão da URL
@@ -308,28 +321,45 @@ async function imageUrlToBase64(imageUrl: string): Promise<{ base64: string; mim
     const arrayBuffer = await response.arrayBuffer();
     let buffer = Buffer.from(arrayBuffer);
     
-    // Imagen 3 pode não suportar WEBP, converter para JPEG
-    if (mimeType === "image/webp" && sharp) {
-      console.log("[ImagenGenerate] Convertendo WEBP para JPEG...");
+    // Validar que o buffer não está vazio
+    if (buffer.length === 0) {
+      throw new Error("Imagem baixada está vazia");
+    }
+    
+    // Imagen 3 tem melhor suporte para JPEG/PNG, converter outros formatos
+    // Converter sempre para JPEG para garantir compatibilidade
+    const formatosConvertiveis = ["image/webp", "image/gif", "image/png"];
+    if (formatosConvertiveis.includes(mimeType) && sharp) {
+      console.log(`[ImagenGenerate] Convertendo ${mimeType} para JPEG...`);
       try {
         buffer = await sharp(buffer)
           .jpeg({ quality: 90 })
           .toBuffer();
         mimeType = "image/jpeg";
-        console.log("[ImagenGenerate] WEBP convertido para JPEG com sucesso");
-      } catch (sharpError) {
-        console.warn("[ImagenGenerate] Erro ao converter WEBP com sharp, tentando manter formato original:", sharpError);
-        // Se não conseguir converter, manter WEBP e deixar a API decidir
+        console.log("[ImagenGenerate] Conversão para JPEG concluída com sucesso");
+      } catch (sharpError: any) {
+        console.error("[ImagenGenerate] Erro ao converter com sharp:", sharpError?.message);
+        throw new Error(`Falha ao converter imagem para JPEG: ${sharpError?.message}`);
       }
-    } else if (mimeType === "image/webp" && !sharp) {
-      console.warn("[ImagenGenerate] WEBP detectado mas sharp não disponível. Tentando enviar como WEBP.");
-      // Tentar converter para PNG como fallback usando canvas ou manter WEBP
-      // Por enquanto, manter WEBP e deixar a API decidir
+    } else if (formatosConvertiveis.includes(mimeType) && !sharp) {
+      throw new Error(`Formato ${mimeType} requer conversão para JPEG, mas a biblioteca sharp não está disponível`);
+    }
+    
+    // Garantir que temos um tipo MIME válido para imagem
+    if (!mimeType || !mimeType.startsWith("image/")) {
+      // Forçar JPEG como padrão seguro
+      console.warn(`[ImagenGenerate] Tipo MIME inválido detectado (${mimeType}), usando JPEG como padrão`);
+      mimeType = "image/jpeg";
     }
     
     const base64 = buffer.toString("base64");
     
-    console.log(`[ImagenGenerate] Imagem convertida: ${mimeType}, tamanho: ${buffer.length} bytes`);
+    // Validar que o base64 não está vazio
+    if (!base64 || base64.length === 0) {
+      throw new Error("Falha ao converter imagem para base64");
+    }
+    
+    console.log(`[ImagenGenerate] Imagem convertida: ${mimeType}, tamanho: ${buffer.length} bytes, base64 length: ${base64.length}`);
     
     return { base64, mimeType };
   } catch (error) {
@@ -349,7 +379,23 @@ async function saveToFirebaseStorage(
   try {
     const adminApp = getAdminApp();
     const storage = getStorage(adminApp);
-    const bucket = storage.bucket();
+    
+    // Obter nome do bucket da variável de ambiente ou usar o padrão do projeto
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 
+                      process.env.FIREBASE_PROJECT_ID || 
+                      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    
+    const bucketName = 
+      process.env.FIREBASE_STORAGE_BUCKET || 
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+      (projectId ? `${projectId}.appspot.com` : null);
+    
+    if (!bucketName) {
+      throw new Error("Bucket name not specified. Configure FIREBASE_STORAGE_BUCKET or NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET environment variable, or set FIREBASE_PROJECT_ID.");
+    }
+    
+    console.log("[ImagenGenerate] Usando bucket do Firebase Storage:", bucketName);
+    const bucket = storage.bucket(bucketName);
 
     // Criar nome único para o arquivo
     const timestamp = Date.now();
@@ -384,7 +430,8 @@ async function saveToFirebaseStorage(
 
 /**
  * Gera imagem de catálogo para produto (Fase 13)
- * Usa Imagen 3 para criar imagem profissional com etiqueta de preço
+ * Usa Gemini 2.5 Flash Image conforme documentação oficial
+ * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image
  */
 export async function generateCatalogImage(
   prompt: string,
@@ -392,14 +439,17 @@ export async function generateCatalogImage(
   lojistaId: string,
   produtoId: string
 ): Promise<string> {
-  console.log("[ImagenGenerate] Iniciando geração de imagem de catálogo", {
+  console.log("[GeminiFlashImage] Iniciando geração de imagem de catálogo", {
     promptLength: prompt.length,
     productImageUrl: productImageUrl.substring(0, 100) + "...",
     lojistaId,
     produtoId,
   });
 
-  if (!IMAGEN_CONFIG.projectId) {
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || IMAGEN_CONFIG.projectId;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || IMAGEN_CONFIG.location;
+
+  if (!projectId) {
     throw new Error("GOOGLE_CLOUD_PROJECT_ID não configurado");
   }
 
@@ -421,25 +471,67 @@ export async function generateCatalogImage(
     // Converter imagem do produto para base64
     const productImageData = await imageUrlToBase64(productImageUrl);
 
-    // Preparar array de imagens de referência (apenas o produto)
-    const referenceImagesArray = [{
-      image: {
-        bytesBase64Encoded: productImageData.base64,
-        mimeType: productImageData.mimeType,
+    console.log("[GeminiFlashImage] Dados da imagem do produto:", {
+      hasBase64: !!productImageData.base64,
+      base64Length: productImageData.base64?.length || 0,
+      mimeType: productImageData.mimeType,
+      imageUrl: productImageUrl.substring(0, 100),
+    });
+
+    // Validar que temos dados válidos
+    if (!productImageData.base64) {
+      throw new Error("Falha ao converter imagem do produto para base64");
+    }
+
+    // Garantir que o mimeType é válido
+    if (!productImageData.mimeType || !productImageData.mimeType.startsWith("image/")) {
+      console.warn(`[GeminiFlashImage] MimeType inválido detectado (${productImageData.mimeType}), forçando image/jpeg`);
+      productImageData.mimeType = "image/jpeg";
+    }
+
+    // Preparar payload conforme documentação do Gemini 2.5 Flash Image
+    // Endpoint: POST .../models/gemini-2.5-flash-image:generateContent
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/gemini-2.5-flash-image:generateContent`;
+
+    // Estrutura da requisição conforme documentação:
+    // contents: [{ role: "user", parts: [{ inlineData: {...} }, { text: "..." }] }]
+    const requestBody = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            // Imagem de entrada (produto)
+            {
+              inlineData: {
+                mimeType: productImageData.mimeType,
+                data: productImageData.base64,
+              },
+            },
+            // Prompt de texto
+            {
+              text: prompt,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.4,
+        topP: 0.95,
+        topK: 40,
+        maxOutputTokens: 8192,
       },
-    }];
+      // NOTA: responseModalities NÃO é suportado e não deve ser incluído
+    };
 
-    const instances = [
-      {
-        prompt: prompt,
-        referenceImages: referenceImagesArray,
-      },
-    ];
-
-    // Endpoint para Imagen 3
-    const endpoint = `https://${IMAGEN_CONFIG.location}-aiplatform.googleapis.com/v1/projects/${IMAGEN_CONFIG.projectId}/locations/${IMAGEN_CONFIG.location}/publishers/google/models/${IMAGEN_CONFIG.model}:predict`;
-
-    console.log("[ImagenGenerate] Enviando requisição para Imagen 3 (catálogo)...");
+    console.log("[GeminiFlashImage] 📤 Enviando requisição para:", endpoint);
+    console.log("[GeminiFlashImage] Estrutura do payload:", {
+      contentsCount: requestBody.contents.length,
+      partsCount: requestBody.contents[0].parts.length,
+      hasImage: !!requestBody.contents[0].parts[0].inlineData,
+      hasPrompt: !!requestBody.contents[0].parts[1].text,
+      promptLength: requestBody.contents[0].parts[1].text?.length || 0,
+      imageMimeType: requestBody.contents[0].parts[0].inlineData?.mimeType,
+    });
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -447,36 +539,54 @@ export async function generateCatalogImage(
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        instances,
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: "16:9",
-          negativePrompt: "low quality, blurry, distorted, watermark, text overlay, people, faces",
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[ImagenGenerate] Erro na resposta da API:", errorText);
+      let errorData: any = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        // Se não conseguir parsear, usar o texto como está
+      }
+      
+      console.error("[GeminiFlashImage] ❌ Erro na resposta da API:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        rawError: errorText,
+      });
+      
       throw new Error(`Erro ao gerar imagem: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log("[ImagenGenerate] Resposta recebida da API:", {
-      hasPredictions: !!data.predictions,
-      predictionsCount: data.predictions?.length || 0,
-    });
+    console.log("[GeminiFlashImage] ✅ Resposta da API recebida");
 
-    if (!data.predictions || data.predictions.length === 0) {
-      throw new Error("Nenhuma imagem foi gerada");
+    // Estrutura da resposta do Gemini:
+    // { candidates: [{ content: { parts: [{ inlineData: { mimeType, data } }] } }] }
+    if (!data.candidates || data.candidates.length === 0) {
+      throw new Error("Nenhuma imagem foi gerada - candidates vazio");
     }
 
-    const generatedImageBase64 = data.predictions[0].bytesBase64Encoded;
-    if (!generatedImageBase64) {
+    const candidate = data.candidates[0];
+    if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+      throw new Error("Resposta da API não contém parts");
+    }
+
+    const imagePart = candidate.content.parts.find((part: any) => part.inlineData);
+    if (!imagePart || !imagePart.inlineData || !imagePart.inlineData.data) {
       throw new Error("Imagem gerada não contém dados base64");
     }
+
+    const generatedImageBase64 = imagePart.inlineData.data;
+    const generatedMimeType = imagePart.inlineData.mimeType || "image/png";
+
+    console.log("[GeminiFlashImage] ✅ Imagem gerada:", {
+      mimeType: generatedMimeType,
+      base64Length: generatedImageBase64.length,
+    });
 
     // Salvar no Firebase Storage
     const publicUrl = await saveCatalogImageToStorage(
@@ -485,10 +595,10 @@ export async function generateCatalogImage(
       produtoId
     );
 
-    console.log("[ImagenGenerate] Imagem de catálogo gerada com sucesso:", publicUrl);
+    console.log("[GeminiFlashImage] ✅ Imagem de catálogo salva com sucesso:", publicUrl);
     return publicUrl;
   } catch (error: any) {
-    console.error("[ImagenGenerate] Erro ao gerar imagem de catálogo:", error);
+    console.error("[GeminiFlashImage] ❌ Erro ao gerar imagem de catálogo:", error);
     throw error;
   }
 }
@@ -504,7 +614,23 @@ async function saveCatalogImageToStorage(
   try {
     const adminApp = getAdminApp();
     const storage = getStorage(adminApp);
-    const bucket = storage.bucket();
+    
+    // Obter nome do bucket da variável de ambiente ou usar o padrão do projeto
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || 
+                      process.env.FIREBASE_PROJECT_ID || 
+                      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    
+    const bucketName = 
+      process.env.FIREBASE_STORAGE_BUCKET || 
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+      (projectId ? `${projectId}.appspot.com` : null);
+    
+    if (!bucketName) {
+      throw new Error("Bucket name not specified. Configure FIREBASE_STORAGE_BUCKET or NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET environment variable, or set FIREBASE_PROJECT_ID.");
+    }
+    
+    console.log("[GeminiFlashImage] Usando bucket do Firebase Storage:", bucketName);
+    const bucket = storage.bucket(bucketName);
 
     // Criar nome único para o arquivo
     const timestamp = Date.now();
