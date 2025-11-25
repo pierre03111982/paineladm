@@ -11,11 +11,59 @@ import { getGeminiFlashImageService } from "@/lib/ai-services/gemini-flash-image
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { getStorage } from "firebase-admin/storage";
 import { getAdminApp } from "@/lib/firebaseAdmin";
+import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 
 const db = getAdminDb();
 
 // Custo estimado por geração (em créditos)
 const COST_PER_GENERATION = 1;
+
+// Domínios permitidos para CORS (separados por vírgula ou array)
+const ALLOWED_ORIGINS = (
+  process.env.ALLOWED_ORIGINS || 
+  process.env.NEXT_PUBLIC_CLIENT_APP_URL || 
+  "http://localhost:3005,http://localhost:3000"
+).split(",").map(origin => origin.trim());
+
+/**
+ * Verifica se o Origin da requisição é permitido
+ */
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) {
+    // Em desenvolvimento, permitir requisições sem Origin
+    return process.env.NODE_ENV === "development";
+  }
+
+  // Verificar se o origin está na lista de permitidos
+  return ALLOWED_ORIGINS.some(allowed => {
+    // Comparação exata ou comparação de domínio
+    if (origin === allowed) return true;
+    // Permitir subdomínios (ex: https://app.exemplo.com permite https://*.exemplo.com)
+    const allowedPattern = allowed.replace("*", ".*");
+    const regex = new RegExp(`^${allowedPattern}$`);
+    return regex.test(origin);
+  });
+}
+
+/**
+ * Adiciona headers CORS estritos
+ */
+function addCorsHeaders(response: NextResponse, origin: string | null): NextResponse {
+  if (isOriginAllowed(origin)) {
+    response.headers.set("Access-Control-Allow-Origin", origin || "*");
+  } else {
+    // Bloquear requisições de origens não permitidas
+    response.headers.set("Access-Control-Allow-Origin", "null");
+  }
+  
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  response.headers.set("Access-Control-Allow-Credentials", "true");
+  response.headers.set("Access-Control-Max-Age", "86400"); // 24 horas
+  
+  return response;
+}
 
 /**
  * Valida se o lojista tem saldo suficiente
@@ -210,25 +258,68 @@ async function saveComposition(
 }
 
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  
   try {
+    // Verificar CORS estrito
+    if (!isOriginAllowed(origin)) {
+      console.warn("[API/AI/Generate] Origem não permitida:", origin);
+      const response = NextResponse.json(
+        { error: "Origem não permitida" },
+        { status: 403 }
+      );
+      return addCorsHeaders(response, origin);
+    }
+
     const body = await request.json();
     const { lojistaId, customerId, userImageUrl, productImageUrl } = body;
 
     // Validação de entrada
     if (!lojistaId || !userImageUrl) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: "lojistaId e userImageUrl são obrigatórios" },
         { status: 400 }
       );
+      return addCorsHeaders(response, origin);
+    }
+
+    // Rate Limiting: 1 requisição a cada 10 segundos por IP ou customerId
+    const clientIP = getClientIP(request);
+    const rateLimitKey = customerId ? `customer:${customerId}` : `ip:${clientIP}`;
+    const rateLimit = checkRateLimit(rateLimitKey, 1, 10000); // 1 requisição a cada 10 segundos
+
+    if (!rateLimit.allowed) {
+      const waitSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+      console.warn("[API/AI/Generate] Rate limit excedido:", { rateLimitKey, waitSeconds });
+      const response = NextResponse.json(
+        { 
+          error: `Muitas requisições. Aguarde ${waitSeconds} segundo(s) antes de tentar novamente.`,
+          retryAfter: waitSeconds
+        },
+        { status: 429 }
+      );
+      response.headers.set("Retry-After", waitSeconds.toString());
+      return addCorsHeaders(response, origin);
     }
 
     // Validar saldo
     const hasBalance = await validateBalance(lojistaId);
     if (!hasBalance) {
-      return NextResponse.json(
+      // Log evento de saldo insuficiente
+      await logger.logCreditEvent(
+        lojistaId,
+        "insufficient",
+        0,
+        0,
+        0,
+        { customerId, ip: getClientIP(request) }
+      );
+
+      const response = NextResponse.json(
         { error: "Saldo insuficiente. Recarregue seus créditos." },
         { status: 402 }
       );
+      return addCorsHeaders(response, origin);
     }
 
     console.log("[API/AI/Generate] Iniciando geração", {
@@ -260,14 +351,45 @@ export async function POST(request: NextRequest) {
     });
     
     const geminiService = getGeminiFlashImageService();
-    const geminiResult = await geminiService.generateImage({
-      prompt: masterPrompt,
-      imageUrls: allImageUrls,
-      aspectRatio: "1:1",
-    });
+    let geminiResult;
+    
+    try {
+      geminiResult = await geminiService.generateImage({
+        prompt: masterPrompt,
+        imageUrls: allImageUrls,
+        aspectRatio: "1:1",
+      });
 
-    if (!geminiResult.success || !geminiResult.data?.imageUrl) {
-      throw new Error(geminiResult.error || "Falha ao gerar imagem com Gemini Flash Image");
+      if (!geminiResult.success || !geminiResult.data?.imageUrl) {
+        const error = new Error(geminiResult.error || "Falha ao gerar imagem com Gemini Flash Image");
+        // Log erro de geração
+        await logger.logAIGeneration(
+          lojistaId,
+          customerId || null,
+          false,
+          error,
+          {
+            prompt: masterPrompt.substring(0, 200), // Limitar tamanho
+            provider: "gemini-flash-image",
+            cost: COST_PER_GENERATION,
+          }
+        );
+        throw error;
+      }
+    } catch (error: any) {
+      // Log erro crítico de geração
+      await logger.logAIGeneration(
+        lojistaId,
+        customerId || null,
+        false,
+        error,
+        {
+          prompt: masterPrompt.substring(0, 200),
+          provider: "gemini-flash-image",
+          cost: COST_PER_GENERATION,
+        }
+      );
+      throw error;
     }
 
     // A imagem vem em base64 (data:image/png;base64,...)
@@ -286,7 +408,42 @@ export async function POST(request: NextRequest) {
 
     // PASSO 3: Descontar créditos
     console.log("[API/AI/Generate] Passo 3: Descontando créditos...");
+    
+    // Buscar saldo antes para log
+    let balanceBefore = 0;
+    try {
+      const lojistaDoc = await db.collection("lojistas").doc(lojistaId).get();
+      if (lojistaDoc.exists) {
+        const data = lojistaDoc.data();
+        balanceBefore = data?.aiCredits || data?.saldo || 0;
+      }
+    } catch (e) {
+      // Ignorar erro ao buscar saldo
+    }
+    
     await deductCredits(lojistaId, COST_PER_GENERATION);
+    
+    // Buscar saldo depois para log
+    let balanceAfter = 0;
+    try {
+      const lojistaDoc = await db.collection("lojistas").doc(lojistaId).get();
+      if (lojistaDoc.exists) {
+        const data = lojistaDoc.data();
+        balanceAfter = data?.aiCredits || data?.saldo || 0;
+      }
+    } catch (e) {
+      // Ignorar erro ao buscar saldo
+    }
+    
+    // Log evento de desconto de créditos
+    await logger.logCreditEvent(
+      lojistaId,
+      "deduct",
+      COST_PER_GENERATION,
+      balanceBefore,
+      balanceAfter,
+      { customerId, compositionId }
+    );
 
     // PASSO 4: Salvar no Firestore
     console.log("[API/AI/Generate] Passo 4: Salvando composição no Firestore...");
@@ -303,34 +460,60 @@ export async function POST(request: NextRequest) {
       imageUrl: imageUrl.substring(0, 100) + "...",
     });
 
-    return NextResponse.json({
+    // Log sucesso de geração
+    await logger.logAIGeneration(
+      lojistaId,
+      customerId || null,
+      true,
+      undefined,
+      {
+        prompt: masterPrompt.substring(0, 200),
+        provider: "gemini-flash-image",
+        compositionId,
+        imageUrl: imageUrl.substring(0, 100),
+        cost: COST_PER_GENERATION,
+      }
+    );
+
+    const response = NextResponse.json({
       success: true,
       imageUrl,
       compositionId,
       prompt: masterPrompt, // Usar masterPrompt que foi gerado anteriormente
       provider: "gemini-flash-image",
     });
+    
+    return addCorsHeaders(response, origin);
   } catch (error: any) {
     console.error("[API/AI/Generate] Erro:", error);
     
-    return NextResponse.json(
+    // Log erro crítico
+    await logger.critical(
+      "Erro ao gerar imagem",
+      error instanceof Error ? error : new Error(error.message || "Erro desconhecido"),
+      {
+        lojistaId: body?.lojistaId,
+        customerId: body?.customerId,
+        ip: getClientIP(request),
+        origin,
+      }
+    );
+    
+    const response = NextResponse.json(
       {
         error: error.message || "Erro ao gerar imagem",
         success: false,
       },
       { status: 500 }
     );
+    
+    return addCorsHeaders(response, origin);
   }
 }
 
 export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
+  const origin = request.headers.get("origin");
+  const response = new NextResponse(null, { status: 204 });
+  return addCorsHeaders(response, origin);
 }
 
