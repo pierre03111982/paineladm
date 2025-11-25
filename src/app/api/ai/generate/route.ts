@@ -380,8 +380,14 @@ export async function POST(request: NextRequest) {
     console.log("[API/AI/Generate] Iniciando geração", {
       lojistaId,
       customerId,
-      userImageUrl: userImageUrl.substring(0, 100) + "...",
-      productImageUrl: productImageUrl ? productImageUrl.substring(0, 100) + "..." : "N/A",
+      userImageUrl: userImageUrl ? userImageUrl.substring(0, 100) + "..." : "N/A",
+      productImageUrl: productImageUrl 
+        ? (typeof productImageUrl === "string" 
+          ? productImageUrl.substring(0, 100) + "..." 
+          : Array.isArray(productImageUrl) 
+            ? `${productImageUrl.length} produto(s)` 
+            : "N/A")
+        : "N/A",
     });
 
     // Preparar URLs dos produtos
