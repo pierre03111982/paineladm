@@ -55,6 +55,14 @@ export async function POST(request: NextRequest) {
 
     const produtoData = produtoDoc.data()
 
+    // Verificar se produtoData existe
+    if (!produtoData) {
+      return NextResponse.json(
+        { error: "Dados do produto não disponíveis" },
+        { status: 404 }
+      )
+    }
+
     // Preparar dados do produto para o prompt
     const produto = {
       nome: produtoData.nome || "Produto",
