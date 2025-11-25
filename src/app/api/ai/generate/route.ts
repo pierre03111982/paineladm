@@ -482,16 +482,6 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       // Ignorar erro ao buscar saldo
     }
-    
-    // Log evento de desconto de créditos
-    await logger.logCreditEvent(
-      lojistaId,
-      "deduct",
-      COST_PER_GENERATION,
-      balanceBefore,
-      balanceAfter,
-      { customerId, compositionId }
-    );
 
     // PASSO 4: Salvar no Firestore
     console.log("[API/AI/Generate] Passo 4: Salvando composição no Firestore...");
@@ -501,6 +491,16 @@ export async function POST(request: NextRequest) {
       imageUrl,
       userImageUrl,
       productImageUrls
+    );
+    
+    // Log evento de desconto de créditos (após criar compositionId)
+    await logger.logCreditEvent(
+      lojistaId,
+      "deduct",
+      COST_PER_GENERATION,
+      balanceBefore,
+      balanceAfter,
+      { customerId, compositionId }
     );
 
     console.log("[API/AI/Generate] ✅ Geração concluída com sucesso", {
@@ -535,13 +535,25 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[API/AI/Generate] Erro:", error);
     
-    // Log erro crítico
+    // Tentar extrair lojistaId e customerId do erro ou do contexto
+    let errorLojistaId: string | undefined;
+    let errorCustomerId: string | undefined;
+    
+    try {
+      const errorBody = await request.json().catch(() => null);
+      errorLojistaId = errorBody?.lojistaId;
+      errorCustomerId = errorBody?.customerId;
+    } catch (e) {
+      // Se não conseguir ler o body novamente, usar valores do contexto se disponíveis
+    }
+    
+    // Log erro crítico (usar variáveis do escopo externo se disponíveis)
     await logger.critical(
       "Erro ao gerar imagem",
       error instanceof Error ? error : new Error(error.message || "Erro desconhecido"),
       {
-        lojistaId: body?.lojistaId,
-        customerId: body?.customerId,
+        lojistaId: lojistaId || errorLojistaId,
+        customerId: customerId || errorCustomerId,
         ip: getClientIP(request),
         origin,
       }
