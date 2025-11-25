@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import type { ActiveClient } from "@/lib/firestore/crm-queries"
-import { MessageCircle, Clock, Image as ImageIcon, Radar } from "lucide-react"
+import { MessageCircle, Clock, Image as ImageIcon, Radar, RefreshCw } from "lucide-react"
 import Image from "next/image"
 
 type CRMTableProps = {
@@ -11,6 +12,27 @@ type CRMTableProps = {
 
 export function CRMTable({ activeClients }: CRMTableProps) {
   const [selectedClient, setSelectedClient] = useState<ActiveClient | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const router = useRouter()
+
+  // Auto-refresh a cada 20 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshData()
+    }, 20000) // 20 segundos
+
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const refreshData = async () => {
+    setIsRefreshing(true)
+    router.refresh()
+    // Aguardar um pouco para a atualização completar
+    setTimeout(() => {
+      setIsRefreshing(false)
+    }, 1000)
+  }
 
   const getStatusBadge = (client: ActiveClient) => {
     const hoursSinceActivity = (Date.now() - client.lastActivity.getTime()) / (1000 * 60 * 60)
@@ -75,6 +97,21 @@ export function CRMTable({ activeClients }: CRMTableProps) {
 
   return (
     <>
+      {/* Botão de Refresh */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm text-zinc-400">
+          Atualiza automaticamente a cada 20 segundos
+        </div>
+        <button
+          onClick={refreshData}
+          disabled={isRefreshing}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Atualizando...' : 'Atualizar Agora'}
+        </button>
+      </div>
+
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
