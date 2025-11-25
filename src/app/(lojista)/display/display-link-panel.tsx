@@ -18,9 +18,21 @@ function resolveDisplayUrl(
 ): URL {
   try {
     // Usar buildClientAppDisplayUrl que já retorna a URL completa correta
-    const clientAppUrl = buildClientAppDisplayUrl(lojistaId);
+    let clientAppUrl = buildClientAppDisplayUrl(lojistaId);
     
     console.log("[resolveDisplayUrl] clientAppUrl gerada:", clientAppUrl);
+    
+    // Garantir que a URL seja absoluta (com https://)
+    if (!clientAppUrl.startsWith("http://") && !clientAppUrl.startsWith("https://")) {
+      // Se não for absoluta, construir usando o domínio de display
+      const isDev = typeof window !== "undefined" && window.location.hostname === "localhost";
+      const displayDomain = process.env.NEXT_PUBLIC_DISPLAY_DOMAIN || "display.experimenteai.com.br";
+      const protocol = isDev ? "http" : (process.env.NEXT_PUBLIC_DISPLAY_PROTOCOL || "https");
+      const base = isDev 
+        ? `http://localhost:${process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005"}`
+        : `${protocol}://${displayDomain}`;
+      clientAppUrl = `${base}${clientAppUrl.startsWith("/") ? clientAppUrl : `/${clientAppUrl}`}`;
+    }
     
     // A função já retorna URL absoluta com o path correto: https://display.experimenteai.com.br/[lojistaId]/experimentar
     const target = new URL(clientAppUrl);
@@ -28,7 +40,8 @@ function resolveDisplayUrl(
     console.log("[resolveDisplayUrl] URL parseada:", {
       hostname: target.hostname,
       pathname: target.pathname,
-      search: target.search
+      search: target.search,
+      href: target.href
     });
 
     // Adicionar parâmetros adicionais se necessário
@@ -40,7 +53,8 @@ function resolveDisplayUrl(
     // Adicionar backend para comunicação com API
     target.searchParams.set("backend", panelBaseUrl);
     
-    console.log("[resolveDisplayUrl] URL final:", target.toString());
+    const finalUrl = target.toString();
+    console.log("[resolveDisplayUrl] URL final:", finalUrl);
 
     return target;
   } catch (error) {
@@ -216,11 +230,19 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
             Use este link para abrir o display em outro dispositivo ou para fixar no
             navegador do monitor da loja.
           </p>
-          <input
-            readOnly
-            value={displayUrl.toString()}
-            className="w-full truncate rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 text-xs text-zinc-300"
-          />
+          <div className="relative">
+            <input
+              readOnly
+              value={displayUrl.toString()}
+              className="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 pr-20 text-xs text-zinc-300 font-mono overflow-x-auto"
+              style={{ 
+                textOverflow: "ellipsis",
+                overflowX: "auto",
+                whiteSpace: "nowrap"
+              }}
+              title={displayUrl.toString()}
+            />
+          </div>
           <button
             onClick={handleCopy}
             className={cn(
