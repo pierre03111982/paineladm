@@ -20,30 +20,68 @@ const db = getAdminDb();
 const COST_PER_GENERATION = 1;
 
 // Domínios permitidos para CORS (separados por vírgula ou array)
-const ALLOWED_ORIGINS = (
-  process.env.ALLOWED_ORIGINS || 
-  process.env.NEXT_PUBLIC_CLIENT_APP_URL || 
-  "http://localhost:3005,http://localhost:3000"
-).split(",").map(origin => origin.trim());
+const getAllowedOrigins = (): string[] => {
+  const isDevelopment = process.env.NODE_ENV === "development";
+  
+  // Em desenvolvimento, sempre incluir localhost
+  const defaultOrigins = isDevelopment 
+    ? ["http://localhost:3005", "http://localhost:3000", "http://127.0.0.1:3005", "http://127.0.0.1:3000"]
+    : [];
+  
+  // Adicionar origens da variável de ambiente
+  const envOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+    : [];
+  
+  // Adicionar URL do app cliente se configurada
+  const clientAppUrl = process.env.NEXT_PUBLIC_CLIENT_APP_URL;
+  if (clientAppUrl && !envOrigins.includes(clientAppUrl)) {
+    envOrigins.push(clientAppUrl);
+  }
+  
+  // Combinar todas as origens e remover duplicatas
+  const allOrigins = [...defaultOrigins, ...envOrigins];
+  return [...new Set(allOrigins)];
+};
+
+const ALLOWED_ORIGINS = getAllowedOrigins();
 
 /**
  * Verifica se o Origin da requisição é permitido
  */
 function isOriginAllowed(origin: string | null): boolean {
+  const isDevelopment = process.env.NODE_ENV === "development";
+  
+  // Em desenvolvimento, permitir requisições sem Origin ou de localhost
   if (!origin) {
-    // Em desenvolvimento, permitir requisições sem Origin
-    return process.env.NODE_ENV === "development";
+    return isDevelopment;
+  }
+  
+  // Em desenvolvimento, sempre permitir localhost
+  if (isDevelopment && (
+    origin.startsWith("http://localhost:") || 
+    origin.startsWith("http://127.0.0.1:")
+  )) {
+    console.log(`[CORS] Permitindo origem de desenvolvimento: ${origin}`);
+    return true;
   }
 
   // Verificar se o origin está na lista de permitidos
-  return ALLOWED_ORIGINS.some(allowed => {
-    // Comparação exata ou comparação de domínio
+  const isAllowed = ALLOWED_ORIGINS.some(allowed => {
+    // Comparação exata
     if (origin === allowed) return true;
     // Permitir subdomínios (ex: https://app.exemplo.com permite https://*.exemplo.com)
     const allowedPattern = allowed.replace("*", ".*");
     const regex = new RegExp(`^${allowedPattern}$`);
     return regex.test(origin);
   });
+  
+  if (!isAllowed) {
+    console.warn(`[CORS] Origem não permitida: ${origin}`);
+    console.warn(`[CORS] Origens permitidas:`, ALLOWED_ORIGINS);
+  }
+  
+  return isAllowed;
 }
 
 /**
@@ -259,11 +297,21 @@ async function saveComposition(
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer");
+  
+  // Log para debug
+  console.log("[API/AI/Generate] Requisição recebida:", {
+    origin,
+    referer,
+    allowedOrigins: ALLOWED_ORIGINS,
+    isDevelopment: process.env.NODE_ENV === "development",
+  });
   
   try {
     // Verificar CORS estrito
     if (!isOriginAllowed(origin)) {
       console.warn("[API/AI/Generate] Origem não permitida:", origin);
+      console.warn("[API/AI/Generate] Origens permitidas:", ALLOWED_ORIGINS);
       const response = NextResponse.json(
         { error: "Origem não permitida" },
         { status: 403 }
