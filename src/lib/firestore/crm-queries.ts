@@ -41,12 +41,11 @@ export async function fetchActiveClients(
     // Buscar composições criadas nas últimas 24h
     const compositionsRef = db.collection("composicoes");
     
-    // Buscar todas as composições do lojista e filtrar por data depois
-    // (Firestore pode ter createdAt como string ISO ou Timestamp)
+    // Buscar todas as composições do lojista sem orderBy para evitar necessidade de índice
+    // Vamos ordenar em memória depois
     const allCompositionsQuery = compositionsRef
       .where("lojistaId", "==", lojistaId)
-      .orderBy("createdAt", "desc")
-      .limit(200); // Buscar mais para filtrar depois
+      .limit(500); // Aumentar limite para garantir que pegamos todas as recentes
 
     const compositionsSnapshot = await allCompositionsQuery.get();
 
@@ -149,11 +148,11 @@ export async function fetchActiveClients(
     // Buscar logins recentes também (se houver coleção de sessões)
     try {
       const sessionsRef = db.collection("sessoes");
+      // Buscar sem orderBy e where de data para evitar necessidade de índice
+      // Filtrar por data em memória depois
       const recentSessionsQuery = sessionsRef
         .where("lojistaId", "==", lojistaId)
-        .where("createdAt", ">=", Timestamp.fromDate(cutoffDate))
-        .orderBy("createdAt", "desc")
-        .limit(50);
+        .limit(200); // Aumentar limite para pegar mais sessões
 
       const sessionsSnapshot = await recentSessionsQuery.get();
 
@@ -173,6 +172,11 @@ export async function fetchActiveClients(
           }
         } else {
           createdAt = new Date();
+        }
+
+        // Filtrar apenas sessões das últimas 24h (já que removemos o where de data)
+        if (createdAt < cutoffDate) {
+          continue;
         }
 
         if (!clientMap.has(customerId)) {
