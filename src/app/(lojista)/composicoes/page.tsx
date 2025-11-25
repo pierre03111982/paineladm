@@ -22,10 +22,9 @@ async function fetchComposicoes(
 
   try {
     const db = getAdminDb();
-    const composicoesRef = db
-      .collection("lojas")
-      .doc(lojistaId)
-      .collection("composicoes");
+    // Buscar na coleção global "composicoes" (onde as composições são realmente salvas)
+    // Filtrar por lojistaId usando where
+    const composicoesRef = db.collection("composicoes");
 
     // Calcular data limite baseado no período
     const periodo = searchParams.periodo || "week";
@@ -41,12 +40,13 @@ async function fetchComposicoes(
       dateLimit.setDate(dateLimit.getDate() - days);
     }
 
-    // Buscar composições
-    // Nota: Se houver erro de índice, pode ser necessário criar um índice composto no Firestore
-    // ou buscar todas e ordenar em memória
+    // Buscar composições da coleção global, filtrando por lojistaId
+    // Nota: Se houver erro de índice, buscar todas e filtrar/ordenar em memória
     let snapshot;
     try {
+      // Tentar buscar com where + orderBy (pode precisar de índice composto)
       const query = composicoesRef
+        .where("lojistaId", "==", lojistaId)
         .where("createdAt", ">=", dateLimit)
         .orderBy("createdAt", "desc")
         .limit(100);
@@ -55,9 +55,9 @@ async function fetchComposicoes(
       // Se falhar por falta de índice, buscar com limite e ordenar em memória
       if (error?.code === "failed-precondition") {
         console.warn("[ComposicoesPage] Índice não encontrado, buscando com limite e ordenando em memória");
-        // Buscar apenas os últimos 500 documentos (não todas) para performance
+        // Buscar todas as composições do lojista (sem orderBy para evitar necessidade de índice)
         const allSnapshot = await composicoesRef
-          .orderBy("createdAt", "desc")
+          .where("lojistaId", "==", lojistaId)
           .limit(500)
           .get();
         const allDocs: any[] = [];
@@ -65,11 +65,13 @@ async function fetchComposicoes(
           const data = doc.data();
           if (data?.createdAt) {
             const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            // Filtrar por data em memória
             if (createdAt >= dateLimit) {
               allDocs.push({ id: doc.id, data, createdAt });
             }
           }
         });
+        // Ordenar por data em memória
         allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         snapshot = {
           forEach: (callback: any) => {
@@ -111,10 +113,9 @@ async function fetchComposicoes(
         if (primaryProductId !== produto) return;
       }
 
-      // Filtrar por curtida - POR PADRÃO só mostrar composições com like
-      // Se o filtro "liked" não estiver explicitamente desativado, mostrar apenas curtidas
-      // Se liked === "true" (checkbox marcado) OU se não estiver definido (padrão), mostrar apenas curtidas
-      const showOnlyLiked = searchParams.liked !== "false"; // Por padrão, mostrar apenas curtidas
+      // Filtrar por curtida - mostrar todas por padrão, apenas curtidas se filtro ativo
+      // Se liked === "true" (checkbox marcado), mostrar apenas curtidas
+      const showOnlyLiked = searchParams.liked === "true";
       if (showOnlyLiked && !data.curtido && !data.liked) return;
 
       // Filtrar por compartilhamento
