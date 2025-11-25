@@ -25,7 +25,7 @@ const getAllowedOrigins = (): string[] => {
   
   // Em desenvolvimento, sempre incluir localhost
   const defaultOrigins = isDevelopment 
-    ? ["http://localhost:3005", "http://localhost:3000", "http://127.0.0.1:3005", "http://127.0.0.1:3000"]
+    ? ["http://localhost:3005", "http://localhost:3000", "http://localhost:3004", "http://localhost:3010", "http://127.0.0.1:3005", "http://127.0.0.1:3000", "http://127.0.0.1:3004", "http://127.0.0.1:3010"]
     : [];
   
   // Adicionar origens da variável de ambiente
@@ -37,6 +37,32 @@ const getAllowedOrigins = (): string[] => {
   const clientAppUrl = process.env.NEXT_PUBLIC_CLIENT_APP_URL;
   if (clientAppUrl && !envOrigins.includes(clientAppUrl)) {
     envOrigins.push(clientAppUrl);
+  }
+  
+  // Adicionar URLs dos modelos de app cliente (app1, app2, app3)
+  const modeloUrls = [
+    process.env.NEXT_PUBLIC_MODELO_1_URL,
+    process.env.NEXT_PUBLIC_MODELO_2_URL,
+    process.env.NEXT_PUBLIC_MODELO_3_URL,
+    process.env.NEXT_PUBLIC_MODELO_1_SUBDOMAIN ? `https://${process.env.NEXT_PUBLIC_MODELO_1_SUBDOMAIN}` : null,
+    process.env.NEXT_PUBLIC_MODELO_2_SUBDOMAIN ? `https://${process.env.NEXT_PUBLIC_MODELO_2_SUBDOMAIN}` : null,
+    process.env.NEXT_PUBLIC_MODELO_3_SUBDOMAIN ? `https://${process.env.NEXT_PUBLIC_MODELO_3_SUBDOMAIN}` : null,
+  ].filter((url): url is string => !!url && !envOrigins.includes(url));
+  
+  envOrigins.push(...modeloUrls);
+  
+  // Adicionar também os subdomínios padrão em produção se não estiverem nas variáveis
+  if (!isDevelopment) {
+    const defaultSubdomains = [
+      "https://app1.experimenteai.com.br",
+      "https://app2.experimenteai.com.br",
+      "https://app3.experimenteai.com.br",
+    ];
+    defaultSubdomains.forEach(subdomain => {
+      if (!envOrigins.includes(subdomain)) {
+        envOrigins.push(subdomain);
+      }
+    });
   }
   
   // Combinar todas as origens e remover duplicatas
