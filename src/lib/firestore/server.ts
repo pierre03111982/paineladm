@@ -261,17 +261,19 @@ export async function registerFavoriteLook(params: {
     // mesmo que já exista um favorito com o mesmo compositionId original, pois é uma nova imagem
     // Verificar se é uma composição de refinamento:
     // 1. Primeiro verificar se foi passado explicitamente no parâmetro (prioridade)
-    // 2. Se não, verificar pelo compositionId no banco
-    // 3. Se não, verificar se compositionId começa com "refined-"
+    // 2. Se não, verificar se compositionId começa com "refined-" (gerado no frontend)
+    // 3. Se não, verificar pelo compositionId no banco
     let isRefinement = isRefinedParam === true;
     
     if (!isRefinement && compositionId) {
       // Se não foi passado explicitamente, verificar se compositionId começa com "refined-"
+      // (gerado no frontend para looks refinados sem compositionId real)
       if (compositionId.startsWith("refined-")) {
         isRefinement = true;
         console.log("[registerFavoriteLook] Composição identificada como refinamento pelo compositionId (refined-):", compositionId);
       } else {
-        // Tentar buscar no banco
+        // Tentar buscar no banco apenas se compositionId não começar com "refined-"
+        // (para evitar buscas desnecessárias)
         try {
           const compositionDoc = await db.collection("composicoes").doc(compositionId).get();
           if (compositionDoc.exists) {
@@ -284,17 +286,24 @@ export async function registerFavoriteLook(params: {
               isRefined: compositionData?.isRefined,
               hasRefinementProducts: !!compositionData?.refinementProducts,
             });
+          } else {
+            // Se não encontrou no banco, assumir que NÃO é refinamento (composição normal)
+            console.log("[registerFavoriteLook] Composição não encontrada no banco, assumindo composição normal (não refinamento)");
           }
         } catch (e) {
           console.warn("[registerFavoriteLook] Erro ao verificar se é refinamento:", e);
+          // Em caso de erro, assumir que NÃO é refinamento (composição normal)
+          isRefinement = false;
         }
       }
     }
     
     // Log final
-    if (isRefinement) {
-      console.log("[registerFavoriteLook] ✅ Composição identificada como refinamento (adicionar acessório)");
-    }
+    console.log("[registerFavoriteLook] Status final - isRefinement:", isRefinement, {
+      isRefinedParam,
+      compositionId: compositionId?.substring(0, 50),
+      hasImagemUrl: !!imagemUrl,
+    });
     
     // Verificar se já existe um favorito com a mesma imagemUrl ou compositionId
     // IMPORTANTE: Para refinamentos, verificar apenas por imagemUrl (nova imagem)
@@ -332,10 +341,28 @@ export async function registerFavoriteLook(params: {
     
     // Se já existe, atualizar a data de criação e retornar o ID existente
     if (existingFavorite) {
-      await existingFavorite.ref.update({
+      const existingData = existingFavorite.data();
+      // Atualizar dados, garantindo que imagemUrl esteja presente se fornecida
+      const updateData: any = {
         createdAt: new Date(), // Atualizar data para manter como mais recente
         updatedAt: new Date(),
-      });
+      };
+      
+      // Se o favorito existente não tiver imagemUrl e temos uma, atualizar
+      if (imagemUrl && imagemUrl.trim() !== "" && (!existingData?.imagemUrl || existingData.imagemUrl.trim() === "")) {
+        updateData.imagemUrl = imagemUrl;
+        console.log("[registerFavoriteLook] Atualizando imagemUrl do favorito existente");
+      }
+      
+      // Atualizar outros campos se necessário
+      if (productName && !existingData?.productName) {
+        updateData.productName = productName;
+      }
+      if (productPrice !== null && existingData?.productPrice === null) {
+        updateData.productPrice = productPrice;
+      }
+      
+      await existingFavorite.ref.update(updateData);
       console.log("[registerFavoriteLook] Favorito existente atualizado. ID:", existingFavorite.id);
       return existingFavorite.id;
     }
@@ -445,11 +472,29 @@ export async function fetchFavoriteLooks(params: {
       const isLike = action === "like" || (!action && !data?.action); 
       const isDislike = action === "dislike";
 
-      if (isDislike) return; // Ignora dislikes
-      if (!isLike) return;   // Ignora outros tipos
+      if (isDislike) {
+        console.log("[fetchFavoriteLooks] Ignorando dislike:", doc.id);
+        return; // Ignora dislikes
+      }
+      if (!isLike) {
+        console.log("[fetchFavoriteLooks] Ignorando ação não-like:", doc.id, action);
+        return;   // Ignora outros tipos
+      }
 
       const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
-      if (!hasImage) return;
+      if (!hasImage) {
+        console.log("[fetchFavoriteLooks] Ignorando favorito sem imagemUrl:", doc.id);
+        return;
+      }
+      
+      // Log para debug
+      console.log("[fetchFavoriteLooks] Favorito válido encontrado:", {
+        id: doc.id,
+        hasImagemUrl: hasImage,
+        action,
+        isRefined: data?.isRefined,
+        compositionId: data?.compositionId?.substring(0, 30),
+      });
 
       // Tratamento de Data
       let createdAt = data?.createdAt;
