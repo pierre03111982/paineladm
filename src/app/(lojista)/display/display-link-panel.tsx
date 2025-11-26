@@ -241,11 +241,10 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
             <input
               readOnly
               value={displayUrl.toString()}
-              className="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 pr-20 text-xs text-zinc-300 font-mono overflow-x-auto"
+              className="w-full rounded-lg border border-zinc-700/60 bg-zinc-900 px-3 py-2 pr-20 text-xs text-zinc-300 font-mono"
               style={{ 
-                textOverflow: "ellipsis",
-                overflowX: "auto",
-                whiteSpace: "nowrap"
+                wordBreak: "break-all",
+                overflowWrap: "break-word"
               }}
               title={displayUrl.toString()}
             />
