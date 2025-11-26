@@ -143,47 +143,121 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Atualizar composição no Firestore se compositionId foi fornecido
-    if (compositionId && lojistaId) {
+    // Criar nova composição na coleção principal "composicoes" para refinamento (adicionar acessório)
+    // Esta composição só será contabilizada no radar se tiver like
+    if (lojistaId && customerId) {
       try {
-        const composicaoRef = db
-          .collection("lojas")
-          .doc(lojistaId)
-          .collection("composicoes")
-          .doc(compositionId);
+        // Buscar dados da composição original se compositionId foi fornecido
+        let originalCompositionData: any = null;
+        if (compositionId) {
+          try {
+            const originalRef = db
+              .collection("lojas")
+              .doc(lojistaId)
+              .collection("composicoes")
+              .doc(compositionId);
+            const originalDoc = await originalRef.get();
+            if (originalDoc.exists) {
+              originalCompositionData = originalDoc.data();
+            }
+          } catch (e) {
+            console.warn("[RefineTryOn] Não foi possível buscar composição original:", e);
+          }
+        }
 
-        const composicaoDoc = await composicaoRef.get();
-        if (composicaoDoc.exists) {
-          const composicaoData = composicaoDoc.data();
-          const looks = composicaoData?.looks || [];
+        // Criar nova composição na coleção principal "composicoes"
+        const newCompositionData = {
+          lojistaId,
+          customerId,
+          imagemUrl: refinedImageUrl,
+          userImageUrl: baseImageUrl, // Imagem base (look anterior)
+          productImageUrls: newProductUrls, // Novos produtos adicionados
+          createdAt: new Date().toISOString(),
+          status: "completed",
+          provider: "gemini-flash-image",
+          prompt: "Refinement - Adicionar acessórios",
+          isRefined: true, // Flag para identificar refinamento
+          originalCompositionId: compositionId || null, // ID da composição original
+          refinementProducts: newProductUrls,
+          produtoNome: originalCompositionData?.produtoNome || originalCompositionData?.primaryProductName || "Produto",
+          productName: originalCompositionData?.produtoNome || originalCompositionData?.primaryProductName || "Produto",
+          // Inicialmente sem like (só contará no radar se receber like depois)
+          curtido: false,
+          liked: false,
+        };
 
-          // Adicionar novo look refinado
-          const refinedLook = {
-            id: `refined-${Date.now()}`,
-            titulo: "Look Refinado",
-            descricao: `Look refinado com ${newProductUrls.length} acessório(s) adicional(is)`,
-            imagemUrl: refinedImageUrl,
-            produtoNome: composicaoData?.primaryProductName || "Produto",
-            produtoPreco: composicaoData?.primaryProductPrice || null,
-            createdAt: new Date(),
-            isRefined: true,
-            refinementProducts: newProductUrls,
-          };
+        const newCompositionRef = await db.collection("composicoes").add(newCompositionData);
+        console.log("[RefineTryOn] Nova composição de refinamento criada:", newCompositionRef.id);
 
-          looks.push(refinedLook);
+        // Atualizar composição original também (se existir) para manter histórico
+        if (compositionId) {
+          try {
+            const composicaoRef = db
+              .collection("lojas")
+              .doc(lojistaId)
+              .collection("composicoes")
+              .doc(compositionId);
 
-          await composicaoRef.update({
-            looks,
-            updatedAt: new Date(),
-            refinementCount: (composicaoData?.refinementCount || 0) + 1,
-            totalCost: (composicaoData?.totalCost || 0) + refinementCost,
-          });
+            const composicaoDoc = await composicaoRef.get();
+            if (composicaoDoc.exists) {
+              const composicaoData = composicaoDoc.data();
+              const looks = composicaoData?.looks || [];
 
-          console.log("[RefineTryOn] Composição atualizada no Firestore");
+              // Adicionar novo look refinado
+              const refinedLook = {
+                id: `refined-${Date.now()}`,
+                titulo: "Look Refinado",
+                descricao: `Look refinado com ${newProductUrls.length} acessório(s) adicional(is)`,
+                imagemUrl: refinedImageUrl,
+                produtoNome: composicaoData?.primaryProductName || "Produto",
+                produtoPreco: composicaoData?.primaryProductPrice || null,
+                createdAt: new Date(),
+                isRefined: true,
+                refinementProducts: newProductUrls,
+              };
+
+              looks.push(refinedLook);
+
+              await composicaoRef.update({
+                looks,
+                updatedAt: new Date(),
+                refinementCount: (composicaoData?.refinementCount || 0) + 1,
+                totalCost: (composicaoData?.totalCost || 0) + refinementCost,
+              });
+
+              console.log("[RefineTryOn] Composição original atualizada no Firestore");
+            }
+          } catch (error) {
+            console.error("[RefineTryOn] Erro ao atualizar composição original:", error);
+            // Não falhar a requisição se a atualização falhar
+          }
         }
       } catch (error) {
-        console.error("[RefineTryOn] Erro ao atualizar composição no Firestore:", error);
+        console.error("[RefineTryOn] Erro ao criar composição de refinamento:", error);
         // Não falhar a requisição se o Firestore falhar
+      }
+    }
+
+    // Retornar o novo compositionId da composição de refinamento criada
+    let newCompositionId: string | null = null;
+    if (lojistaId && customerId) {
+      try {
+        // Buscar a composição de refinamento recém-criada
+        const compositionsRef = db.collection("composicoes");
+        const recentCompositions = await compositionsRef
+          .where("lojistaId", "==", lojistaId)
+          .where("customerId", "==", customerId)
+          .where("isRefined", "==", true)
+          .orderBy("createdAt", "desc")
+          .limit(1)
+          .get();
+        
+        if (!recentCompositions.empty) {
+          newCompositionId = recentCompositions.docs[0].id;
+          console.log("[RefineTryOn] Novo compositionId de refinamento:", newCompositionId);
+        }
+      } catch (error) {
+        console.error("[RefineTryOn] Erro ao buscar novo compositionId:", error);
       }
     }
 
@@ -192,7 +266,7 @@ export async function POST(request: NextRequest) {
       refinedImageUrl,
       cost: refinementCost,
       originalCost: cost,
-      compositionId,
+      compositionId: newCompositionId || compositionId, // Retornar novo ID se disponível
       newProductsCount: newProductUrls.length,
     });
   } catch (error) {

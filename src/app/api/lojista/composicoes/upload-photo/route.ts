@@ -31,6 +31,10 @@ function applyCors(request: NextRequest, response: NextResponse) {
   return response;
 }
 
+// Nota: No Next.js 13+ App Router, o limite de body size é controlado pelo servidor
+// Para aumentar o limite, configure a variável de ambiente ou use um servidor proxy reverso
+// A compressão de imagem no frontend já reduz significativamente o tamanho
+
 export async function OPTIONS(request: NextRequest) {
   const response = new NextResponse(null, { status: 204 });
   return applyCors(request, response);

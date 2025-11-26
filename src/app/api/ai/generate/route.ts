@@ -297,7 +297,8 @@ async function saveComposition(
   customerId: string,
   imageUrl: string,
   userImageUrl: string,
-  productImageUrls: string[]
+  productImageUrls: string[],
+  isRemix: boolean = false
 ): Promise<string> {
   try {
     const compositionData = {
@@ -310,6 +311,7 @@ async function saveComposition(
       status: "completed",
       provider: "gemini-flash-image",
       prompt: "Generated via Gemini 2.5 Flash Image",
+      isRemix: isRemix, // Flag para identificar remix (não contará no radar)
     };
 
     const docRef = await db.collection("composicoes").add(compositionData);
@@ -353,7 +355,10 @@ export async function POST(request: NextRequest) {
     }
 
     body = await request.json();
-    ({ lojistaId, customerId, userImageUrl, productImageUrl } = body);
+    ({ lojistaId, customerId, userImageUrl, productImageUrl, scenePrompts } = body);
+    
+    // Verificar se é remix (tem scenePrompts)
+    const isRemix = scenePrompts && Array.isArray(scenePrompts) && scenePrompts.length > 0;
 
     // Validação de entrada
     if (!lojistaId || !userImageUrl) {
@@ -529,7 +534,8 @@ export async function POST(request: NextRequest) {
       customerId || "anonymous",
       imageUrl,
       userImageUrl,
-      productImageUrls
+      productImageUrls,
+      isRemix // Marcar como remix se tiver scenePrompts
     );
     
     // Log evento de desconto de créditos (após criar compositionId)

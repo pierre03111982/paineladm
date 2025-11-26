@@ -121,6 +121,31 @@ export async function fetchActiveClients(
       }
 
       const client = clientMap.get(customerId)!;
+      
+      // REGRA 1: Excluir composições de remix (identificadas por não ter productImageUrls ou ter flag isRemix)
+      const isRemix = data.isRemix === true || 
+                     (!data.productImageUrls || (Array.isArray(data.productImageUrls) && data.productImageUrls.length === 0)) ||
+                     (data.scenePrompts && Array.isArray(data.scenePrompts) && data.scenePrompts.length > 0);
+      
+      if (isRemix) {
+        console.log("[CRM] Composição de remix ignorada:", doc.id);
+        continue; // Não contar remix
+      }
+      
+      // REGRA 2: Para composições de refinamento (adicionar acessório), só contar se tiver like
+      const isRefinement = data.isRefined === true || 
+                          data.refinementProducts || 
+                          (data.refinementCount && data.refinementCount > 0);
+      
+      if (isRefinement) {
+        // Verificar se tem like (curtido ou liked)
+        const hasLike = data.curtido === true || data.liked === true;
+        if (!hasLike) {
+          console.log("[CRM] Composição de refinamento sem like ignorada:", doc.id);
+          continue; // Não contar refinamento sem like
+        }
+      }
+      
       client.compositionCount++;
       
       // Buscar nome do produto se não estiver na composição
