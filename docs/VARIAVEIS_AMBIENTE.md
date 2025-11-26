@@ -104,3 +104,6 @@ node -e "console.log('Firebase Project:', process.env.FIREBASE_PROJECT_ID); cons
 
 Se retornar `undefined`, as variáveis não estão configuradas.
 
+
+
+

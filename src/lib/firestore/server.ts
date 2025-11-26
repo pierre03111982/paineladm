@@ -35,6 +35,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
   descontoRedesSociais?: number | null;
   descontoRedesSociaisExpiraEm?: string | null;
   appModel?: "modelo-1" | "modelo-2" | "modelo-3" | null;
+  displayOrientation?: "horizontal" | "vertical" | null;
   salesConfig?: {
     channel?: string;
     salesWhatsapp?: string | null;
@@ -68,6 +69,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         checkoutLink: data?.checkoutLink || null,
         descontoRedesSociais: data?.descontoRedesSociais || null,
         appModel: data?.appModel || data?.modeloApp || "modelo-1",
+        displayOrientation: data?.displayOrientation || "horizontal",
         descontoRedesSociaisExpiraEm: data?.descontoRedesSociaisExpiraEm || null,
         salesConfig: data?.salesConfig || null,
         _debugSource: "perfil/dados",
@@ -92,6 +94,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
           checkoutLink: lojaData?.checkoutLink || null,
           descontoRedesSociais: lojaData?.descontoRedesSociais || null,
           appModel: lojaData?.appModel || lojaData?.modeloApp || "modelo-1",
+          displayOrientation: lojaData?.displayOrientation || "horizontal",
           salesConfig: lojaData?.salesConfig || null,
           _debugSource: "lojas/{id}",
           _rawAppModel: lojaData?.appModel
@@ -115,6 +118,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         checkoutLink: data?.checkoutLink || null,
         descontoRedesSociais: data?.descontoRedesSociais || null,
         appModel: data?.appModel || data?.modeloApp || "modelo-1",
+        displayOrientation: data?.displayOrientation || "horizontal",
         salesConfig: data?.salesConfig || null,
         _debugSource: "perfil/publico",
         _rawAppModel: data?.appModel

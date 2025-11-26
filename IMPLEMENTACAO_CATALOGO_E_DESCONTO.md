@@ -70,3 +70,6 @@ const isDescontoEspecial = produto.descontoProduto > lojista.descontoRedesSociai
 - [ ] 7. Atualizar app cliente (lógica de desconto)
 - [ ] 8. Destacar desconto especial no app cliente
 
+
+
+
