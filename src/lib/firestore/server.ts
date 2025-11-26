@@ -255,12 +255,36 @@ export async function registerFavoriteLook(params: {
   try {
     const ref = clienteFavoritosRef(lojistaId, customerId);
     
+    // IMPORTANTE: Para composições de refinamento (adicionar acessório), sempre criar novo favorito
+    // mesmo que já exista um favorito com o mesmo compositionId original, pois é uma nova imagem
+    // Verificar se é uma composição de refinamento buscando na coleção principal "composicoes"
+    let isRefinement = false;
+    if (compositionId) {
+      try {
+        const compositionDoc = await db.collection("composicoes").doc(compositionId).get();
+        if (compositionDoc.exists) {
+          const compositionData = compositionDoc.data();
+          isRefinement = compositionData?.isRefined === true || 
+                        compositionData?.refinementProducts !== undefined ||
+                        (compositionData?.refinementCount && compositionData.refinementCount > 0);
+          console.log("[registerFavoriteLook] Composição é refinamento?", isRefinement, {
+            compositionId,
+            isRefined: compositionData?.isRefined,
+            hasRefinementProducts: !!compositionData?.refinementProducts,
+          });
+        }
+      } catch (e) {
+        console.warn("[registerFavoriteLook] Erro ao verificar se é refinamento:", e);
+      }
+    }
+    
     // Verificar se já existe um favorito com a mesma imagemUrl ou compositionId
-    // Isso evita duplicatas quando o usuário atualiza a página e dá like novamente
+    // IMPORTANTE: Para refinamentos, verificar apenas por imagemUrl (nova imagem)
+    // Para composições normais, verificar por imagemUrl e compositionId
     let existingFavorite = null;
     
     if (imagemUrl && imagemUrl.trim() !== "") {
-      // Buscar por imagemUrl
+      // Buscar por imagemUrl (sempre verificar, pois cada imagem refinada é única)
       const byImageQuery = ref
         .where("imagemUrl", "==", imagemUrl)
         .where("action", "==", "like")
@@ -273,8 +297,9 @@ export async function registerFavoriteLook(params: {
       }
     }
     
-    // Se não encontrou por imagemUrl e tem compositionId, buscar por compositionId
-    if (!existingFavorite && compositionId) {
+    // Se não encontrou por imagemUrl e NÃO é refinamento, buscar por compositionId
+    // Para refinamentos, não buscar por compositionId pois cada refinamento é uma nova imagem
+    if (!existingFavorite && compositionId && !isRefinement) {
       const byCompositionQuery = ref
         .where("compositionId", "==", compositionId)
         .where("action", "==", "like")
@@ -298,6 +323,12 @@ export async function registerFavoriteLook(params: {
     }
     
     // Se não existe, criar novo favorito
+    // IMPORTANTE: Para refinamentos, garantir que imagemUrl esteja presente
+    if (isRefinement && (!imagemUrl || imagemUrl.trim() === "")) {
+      console.error("[registerFavoriteLook] ERRO: Composição de refinamento sem imagemUrl!");
+      throw new Error("imagemUrl é obrigatório para composições de refinamento");
+    }
+    
     const favoriteData = {
       lojistaId,
       customerId,
@@ -311,17 +342,22 @@ export async function registerFavoriteLook(params: {
       action: "like",
       tipo: "like",
       votedType: "like",
+      isRefined: isRefinement, // Marcar se é refinamento
       createdAt: new Date(),
     };
     
     console.log("[registerFavoriteLook] Dados do favorito a serem salvos:", {
       ...favoriteData,
       imagemUrl: favoriteData.imagemUrl?.substring(0, 100), // Log parcial
+      isRefinement,
     });
     
     const docRef = await ref.add(favoriteData);
     
-    console.log("[registerFavoriteLook] Favorito salvo com sucesso. ID:", docRef.id);
+    console.log("[registerFavoriteLook] ✅ Favorito salvo com sucesso. ID:", docRef.id, {
+      isRefinement,
+      hasImagemUrl: !!imagemUrl,
+    });
     
     return docRef.id;
   } catch (error: any) {
