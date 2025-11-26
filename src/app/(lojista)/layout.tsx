@@ -47,14 +47,14 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
         {/* Sidebar */}
         <aside className="hidden w-64 flex-col rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-6 shadow-[0_25px_80px_-45px_rgba(99,102,241,0.65)] backdrop-blur-xl md:flex">
           <div className="mb-8 space-y-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 text-lg font-semibold text-indigo-200">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/20 text-lg font-semibold text-indigo-200 overflow-hidden">
               {lojaLogo ? (
                 <Image
                   src={lojaLogo}
                   alt={lojaNome}
                   width={48}
                   height={48}
-                  className="h-full w-full rounded-2xl object-contain"
+                  className="h-full w-full rounded-full object-cover"
                 />
               ) : (
                 <span>{initials}</span>
@@ -101,14 +101,14 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                 </p>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200 overflow-hidden">
                   {lojaLogo ? (
                     <Image
                       src={lojaLogo}
                       alt={lojaNome}
                       width={32}
                       height={32}
-                      className="h-full w-full rounded-full object-contain"
+                      className="h-full w-full rounded-full object-cover"
                     />
                   ) : (
                     <span className="text-xs font-semibold">{initials}</span>

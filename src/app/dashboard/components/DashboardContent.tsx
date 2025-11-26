@@ -220,12 +220,12 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     <div className="space-y-12 pb-12">
       <header className="flex flex-col gap-8 rounded-3xl border border-zinc-800/80 bg-linear-to-br from-zinc-900/80 via-zinc-900/40 to-zinc-900/80 p-10 shadow-[0_25px_80px_-20px_rgba(67,56,202,0.45)] lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/20 text-2xl font-semibold text-indigo-200">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-indigo-500/20 text-2xl font-semibold text-indigo-200 overflow-hidden">
             {data.brand.logoUrl ? (
               <img
                 src={data.brand.logoUrl}
                 alt={`Logo da ${data.brand.name}`}
-                className="h-full w-full rounded-2xl object-cover"
+                className="h-full w-full rounded-full object-cover"
               />
             ) : (
               data.brand.name

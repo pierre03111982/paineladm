@@ -89,7 +89,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
         <aside className="hidden w-64 flex-col rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-6 shadow-[0_25px_80px_-45px_rgba(79,70,229,0.65)] backdrop-blur-xl md:flex">
           <div className="mb-8 space-y-2">
             {adminConfig.logoUrl ? (
-              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-2xl border border-purple-500/30 bg-purple-500/10">
+              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full border border-purple-500/30 bg-purple-500/10">
                 <Image
                   src={adminConfig.logoUrl}
                   alt={adminConfig.nome}
@@ -99,7 +99,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                 />
               </div>
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/20 text-lg font-semibold text-purple-200">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/20 text-lg font-semibold text-purple-200">
                 ADM
               </div>
             )}
@@ -154,8 +154,18 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                 </p>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-200">
-                  <TrendingUp className="h-4 w-4" />
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-200 overflow-hidden">
+                  {adminConfig.logoUrl ? (
+                    <Image
+                      src={adminConfig.logoUrl}
+                      alt={adminConfig.nome}
+                      width={32}
+                      height={32}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <TrendingUp className="h-4 w-4" />
+                  )}
                 </span>
                 <div>
                   <p className="font-medium text-white">Sistema Administrativo</p>

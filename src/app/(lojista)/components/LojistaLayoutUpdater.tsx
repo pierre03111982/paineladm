@@ -137,7 +137,7 @@ export function LojistaLayoutUpdater() {
     if (sidebarAvatar) {
       if (perfil.logoUrl) {
         // Se houver logo, substituir por imagem
-        sidebarAvatar.innerHTML = `<img src="${perfil.logoUrl}" alt="${perfil.nome || 'Logo'}" class="h-full w-full object-contain" />`;
+        sidebarAvatar.innerHTML = `<img src="${perfil.logoUrl}" alt="${perfil.nome || 'Logo'}" class="h-full w-full rounded-full object-cover" />`;
       } else {
         // Se não houver logo, usar iniciais
         const initials = perfil.nome
@@ -154,7 +154,7 @@ export function LojistaLayoutUpdater() {
     // Atualizar a logo no header também
     const headerAvatar = document.querySelector("header .flex.h-8");
     if (headerAvatar && perfil.logoUrl) {
-      headerAvatar.innerHTML = `<img src="${perfil.logoUrl}" alt="${perfil.nome || 'Logo'}" class="h-full w-full object-contain" />`;
+      headerAvatar.innerHTML = `<img src="${perfil.logoUrl}" alt="${perfil.nome || 'Logo'}" class="h-full w-full rounded-full object-cover" />`;
     }
 
     // Atualizar descrição se houver
