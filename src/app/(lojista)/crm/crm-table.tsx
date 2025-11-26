@@ -81,6 +81,94 @@ export function CRMTable({ activeClients }: CRMTableProps) {
       .toUpperCase()
   }
 
+  // Organizar composições por data (hoje, ontem, esta semana, etc.)
+  const organizeCompositionsByDate = (compositions: Array<{ id: string; imagemUrl: string; createdAt: Date; produtoNome?: string }>) => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const thisWeek = new Date(today)
+    thisWeek.setDate(thisWeek.getDate() - 7)
+
+    const groups: {
+      label: string
+      compositions: typeof compositions
+    }[] = [
+      { label: "Hoje", compositions: [] },
+      { label: "Ontem", compositions: [] },
+      { label: "Esta Semana", compositions: [] },
+      { label: "Anterior", compositions: [] },
+    ]
+
+    compositions.forEach((comp) => {
+      const compDate = comp.createdAt
+      const compDateOnly = new Date(compDate.getFullYear(), compDate.getMonth(), compDate.getDate())
+
+      if (compDateOnly.getTime() === today.getTime()) {
+        groups[0].compositions.push(comp)
+      } else if (compDateOnly.getTime() === yesterday.getTime()) {
+        groups[1].compositions.push(comp)
+      } else if (compDate >= thisWeek) {
+        groups[2].compositions.push(comp)
+      } else {
+        groups[3].compositions.push(comp)
+      }
+    })
+
+    // Ordenar composições dentro de cada grupo por data (mais recente primeiro)
+    groups.forEach((group) => {
+      group.compositions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    })
+
+    // Remover grupos vazios
+    return groups.filter((group) => group.compositions.length > 0)
+  }
+
+  // Formatar data/hora para exibição
+  const formatCompositionDate = (date: Date) => {
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    // Se for hoje, mostrar hora e minutos
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const compDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    
+    if (compDate.getTime() === today.getTime()) {
+      // Hoje: mostrar hora e minutos
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      if (diffMins < 60) {
+        return `${diffMins}min atrás (${hours}:${minutes})`
+      } else {
+        return `${diffHours}h atrás (${hours}:${minutes})`
+      }
+    } else if (diffDays === 1) {
+      // Ontem: mostrar "Ontem" e hora
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `Ontem às ${hours}:${minutes}`
+    } else if (diffDays < 7) {
+      // Esta semana: mostrar dia da semana e hora
+      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+      const dayName = days[date.getDay()]
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${dayName} às ${hours}:${minutes}`
+    } else {
+      // Mais antigo: mostrar data completa
+      return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    }
+  }
+
   if (activeClients.length === 0) {
     return (
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
@@ -261,23 +349,53 @@ export function CRMTable({ activeClients }: CRMTableProps) {
               {selectedClient.compositions.length === 0 ? (
                 <p className="text-zinc-500">Nenhuma composição encontrada.</p>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {selectedClient.compositions.map((comp) => (
-                    <div
-                      key={comp.id}
-                      className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 bg-zinc-800/50"
-                    >
-                      <Image
-                        src={comp.imagemUrl}
-                        alt={comp.produtoNome || "Composição"}
-                        fill
-                        className="object-cover"
-                      />
-                      {comp.produtoNome && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
-                          <p className="text-xs text-white truncate">{comp.produtoNome}</p>
-                        </div>
-                      )}
+                <div className="space-y-6">
+                  {organizeCompositionsByDate(selectedClient.compositions).map((group, groupIndex) => (
+                    <div key={groupIndex} className="space-y-3">
+                      {/* Cabeçalho do grupo de data */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-zinc-700"></div>
+                        <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider px-3">
+                          {group.label}
+                        </h4>
+                        <div className="h-px flex-1 bg-zinc-700"></div>
+                      </div>
+                      
+                      {/* Grid de composições do grupo */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {group.compositions.map((comp) => (
+                          <div
+                            key={comp.id}
+                            className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 bg-zinc-800/50 group hover:border-indigo-500/50 transition-colors"
+                          >
+                            <Image
+                              src={comp.imagemUrl}
+                              alt={comp.produtoNome || "Composição"}
+                              fill
+                              className="object-cover"
+                            />
+                            {/* Overlay com informações */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute bottom-0 left-0 right-0 p-2">
+                                {comp.produtoNome && (
+                                  <p className="text-xs font-medium text-white truncate mb-1">
+                                    {comp.produtoNome}
+                                  </p>
+                                )}
+                                <p className="text-xs text-zinc-300">
+                                  {formatCompositionDate(comp.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Informação sempre visível no canto inferior */}
+                            {comp.produtoNome && (
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
+                                <p className="text-xs text-white truncate">{comp.produtoNome}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
