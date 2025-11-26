@@ -333,6 +333,7 @@ export async function POST(request: NextRequest) {
   let customerId: string | undefined;
   let userImageUrl: string | undefined;
   let productImageUrl: string | string[] | undefined;
+  let scenePrompts: string[] | null | undefined;
   
   // Log para debug
   console.log("[API/AI/Generate] Requisição recebida:", {
