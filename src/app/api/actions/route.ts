@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       productName,
       productPrice,
       imagemUrl,
+      isRefined,
     } =
       (await request.json()) as {
         action?: "like" | "dislike" | "share" | "checkout";
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
         productName?: string | null;
         productPrice?: number | null;
         imagemUrl?: string | null;
+        isRefined?: boolean;
       };
 
     if (!action) {
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
             imagemUrl: imagemUrl ?? null,
             productName: productName ?? null,
             productPrice: typeof productPrice === "number" ? productPrice : null,
+            isRefined: isRefined ?? false, // Passar flag de refinamento
           });
           
           console.log("[api/actions] Favorito registrado com sucesso");

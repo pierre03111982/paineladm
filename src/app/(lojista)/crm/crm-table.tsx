@@ -62,6 +62,33 @@ export function CRMTable({ activeClients }: CRMTableProps) {
     }
   }
 
+  const formatCompositionDate = (date: Date) => {
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) {
+      return "Agora"
+    } else if (diffMins < 60) {
+      return `${diffMins}min atrás`
+    } else if (diffHours < 24) {
+      return `${diffHours}h atrás`
+    } else if (diffDays === 1) {
+      return "Ontem"
+    } else if (diffDays < 7) {
+      return `${diffDays}d atrás`
+    } else {
+      // Formato: DD/MM/YYYY
+      return date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    }
+  }
+
   const generateWhatsAppLink = (client: ActiveClient) => {
     const whatsapp = client.whatsapp.replace(/\D/g, "")
     const productName = client.lastProductName || "produto"
@@ -262,24 +289,26 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                 <p className="text-zinc-500">Nenhuma composição encontrada.</p>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {selectedClient.compositions.map((comp) => (
-                    <div
-                      key={comp.id}
-                      className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 bg-zinc-800/50"
-                    >
-                      <Image
-                        src={comp.imagemUrl}
-                        alt={comp.produtoNome || "Composição"}
-                        fill
-                        className="object-cover"
-                      />
-                      {comp.produtoNome && (
+                  {[...selectedClient.compositions]
+                    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                    .map((comp) => (
+                      <div
+                        key={comp.id}
+                        className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 bg-zinc-800/50"
+                      >
+                        <Image
+                          src={comp.imagemUrl}
+                          alt={comp.produtoNome || "Composição"}
+                          fill
+                          className="object-cover"
+                        />
                         <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
-                          <p className="text-xs text-white truncate">{comp.produtoNome}</p>
+                          <p className="text-xs text-white truncate text-center">
+                            {formatCompositionDate(comp.createdAt)}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))}
                 </div>
               )}
             </div>

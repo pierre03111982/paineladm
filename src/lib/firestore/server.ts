@@ -219,6 +219,7 @@ export async function registerFavoriteLook(params: {
   imagemUrl?: string | null;
   productName?: string | null;
   productPrice?: number | null;
+  isRefined?: boolean;
 }) {
   const {
     lojistaId,
@@ -229,6 +230,7 @@ export async function registerFavoriteLook(params: {
     imagemUrl,
     productName,
     productPrice,
+    isRefined: isRefinedParam,
   } = params;
 
   console.log("[registerFavoriteLook] Iniciando registro de favorito:", {
@@ -257,25 +259,41 @@ export async function registerFavoriteLook(params: {
     
     // IMPORTANTE: Para composições de refinamento (adicionar acessório), sempre criar novo favorito
     // mesmo que já exista um favorito com o mesmo compositionId original, pois é uma nova imagem
-    // Verificar se é uma composição de refinamento buscando na coleção principal "composicoes"
-    let isRefinement = false;
-    if (compositionId) {
-      try {
-        const compositionDoc = await db.collection("composicoes").doc(compositionId).get();
-        if (compositionDoc.exists) {
-          const compositionData = compositionDoc.data();
-          isRefinement = compositionData?.isRefined === true || 
-                        compositionData?.refinementProducts !== undefined ||
-                        (compositionData?.refinementCount && compositionData.refinementCount > 0);
-          console.log("[registerFavoriteLook] Composição é refinamento?", isRefinement, {
-            compositionId,
-            isRefined: compositionData?.isRefined,
-            hasRefinementProducts: !!compositionData?.refinementProducts,
-          });
+    // Verificar se é uma composição de refinamento:
+    // 1. Primeiro verificar se foi passado explicitamente no parâmetro (prioridade)
+    // 2. Se não, verificar pelo compositionId no banco
+    // 3. Se não, verificar se compositionId começa com "refined-"
+    let isRefinement = isRefinedParam === true;
+    
+    if (!isRefinement && compositionId) {
+      // Se não foi passado explicitamente, verificar se compositionId começa com "refined-"
+      if (compositionId.startsWith("refined-")) {
+        isRefinement = true;
+        console.log("[registerFavoriteLook] Composição identificada como refinamento pelo compositionId (refined-):", compositionId);
+      } else {
+        // Tentar buscar no banco
+        try {
+          const compositionDoc = await db.collection("composicoes").doc(compositionId).get();
+          if (compositionDoc.exists) {
+            const compositionData = compositionDoc.data();
+            isRefinement = compositionData?.isRefined === true || 
+                          compositionData?.refinementProducts !== undefined ||
+                          (compositionData?.refinementCount && compositionData.refinementCount > 0);
+            console.log("[registerFavoriteLook] Composição é refinamento?", isRefinement, {
+              compositionId,
+              isRefined: compositionData?.isRefined,
+              hasRefinementProducts: !!compositionData?.refinementProducts,
+            });
+          }
+        } catch (e) {
+          console.warn("[registerFavoriteLook] Erro ao verificar se é refinamento:", e);
         }
-      } catch (e) {
-        console.warn("[registerFavoriteLook] Erro ao verificar se é refinamento:", e);
       }
+    }
+    
+    // Log final
+    if (isRefinement) {
+      console.log("[registerFavoriteLook] ✅ Composição identificada como refinamento (adicionar acessório)");
     }
     
     // Verificar se já existe um favorito com a mesma imagemUrl ou compositionId
