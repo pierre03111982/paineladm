@@ -248,10 +248,13 @@ export async function registerFavoriteLook(params: {
     throw error;
   }
 
-  // Validar se imagemUrl está presente (obrigatório para favoritos)
+  // Validar se imagemUrl está presente e é uma URL válida (não blob)
   if (!imagemUrl || imagemUrl.trim() === "") {
     console.warn("[registerFavoriteLook] AVISO: imagemUrl vazio ou ausente. Favorito será salvo mesmo assim para contabilização.");
     // Não bloquear, mas avisar
+  } else if (imagemUrl.startsWith('blob:')) {
+    console.error("[registerFavoriteLook] ERRO: imagemUrl é uma URL blob (temporária). URLs blob não podem ser salvas como favoritos.");
+    throw new Error("imagemUrl não pode ser uma URL blob. A imagem precisa ser salva no servidor antes de adicionar aos favoritos.");
   }
 
   try {
@@ -484,6 +487,13 @@ export async function fetchFavoriteLooks(params: {
       const hasImage = data?.imagemUrl && data.imagemUrl.trim() !== "";
       if (!hasImage) {
         console.log("[fetchFavoriteLooks] Ignorando favorito sem imagemUrl:", doc.id);
+        return;
+      }
+      
+      // IMPORTANTE: Ignorar favoritos com URLs blob (temporárias) que não funcionam
+      const isBlobUrl = data?.imagemUrl && data.imagemUrl.startsWith('blob:');
+      if (isBlobUrl) {
+        console.log("[fetchFavoriteLooks] Ignorando favorito com URL blob (temporária):", doc.id, data.imagemUrl.substring(0, 50));
         return;
       }
       
