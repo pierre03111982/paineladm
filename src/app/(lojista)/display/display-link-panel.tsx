@@ -84,7 +84,11 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
     "idle"
   );
 
-  const displayUrl = useMemo(() => resolveDisplayUrl(lojistaId ?? null, panelBaseUrl), [
+  const displayUrl = useMemo(() => {
+    const url = resolveDisplayUrl(lojistaId ?? null, panelBaseUrl);
+    console.log("[DisplayLinkPanel] URL gerada:", url.toString());
+    return url;
+  }, [
     lojistaId,
     panelBaseUrl,
   ]);
@@ -92,8 +96,11 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
   useEffect(() => {
     let active = true;
     setLoading(true);
+    
+    const urlString = displayUrl.toString();
+    console.log("[DisplayLinkPanel] Gerando QR code para URL:", urlString);
 
-    QRCode.toDataURL(displayUrl.toString(), {
+    QRCode.toDataURL(urlString, {
       errorCorrectionLevel: "L",
       width: 448,
       margin: 2,

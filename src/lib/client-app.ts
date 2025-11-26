@@ -57,8 +57,9 @@ export function buildClientAppDisplayUrl(
   targetDisplayId?: string | null
 ): string {
   // Verificar se está em desenvolvimento (client-side e server-side)
+  // No servidor, verificar NODE_ENV; no cliente, verificar hostname
   const isDev = 
-    process.env.NODE_ENV === "development" ||
+    (typeof window === "undefined" && process.env.NODE_ENV === "development") ||
     (typeof window !== "undefined" && window.location.hostname === "localhost");
   
   let baseUrl: string;
@@ -69,13 +70,24 @@ export function buildClientAppDisplayUrl(
   
   // Em desenvolvimento, usar localhost com porta do modelo-2
   if (isDev) {
-    const port = process.env.NEXT_PUBLIC_MODELO2_PORT || "3005";
+    const port = process.env.NEXT_PUBLIC_MODELO2_PORT || process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005";
     baseUrl = `http://localhost:${port}`;
   } else {
     // Em produção, SEMPRE usar subdomínio de display
     // Se não tiver variável, usar o padrão
     const protocol = process.env.NEXT_PUBLIC_DISPLAY_PROTOCOL || "https";
     baseUrl = `${protocol}://${displayDomain}`;
+  }
+  
+  // Log para debug (apenas em desenvolvimento)
+  if (isDev) {
+    console.log("[buildClientAppDisplayUrl] Ambiente:", {
+      isDev,
+      displayDomain,
+      baseUrl,
+      lojistaId,
+      targetDisplayId
+    });
   }
 
   // Construir path
