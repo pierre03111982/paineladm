@@ -8,9 +8,85 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGeminiFlashImageService } from "@/lib/ai-services/gemini-flash-image";
 import { logAPICost } from "@/lib/ai-services/cost-logger";
-import { getAdminDb } from "@/lib/firebaseAdmin";
+import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
+import { randomUUID } from "crypto";
 
 const db = getAdminDb();
+const storage = (() => {
+  try {
+    return getAdminStorage();
+  } catch (error) {
+    console.warn("[RefineTryOn] Storage indisponível:", error);
+    return null;
+  }
+})();
+const bucket =
+  storage && process.env.FIREBASE_STORAGE_BUCKET
+    ? storage.bucket(process.env.FIREBASE_STORAGE_BUCKET)
+    : null;
+
+/**
+ * Salva imagem base64 no Firebase Storage e retorna URL pública
+ */
+async function saveBase64ImageToStorage(
+  base64DataUrl: string,
+  lojistaId: string,
+  customerId: string
+): Promise<string> {
+  if (!bucket) {
+    throw new Error("Firebase Storage não configurado");
+  }
+
+  try {
+    // Extrair base64 do data URL (data:image/png;base64,...)
+    const base64Match = base64DataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!base64Match) {
+      throw new Error("Formato de imagem base64 inválido");
+    }
+
+    const imageType = base64Match[1] || "png";
+    const base64Data = base64Match[2];
+
+    // Converter base64 para Buffer
+    const buffer = Buffer.from(base64Data, "base64");
+
+    // Criar caminho único para o arquivo
+    const timestamp = Date.now();
+    const fileExtension = imageType === "jpeg" ? "jpg" : imageType;
+    const fileName = `composicoes/${lojistaId}/${customerId}/refined-${timestamp}-${randomUUID()}.${fileExtension}`;
+    const token = randomUUID();
+
+    // Fazer upload para Firebase Storage
+    const file = bucket.file(fileName);
+    await file.save(buffer, {
+      metadata: {
+        contentType: `image/${imageType}`,
+        metadata: {
+          firebaseStorageDownloadTokens: token,
+        },
+      },
+      resumable: false,
+    });
+
+    // Tornar o arquivo público
+    await file.makePublic();
+
+    // Gerar URL pública (formato correto do Firebase Storage)
+    const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
+      fileName
+    )}?alt=media&token=${token}`;
+
+    console.log("[RefineTryOn] Imagem salva no Storage:", {
+      fileName,
+      publicUrl: publicUrl.substring(0, 100) + "...",
+    });
+
+    return publicUrl;
+  } catch (error) {
+    console.error("[RefineTryOn] Erro ao salvar imagem no Storage:", error);
+    throw error;
+  }
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -116,8 +192,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const refinedImageUrl = geminiResult.data.imageUrl;
+    let refinedImageUrl = geminiResult.data.imageUrl;
     const cost = geminiResult.cost || 0;
+
+    // Se a imagem vier em base64 (data:image/png;base64,...), salvar no Firebase Storage
+    if (refinedImageUrl.startsWith("data:image/")) {
+      console.log("[RefineTryOn] Convertendo imagem base64 para Firebase Storage...");
+      try {
+        refinedImageUrl = await saveBase64ImageToStorage(
+          refinedImageUrl,
+          lojistaId,
+          customerId || "anonymous"
+        );
+        console.log("[RefineTryOn] Imagem salva no Firebase Storage:", refinedImageUrl.substring(0, 100) + "...");
+      } catch (storageError) {
+        console.error("[RefineTryOn] Erro ao salvar imagem no Storage:", storageError);
+        // Se falhar, retornar erro pois blob URLs não funcionam no servidor
+        return NextResponse.json(
+          {
+            error: "Erro ao salvar imagem refinada",
+            details: storageError instanceof Error ? storageError.message : "Erro desconhecido ao salvar no Storage",
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     // Calcular custo reduzido (50% do custo de uma geração completa)
     // O custo já vem do Gemini, então vamos usar metade dele para o refinamento
@@ -127,6 +226,7 @@ export async function POST(request: NextRequest) {
       refinedImageUrl: refinedImageUrl.substring(0, 100) + "...",
       cost: refinementCost,
       originalCost: cost,
+      isBase64: refinedImageUrl.startsWith("data:image/"),
     });
 
     // Log do custo
@@ -145,6 +245,8 @@ export async function POST(request: NextRequest) {
 
     // Criar nova composição na coleção principal "composicoes" para refinamento (adicionar acessório)
     // Esta composição só será contabilizada no radar se tiver like
+    let newCompositionId: string | null = null; // Declarar fora do bloco para usar depois
+    
     if (lojistaId && customerId) {
       try {
         // Buscar dados da composição original se compositionId foi fornecido
@@ -187,7 +289,8 @@ export async function POST(request: NextRequest) {
         };
 
         const newCompositionRef = await db.collection("composicoes").add(newCompositionData);
-        console.log("[RefineTryOn] Nova composição de refinamento criada:", newCompositionRef.id);
+        newCompositionId = newCompositionRef.id; // Salvar o ID imediatamente
+        console.log("[RefineTryOn] Nova composição de refinamento criada:", newCompositionId);
 
         // Atualizar composição original também (se existir) para manter histórico
         if (compositionId) {
@@ -239,27 +342,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Retornar o novo compositionId da composição de refinamento criada
-    let newCompositionId: string | null = null;
-    if (lojistaId && customerId) {
-      try {
-        // Buscar a composição de refinamento recém-criada
-        const compositionsRef = db.collection("composicoes");
-        const recentCompositions = await compositionsRef
-          .where("lojistaId", "==", lojistaId)
-          .where("customerId", "==", customerId)
-          .where("isRefined", "==", true)
-          .orderBy("createdAt", "desc")
-          .limit(1)
-          .get();
-        
-        if (!recentCompositions.empty) {
-          newCompositionId = recentCompositions.docs[0].id;
-          console.log("[RefineTryOn] Novo compositionId de refinamento:", newCompositionId);
-        }
-      } catch (error) {
-        console.error("[RefineTryOn] Erro ao buscar novo compositionId:", error);
-      }
-    }
+    // newCompositionId já foi definido acima quando criamos a composição
+    // Se não foi criado (erro), usar o compositionId original como fallback
+    const finalCompositionId = newCompositionId || compositionId || null;
+    
+    console.log("[RefineTryOn] CompositionId a ser retornado:", {
+      newCompositionId,
+      originalCompositionId: compositionId,
+      finalCompositionId,
+    });
 
     return NextResponse.json({
       success: true,

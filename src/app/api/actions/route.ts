@@ -139,22 +139,53 @@ export async function POST(request: Request) {
     }
 
     // Atualizar composição como curtida ou não curtida
+    // IMPORTANTE: Atualizar tanto na coleção lojas/{lojistaId}/composicoes quanto na coleção principal "composicoes"
     if (compositionId && (action === "like" || action === "dislike")) {
       try {
         const { getAdminDb } = await import("@/lib/firebaseAdmin");
         const db = getAdminDb();
-        const composicaoRef = db
-          .collection("lojas")
-          .doc(lojistaId)
-          .collection("composicoes")
-          .doc(compositionId);
+        
+        // 1. Atualizar na coleção lojas/{lojistaId}/composicoes (se existir)
+        try {
+          const composicaoRef = db
+            .collection("lojas")
+            .doc(lojistaId)
+            .collection("composicoes")
+            .doc(compositionId);
 
-        await composicaoRef.update({
-          curtido: action === "like",
-          liked: action === "like",
-          disliked: action === "dislike",
-          updatedAt: new Date(),
-        });
+          const composicaoDoc = await composicaoRef.get();
+          if (composicaoDoc.exists) {
+            await composicaoRef.update({
+              curtido: action === "like",
+              liked: action === "like",
+              disliked: action === "dislike",
+              updatedAt: new Date(),
+            });
+            console.log("[api/actions] Composição atualizada na coleção lojas/{lojistaId}/composicoes:", compositionId);
+          }
+        } catch (error) {
+          console.warn("[api/actions] Composição não encontrada na coleção lojas/{lojistaId}/composicoes:", compositionId);
+        }
+
+        // 2. Atualizar na coleção principal "composicoes" (para composições de refinamento e outras)
+        try {
+          const mainComposicaoRef = db.collection("composicoes").doc(compositionId);
+          const mainComposicaoDoc = await mainComposicaoRef.get();
+          
+          if (mainComposicaoDoc.exists) {
+            await mainComposicaoRef.update({
+              curtido: action === "like",
+              liked: action === "like",
+              disliked: action === "dislike",
+              updatedAt: new Date(),
+            });
+            console.log("[api/actions] Composição atualizada na coleção principal composicoes:", compositionId);
+          } else {
+            console.warn("[api/actions] Composição não encontrada na coleção principal composicoes:", compositionId);
+          }
+        } catch (error) {
+          console.error("[api/actions] Erro ao atualizar composição na coleção principal:", error);
+        }
 
         // Atualizar estatísticas do cliente também para dislike
         if (action === "dislike" && customerId) {
