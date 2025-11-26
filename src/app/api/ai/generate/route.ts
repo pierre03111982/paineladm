@@ -359,7 +359,8 @@ export async function POST(request: NextRequest) {
     ({ lojistaId, customerId, userImageUrl, productImageUrl, scenePrompts } = body);
     
     // Verificar se é remix (tem scenePrompts)
-    const isRemix = scenePrompts && Array.isArray(scenePrompts) && scenePrompts.length > 0;
+    // Garantir que isRemix seja sempre boolean, nunca null
+    const isRemix: boolean = Boolean(scenePrompts && Array.isArray(scenePrompts) && scenePrompts.length > 0);
 
     // Validação de entrada
     if (!lojistaId || !userImageUrl) {
