@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { PageHeader } from "../components/page-header";
-import { SimulatorFrame } from "../simulador/simulator-frame";
 import { DisplayLinkPanel } from "./display-link-panel";
+import { DisplayPageClient } from "./display-page-client";
 import { buildClientAppDisplayUrl } from "@/lib/client-app";
 
 function resolveDisplayUrl(
@@ -83,7 +83,7 @@ export default async function DisplayPage({ searchParams }: DisplayPageProps) {
 
       <DisplayLinkPanel lojistaId={lojistaId} panelBaseUrl={panelBaseUrl} />
 
-      <SimulatorFrame src={displayUrl.toString()} />
+      <DisplayPageClient lojistaId={lojistaId} displayUrl={displayUrl.toString()} />
     </div>
   );
 }
