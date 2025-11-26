@@ -11,7 +11,10 @@ type AppClienteContentProps = {
 
 // Função para construir URL do app cliente baseado no modelo
 function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" = "1"): string {
-  const isDev = process.env.NODE_ENV === "development";
+  // Detectar ambiente (client-side e server-side)
+  const isDev = 
+    (typeof window === "undefined" && process.env.NODE_ENV === "development") ||
+    (typeof window !== "undefined" && window.location.hostname === "localhost");
   
   // Mapeamento de subdomínios por modelo (PROFISSIONAL)
   // Prioridade: Variável de ambiente > Subdomínio padrão > Fallback localhost
@@ -24,7 +27,7 @@ function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" =
   // Mapeamento de portas por modelo (apenas para desenvolvimento local)
   const portMap: Record<"1" | "2" | "3", string> = {
     "1": process.env.NEXT_PUBLIC_MODELO_1_PORT || "3004",
-    "2": process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005",
+    "2": process.env.NEXT_PUBLIC_MODELO_2_PORT || process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005",
     "3": process.env.NEXT_PUBLIC_MODELO_3_PORT || "3010",
   };
 
@@ -46,6 +49,16 @@ function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" =
     const subdomain = modeloSubdomains[modelo];
     // Garantir que tenha protocolo https
     baseUrl = subdomain.startsWith("http") ? subdomain : `https://${subdomain}`;
+  }
+  
+  // Log para debug (apenas em desenvolvimento)
+  if (isDev) {
+    console.log(`[buildClientAppUrlWithModel] Modelo ${modelo}:`, {
+      isDev,
+      baseUrl,
+      lojistaId,
+      finalUrl: `${baseUrl}/${lojistaId}/login`
+    });
   }
   
   // A URL padrão já inclui o ID e acessa os dados da loja
