@@ -201,7 +201,7 @@ export function CRMTable({ activeClients }: CRMTableProps) {
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-        <div className="overflow-x-auto -mx-3 sm:mx-0">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[640px]">
             <thead className="bg-zinc-800/50 border-b border-zinc-700">
               <tr>
