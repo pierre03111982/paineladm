@@ -377,22 +377,17 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                             {/* Overlay com informações */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                               <div className="absolute bottom-0 left-0 right-0 p-2">
-                                {comp.produtoNome && (
-                                  <p className="text-xs font-medium text-white truncate mb-1">
-                                    {comp.produtoNome}
-                                  </p>
-                                )}
                                 <p className="text-xs text-zinc-300">
                                   {formatCompositionDate(comp.createdAt)}
                                 </p>
                               </div>
                             </div>
                             {/* Informação sempre visível no canto inferior */}
-                            {comp.produtoNome && (
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
-                                <p className="text-xs text-white truncate">{comp.produtoNome}</p>
-                              </div>
-                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-2">
+                              <p className="text-xs text-white">
+                                {formatCompositionDate(comp.createdAt)}
+                              </p>
+                            </div>
                           </div>
                         ))}
                       </div>
