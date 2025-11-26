@@ -558,11 +558,11 @@ export function ProductsTable({
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-3 sm:mx-0">
           <table className="w-full min-w-[1400px] divide-y divide-zinc-800 text-sm">
             <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
-                <th className="px-6 py-3 w-16">
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 w-16">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -582,14 +582,14 @@ export function ProductsTable({
                     )}
                   </button>
                 </th>
-                <th className="px-6 py-3">Produto</th>
-                <th className="px-6 py-3">Categoria</th>
-                <th className="px-6 py-3">Preço</th>
-                <th className="px-6 py-3">Tamanhos</th>
-                <th className="px-6 py-3">Qualidade</th>
-                <th className="px-6 py-3">Sincronização</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Ações</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Produto</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Categoria</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Preço</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Tamanhos</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Qualidade</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Sincronização</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">Status</th>
+                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900/60">

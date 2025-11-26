@@ -201,23 +201,23 @@ export function CRMTable({ activeClients }: CRMTableProps) {
       </div>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto -mx-3 sm:mx-0">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-zinc-800/50 border-b border-zinc-700">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Última Ação
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Composições
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Ação
                 </th>
               </tr>
@@ -231,10 +231,10 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                     className="hover:bg-zinc-800/30 cursor-pointer transition-colors"
                     onClick={() => setSelectedClient(client)}
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         {client.avatar ? (
-                          <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-indigo-500/30">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full overflow-hidden border-2 border-indigo-500/30 shrink-0">
                             <Image
                               src={client.avatar}
                               alt={client.nome}
@@ -244,49 +244,49 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                             />
                           </div>
                         ) : (
-                          <div className="h-10 w-10 rounded-full bg-indigo-500/20 flex items-center justify-center border-2 border-indigo-500/30">
-                            <span className="text-sm font-semibold text-indigo-300">
+                          <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-indigo-500/20 flex items-center justify-center border-2 border-indigo-500/30 shrink-0">
+                            <span className="text-xs sm:text-sm font-semibold text-indigo-300">
                               {getInitials(client.nome)}
                             </span>
                           </div>
                         )}
-                        <div>
-                          <div className="font-medium text-white">{client.nome}</div>
-                          <div className="text-sm text-zinc-400">{client.whatsapp}</div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-white text-sm sm:text-base truncate">{client.nome}</div>
+                          <div className="text-xs sm:text-sm text-zinc-400 truncate">{client.whatsapp}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${status.color}`}
+                        className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium border ${status.color}`}
                       >
                         {status.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-zinc-300">
-                        <Clock className="h-4 w-4 text-zinc-500" />
-                        <span>{formatTimeAgo(client.lastActivity)}</span>
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300">
+                        <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-500 shrink-0" />
+                        <span className="truncate">{formatTimeAgo(client.lastActivity)}</span>
                       </div>
                       {client.lastProductName && (
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-zinc-500 mt-1 truncate">
                           {client.lastProductName}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-zinc-300">
-                        <ImageIcon className="h-4 w-4 text-zinc-500" />
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-300">
+                        <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 text-zinc-500 shrink-0" />
                         <span>{client.compositionCount}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-right">
                       <a
                         href={generateWhatsAppLink(client)}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-300 border border-green-500/50 hover:bg-green-500/30 transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg bg-green-500/20 text-green-300 border border-green-500/50 hover:bg-green-500/30 transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
                       >
                         <MessageCircle className="h-4 w-4" />
                         Chamar no WhatsApp

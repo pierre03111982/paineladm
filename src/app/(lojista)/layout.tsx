@@ -42,8 +42,8 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 p-6 lg:p-10">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 overflow-x-hidden">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-3 p-3 sm:gap-4 sm:p-4 md:gap-6 md:p-6 lg:p-10">
         {/* Sidebar */}
         <aside className="hidden w-64 flex-col rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-6 shadow-[0_25px_80px_-45px_rgba(99,102,241,0.65)] backdrop-blur-xl md:flex">
           <div className="mb-8 space-y-2">
@@ -87,7 +87,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
         {/* Main Content */}
         <div className="flex flex-1 flex-col">
-          <header className="mb-6 rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-5 backdrop-blur-xl">
+          <header className="mb-3 sm:mb-4 md:mb-6 rounded-2xl md:rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-3 sm:p-4 md:p-5 backdrop-blur-xl">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-indigo-300/70">
@@ -129,7 +129,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
             </div>
           </header>
 
-          <main className="flex-1 rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-6 shadow-[0_40px_120px_-60px_rgba(99,102,241,0.65)] backdrop-blur-xl lg:p-8">
+          <main className="flex-1 rounded-2xl md:rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-3 sm:p-4 md:p-6 shadow-[0_40px_120px_-60px_rgba(99,102,241,0.65)] backdrop-blur-xl lg:p-8 overflow-x-hidden">
             {children}
           </main>
         </div>
