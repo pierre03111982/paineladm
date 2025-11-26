@@ -80,14 +80,17 @@ export function buildClientAppDisplayUrl(
 
   // Construir path
   if (!lojistaId) {
-    const url = `${baseUrl}/experimentar`;
-    return targetDisplayId ? `${url}?target_display=${targetDisplayId}` : url;
+    const url = `${baseUrl}/experimentar?display=1`;
+    return targetDisplayId ? `${url}&target_display=${targetDisplayId}` : url;
   }
 
-  // Construir URL completa: https://display.experimenteai.com.br/[lojistaId]/experimentar
+  // Construir URL completa: https://display.experimenteai.com.br/[lojistaId]/experimentar?display=1
   try {
     const url = new URL(baseUrl);
     url.pathname = `/${lojistaId}/experimentar`;
+    
+    // Sempre adicionar display=1 para garantir que mostre a tela do display
+    url.searchParams.set("display", "1");
     
     // Fase 10: Adicionar target_display se fornecido
     if (targetDisplayId) {
@@ -97,9 +100,11 @@ export function buildClientAppDisplayUrl(
     return url.toString();
   } catch (error) {
     console.error("[buildClientAppDisplayUrl] Error creating URL:", error);
-    // Fallback simples
+    // Fallback simples - sempre incluir display=1
     const fallbackUrl = `${baseUrl}/${lojistaId}/experimentar`;
-    return targetDisplayId ? `${fallbackUrl}?target_display=${targetDisplayId}` : fallbackUrl;
+    const separator = fallbackUrl.includes("?") ? "&" : "?";
+    const withDisplay = `${fallbackUrl}${separator}display=1`;
+    return targetDisplayId ? `${withDisplay}&target_display=${targetDisplayId}` : withDisplay;
   }
 }
 

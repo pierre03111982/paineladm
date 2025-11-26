@@ -94,11 +94,11 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
     setLoading(true);
 
     QRCode.toDataURL(displayUrl.toString(), {
-      errorCorrectionLevel: "H",
+      errorCorrectionLevel: "L",
       width: 448,
       margin: 2,
       color: {
-        dark: "#22d3ee",
+        dark: "#000000",
         light: "#ffffff",
       },
     })
@@ -186,7 +186,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
         { maxWidth: pageWidth - margin * 2 - imageSize - 12 }
       );
 
-      pdf.setTextColor("#22d3ee");
+      pdf.setTextColor("#000000");
       pdf.text(
         displayUrl.toString(),
         margin + imageSize + 12,
