@@ -50,7 +50,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   const orders = ordersSnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  }));
+  })) as any[];
 
   // Calcular estatísticas
   const stats = {
@@ -73,4 +73,5 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
     </div>
   );
 }
+
 
