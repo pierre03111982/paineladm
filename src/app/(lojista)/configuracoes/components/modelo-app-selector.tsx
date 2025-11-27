@@ -84,13 +84,13 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-semibold text-white mb-2">Modelo do App Cliente</h3>
-        <p className="text-sm text-zinc-400">
+        <h3 className="text-lg font-semibold text-slate-900 mb-2">Modelo do App Cliente</h3>
+        <p className="text-sm text-slate-600">
           Escolha qual layout do aplicativo cliente será usado para sua loja.
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr,auto] gap-8 items-start relative">
+      <div className="flex flex-col lg:grid lg:grid-cols-[1fr,auto] gap-8 items-start relative">
         
         {/* Coluna Esquerda: Lista de Modelos */}
         <div className="space-y-4 flex-1">
@@ -105,8 +105,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                   relative flex items-start gap-4 rounded-xl border-2 p-4 cursor-pointer transition-all
                   ${
                     isSelected
-                      ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/20"
-                      : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600 hover:bg-zinc-900/80"
+                      ? "border-indigo-500 bg-indigo-50 shadow-lg shadow-indigo-500/20"
+                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                   }
                 `}
               >
@@ -116,8 +116,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                     flex h-6 w-6 items-center justify-center rounded-full border-2 mt-0.5 flex-shrink-0 transition-colors
                     ${
                       isSelected
-                        ? "border-purple-500 bg-purple-500"
-                        : "border-zinc-600 bg-transparent"
+                        ? "border-indigo-500 bg-indigo-500"
+                        : "border-gray-300 bg-transparent"
                     }
                   `}
                 >
@@ -126,12 +126,12 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-4">
-                    <h4 className={`text-base font-semibold ${isSelected ? "text-white" : "text-zinc-300"}`}>
+                    <h4 className={`text-base font-semibold ${isSelected ? "text-indigo-900" : "text-slate-900"}`}>
                       {modelo.nome}
                     </h4>
                     <div className="flex items-center gap-2">
                       {isSelected && (
-                        <span className="text-xs font-medium text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
                           Ativo
                         </span>
                       )}
@@ -146,7 +146,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
                     {modelo.descricao}
                   </p>
                 </div>
@@ -154,8 +154,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
             );
           })}
 
-          <div className="mt-6 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
-             <p className="text-xs text-yellow-200/90 leading-relaxed">
+          <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+             <p className="text-xs text-yellow-800 leading-relaxed">
                <strong>Dica:</strong> Ao trocar o modelo aqui, os novos clientes receberão o link atualizado. 
                Clientes antigos que já têm o link continuarão acessando o modelo anterior até receberem um novo link.
              </p>
@@ -164,17 +164,17 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
 
         {/* Coluna Direita: Preview do Celular Android 6.67" */}
         <div className="flex flex-col items-center relative">
-          <h4 className="text-sm font-medium text-zinc-400 mb-4 flex items-center gap-2 uppercase tracking-wider text-[10px]">
+          <h4 className="text-sm font-medium text-slate-500 mb-4 flex items-center gap-2 uppercase tracking-wider text-[10px]">
             <Smartphone className="h-3 w-3" />
             Android Preview (6.67")
           </h4>
           
           {/* Frame de Celular Android */}
-          <div className="relative w-[340px] h-[720px] bg-zinc-950 rounded-[2.5rem] shadow-2xl border-[6px] border-zinc-800 ring-1 ring-white/10 flex flex-col overflow-hidden group">
+          <div className="relative w-full max-w-[340px] h-[720px] bg-gray-900 rounded-[2.5rem] shadow-2xl border-[6px] border-gray-800 ring-1 ring-gray-700/10 flex flex-col overflow-hidden group mx-auto">
             
             {/* Botões Laterais (Volume/Power) */}
-            <div className="absolute -right-[8px] top-24 h-12 w-[4px] bg-zinc-700 rounded-r-md"></div>
-            <div className="absolute -right-[8px] top-40 h-20 w-[4px] bg-zinc-700 rounded-r-md"></div>
+            <div className="absolute -right-[8px] top-24 h-12 w-[4px] bg-gray-700 rounded-r-md"></div>
+            <div className="absolute -right-[8px] top-40 h-20 w-[4px] bg-gray-700 rounded-r-md"></div>
 
             {/* Status Bar Android */}
             <div className="h-8 bg-black w-full flex items-center justify-between px-6 text-white z-20 select-none shrink-0">
@@ -187,7 +187,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
             </div>
 
             {/* Câmera "Punch Hole" */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full z-30 border border-zinc-800/50"></div>
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-black rounded-full z-30 border border-gray-800/50"></div>
             
             {/* Setas de Navegação Sobrepostas */}
             <button 
@@ -205,7 +205,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
             </button>
 
             {/* Tela (Iframe) */}
-            <div className="flex-1 w-full relative bg-zinc-900 overflow-hidden">
+            <div className="flex-1 w-full relative bg-gray-900 overflow-hidden">
               {previewUrl ? (
                 <iframe
                   src={previewUrl}
@@ -219,7 +219,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                   }}
                 />
               ) : (
-                <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
+                <div className="flex items-center justify-center h-full text-gray-400 text-xs">
                   Carregando preview...
                 </div>
               )}
@@ -239,7 +239,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                 href={previewUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="absolute top-4 right-4 z-30 bg-zinc-900/90 p-1.5 rounded-full text-white hover:bg-purple-600 transition-colors backdrop-blur-md border border-white/10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute top-4 right-4 z-30 bg-gray-900/90 p-1.5 rounded-full text-white hover:bg-indigo-600 transition-colors backdrop-blur-md border border-white/10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Abrir em nova aba"
               >
                 <ExternalLink className="h-3 w-3" />
@@ -249,11 +249,11 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
 
             {/* Android Navigation Bar */}
             <div className="h-5 bg-black w-full flex items-center justify-center shrink-0 z-20">
-                <div className="w-32 h-1 bg-zinc-600 rounded-full"></div>
+                <div className="w-32 h-1 bg-gray-600 rounded-full"></div>
             </div>
           </div>
           
-          <p className="mt-4 text-[10px] text-zinc-500 text-center max-w-[250px] uppercase tracking-widest">
+          <p className="mt-4 text-[10px] text-slate-500 text-center max-w-[250px] uppercase tracking-widest">
             Visualização simulada
           </p>
         </div>

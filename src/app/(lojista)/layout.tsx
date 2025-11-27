@@ -52,7 +52,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
         initials={initials}
       />
 
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {/* Desktop Sidebar - Hidden on mobile */}
         <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-8 space-y-3">

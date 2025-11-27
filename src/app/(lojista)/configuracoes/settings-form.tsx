@@ -279,7 +279,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Logo da Loja */}
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
         <div className="flex items-start gap-6">
           <div className="flex-shrink-0">
             {logoPreview ? (
@@ -287,7 +287,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 <img
                   src={logoPreview}
                   alt="Logo da loja"
-                  className="h-24 w-24 rounded-xl object-cover border border-zinc-800/60"
+                  className="h-24 w-24 rounded-xl object-cover border border-gray-200"
                 />
                 <button
                   type="button"
@@ -298,14 +298,14 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 </button>
               </div>
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-900/50">
-                <ImageIcon className="h-8 w-8 text-zinc-500" />
+              <div className="flex h-24 w-24 items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50">
+                <ImageIcon className="h-8 w-8 text-gray-400" />
               </div>
             )}
           </div>
           <div className="flex-1 space-y-2">
-            <h3 className="text-lg font-semibold text-white">Logo da Loja</h3>
-            <p className="text-sm text-zinc-400">
+            <h3 className="text-lg font-semibold text-slate-900">Logo da Loja</h3>
+            <p className="text-sm text-slate-600">
               O logo aparece no provador virtual e no simulador. Use uma imagem quadrada (recomendado: 512x512px).
             </p>
             <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               />
               <label
                 htmlFor="logo-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-gray-50 transition-colors"
               >
                 {isUploadingLogo ? (
                   <>
@@ -339,7 +339,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Modelo do App Cliente - NOVO COMPONENTE */}
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
         <ModeloAppSelector 
             modeloAtual={formData.appModel} 
             lojistaId={lojistaId} 
@@ -348,25 +348,25 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Informações Básicas */}
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">Informações Básicas</h3>
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold text-slate-900">Informações Básicas</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Nome da Loja *
             </label>
             <input
               type="text"
               value={formData.nome}
               onChange={(e) => handleNomeChange(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
               placeholder="Ex: Pierre Loja"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Descrição
             </label>
             <textarea
@@ -374,7 +374,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               onChange={(e) =>
                 setFormData({ ...formData, descricao: e.target.value })
               }
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors resize-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors resize-none"
               rows={3}
               placeholder="Descreva sua loja em poucas palavras..."
             />
@@ -383,24 +383,24 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Redes Sociais e Desconto */}
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">Redes Sociais e Desconto</h3>
-        <p className="mb-4 text-sm text-zinc-400">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold text-slate-900">Redes Sociais e Desconto</h3>
+        <p className="mb-4 text-sm text-slate-600">
           Configure suas redes sociais e defina um desconto para clientes que seguirem sua loja.
         </p>
         
-        <div className="mb-6 rounded-lg border border-purple-500/30 bg-purple-500/5 p-4">
-          <p className="text-sm text-purple-100">
+        <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+          <p className="text-sm text-indigo-900">
             O desconto por seguir suas redes agora é configurado na tela <span className="font-semibold">Produtos &gt; Inventário</span>.
             Lá você escolhe rapidamente entre 1% e 20% ou define outro valor para aplicar automaticamente em todo o catálogo.
           </p>
-          <p className="mt-2 text-xs text-purple-200">
+          <p className="mt-2 text-xs text-indigo-700">
             Precisa de um incentivo maior para um item específico? Abra o produto e use o campo <span className="font-semibold">Desconto Especial</span>.
           </p>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-zinc-300 mb-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <Instagram className="h-4 w-4" />
               Instagram
             </label>
@@ -410,13 +410,13 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               onChange={(e) =>
                 setFormData({ ...formData, instagram: e.target.value })
               }
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
               placeholder="@sualoja ou https://instagram.com/sualoja"
             />
           </div>
 
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-zinc-300 mb-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <Facebook className="h-4 w-4" />
               Facebook
             </label>
@@ -426,13 +426,13 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               onChange={(e) =>
                 setFormData({ ...formData, facebook: e.target.value })
               }
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
               placeholder="@sualoja ou https://facebook.com/sualoja"
             />
           </div>
 
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-zinc-300 mb-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <MessageCircle className="h-4 w-4" />
               TikTok
             </label>
@@ -442,7 +442,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               onChange={(e) =>
                 setFormData({ ...formData, tiktok: e.target.value })
               }
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
               placeholder="@sualoja ou https://tiktok.com/@sualoja"
             />
           </div>
@@ -450,14 +450,14 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Configurações de Venda */}
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
-        <h3 className="mb-4 text-lg font-semibold text-white">Configurações de Venda</h3>
-        <p className="mb-4 text-sm text-zinc-400">
+      <div className="rounded-xl border border-gray-200 bg-white p-6">
+        <h3 className="mb-4 text-lg font-semibold text-slate-900">Configurações de Venda</h3>
+        <p className="mb-4 text-sm text-slate-600">
           Defina como os clientes vão comprar os produtos no provador virtual.
         </p>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
               Canal de Venda
             </label>
             <select
@@ -468,7 +468,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                   salesChannel: e.target.value as "checkout" | "whatsapp",
                 })
               }
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
             >
               <option value="whatsapp">WhatsApp</option>
               <option value="checkout">Link de Checkout/E-commerce</option>
@@ -477,7 +477,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
 
           {formData.salesChannel === "whatsapp" && (
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-zinc-300 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                 <MessageCircle className="h-4 w-4" />
                 WhatsApp para Vendas *
               </label>
@@ -485,11 +485,11 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 type="text"
                 value={formData.salesWhatsapp}
                 onChange={(e) => handleSalesWhatsappChange(e.target.value)}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
                 placeholder="(11) 99999-9999"
                 required={formData.salesChannel === "whatsapp"}
               />
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Número usado no botão "Comprar agora" do provador virtual
               </p>
             </div>
@@ -497,7 +497,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
 
           {formData.salesChannel === "whatsapp" && (
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Template da Mensagem de Venda
               </label>
               <textarea
@@ -505,19 +505,19 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 onChange={(e) =>
                   setFormData({ ...formData, whatsappMessageTemplate: e.target.value })
                 }
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors resize-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors resize-none"
                 rows={4}
                 placeholder="Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}"
               />
-              <p className="mt-1 text-xs text-zinc-500">
-                Use <code className="bg-zinc-800 px-1 rounded">{"{{link}}"}</code> para incluir o link do produto automaticamente. Esta mensagem será enviada quando o cliente clicar em "Comprar agora".
+              <p className="mt-1 text-xs text-slate-500">
+                Use <code className="bg-gray-100 px-1 rounded text-slate-900">{"{{link}}"}</code> para incluir o link do produto automaticamente. Esta mensagem será enviada quando o cliente clicar em "Comprar agora".
               </p>
             </div>
           )}
 
           {formData.salesChannel === "checkout" && (
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-zinc-300 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                 <ShoppingCart className="h-4 w-4" />
                 Link de Checkout/E-commerce *
               </label>
@@ -527,11 +527,11 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 onChange={(e) =>
                   setFormData({ ...formData, checkoutLink: e.target.value })
                 }
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-2.5 text-white placeholder-zinc-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-colors"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
                 placeholder="https://sualoja.com/produto ou https://checkout.sualoja.com"
                 required={formData.salesChannel === "checkout"}
               />
-              <p className="mt-1 text-xs text-zinc-500">
+              <p className="mt-1 text-xs text-slate-500">
                 Link usado no botão "Comprar agora" do provador virtual
               </p>
             </div>
@@ -544,7 +544,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         <Button
           type="submit"
           disabled={isLoading}
-          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg shadow-purple-500/20"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-lg transition-all shadow-lg shadow-indigo-500/20"
         >
           {isLoading ? (
             <>
