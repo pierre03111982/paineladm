@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Package,
   CheckCircle,
@@ -316,7 +316,7 @@ function OrderCard({
   onView,
 }: {
   order: Order;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: string) => React.ReactElement;
   formatDate: (date: any) => string;
   onView: () => void;
 }) {
@@ -378,7 +378,7 @@ function OrderDetailModal({
 }: {
   order: Order;
   onClose: () => void;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: string) => React.ReactElement;
   formatDate: (date: any) => string;
 }) {
   return (
