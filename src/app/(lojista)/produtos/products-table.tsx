@@ -6,6 +6,121 @@ import type { ProdutoDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
 
+// ProductGridCard Component - Responsive Grid Card
+function ProductGridCard({
+  produto,
+  selectedProducts,
+  toggleProductSelection,
+  handleArchive,
+  setViewingProduto,
+  setEditingProduto,
+  handleDelete,
+  isAdminView,
+  loading,
+}: {
+  produto: ProdutoDoc;
+  selectedProducts: Set<string>;
+  toggleProductSelection: (id: string) => void;
+  handleArchive: (produto: ProdutoDoc, archive: boolean) => Promise<void>;
+  setViewingProduto: (produto: ProdutoDoc | null) => void;
+  setEditingProduto: (produto: ProdutoDoc | null) => void;
+  handleDelete: (produto: ProdutoDoc) => Promise<void>;
+  isAdminView: boolean;
+  loading: boolean;
+}) {
+  const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
+
+  return (
+    <div className="group relative rounded-lg border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all">
+      {/* Status Badge - Top Right Overlay */}
+      <div className="absolute top-2 right-2 z-10">
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
+            produto.arquivado
+              ? "bg-gray-100 text-gray-600 border border-gray-200"
+              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+          }`}
+        >
+          {produto.arquivado ? "Arquivado" : "Ativo"}
+        </span>
+      </div>
+
+      {/* Checkbox - Top Left */}
+      <button
+        onClick={() => !loading && toggleProductSelection(produto.id)}
+        disabled={loading}
+        className="absolute top-2 left-2 z-10 p-1 rounded bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm hover:bg-white transition"
+      >
+        {selectedProducts.has(produto.id) ? (
+          <CheckSquare className="h-4 w-4 text-indigo-600" />
+        ) : (
+          <Square className="h-4 w-4 text-gray-400" />
+        )}
+      </button>
+
+      {/* Product Image - Hero */}
+      <div className="aspect-square w-full overflow-hidden bg-gray-100">
+        {imagemPrincipal ? (
+          <img
+            src={imagemPrincipal}
+            alt={produto.nome}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center bg-gray-50">
+            <Package className="h-12 w-12 text-gray-300" />
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4 space-y-3">
+        <div>
+          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 min-h-[2.5rem]">
+            {produto.nome}
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">ID {produto.id.slice(0, 6)}</p>
+        </div>
+
+        <div className="space-y-1.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Categoria:</span>
+            <span className="text-gray-900 font-medium">{produto.categoria}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Preço:</span>
+            <span className="text-lg font-bold text-gray-900">R$ {produto.preco.toFixed(2)}</span>
+          </div>
+          {produto.tamanhos && produto.tamanhos.length > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Tamanhos:</span>
+              <span className="text-gray-900 font-medium">{produto.tamanhos.join(", ")}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+          <button
+            onClick={() => setViewingProduto(produto)}
+            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Ver
+          </button>
+          <button
+            onClick={() => setEditingProduto(produto)}
+            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-2 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+          >
+            <Edit className="h-3.5 w-3.5" />
+            Editar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type ProductsTableProps = {
   initialProdutos: ProdutoDoc[];
   lojistaId: string;
@@ -409,28 +524,28 @@ export function ProductsTable({
 
   return (
     <>
-      <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40">
-        <div className="flex flex-col gap-3 border-b border-zinc-800/60 px-6 py-4 md:flex-row md:items-center md:justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-3">
-            <div className="text-xs text-zinc-500">
+            <div className="text-sm text-gray-600">
               {searchTerm.trim() || categoryFilter !== "all"
                 ? `${filteredProdutos.length} produto(s) encontrado(s).`
                 : `${produtos.length} produto(s) cadastrado(s).`}
             </div>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
                   type="checkbox"
                   checked={showArchived}
                   onChange={(e) => setShowArchived(e.target.checked)}
-                  className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 accent-indigo-500"
+                  className="h-4 w-4 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-500"
                 />
                 Mostrar arquivados
               </label>
             </div>
             {selectedProducts.size > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold text-indigo-300 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-semibold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">
                   {selectedProducts.size} selecionado(s)
                 </span>
                 <button
@@ -442,30 +557,30 @@ export function ProductsTable({
                     }
                   }}
                   disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-lg border-2 border-red-500/60 bg-red-600/20 px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:border-red-400 hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-500/10 active:scale-95"
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-400 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="h-4 w-4" />
-                  {loading ? "Excluindo..." : `Excluir selecionados (${selectedProducts.size})`}
+                  {loading ? "Excluindo..." : `Excluir (${selectedProducts.size})`}
                 </button>
               </div>
             )}
           </div>
-          <div className="flex w-full gap-2 md:w-auto md:flex-row">
-            <div className="relative flex-1 md:w-72">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar por nome, categoria..."
-                className="w-full rounded-lg border border-zinc-700/60 bg-zinc-900/60 pl-10 pr-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none focus:ring-0"
+                className="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-zinc-500" />
+              <Filter className="h-4 w-4 text-gray-400" />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-200 focus:border-indigo-400 focus:outline-none"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">Todas</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -479,26 +594,26 @@ export function ProductsTable({
         </div>
 
       {/* Controle de desconto global */}
-      <div className="mx-6 mt-4 rounded-2xl border border-indigo-500/40 bg-indigo-500/10 p-4">
+      <div className="mx-4 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 sm:mx-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-white">Desconto Redes Sociais</p>
-            <p className="text-xs text-indigo-100/80">
+            <p className="text-sm font-semibold text-indigo-900">Desconto Redes Sociais</p>
+            <p className="text-xs text-indigo-700">
               Quando o cliente seguir suas redes, este percentual será aplicado em todos os produtos automaticamente.
             </p>
-            <p className="text-[11px] text-indigo-200/80">
+            <p className="text-[11px] text-indigo-600">
               Use o campo <span className="font-semibold">Desconto Especial</span> dentro do formulário do produto para bonificar itens específicos.
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end md:w-auto">
             <div className="w-full sm:w-48">
-              <label className="block text-[11px] font-medium uppercase tracking-wide text-indigo-100 mb-1">
+              <label className="block text-xs font-medium text-indigo-900 mb-1">
                 Percentual padrão
               </label>
               <select
                 value={selectedDiscountOption}
                 onChange={(e) => handleDiscountSelection(e.target.value)}
-                className="w-full rounded-lg border border-indigo-500/50 bg-indigo-800/50 px-3 py-2 text-sm text-white focus:border-white focus:outline-none"
+                className="w-full rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 disabled={isUpdatingGlobalDiscount}
               >
                 <option value="0">Sem desconto</option>
@@ -513,7 +628,7 @@ export function ProductsTable({
             {selectedDiscountOption === "custom" && (
               <div className="flex flex-1 items-end gap-2">
                 <div className="w-full">
-                  <label className="block text-[11px] font-medium uppercase tracking-wide text-indigo-100 mb-1">
+                  <label className="block text-xs font-medium text-indigo-900 mb-1">
                     Informe o percentual
                   </label>
                   <input
@@ -523,7 +638,7 @@ export function ProductsTable({
                     step={0.1}
                     value={customDiscount}
                     onChange={(e) => setCustomDiscount(e.target.value)}
-                    className="w-full rounded-lg border border-indigo-500/50 bg-indigo-800/50 px-3 py-2 text-sm text-white focus:border-white focus:outline-none"
+                    className="w-full rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     placeholder="Ex: 25"
                   />
                 </div>
@@ -531,16 +646,16 @@ export function ProductsTable({
                   type="button"
                   onClick={handleApplyCustomDiscount}
                   disabled={isUpdatingGlobalDiscount}
-                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:opacity-50"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
                 >
                   {isUpdatingGlobalDiscount ? "Aplicando..." : "Aplicar"}
                 </button>
               </div>
             )}
             {selectedDiscountOption !== "custom" && (
-              <div className="rounded-xl border border-indigo-400/40 bg-indigo-400/10 px-4 py-2 text-center">
-                <p className="text-xs text-indigo-100">Atual</p>
-                <p className="text-base font-bold text-white">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
+              <div className="rounded-lg border border-indigo-300 bg-white px-4 py-2 text-center">
+                <p className="text-xs text-gray-600">Atual</p>
+                <p className="text-base font-bold text-indigo-900">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
               </div>
             )}
           </div>
@@ -548,256 +663,50 @@ export function ProductsTable({
       </div>
 
         {error && (
-          <div className="mx-6 mt-4 rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mx-4 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6">
             {error}
           </div>
         )}
         {success && (
-          <div className="mx-6 mt-4 rounded-lg border border-emerald-500/60 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <div className="mx-4 mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 sm:mx-6">
             {success}
           </div>
         )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1400px] divide-y divide-zinc-800 text-sm">
-            <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
-              <tr>
-                <th className="px-6 py-3 w-16">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      if (!loading && filteredProdutos.length > 0) {
-                        handleSelectAll();
-                      }
-                    }}
-                    className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-indigo-400/30"
-                    title={selectedProducts.size === filteredProdutos.length && filteredProdutos.length > 0 ? "Desselecionar todos" : "Selecionar todos"}
-                    disabled={filteredProdutos.length === 0 || loading}
-                  >
-                    {selectedProducts.size === filteredProdutos.length && filteredProdutos.length > 0 ? (
-                      <CheckSquare className="h-6 w-6 text-indigo-400" />
-                    ) : (
-                      <Square className="h-6 w-6 text-zinc-500 hover:text-indigo-400 transition" />
-                    )}
-                  </button>
-                </th>
-                <th className="px-6 py-3">Produto</th>
-                <th className="px-6 py-3">Categoria</th>
-                <th className="px-6 py-3">Preço</th>
-                <th className="px-6 py-3">Tamanhos</th>
-                <th className="px-6 py-3">Qualidade</th>
-                <th className="px-6 py-3">Sincronização</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-900/60">
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
-                    Carregando...
-                  </td>
-                </tr>
-              ) : filteredProdutos.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-6 py-14 text-center text-sm text-zinc-500">
-                    <Package className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
-                    {produtos.length === 0
-                      ? "Nenhum produto cadastrado ainda. Clique em 'Adicionar Produto' para começar."
-                      : "Nenhum produto corresponde aos filtros aplicados."}
-                  </td>
-                </tr>
-              ) : (
-                filteredProdutos.map((produto) => (
-                  <tr key={produto.id} className="hover:bg-zinc-900/40">
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          if (!loading) {
-                            toggleProductSelection(produto.id);
-                          }
-                        }}
-                        className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-zinc-800/50 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-indigo-400/30 active:scale-95"
-                        title={selectedProducts.has(produto.id) ? "Desselecionar" : "Selecionar"}
-                        disabled={loading}
-                      >
-                        {selectedProducts.has(produto.id) ? (
-                          <CheckSquare className="h-6 w-6 text-indigo-400" />
-                        ) : (
-                          <Square className="h-6 w-6 text-zinc-500 hover:text-indigo-400 transition" />
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {(() => {
-                          const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
-                          if (!imagemPrincipal) return null;
-                          return (
-                            <img
-                              src={imagemPrincipal}
-                              alt={produto.nome}
-                              className="h-12 w-12 rounded-lg object-cover"
-                            />
-                          );
-                        })()}
-                        <div>
-                          <p className="font-medium text-zinc-100">{produto.nome}</p>
-                          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
-                            ID {produto.id.slice(0, 6)}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-zinc-300">{produto.categoria}</td>
-                    <td className="px-6 py-4 text-zinc-100">
-                      R$ {produto.preco.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-300">
-                      {produto.tamanhos && produto.tamanhos.length > 0
-                        ? produto.tamanhos.join(", ")
-                        : "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      {produto.qualityMetrics?.compatibilityScore ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-3.5 w-3.5 ${
-                                  star <= Math.round(produto.qualityMetrics!.compatibilityScore!)
-                                    ? "fill-amber-400 text-amber-400"
-                                    : "text-zinc-600"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-xs text-zinc-400">
-                            {produto.qualityMetrics.compatibilityScore.toFixed(1)}/5
-                          </span>
-                          {produto.qualityMetrics.conversionRate !== undefined && (
-                            <span className="text-[10px] text-zinc-500">
-                              ({produto.qualityMetrics.conversionRate.toFixed(1)}%)
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <button
-                          onClick={async () => {
-                            try {
-                              setLoading(true);
-                              const response = await fetch("/api/lojista/products/quality", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ produtoId: produto.id }),
-                              });
-                              if (response.ok) {
-                                // Recarregar produtos
-                                const url = lojistaIdParam 
-                                  ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}`
-                                  : `/api/lojista/products?includeArchived=${showArchived}`;
-                                const res = await fetch(url);
-                                if (res.ok) {
-                                  const data = await res.json();
-                                  const produtosArray = Array.isArray(data) ? data : (data?.produtos || []);
-                                  setProdutos(produtosArray);
-                                }
-                              }
-                            } catch (err) {
-                              console.error("Erro ao atualizar métricas:", err);
-                            } finally {
-                              setLoading(false);
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/60 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-400 transition hover:border-indigo-400/60 hover:text-indigo-200"
-                          title="Calcular métricas de qualidade"
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                          Calcular
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {produto.ecommerceSync ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs text-blue-200">
-                            <Link2 className="h-3 w-3" />
-                            {produto.ecommerceSync.platform === "shopify" ? "Shopify" : 
-                             produto.ecommerceSync.platform === "nuvemshop" ? "Nuvemshop" : 
-                             produto.ecommerceSync.platform}
-                          </span>
-                          {produto.ecommerceSync.lastSyncedAt && (
-                            <span className="text-[10px] text-zinc-500">
-                              {produto.ecommerceSync.lastSyncedAt instanceof Date
-                                ? produto.ecommerceSync.lastSyncedAt.toLocaleDateString("pt-BR")
-                                : new Date(produto.ecommerceSync.lastSyncedAt).toLocaleDateString("pt-BR")}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-zinc-500">Não sincronizado</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                          produto.arquivado
-                            ? "bg-zinc-500/10 text-zinc-400"
-                            : "bg-emerald-500/10 text-emerald-200"
-                        }`}
-                      >
-                        {produto.arquivado ? "Arquivado" : "Ativo"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setViewingProduto(produto)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1 text-indigo-200 transition hover:border-indigo-300/60"
-                          title="Visualizar"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setEditingProduto(produto)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-purple-400/40 bg-purple-500/10 px-3 py-1 text-purple-200 transition hover:border-purple-300/60"
-                          title="Editar"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleArchive(produto, !produto.arquivado)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-amber-200 transition hover:border-amber-300/60"
-                          title={produto.arquivado ? "Desarquivar" : "Arquivar"}
-                        >
-                          {produto.arquivado ? (
-                            <ArchiveRestore className="h-3.5 w-3.5" />
-                          ) : (
-                            <Archive className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                        {isAdminView && (
-                          <button
-                            onClick={() => handleDelete(produto)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-400/40 bg-red-500/10 px-3 py-1 text-red-200 transition hover:border-red-300/60"
-                            title="Excluir"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* Product Grid - Responsive CSS Grid */}
+        <div className="p-4 sm:p-6">
+          {loading ? (
+            <div className="py-14 text-center text-sm text-gray-500">
+              Carregando...
+            </div>
+          ) : filteredProdutos.length === 0 ? (
+            <div className="py-14 text-center text-sm text-gray-500">
+              <Package className="mx-auto mb-4 h-10 w-10 text-gray-400" />
+              {produtos.length === 0
+                ? "Nenhum produto cadastrado ainda. Clique em 'Adicionar Produto' para começar."
+                : "Nenhum produto corresponde aos filtros aplicados."}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {filteredProdutos.map((produto) => (
+                <ProductGridCard
+                  key={produto.id}
+                  produto={produto}
+                  selectedProducts={selectedProducts}
+                  toggleProductSelection={toggleProductSelection}
+                  handleArchive={handleArchive}
+                  setViewingProduto={setViewingProduto}
+                  setEditingProduto={setEditingProduto}
+                  handleDelete={handleDelete}
+                  isAdminView={isAdminView}
+                  loading={loading}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+
+        {/* Grid de Cards é responsivo e funciona em todas as telas (mobile, tablet, desktop) */}
 
       {/* Modal de Visualização */}
       {viewingProduto && (

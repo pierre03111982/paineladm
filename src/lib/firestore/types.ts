@@ -39,7 +39,17 @@ export type ProdutoDoc = {
     complaintRate?: number; // Taxa de reclamações
     lastCalculatedAt?: Date;
   };
+  dimensions?: {
+    weight_kg: number;
+    height_cm: number;
+    width_cm: number;
+    depth_cm: number;
+  };
+  sku?: string;
+  stock_quantity?: number;
 };
+
+export type DislikeReason = "garment_style" | "fit_issue" | "ai_distortion" | "other";
 
 export type ClienteDoc = {
   id: string;
@@ -88,6 +98,7 @@ export type ComposicaoDoc = {
   liked: boolean;
   shares: number;
   isAnonymous: boolean;
+  dislikeReason?: DislikeReason | null;
   metrics?: {
     totalCostBRL?: number;
   } | null;

@@ -2,6 +2,7 @@ import { ConfiguracoesForm } from "./settings-form";
 import { PageHeader } from "../components/page-header";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { SalesSettingsForm } from "@/components/admin/SalesSettingsForm";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Sempre buscar dados atualizados
@@ -33,6 +34,7 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
         description="Configure o perfil da sua loja, redes sociais e opções de venda."
       />
       <ConfiguracoesForm lojistaId={lojistaId} perfil={perfil} />
+      <SalesSettingsForm lojistaId={lojistaId} initialConfig={perfil?.salesConfig} />
     </div>
   );
 }

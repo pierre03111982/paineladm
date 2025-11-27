@@ -41,58 +41,90 @@ async function fetchComposicoes(
     }
 
     // Buscar composições da coleção global, filtrando por lojistaId
-    // Nota: Se houver erro de índice, buscar todas e filtrar/ordenar em memória
-    let snapshot;
+    // Nota: Usar fallback sempre para evitar necessidade de índices compostos
+    // A query com where + where + orderBy requer índice composto no Firestore
+    let snapshot: any = null;
+    
+    // Sempre usar método fallback que busca e ordena em memória
+    // Isso evita necessidade de criar índices compostos no Firestore
     try {
-      // Tentar buscar com where + orderBy (pode precisar de índice composto)
-      const query = composicoesRef
+      console.log("[ComposicoesPage] Buscando composições (método fallback - sem índices)");
+      // Buscar todas as composições do lojista (sem orderBy para evitar necessidade de índice)
+      const allSnapshot = await composicoesRef
         .where("lojistaId", "==", lojistaId)
-        .where("createdAt", ">=", dateLimit)
-        .orderBy("createdAt", "desc")
-        .limit(100);
-      snapshot = await query.get();
-    } catch (error: any) {
-      // Se falhar por falta de índice, buscar com limite e ordenar em memória
-      if (error?.code === "failed-precondition") {
-        console.warn("[ComposicoesPage] Índice não encontrado, buscando com limite e ordenando em memória");
-        // Buscar todas as composições do lojista (sem orderBy para evitar necessidade de índice)
-        const allSnapshot = await composicoesRef
-          .where("lojistaId", "==", lojistaId)
-          .limit(500)
-          .get();
-        const allDocs: any[] = [];
-        allSnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data?.createdAt) {
-            const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
-            // Filtrar por data em memória
-            if (createdAt >= dateLimit) {
-              allDocs.push({ id: doc.id, data, createdAt });
-            }
+        .limit(500)
+        .get();
+      
+      const allDocs: any[] = [];
+      allSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data?.createdAt) {
+          const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+          // Filtrar por data em memória se necessário
+          if (days === 0 || createdAt >= dateLimit) {
+            allDocs.push({ id: doc.id, data, createdAt });
           }
-        });
-        // Ordenar por data em memória
-        allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        snapshot = {
-          forEach: (callback: any) => {
-            allDocs.slice(0, 100).forEach((item) => {
-              callback({
-                id: item.id,
-                data: () => item.data,
-                exists: true,
-              });
+        } else {
+          // Se não tiver createdAt, incluir mesmo assim (com data atual)
+          allDocs.push({ id: doc.id, data, createdAt: new Date() });
+        }
+      });
+      
+      // Ordenar por data em memória (mais recente primeiro)
+      allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      
+      // Criar snapshot mockado
+      snapshot = {
+        forEach: (callback: any) => {
+          allDocs.slice(0, 100).forEach((item) => {
+            callback({
+              id: item.id,
+              data: () => item.data,
+              exists: true,
             });
-          },
-        } as any;
-      } else {
-        throw error;
-      }
+          });
+        },
+        empty: allDocs.length === 0,
+        size: allDocs.length,
+      } as any;
+      
+      console.log(`[ComposicoesPage] ${allDocs.length} composições encontradas (após filtro de data: ${days} dias)`);
+    } catch (error: any) {
+      console.error("[ComposicoesPage] Erro ao buscar composições:", error);
+      // Se falhar, retornar snapshot vazio
+      snapshot = {
+        forEach: () => {},
+        empty: true,
+        size: 0,
+      } as any;
     }
     const allComposicoes: any[] = [];
 
     snapshot.forEach((doc: any) => {
       const data = typeof doc.data === "function" ? doc.data() : doc.data;
-      if (!data) return;
+      if (!data) {
+        console.warn(`[ComposicoesPage] Documento ${doc.id} sem dados`);
+        return;
+      }
+      
+      // Log detalhado para debug (apenas para primeiros 3 documentos)
+      if (allComposicoes.length < 3) {
+        console.log(`[ComposicoesPage] Estrutura de dados do documento ${doc.id}:`, {
+          hasLooks: !!data.looks,
+          looksType: Array.isArray(data.looks) ? 'array' : typeof data.looks,
+          looksLength: Array.isArray(data.looks) ? data.looks.length : 'N/A',
+          hasImagemUrl: !!data.imagemUrl,
+          hasImageUrl: !!data.imageUrl,
+          hasUrl: !!data.url,
+          hasImages: !!data.images,
+          firstLook: data.looks?.[0] ? {
+            hasImagemUrl: !!data.looks[0].imagemUrl,
+            hasImageUrl: !!data.looks[0].imageUrl,
+            hasUrl: !!data.looks[0].url,
+            keys: Object.keys(data.looks[0] || {}),
+          } : null,
+        });
+      }
 
       // Aplicar filtros
       const cliente = searchParams.cliente as string | undefined;
@@ -146,9 +178,39 @@ async function fetchComposicoes(
         if (shares < minShares) return;
       }
 
-      // Pegar o primeiro look (Look Natural) como preview
-      const firstLook = data.looks && data.looks.length > 0 ? data.looks[0] : null;
-      const previewUrl = firstLook?.imagemUrl || null;
+      // Pegar o primeiro look para extrair informações
+      const firstLook = data.looks && Array.isArray(data.looks) && data.looks.length > 0 ? data.looks[0] : null;
+      
+      // Pegar a URL da imagem de múltiplas fontes possíveis
+      let previewUrl: string | null = null;
+      
+      // Tentar múltiplas fontes de imagem
+      if (firstLook) {
+        previewUrl = firstLook?.imagemUrl || firstLook?.imageUrl || firstLook?.url || null;
+      }
+      
+      // Se não encontrou nos looks, tentar campos diretos
+      if (!previewUrl) {
+        previewUrl = data.imagemUrl || data.imageUrl || data.url || null;
+      }
+      
+      // Se ainda não encontrou, tentar no primeiro item de um array de imagens
+      if (!previewUrl && data.images && Array.isArray(data.images) && data.images.length > 0) {
+        const firstImage = data.images[0];
+        previewUrl = firstImage?.imagemUrl || firstImage?.imageUrl || firstImage?.url || null;
+      }
+      
+      // Log para debug (remover em produção se necessário)
+      if (!previewUrl) {
+        console.warn(`[ComposicoesPage] Nenhuma imagem encontrada para composição ${doc.id}`, {
+          hasLooks: !!data.looks,
+          looksLength: data.looks?.length || 0,
+          hasImagemUrl: !!data.imagemUrl,
+          hasImageUrl: !!data.imageUrl,
+          hasUrl: !!data.url,
+          hasImages: !!data.images,
+        });
+      }
 
       // Extrair informações do produto
       const productName = data.primaryProductName || firstLook?.produtoNome || "Produto";
@@ -183,10 +245,10 @@ async function fetchComposicoes(
         status: "concluída",
         palette,
         previewUrl,
-        images: data.looks?.map((look: any) => ({
-          url: look.imagemUrl,
+        images: (data.looks || []).map((look: any) => ({
+          url: look.imagemUrl || look.imageUrl || look.url || null,
           storagePath: null,
-        })) || [],
+        })).filter((img: any) => img.url !== null),
         basePrompt: null,
         enhancedPrompt: null,
         totalCostBRL: data.totalCostBRL || null, // Custo em BRL

@@ -32,13 +32,13 @@ export function LojistaNav({ collapsed }: LojistaNavProps) {
             key={item.href}
             href={href}
             className={cn(
-              "group flex items-center gap-2 md:gap-3 rounded-lg px-2.5 md:px-3 py-1.5 md:py-2 transition hover:bg-indigo-500/10 hover:text-zinc-50",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
               active
-                ? "bg-indigo-500/15 text-zinc-50"
-                : "text-zinc-400 hover:text-zinc-100"
+                ? "bg-indigo-50 text-indigo-600"
+                : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
             )}
           >
-            <Icon className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
+            <Icon className="h-5 w-5 shrink-0" />
             <span className={cn("truncate", collapsed && "md:hidden")}>
               {item.label}
             </span>

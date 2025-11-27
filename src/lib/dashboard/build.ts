@@ -1,4 +1,9 @@
-import { dashboardMockData, DashboardMock } from "../mocks/dashboard";
+import {
+  dashboardMockData,
+  DashboardMock,
+  OpportunityLead,
+  ProductAlert,
+} from "../mocks/dashboard";
 import {
   fetchLojaPerfil,
   fetchProdutos,
@@ -225,6 +230,155 @@ function buildCompositions(composicoes: ComposicaoDoc[]) {
   }));
 }
 
+function buildInitials(name: string | undefined | null) {
+  if (!name) return "CL";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function buildInsight(reason?: string | null, productName?: string | null) {
+  if (!reason) {
+    return productName ? `Interagindo com ${productName}` : "Cliente ativo agora";
+  }
+
+  const productLabel = productName ? ` em ${productName}` : "";
+  switch (reason) {
+    case "fit_issue":
+      return `Sinalizou ajuste de tamanho${productLabel}`;
+    case "garment_style":
+      return `Buscando outro estilo${productLabel}`;
+    case "ai_distortion":
+      return "Solicitou nova geração (imagem estranha)";
+    default:
+      return `Registrou feedback${productLabel}`;
+  }
+}
+
+function buildOpportunityRadar(composicoes: ComposicaoDoc[]): OpportunityLead[] {
+  const cutoff = Date.now() - 2 * 60 * 60 * 1000; // 2 horas
+  const map = new Map<
+    string,
+    { name: string; events: ComposicaoDoc[] }
+  >();
+
+  composicoes.forEach((item) => {
+    if (!item.customer?.id) return;
+    if (item.createdAt.getTime() < cutoff) return;
+
+    const existing = map.get(item.customer.id) || {
+      name: item.customer.nome || "Cliente",
+      events: [],
+    };
+    existing.events.push(item);
+    map.set(item.customer.id, existing);
+  });
+
+  const leads: OpportunityLead[] = [];
+  map.forEach(({ name, events }, customerId) => {
+    if (events.length < 3) return;
+    events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const latest = events[0];
+    const productName = latest.products?.[0]?.nome;
+
+    leads.push({
+      customerId,
+      name,
+      avatarInitials: buildInitials(name),
+      interactions: events.length,
+      lastActivity: formatRelative(latest.createdAt),
+      lastProduct: productName || undefined,
+      insight: buildInsight(latest.dislikeReason, productName),
+      reason: latest.dislikeReason ?? null,
+      lastTimestamp: latest.createdAt.getTime(),
+    });
+  });
+
+  return leads.sort((a, b) => {
+    if (a.lastTimestamp && b.lastTimestamp) {
+      return b.lastTimestamp - a.lastTimestamp;
+    }
+    return b.interactions - a.interactions;
+  });
+}
+
+function buildProductAlerts(composicoes: ComposicaoDoc[]): {
+  fit: ProductAlert[];
+  style: ProductAlert[];
+} {
+  const stats = new Map<
+    string,
+    {
+      name: string;
+      total: number;
+      fit: number;
+      style: number;
+    }
+  >();
+
+  composicoes.forEach((item) => {
+    if (!item.products?.length) return;
+    const product = item.products[0];
+    if (!product.id) return;
+
+    const ref = stats.get(product.id) || {
+      name: product.nome || "Produto",
+      total: 0,
+      fit: 0,
+      style: 0,
+    };
+
+    ref.total += 1;
+    if (item.dislikeReason === "fit_issue") {
+      ref.fit += 1;
+    } else if (item.dislikeReason === "garment_style") {
+      ref.style += 1;
+    }
+
+    stats.set(product.id, ref);
+  });
+
+  const fit: ProductAlert[] = [];
+  const style: ProductAlert[] = [];
+
+  stats.forEach((value, productId) => {
+    if (value.total < 3) return; // evitar ruído
+    const fitPercent = value.fit > 0 ? (value.fit / value.total) * 100 : 0;
+    const stylePercent = value.style > 0 ? (value.style / value.total) * 100 : 0;
+
+    if (fitPercent >= 20) {
+      fit.push({
+        productId,
+        productName: value.name,
+        reason: "fit_issue",
+        percentage: Math.round(fitPercent),
+        totalReports: value.fit,
+        totalInteractions: value.total,
+      });
+    }
+
+    if (stylePercent >= 50) {
+      style.push({
+        productId,
+        productName: value.name,
+        reason: "garment_style",
+        percentage: Math.round(stylePercent),
+        totalReports: value.style,
+        totalInteractions: value.total,
+      });
+    }
+  });
+
+  return {
+    fit: fit.sort((a, b) => b.percentage - a.percentage),
+    style: style.sort((a, b) => b.percentage - a.percentage),
+  };
+}
+
 function formatActionLabel(
   metrics?: LojaMetrics | null,
   fallbackDate?: Date | null
@@ -379,12 +533,19 @@ export async function getDashboardData(
         ? 100
         : 0;
 
+    const opportunityRadar = buildOpportunityRadar(composicoes);
+    const productAlerts = buildProductAlerts(composicoes);
+
     return {
       brand: {
         name: perfil?.nome || "Sua Loja",
         logoUrl: perfil?.logoUrl || null,
         tagline: perfil?.descricao || "Coleções digitais personalizadas em segundos.",
         lastSync: lastSyncLabel,
+      },
+      plan: {
+        tier: perfil?.planTier || null,
+        billingStatus: perfil?.planBillingStatus || null,
       },
       metrics: {
         experimentToday,
@@ -425,6 +586,8 @@ export async function getDashboardData(
       productBreakdown: breakdown,
       activeCustomers,
       compositions: compositionsCards,
+      opportunityRadar,
+      productAlerts,
     };
   } catch (error) {
     console.error("[dashboard] Erro ao montar dados:", error);

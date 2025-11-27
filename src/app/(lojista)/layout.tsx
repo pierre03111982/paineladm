@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LojistaNav } from "@/app/components/lojista-nav";
 import { MobileNavLinks } from "./components/MobileNavLinks";
+import { MobileSidebar } from "./components/MobileSidebar";
 import { LojistaLayoutUpdater } from "./components/LojistaLayoutUpdater";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
@@ -42,32 +43,40 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 p-6 lg:p-10">
-        {/* Sidebar */}
-        <aside className="hidden w-64 flex-col rounded-3xl border border-zinc-800/60 bg-zinc-900/70 p-6 shadow-[0_25px_80px_-45px_rgba(99,102,241,0.65)] backdrop-blur-xl md:flex">
-          <div className="mb-8 space-y-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 text-lg font-semibold text-indigo-200">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Sidebar Component */}
+      <MobileSidebar
+        lojaNome={lojaNome}
+        lojaDescricao={lojaDescricao}
+        lojaLogo={lojaLogo}
+        initials={initials}
+      />
+
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        {/* Desktop Sidebar - Hidden on mobile */}
+        <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-8 space-y-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-lg font-semibold text-white">
               {lojaLogo ? (
                 <Image
                   src={lojaLogo}
                   alt={lojaNome}
                   width={48}
                   height={48}
-                  className="h-full w-full rounded-2xl object-contain"
+                  className="h-full w-full rounded-xl object-contain"
                 />
               ) : (
                 <span>{initials}</span>
               )}
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-indigo-300/80">
+              <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">
                 EXPERIMENTE AI
               </p>
-              <h2 id="sidebar-loja-nome" className="text-lg font-semibold text-white">
+              <h2 id="sidebar-loja-nome" className="text-lg font-semibold text-gray-900">
                 {lojaNome}
               </h2>
-              <p className="text-xs text-zinc-500">
+              <p className="text-sm text-gray-600">
                 {lojaDescricao}
               </p>
             </div>
@@ -75,61 +84,56 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
           <LojistaNav />
 
-          <div className="mt-auto rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-4">
-            <p className="text-sm font-medium text-indigo-100">
+          <div className="mt-auto rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+            <p className="text-sm font-medium text-indigo-900">
               Painel do Lojista
             </p>
-            <p className="mt-1 text-xs text-indigo-200/80">
+            <p className="mt-1 text-xs text-indigo-700">
               Gerencie produtos, clientes e composições.
             </p>
           </div>
         </aside>
 
         {/* Main Content */}
-        <div className="flex flex-1 flex-col">
-          <header className="mb-6 rounded-3xl border border-zinc-800/70 bg-zinc-900/60 p-5 backdrop-blur-xl">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-1 flex-col min-w-0">
+          <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-indigo-300/70">
+                <p className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-1">
                   PAINEL DO LOJISTA
                 </p>
-                <h1 id="header-loja-nome" className="text-xl font-semibold text-white md:text-2xl">
+                <h1 id="header-loja-nome" className="text-xl font-semibold text-gray-900 sm:text-2xl">
                   {lojaNome}
                 </h1>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-gray-600 mt-1">
                   {lojaDescricao}
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-200">
+              <div className="flex items-center gap-3 text-sm">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
                   {lojaLogo ? (
                     <Image
                       src={lojaLogo}
                       alt={lojaNome}
-                      width={32}
-                      height={32}
+                      width={40}
+                      height={40}
                       className="h-full w-full rounded-full object-contain"
                     />
                   ) : (
-                    <span className="text-xs font-semibold">{initials}</span>
+                    <span className="text-sm font-semibold">{initials}</span>
                   )}
                 </span>
-                <div>
-                  <p className="font-medium text-white">{lojaNome}</p>
-                  <p className="text-xs text-zinc-500">
+                <div className="hidden sm:block">
+                  <p className="font-medium text-gray-900">{lojaNome}</p>
+                  <p className="text-xs text-gray-500">
                     {perfil?.email || "lojista@experimente.ai"}
                   </p>
                 </div>
               </div>
             </div>
-
-            {/* Mobile Navigation */}
-            <div className="mt-4 flex flex-wrap gap-2 md:hidden">
-              <MobileNavLinks />
-            </div>
           </header>
 
-          <main className="flex-1 rounded-3xl border border-zinc-800/80 bg-zinc-900/50 p-6 shadow-[0_40px_120px_-60px_rgba(99,102,241,0.65)] backdrop-blur-xl lg:p-8">
+          <main className="flex-1 rounded-xl border border-gray-200 bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8 shadow-sm">
             {children}
           </main>
         </div>

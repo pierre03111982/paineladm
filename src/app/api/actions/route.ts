@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       productName,
       productPrice,
       imagemUrl,
+      reason,
     } =
       (await request.json()) as {
         action?: "like" | "dislike" | "share" | "checkout";
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
         productName?: string | null;
         productPrice?: number | null;
         imagemUrl?: string | null;
+        reason?: string | null;
       };
 
     if (!action) {
@@ -118,6 +120,7 @@ export async function POST(request: Request) {
           action: "dislike",
           tipo: "dislike",
           votedType: "dislike",
+          dislikeReason: reason ?? null,
           createdAt: new Date(),
         });
         
@@ -159,6 +162,7 @@ export async function POST(request: Request) {
               curtido: action === "like",
               liked: action === "like",
               disliked: action === "dislike",
+              dislikeReason: reason ?? null,
               updatedAt: new Date(),
             });
             console.log("[api/actions] Composição atualizada na coleção lojas/{lojistaId}/composicoes:", compositionId);
@@ -177,6 +181,7 @@ export async function POST(request: Request) {
               curtido: action === "like",
               liked: action === "like",
               disliked: action === "dislike",
+              dislikeReason: reason ?? null,
               updatedAt: new Date(),
             });
             console.log("[api/actions] Composição atualizada na coleção principal composicoes:", compositionId);

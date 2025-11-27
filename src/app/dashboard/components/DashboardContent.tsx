@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import {
   ActiveCustomer,
   DashboardMock,
+  DislikeReason,
   ExperimentPoint,
   ProductBreakdown,
 } from "../../../lib/mocks/dashboard";
@@ -215,6 +216,48 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     loadMetrics();
   }, []);
 
+  const opportunityLeads = data.opportunityRadar ?? [];
+  const productAlerts = data.productAlerts ?? { fit: [], style: [] };
+  const isMicroPlan = (data.plan?.tier ?? "").toLowerCase() === "micro";
+  const hasProductAlerts =
+    (productAlerts.fit?.length ?? 0) > 0 || (productAlerts.style?.length ?? 0) > 0;
+
+  const reasonMeta: Record<
+    DislikeReason,
+    { label: string; action: string; chipClass: string }
+  > = {
+    garment_style: {
+      label: "Preferiu outro estilo",
+      action: "Sugira uma variação ou cor diferente",
+      chipClass: "bg-pink-500/15 text-pink-200 border border-pink-400/40",
+    },
+    fit_issue: {
+      label: "Ajuste/Tamanho",
+      action: "Envie um tamanho alternativo no WhatsApp",
+      chipClass: "bg-amber-500/15 text-amber-200 border border-amber-400/40",
+    },
+    ai_distortion: {
+      label: "Imagem estranha",
+      action: "Gere novamente e compartilhe com o cliente",
+      chipClass: "bg-indigo-500/15 text-indigo-200 border border-indigo-400/40",
+    },
+    other: {
+      label: "Feedback geral",
+      action: "Pergunte o que gostaria de ver",
+      chipClass: "bg-zinc-500/15 text-zinc-200 border border-zinc-400/40",
+    },
+  };
+
+  const defaultReasonMeta = {
+    label: "Cliente ativo",
+    action: "Envie um convite personalizado agora",
+    chipClass: "bg-zinc-800/70 text-zinc-200 border border-zinc-700",
+  };
+
+  const resolveReasonMeta = (reason?: DislikeReason | null) => {
+    if (!reason) return defaultReasonMeta;
+    return reasonMeta[reason] ?? defaultReasonMeta;
+  };
 
   return (
     <div className="space-y-12 pb-12">
@@ -414,6 +457,147 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {opportunityLeads.length > 0 && (
+        <section className="relative rounded-2xl border border-indigo-400/40 bg-indigo-500/10 p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-indigo-200">Radar de Oportunidades</p>
+              <h2 className="text-xl font-semibold text-white">Clientes ativos nas últimas horas</h2>
+            </div>
+            <span className="text-xs text-indigo-200/80">
+              {opportunityLeads.length} lead{opportunityLeads.length > 1 ? "s" : ""} aguardando contato
+            </span>
+          </div>
+
+          <div
+            className={`mt-4 grid gap-4 lg:grid-cols-2 ${
+              isMicroPlan ? "blur-sm pointer-events-none select-none" : ""
+            }`}
+          >
+            {opportunityLeads.slice(0, 4).map((lead) => {
+              const meta = resolveReasonMeta(isMicroPlan ? undefined : lead.reason);
+              return (
+                <div key={lead.customerId} className="rounded-2xl border border-indigo-400/30 bg-zinc-950/40 p-4 shadow-inner">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {isMicroPlan ? "Cliente confidencial" : lead.name}
+                      </p>
+                      <p className="text-xs text-indigo-200/70">
+                        {lead.lastActivity} · {lead.interactions} try-ons
+                      </p>
+                    </div>
+                    {lead.lastProduct && !isMicroPlan && (
+                      <span className="rounded-full border border-indigo-400/40 bg-indigo-500/15 px-3 py-1 text-[11px] text-indigo-100">
+                        {lead.lastProduct}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${meta.chipClass}`}>
+                    {meta.label}
+                  </div>
+                  <p className="mt-3 text-sm text-indigo-50/90">
+                    {isMicroPlan ? "Desbloqueie o plano Lojista para ver nomes e insights completos." : meta.action}
+                  </p>
+                  {!isMicroPlan && lead.insight && (
+                    <p className="mt-1 text-xs text-indigo-200/80">{lead.insight}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {isMicroPlan && (
+            <div className="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-indigo-400/40 bg-zinc-950/80 text-center px-6">
+              <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">Plano Impulso</p>
+              <h3 className="mt-2 text-xl font-semibold text-white">5 clientes online agora!</h3>
+              <p className="mt-2 text-sm text-indigo-100/80">
+                Assine o Plano Lojista para ver nomes, motivos e disparar ofertas em um clique.
+              </p>
+              <Link
+                href="/planos"
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-indigo-900 transition hover:bg-indigo-100"
+              >
+                Desbloquear dados
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
+
+      {hasProductAlerts && (
+        <section className="rounded-2xl border border-pink-400/30 bg-pink-500/5 p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-pink-200">Insights de Produto</p>
+              <h2 className="text-xl font-semibold text-white">Feedback explícito dos clientes</h2>
+            </div>
+            <span className="text-xs text-pink-200/80">Atualizado em tempo real a cada voto</span>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4">
+              <div className="flex items-center justify-between text-xs text-amber-100">
+                <span className="flex items-center gap-2 font-semibold">
+                  <AlertTriangle className="h-4 w-4" />
+                  Fit Alert
+                </span>
+                <span>{productAlerts.fit.length} produto(s)</span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {productAlerts.fit.slice(0, 4).map((alert) => (
+                  <Link
+                    key={alert.productId}
+                    href={`/produtos?focus=${encodeURIComponent(alert.productId)}`}
+                    className="flex items-center justify-between rounded-xl border border-amber-400/30 bg-amber-500/5 px-4 py-3 transition hover:border-amber-200/60"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-white">{alert.productName}</p>
+                      <p className="text-[11px] text-amber-100/80">
+                        {alert.totalReports} alertas · {alert.percentage}% das últimas {alert.totalInteractions} interações
+                      </p>
+                    </div>
+                    <span className="text-lg font-semibold text-white">{alert.percentage}%</span>
+                  </Link>
+                ))}
+                {productAlerts.fit.length === 0 && (
+                  <p className="text-xs text-amber-100/70">Nenhum alerta de tamanho no período.</p>
+                )}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-pink-400/40 bg-pink-500/10 p-4">
+              <div className="flex items-center justify-between text-xs text-pink-100">
+                <span className="flex items-center gap-2 font-semibold">
+                  <Package className="h-4 w-4" />
+                  Style Rejection
+                </span>
+                <span>{productAlerts.style.length} produto(s)</span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {productAlerts.style.slice(0, 4).map((alert) => (
+                  <Link
+                    key={alert.productId}
+                    href={`/produtos?focus=${encodeURIComponent(alert.productId)}`}
+                    className="flex items-center justify-between rounded-xl border border-pink-400/30 bg-pink-500/5 px-4 py-3 transition hover:border-pink-200/60"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-white">{alert.productName}</p>
+                      <p className="text-[11px] text-pink-100/80">
+                        {alert.totalReports} rejeições · {alert.percentage}% de {alert.totalInteractions} tentativas
+                      </p>
+                    </div>
+                    <span className="text-lg font-semibold text-white">{alert.percentage}%</span>
+                  </Link>
+                ))}
+                {productAlerts.style.length === 0 && (
+                  <p className="text-xs text-pink-100/70">Nenhuma rejeição de estilo detectada.</p>
+                )}
+              </div>
+            </div>
           </div>
         </section>
       )}

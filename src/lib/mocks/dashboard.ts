@@ -17,6 +17,8 @@ export type ActiveCustomer = {
   lastActivity: string;
 };
 
+export type DislikeReason = "garment_style" | "fit_issue" | "ai_distortion" | "other";
+
 export type CompositionItem = {
   id: string;
   productName: string;
@@ -36,12 +38,38 @@ export type CompositionItem = {
   processingTime?: number | null; // Tempo de processamento em milissegundos
 };
 
+export type OpportunityLead = {
+  customerId: string;
+  name: string;
+  avatarInitials: string;
+  interactions: number;
+  lastActivity: string;
+  lastProduct?: string;
+  insight?: string;
+  reason?: DislikeReason | null;
+  masked?: boolean;
+  lastTimestamp?: number;
+};
+
+export type ProductAlert = {
+  productId: string;
+  productName: string;
+  reason: Exclude<DislikeReason, "ai_distortion" | "other">;
+  percentage: number;
+  totalReports: number;
+  totalInteractions: number;
+};
+
 export type DashboardMock = {
   brand: {
     name: string;
     logoUrl: string | null;
     tagline: string;
     lastSync: string;
+  };
+  plan?: {
+    tier?: "micro" | "growth" | "enterprise" | string | null;
+    billingStatus?: string | null;
   };
   metrics: {
     experimentToday: number;
@@ -88,6 +116,11 @@ export type DashboardMock = {
   productBreakdown: ProductBreakdown[];
   activeCustomers: ActiveCustomer[];
   compositions: CompositionItem[];
+  opportunityRadar: OpportunityLead[];
+  productAlerts: {
+    fit: ProductAlert[];
+    style: ProductAlert[];
+  };
 };
 
 export const dashboardMockData: DashboardMock = {
@@ -96,6 +129,10 @@ export const dashboardMockData: DashboardMock = {
     logoUrl: null,
     tagline: "Coleções digitais personalizadas em segundos.",
     lastSync: "Sincronizado há 12 minutos",
+  },
+  plan: {
+    tier: "growth",
+    billingStatus: "active",
   },
   metrics: {
     experimentToday: 38,
@@ -277,6 +314,52 @@ export const dashboardMockData: DashboardMock = {
       },
     },
   ],
+  opportunityRadar: [
+    {
+      customerId: "cust-01",
+      name: "Aline Rodrigues",
+      avatarInitials: "AR",
+      interactions: 5,
+      lastActivity: "há 8 min",
+      lastProduct: "Vestido Aurora",
+      insight: "Comentou: ajuste de tamanho.",
+      reason: "fit_issue",
+      lastTimestamp: Date.now(),
+    },
+    {
+      customerId: "cust-05",
+      name: "Cliente inspirado",
+      avatarInitials: "CI",
+      interactions: 4,
+      lastActivity: "há 15 min",
+      lastProduct: "Conjunto Prisma",
+      insight: "Buscando novas cores.",
+      reason: "garment_style",
+      lastTimestamp: Date.now(),
+    },
+  ],
+  productAlerts: {
+    fit: [
+      {
+        productId: "prod-01",
+        productName: "Calça Prisma",
+        reason: "fit_issue",
+        percentage: 32,
+        totalReports: 8,
+        totalInteractions: 25,
+      },
+    ],
+    style: [
+      {
+        productId: "prod-02",
+        productName: "Vestido Aurora",
+        reason: "garment_style",
+        percentage: 54,
+        totalReports: 13,
+        totalInteractions: 24,
+      },
+    ],
+  },
 };
 
 

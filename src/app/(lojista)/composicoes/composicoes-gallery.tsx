@@ -833,8 +833,36 @@ export function ComposicoesGallery({
                       className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
                       loading="lazy"
                       decoding="async"
+                      onError={(e) => {
+                        console.warn(`[ComposicoesGallery] Erro ao carregar imagem: ${item.previewUrl}`, e);
+                        // Tentar usar primeira imagem do array se previewUrl falhar
+                        if (item.images && item.images.length > 0 && item.images[0]?.url) {
+                          const target = e.target as HTMLImageElement;
+                          target.src = item.images[0].url;
+                        } else {
+                          // Se não houver fallback, ocultar a imagem
+                          target.style.display = 'none';
+                        }
+                      }}
                     />
-                  ) : null}
+                  ) : item.images && item.images.length > 0 && item.images[0]?.url ? (
+                    <img
+                      src={item.images[0].url}
+                      alt={`Composição ${item.id}`}
+                      className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        console.warn(`[ComposicoesGallery] Erro ao carregar imagem alternativa: ${item.images[0]?.url}`, e);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-zinc-500">
+                      <span className="text-xs">Sem imagem disponível</span>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-70" />
                   <div className={cn(
                     "absolute inline-flex items-center gap-2 rounded-full bg-indigo-500/25 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-100",

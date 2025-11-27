@@ -8,6 +8,7 @@ import {
   Share2,
   QrCode,
   Radar,
+  ShoppingCart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -32,6 +33,11 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/clientes",
     label: "Clientes",
     icon: Users,
+  },
+  {
+    href: "/pedidos",
+    label: "Pedidos",
+    icon: ShoppingCart,
   },
   {
     href: "/crm",

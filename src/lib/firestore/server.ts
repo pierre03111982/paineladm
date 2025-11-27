@@ -41,6 +41,8 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
     salesWhatsapp?: string | null;
     checkoutLink?: string | null;
   } | null;
+  planTier?: "micro" | "growth" | "enterprise" | string | null;
+  planBillingStatus?: string | null;
   // Debug fields
   _debugSource?: string;
   _rawAppModel?: any;
@@ -72,6 +74,8 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         displayOrientation: data?.displayOrientation || "horizontal",
         descontoRedesSociaisExpiraEm: data?.descontoRedesSociaisExpiraEm || null,
         salesConfig: data?.salesConfig || null,
+        planTier: data?.financials?.plan_tier || data?.planTier || null,
+        planBillingStatus: data?.financials?.billing_status || data?.planBillingStatus || null,
         _debugSource: "perfil/dados",
         _rawAppModel: data?.appModel
       };
@@ -96,6 +100,8 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
           appModel: lojaData?.appModel || lojaData?.modeloApp || "modelo-1",
           displayOrientation: lojaData?.displayOrientation || "horizontal",
           salesConfig: lojaData?.salesConfig || null,
+          planTier: lojaData?.financials?.plan_tier || lojaData?.planTier || null,
+          planBillingStatus: lojaData?.financials?.billing_status || lojaData?.planBillingStatus || null,
           _debugSource: "lojas/{id}",
           _rawAppModel: lojaData?.appModel
         };
@@ -120,6 +126,8 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         appModel: data?.appModel || data?.modeloApp || "modelo-1",
         displayOrientation: data?.displayOrientation || "horizontal",
         salesConfig: data?.salesConfig || null,
+        planTier: data?.financials?.plan_tier || data?.planTier || null,
+        planBillingStatus: data?.financials?.billing_status || data?.planBillingStatus || null,
         _debugSource: "perfil/publico",
         _rawAppModel: data?.appModel
       };
@@ -994,6 +1002,11 @@ export async function fetchComposicoesRecentes(
         liked: data.curtido === true || data.liked === true,
         shares: typeof data.shares === "number" ? data.shares : 0,
         isAnonymous: !data.customerId,
+        dislikeReason:
+          (typeof data.dislikeReason === "string" && data.dislikeReason) ||
+          (typeof data.feedbackReason === "string" && data.feedbackReason) ||
+          (typeof data.rejectionReason === "string" && data.rejectionReason) ||
+          null,
         metrics: data.metrics || null,
         totalCostBRL: typeof data.totalCostBRL === "number" ? data.totalCostBRL : undefined,
         processingTime: typeof data.processingTime === "number" ? data.processingTime : undefined,

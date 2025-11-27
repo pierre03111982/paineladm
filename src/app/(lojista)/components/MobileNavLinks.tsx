@@ -21,9 +21,9 @@ export function MobileNavLinks() {
           <Link
             key={item.href}
             href={href}
-            className="inline-flex items-center gap-1.5 md:gap-2 rounded-full border border-zinc-800 px-2.5 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs text-zinc-300 transition hover:border-indigo-400 hover:text-indigo-200 whitespace-nowrap"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-600 whitespace-nowrap shadow-sm"
           >
-            <item.icon className="h-3 w-3 md:h-3.5 md:w-3.5 shrink-0" />
+            <item.icon className="h-4 w-4 shrink-0" />
             <span className="truncate">{item.label}</span>
           </Link>
         );
