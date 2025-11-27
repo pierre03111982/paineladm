@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { ClienteProfileContent } from "./cliente-profile-content";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export default async function ClienteProfilePage({
     }
   }
 
-  const orders = ordersSnapshot.docs.map((doc) => ({
+  const orders = ordersSnapshot.docs.map((doc: QueryDocumentSnapshot) => ({
     id: doc.id,
     ...doc.data(),
   }));
