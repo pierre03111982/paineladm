@@ -705,8 +705,9 @@ export function ProductsTable({
             </div>
           )}
         </div>
+      </div>
 
-        {/* Grid de Cards é responsivo e funciona em todas as telas (mobile, tablet, desktop) */}
+      {/* Grid de Cards é responsivo e funciona em todas as telas (mobile, tablet, desktop) */}
 
       {/* Modal de Visualização */}
       {viewingProduto && (
