@@ -835,9 +835,9 @@ export function ComposicoesGallery({
                       decoding="async"
                       onError={(e) => {
                         console.warn(`[ComposicoesGallery] Erro ao carregar imagem: ${item.previewUrl}`, e);
+                        const target = e.target as HTMLImageElement;
                         // Tentar usar primeira imagem do array se previewUrl falhar
                         if (item.images && item.images.length > 0 && item.images[0]?.url) {
-                          const target = e.target as HTMLImageElement;
                           target.src = item.images[0].url;
                         } else {
                           // Se não houver fallback, ocultar a imagem
