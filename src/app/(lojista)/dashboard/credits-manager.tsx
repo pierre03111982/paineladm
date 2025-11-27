@@ -103,15 +103,15 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
   };
 
   return (
-    <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-6">
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-indigo-500/10 p-2">
-            <Sparkles className="h-5 w-5 text-indigo-400" />
+          <div className="rounded-lg bg-indigo-100 p-2">
+            <Sparkles className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Créditos de IA</h3>
-            <p className="text-sm text-zinc-400">
+            <h3 className="text-lg font-semibold text-slate-900">Créditos de IA</h3>
+            <p className="text-sm text-slate-600">
               Gerencie os créditos para geração de imagens com IA
             </p>
           </div>
@@ -121,22 +121,22 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
           size="sm"
           onClick={loadBalance}
           disabled={loadingBalance}
-          className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+          className="border-gray-300 text-slate-700 hover:bg-gray-50"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${loadingBalance ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </div>
 
-      <div className="mb-6 rounded-lg border border-zinc-800/60 bg-zinc-900/40 p-4">
+      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-white">
+          <span className="text-3xl font-bold text-slate-900">
             {loadingBalance ? "..." : credits?.toLocaleString("pt-BR") || "0"}
           </span>
-          <span className="text-sm text-zinc-400">créditos disponíveis</span>
+          <span className="text-sm text-slate-600">créditos disponíveis</span>
         </div>
         {credits !== null && credits < 10 && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-yellow-400">
+          <div className="mt-2 flex items-center gap-2 text-sm text-yellow-700">
             <AlertCircle className="h-4 w-4" />
             <span>Saldo baixo! Adicione mais créditos para continuar gerando imagens.</span>
           </div>
@@ -146,8 +146,8 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
       {message && (
         <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 ${
           message.type === "success"
-            ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-200"
-            : "border-red-500/50 bg-red-500/10 text-red-200"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-red-200 bg-red-50 text-red-800"
         }`}>
           {message.type === "success" ? (
             <CheckCircle className="h-4 w-4" />
@@ -157,7 +157,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
           <span className="text-sm">{message.text}</span>
           <button
             onClick={() => setMessage(null)}
-            className="ml-auto text-zinc-400 hover:text-zinc-200"
+            className="ml-auto text-gray-400 hover:text-gray-600"
           >
             <X className="h-4 w-4" />
           </button>
@@ -166,7 +166,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Adicionar Créditos
           </label>
           <div className="flex gap-2">
@@ -177,13 +177,13 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               placeholder="Quantidade de créditos"
               value={amountToAdd}
               onChange={(e) => setAmountToAdd(e.target.value)}
-              className="flex-1 bg-zinc-900/60 border-zinc-700 text-white placeholder:text-zinc-500"
+              className="flex-1 bg-white border-gray-300 text-slate-900 placeholder:text-gray-400"
               disabled={addingCredits}
             />
             <Button
               onClick={handleAddCredits}
               disabled={addingCredits || !amountToAdd}
-              className="bg-indigo-500 hover:bg-indigo-600 text-white"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               {addingCredits ? (
                 <>
@@ -198,7 +198,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               )}
             </Button>
           </div>
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-xs text-slate-600">
             Cada geração de imagem consome 1 crédito
           </p>
         </div>
