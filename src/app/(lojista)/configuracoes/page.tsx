@@ -34,7 +34,10 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
         description="Configure o perfil da sua loja, redes sociais e opções de venda."
       />
       <ConfiguracoesForm lojistaId={lojistaId} perfil={perfil} />
-      <SalesSettingsForm lojistaId={lojistaId} initialConfig={perfil?.salesConfig} />
+      <SalesSettingsForm 
+        lojistaId={lojistaId} 
+        initialConfig={perfil?.salesConfig as any} 
+      />
     </div>
   );
 }
