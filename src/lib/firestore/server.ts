@@ -1,12 +1,12 @@
 import { getAdminDb } from "../firebaseAdmin";
 import type { ProdutoDoc, ClienteDoc, ComposicaoDoc, LojaMetrics } from "./types";
 
-const db = getAdminDb();
-
 /**
  * Helper para obter referência da loja
+ * Usa lazy initialization para evitar erros se Firebase não estiver configurado
  */
 function lojaRef(lojistaId: string) {
+  const db = getAdminDb();
   return db.collection("lojas").doc(lojistaId);
 }
 
@@ -597,6 +597,7 @@ export async function createProdutosEmLote(
     throw new Error("lojistaId é obrigatório");
   }
 
+  const db = getAdminDb();
   const batch = db.batch();
   const produtosRef = lojaRef(lojistaId).collection("produtos");
 

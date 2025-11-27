@@ -20,7 +20,21 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanWhatsapp = whatsapp.replace(/\D/g, "");
-    const cliente = await fetchClienteByWhatsapp(lojistaId, cleanWhatsapp);
+    
+    // Verificar se o Firebase Admin está configurado antes de fazer a busca
+    let cliente;
+    try {
+      cliente = await fetchClienteByWhatsapp(lojistaId, cleanWhatsapp);
+    } catch (fetchError: any) {
+      console.error("[API Cliente Auth] Erro ao buscar cliente:", fetchError);
+      if (fetchError?.message?.includes("Firebase Admin SDK não configurado")) {
+        return NextResponse.json(
+          { error: "Erro de configuração do servidor. Entre em contato com o suporte." },
+          { status: 500 }
+        );
+      }
+      throw fetchError;
+    }
 
     if (!cliente) {
       return NextResponse.json(
@@ -86,8 +100,28 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[API Cliente Auth] Erro:", error);
     console.error("[API Cliente Auth] Stack:", error.stack);
+    console.error("[API Cliente Auth] Detalhes:", {
+      lojistaId,
+      whatsapp: whatsapp?.substring(0, 5) + "...",
+      errorName: error?.name,
+      errorMessage: error?.message,
+    });
+    
+    // Retornar mensagem de erro mais específica
+    let errorMessage = "Erro ao autenticar cliente";
+    if (error?.message?.includes("Firebase")) {
+      errorMessage = "Erro de configuração do Firebase. Verifique as credenciais.";
+    } else if (error?.message?.includes("permission") || error?.message?.includes("permissão")) {
+      errorMessage = "Erro de permissão ao acessar o banco de dados.";
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Erro ao autenticar cliente" },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
