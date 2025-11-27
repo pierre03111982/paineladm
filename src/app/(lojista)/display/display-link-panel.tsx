@@ -96,7 +96,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
   useEffect(() => {
     let active = true;
     setLoading(true);
-    
+
     const urlString = displayUrl.toString();
     console.log("[DisplayLinkPanel] Gerando QR code para URL:", urlString);
 

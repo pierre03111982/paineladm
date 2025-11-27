@@ -526,7 +526,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
           <table className="min-w-full divide-y divide-zinc-800 text-sm">
             <thead className="bg-zinc-900/40 text-left uppercase text-xs tracking-[0.18em] text-zinc-500">
               <tr>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 w-12">
+                <th className="px-6 py-3 w-12">
                   <div className="flex items-center justify-center">
                     <input
                       type="checkbox"
@@ -542,67 +542,67 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                     />
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
                     <span className="sr-only">Cliente</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
                     <span className="sr-only">WhatsApp</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
                     <span className="sr-only">Email</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
                     <span className="sr-only">Composições</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <ThumbsUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <ThumbsUp className="h-4 w-4" />
                     <span className="sr-only">Likes</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <ThumbsDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <ThumbsDown className="h-4 w-4" />
                     <span className="sr-only">Dislikes</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Tag className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
                     <span className="sr-only">Segmentação</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Gift className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4" />
                     <span className="sr-only">Produtos</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Share2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <Share2 className="h-4 w-4" />
                     <span className="sr-only">Compartilhamentos</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                <th className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
                     <span className="sr-only">Status</span>
                   </div>
                 </th>
-                <th className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-right">
+                <th className="px-6 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
                     <Edit className="h-4 w-4" />
                     <span className="sr-only">Ações</span>

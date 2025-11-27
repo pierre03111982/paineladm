@@ -164,7 +164,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                       className="h-full w-full rounded-full object-cover"
                     />
                   ) : (
-                    <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4" />
                   )}
                 </span>
                 <div>

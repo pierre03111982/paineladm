@@ -50,8 +50,8 @@ html:not(.lojista-loading) .lojista-content {
 
 html, body {
   width: 100%;
+  max-width: 100vw;
   overflow-x: hidden;
-  position: relative;
 }
 
 /* Garantir background escuro em todos os elementos principais */
