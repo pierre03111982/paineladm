@@ -8,9 +8,13 @@ import bcrypt from "bcryptjs";
  * Body: { lojistaId: string, whatsapp: string, password: string }
  */
 export async function POST(request: NextRequest) {
+  let lojistaId: string | undefined;
+  let whatsapp: string | undefined;
+  
   try {
     const body = await request.json();
-    const { lojistaId, whatsapp, password } = body;
+    ({ lojistaId, whatsapp } = body);
+    const { password } = body;
 
     if (!lojistaId || !whatsapp || !password) {
       return NextResponse.json(
@@ -101,8 +105,8 @@ export async function POST(request: NextRequest) {
     console.error("[API Cliente Auth] Erro:", error);
     console.error("[API Cliente Auth] Stack:", error.stack);
     console.error("[API Cliente Auth] Detalhes:", {
-      lojistaId,
-      whatsapp: whatsapp?.substring(0, 5) + "...",
+      lojistaId: lojistaId || "não disponível",
+      whatsapp: whatsapp ? whatsapp.substring(0, 5) + "..." : "não disponível",
       errorName: error?.name,
       errorMessage: error?.message,
     });
