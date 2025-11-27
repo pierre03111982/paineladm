@@ -472,7 +472,22 @@ export async function POST(request: NextRequest) {
             temAlgumaUrl: !!(p?.productUrl || p?.imagemUrl),
           })),
         });
-        throw new Error("Nenhuma imagem de produto válida encontrada para gerar o Look Criativo. Verifique se todos os produtos têm imagem cadastrada.");
+        
+        return applyCors(
+          request,
+          NextResponse.json(
+            {
+              error: "Nenhuma imagem de produto válida encontrada",
+              details: "Verifique se todos os produtos selecionados têm imagem cadastrada (imagemUrl ou productUrl).",
+              produtosAnalisados: productsData.map(p => ({
+                id: p.id,
+                nome: p.nome,
+                temImagem: !!(p?.productUrl || p?.imagemUrl),
+              })),
+            },
+            { status: 400 }
+          )
+        );
       }
       
       // Aviso se algum produto não tem imagem
@@ -719,18 +734,52 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("[API] Erro ao gerar composição:", error);
+    console.error("[API] Stack trace:", error instanceof Error ? error.stack : "N/A");
+    console.error("[API] Tipo do erro:", typeof error);
+    console.error("[API] Nome do erro:", error instanceof Error ? error.name : "N/A");
     
-    // Tratamento específico para erro 429 (Rate Limit)
-    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    // Tratamento específico para diferentes tipos de erro
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorName = error instanceof Error ? error.name : "UnknownError";
     let userFriendlyMessage = "Erro ao gerar composição";
     let statusCode = 500;
+    let details = errorMessage;
     
-    if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+    // Erro 429 - Rate Limit
+    if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("Resource exhausted")) {
       userFriendlyMessage = "Limite de requisições atingido. Por favor, aguarde alguns instantes e tente novamente.";
       statusCode = 429;
-    } else if (errorMessage.includes("Resource exhausted")) {
-      userFriendlyMessage = "Recursos temporariamente esgotados. Por favor, tente novamente em alguns minutos.";
-      statusCode = 429;
+      details = "O serviço de IA está temporariamente sobrecarregado. Aguarde alguns minutos antes de tentar novamente.";
+    }
+    // Erro de validação de imagens
+    else if (errorMessage.includes("imagem de produto") || errorMessage.includes("Nenhuma imagem")) {
+      userFriendlyMessage = "Nenhuma imagem de produto válida encontrada";
+      statusCode = 400;
+      details = "Verifique se todos os produtos selecionados têm imagem cadastrada.";
+    }
+    // Erro de personImageUrl
+    else if (errorMessage.includes("personImageUrl") || errorMessage.includes("foto")) {
+      userFriendlyMessage = "Foto da pessoa inválida ou não fornecida";
+      statusCode = 400;
+      details = "É necessário fornecer uma foto válida da pessoa para gerar o look.";
+    }
+    // Erro de timeout
+    else if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+      userFriendlyMessage = "Timeout ao gerar composição";
+      statusCode = 504;
+      details = "O processo está demorando mais que o esperado. Tente novamente.";
+    }
+    // Erro de conexão
+    else if (errorMessage.includes("ECONNREFUSED") || errorMessage.includes("fetch failed") || errorMessage.includes("network")) {
+      userFriendlyMessage = "Erro de conexão com o serviço de IA";
+      statusCode = 503;
+      details = "Não foi possível conectar ao serviço de geração de imagens. Tente novamente em alguns instantes.";
+    }
+    // Erro genérico - mostrar mais detalhes em desenvolvimento
+    else {
+      details = process.env.NODE_ENV === 'development' 
+        ? `${errorName}: ${errorMessage}` 
+        : "Erro interno ao processar a requisição. Tente novamente.";
     }
 
     return applyCors(
@@ -738,7 +787,12 @@ export async function POST(request: NextRequest) {
       NextResponse.json(
         {
           error: userFriendlyMessage,
-          details: errorMessage,
+          details: details,
+          ...(process.env.NODE_ENV === 'development' && {
+            originalError: errorMessage,
+            errorName: errorName,
+            stack: error instanceof Error ? error.stack : undefined,
+          }),
         },
         { status: statusCode }
       )
