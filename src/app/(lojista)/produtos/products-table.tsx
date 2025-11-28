@@ -1324,7 +1324,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
 
           {/* Preço e Categoria */}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">PREÇO (R$)</label>
               <input
@@ -1360,7 +1360,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               💰 DESCONTOS E PREÇO FINAL
             </label>
             
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {/* Desconto Redes Sociais (somente leitura) */}
               <div>
                 <label className="block text-xs font-medium text-zinc-400 mb-1.5">
@@ -1439,7 +1439,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
 
           {/* Cores e Tamanhos */}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                 CORES (SEPARADAS POR -)
@@ -1467,7 +1467,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
 
           {/* Estoque e Tags */}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">ESTOQUE</label>
               <input

@@ -109,7 +109,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
       </div>
 
       {/* Seção Manual */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">MANUAL</span>
@@ -161,7 +161,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
       </div>
 
       {/* Seção Importação */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">IMPORTAÇÃO</span>

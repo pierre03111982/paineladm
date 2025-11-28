@@ -224,7 +224,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
           </div>
 
           {/* Preço e Categoria */}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">PREÇO (R$)</label>
               <input
@@ -255,7 +255,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
           </div>
 
           {/* Cores e Tamanhos */}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1.5">
                 CORES (SEPARADAS POR -)

@@ -674,7 +674,7 @@ export function ComposicoesGallery({
         </div>
       )}
 
-      <form className="grid gap-3 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4 text-xs text-zinc-400 md:grid-cols-7">
+      <form className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 text-xs text-slate-600 md:grid-cols-7">
         <label className="flex flex-col gap-1">
           <span>Cliente</span>
           <select
