@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ExternalLink, Copy, Check, QrCode, Smartphone, Download, Star } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type AppClienteContentProps = {
   lojistaId: string;
@@ -85,11 +86,11 @@ export function AppClienteContent({ lojistaId, perfil }: AppClienteContentProps)
   return (
     <div className="space-y-6">
       {/* Descrição */}
-      <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+      <div className="neon-card rounded-2xl p-6">
+        <h2 className="text-2xl font-bold text-[var(--text-main)] mb-3">
           Links e QR Codes dos Modelos
         </h2>
-        <p className="text-base text-slate-600 dark:text-slate-300">
+        <p className="text-base font-medium text-[var(--text-secondary)] leading-relaxed">
           Aqui estão os links e QR codes para os 3 modelos disponíveis. O modelo selecionado como padrão nas configurações está destacado.
         </p>
       </div>
@@ -160,97 +161,107 @@ function ModeloCard({
   };
   return (
     <div
-      className={`relative rounded-2xl border-2 p-6 shadow-md dark:shadow-lg transition-all ${
+      className={cn(
+        "relative neon-card rounded-2xl border-2 p-7 transition-all hover:scale-[1.02]",
         isPadrao
-          ? "border-green-500 dark:border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-500/30"
-          : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"
-      }`}
+          ? "border-emerald-400/80 dark:border-emerald-500/80 bg-gradient-to-br from-emerald-50/50 to-green-50/50 dark:from-emerald-950/30 dark:to-green-950/30 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/20"
+          : "hover:border-indigo-400/50 dark:hover:border-indigo-500/50"
+      )}
     >
       {/* Badge de Modelo Padrão */}
       {isPadrao && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-lg">
-            <Star className="h-3 w-3 fill-white" />
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+          <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 px-5 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/50">
+            <Star className="h-4 w-4 fill-white" />
             Modelo Padrão
           </span>
         </div>
       )}
 
       {/* Header do Card */}
-      <div className="mb-4 text-center">
-        <h3 className={`text-xl font-bold ${isPadrao ? "text-green-700 dark:text-green-300" : "text-slate-900 dark:text-white"}`}>
+      <div className="mb-5 text-center">
+        <h3 className={`text-2xl font-bold ${isPadrao ? "text-emerald-700 dark:text-emerald-300" : "text-[var(--text-main)]"}`}>
           {modelo.nome}
         </h3>
         {isPadrao && (
-          <p className="mt-1 text-xs text-green-400">
+          <p className="mt-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
             Selecionado nas configurações
           </p>
         )}
       </div>
 
       {/* Link Input */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 p-3 shadow-inner">
-          <Smartphone className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-          <input
-            type="text"
-            readOnly
-            value={appClienteUrl}
-            className="flex-1 bg-transparent text-xs text-slate-900 dark:text-white outline-none font-mono truncate"
-          />
+      <div className="mb-5">
+        <div className="flex items-start gap-3 neon-card rounded-xl border-2 border-gray-300/50 dark:border-purple-500/50 bg-[var(--bg-card)] p-4">
+          <Smartphone className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+          <div className="flex-1 min-w-0">
+            <p
+              className="w-full bg-transparent text-base font-bold text-[var(--text-main)] font-mono break-all leading-relaxed select-text cursor-text"
+              title={appClienteUrl}
+            >
+              {appClienteUrl}
+            </p>
+          </div>
         </div>
         <button
           onClick={handleCopy}
-          className={`mt-2 w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all active:scale-95 ${
+          className={cn(
+            "mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg",
             isPadrao
-              ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20"
-              : "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20"
-          }`}
+              ? "bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-emerald-500/40"
+              : "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 shadow-indigo-500/40",
+            copied && "bg-gradient-to-r from-emerald-500 to-teal-500"
+          )}
         >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
           {copied ? "Copiado!" : "Copiar Link"}
         </button>
       </div>
 
       {/* QR Code */}
-      <div className="mb-4 flex flex-col items-center space-y-3 bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl border border-gray-200 dark:border-slate-600">
-        <div className="relative h-40 w-40 rounded-lg bg-white p-2 shadow-xl">
+      <div className="mb-5 flex flex-col items-center space-y-4 neon-card rounded-xl border-2 border-gray-300/30 dark:border-emerald-500/30 bg-[var(--bg-card)]/60 p-5">
+        <div className="relative h-44 w-44 neon-card rounded-lg border-2 border-gray-300/50 dark:border-emerald-500/50 bg-white dark:bg-white p-3 shadow-lg">
           {qrCodeUrl ? (
             <img
               src={qrCodeUrl}
               alt={`QR Code do ${modelo.nome}`}
-              width={160}
-              height={160}
+              width={176}
+              height={176}
               className="h-full w-full object-contain"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-zinc-500">
-              <QrCode className="h-12 w-12 animate-pulse" />
+            <div className="flex h-full w-full items-center justify-center text-[var(--text-secondary)]">
+              <QrCode className="h-14 w-14 animate-pulse" />
             </div>
           )}
         </div>
         <button
           onClick={handleDownloadQrCode}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-800/80 px-3 py-2 text-xs font-medium text-white hover:bg-zinc-700 transition-colors"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg",
+            isPadrao
+              ? "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/40"
+              : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-500/40"
+          )}
         >
-          <Download className="h-3 w-3" />
+          <Download className="h-4 w-4" />
           Baixar QR Code
         </button>
       </div>
 
       {/* Link para testar */}
-      <div className="text-center">
+      <div className="text-center pt-2">
         <Link
           href={appClienteUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={`inline-flex items-center gap-2 text-xs transition-colors hover:underline ${
+          className={`inline-flex items-center gap-2 text-sm font-bold transition-all hover:underline ${
             isPadrao
-              ? "text-green-400 hover:text-green-300"
-              : "text-indigo-400 hover:text-indigo-300"
+              ? "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
+              : "text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
           }`}
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-4 w-4" />
           Testar no navegador
         </Link>
       </div>

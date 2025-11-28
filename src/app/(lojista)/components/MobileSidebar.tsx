@@ -72,37 +72,45 @@ export function MobileSidebar({
       >
         <div className="flex flex-col h-full p-6">
           {/* Header com botão fechar */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-white text-lg font-semibold">
-                {lojaLogo ? (
-                  <Image
-                    src={lojaLogo}
-                    alt={lojaNome}
-                    width={48}
-                    height={48}
-                    className="h-full w-full rounded-xl object-contain"
-                  />
-                ) : (
-                  <span>{initials}</span>
-                )}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-[var(--text-main)]">Menu</h3>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-card)]/60 transition"
+                aria-label="Fechar menu"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="relative">
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-amber-950/30 dark:to-yellow-950/30 shadow-lg shadow-amber-500/40 ring-2 ring-amber-300/30 dark:ring-amber-500/30 p-2">
+                  {lojaLogo ? (
+                    <Image
+                      src={lojaLogo}
+                      alt={lojaNome}
+                      width={72}
+                      height={72}
+                      className="h-full w-full rounded-xl object-contain"
+                    />
+                  ) : (
+                    <span className="text-2xl font-bold text-[var(--text-main)]">{initials}</span>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">
+              <div className="w-full space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--text-secondary)]">
                   EXPERIMENTE AI
                 </p>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                  {lojaNome}
+                <h2 className="text-xl font-bold leading-tight text-[var(--text-main)]">
+                  {lojaNome || "Minha Loja"}
                 </h2>
+                <p className="text-sm font-medium leading-relaxed text-[var(--text-secondary)]">
+                  {lojaDescricao || "Descrição da loja"}
+                </p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-              aria-label="Fechar menu"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
 
           {/* Navigation */}

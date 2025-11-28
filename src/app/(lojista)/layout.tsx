@@ -44,7 +44,9 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
+    <div 
+      className="min-h-screen transition-colors duration-300 bg-[var(--bg-app)]"
+    >
       {/* Mobile Sidebar Component */}
       <MobileSidebar
         lojaNome={lojaNome}
@@ -55,30 +57,34 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
       <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {/* Desktop Sidebar - Hidden on mobile */}
-        <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-md transition-colors">
-          <div className="mb-8 space-y-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-lg font-semibold text-white">
-              {lojaLogo ? (
-                <Image
-                  src={lojaLogo}
-                  alt={lojaNome}
-                  width={48}
-                  height={48}
-                  className="h-full w-full rounded-xl object-contain"
-                />
-              ) : (
-                <span>{initials}</span>
-              )}
+        <aside 
+          className="hidden md:flex w-64 flex-col neon-card p-6"
+        >
+          <div className="mb-8 flex flex-col items-center text-center space-y-4">
+            <div className="relative">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-amber-400 dark:border-amber-500 bg-gradient-to-br from-amber-50/50 to-yellow-50/50 dark:from-amber-950/30 dark:to-yellow-950/30 shadow-lg shadow-amber-500/40 ring-2 ring-amber-300/30 dark:ring-amber-500/30 p-2">
+                {lojaLogo ? (
+                  <Image
+                    src={lojaLogo}
+                    alt={lojaNome}
+                    width={72}
+                    height={72}
+                    className="h-full w-full rounded-xl object-contain"
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-[var(--text-main)]">{initials}</span>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">
+            <div className="w-full space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.2em] font-bold" style={{ color: 'var(--text-secondary)' }}>
                 EXPERIMENTE AI
               </p>
-              <h2 id="sidebar-loja-nome" className="text-lg font-semibold text-gray-900 dark:text-white">
-                {lojaNome}
+              <h2 id="sidebar-loja-nome" className="text-xl font-bold leading-tight" style={{ color: 'var(--text-main)' }}>
+                {lojaNome || "Minha Loja"}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                {lojaDescricao}
+              <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                {lojaDescricao || "Descrição da loja"}
               </p>
             </div>
           </div>
@@ -97,19 +103,22 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
         {/* Main Content */}
         <div className="flex flex-1 flex-col min-w-0">
-          <header className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sm:p-6 shadow-md transition-colors">
+          <header 
+            className="mb-6 neon-card p-4 sm:p-6"
+          >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">
-                  PAINEL DO LOJISTA
-                </p>
-                <h1 id="header-loja-nome" className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-                  {lojaNome}
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  {lojaDescricao}
-                </p>
-              </div>
+              <h1 
+                className="text-2xl sm:text-3xl font-normal uppercase text-[var(--text-main)]"
+                style={{
+                  fontFamily: 'var(--font-poppins), "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                  letterSpacing: '0.12em',
+                  fontWeight: 400,
+                  fontStyle: 'normal'
+                }}
+              >
+                Painel do Lojista Pro
+              </h1>
               <div className="flex items-center gap-3 text-sm">
                 <ThemeToggle />
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
@@ -135,7 +144,9 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
             </div>
           </header>
 
-          <main className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sm:rounded-2xl sm:p-6 lg:p-8 shadow-md transition-colors">
+          <main 
+            className="flex-1 neon-card p-4 sm:p-6 lg:p-8"
+          >
             {children}
           </main>
         </div>

@@ -16,7 +16,7 @@ export function LojistaNav({ collapsed }: LojistaNavProps) {
   const lojistaId = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
 
   return (
-    <nav className="flex flex-1 flex-col gap-1 text-xs md:text-sm font-medium text-zinc-400 md:text-[13px]">
+    <nav className="flex flex-1 flex-col gap-1 text-xs md:text-sm font-medium">
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const active =
@@ -34,11 +34,14 @@ export function LojistaNav({ collapsed }: LojistaNavProps) {
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
               active
-                ? "bg-blue-600 text-white font-medium shadow-md"
-                : "text-slate-400 dark:text-slate-400 hover:text-slate-100 dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-white/10"
+                ? "hospital-nav-active shadow-sm"
+                : "text-gray-600 dark:text-gray-400 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-gray-100 dark:hover:bg-white/5"
             )}
           >
-            <Icon className="h-5 w-5 shrink-0" />
+            <Icon className={cn(
+              "h-5 w-5 shrink-0 transition-colors",
+              active ? "text-cyan-600 dark:text-cyan-400" : ""
+            )} />
             <span className={cn("truncate", collapsed && "md:hidden")}>
               {item.label}
             </span>

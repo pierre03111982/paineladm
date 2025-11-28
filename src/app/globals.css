@@ -1,45 +1,225 @@
 @import "tailwindcss";
 
+/* PHASE 8: "TOTAL NEON" CSS VARIABLES - NUCLEAR FIX */
 :root {
-  --background: #f9fafb;
-  --foreground: #0f172a;
+  /* Light Mode */
+  --bg-app: #F4F7FE;
+  --bg-card: #FFFFFF;
+  --text-main: #0F172A;
+  --foreground: #1E293B;
+  --text-primary: #1E293B;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  
+  /* HosPtal Accent Colors */
+  --accent-cyan: #06B6D4;
+  --accent-purple: #8B5CF6;
+  --accent-orange: #F97316;
+}
+
+html.dark {
+  /* Dark Mode - Deep Neon */
+  --bg-app: #0B0E14;
+  --bg-card: #111C44;
+  --text-main: #FFFFFF;
+  --foreground: #F9FAFB;
+  --text-primary: #F9FAFB;
+  --text-secondary: #D1D5DB;
+  --text-muted: #9CA3AF;
+  
+  /* HosPtal Accent Colors - Brilhantes no Dark */
+  --accent-cyan: #06B6D4;
+  --accent-purple: #8B5CF6;
+  --accent-orange: #F97316;
+}
+
+/* Backwards compatibility */
+:root {
+  --background: var(--bg-app);
+  --card-bg: var(--bg-card);
+}
+
+html.dark {
+  --background: var(--bg-app);
+  --card-bg: var(--bg-card);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* PHASE 8: Solid & Clean - No Glass/Blur Effects */
-/* Tema claro (Light Theme) - padrão */
+/* PHASE 10: Utility Classes usando Variáveis CSS para Força Máxima */
+.bg-dynamic {
+  background-color: var(--background) !important;
+}
+
+.bg-card-dynamic {
+  background-color: var(--card-bg) !important;
+}
+
+.text-dynamic-primary {
+  color: var(--text-primary) !important;
+}
+
+.text-dynamic-secondary {
+  color: var(--text-secondary) !important;
+}
+
+.border-dynamic {
+  border-color: var(--card-border) !important;
+}
+
+/* PHASE 8 REVISION: Botões com Gradiente Vibrante */
+.btn-gradient-primary {
+  background: linear-gradient(to right, #2563eb, #4f46e5) !important;
+  color: white !important;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-gradient-primary:hover {
+  background: linear-gradient(to right, #1d4ed8, #4338ca) !important;
+  box-shadow: 0 10px 30px -5px rgba(37, 99, 235, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+html.dark .btn-gradient-primary {
+  background: linear-gradient(to right, #06B6D4, #8B5CF6) !important;
+  box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4) !important;
+}
+
+html.dark .btn-gradient-primary:hover {
+  background: linear-gradient(to right, #0891b2, #7c3aed) !important;
+  box-shadow: 0 10px 30px -5px rgba(6, 182, 212, 0.5) !important;
+}
+
+/* PHASE 8: FORÇA MUDANÇA DRÁSTICA - Usando Variáveis CSS */
 html {
-  background: #F8F9FC; /* PHASE 8: Clean Slate */
-  color: #111827;
+  background-color: var(--bg-app);
+  color: var(--text-main);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 html.dark {
-  background: #0F172A; /* PHASE 8: Deep Navy */
-  color: #F9FAFB;
+  color-scheme: dark;
+  background-color: var(--bg-app);
+  color: var(--text-main);
 }
 
 body {
-  background: #F8F9FC; /* PHASE 8: Clean Slate */
-  color: #111827;
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
+  background-color: var(--bg-app) !important;
+  color: var(--text-main) !important;
   transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
 }
 
-.dark body {
-  background: #0F172A; /* PHASE 8: Deep Navy */
-  color: #F9FAFB;
+/* PHASE 8 REVISION: Aurora Background - Multiple Colorful Blobs */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.5s ease, filter 0.5s ease;
+}
+
+/* Light Mode: Pastel Aurora Blobs */
+body::before {
+  top: -200px;
+  right: -200px;
+  width: 800px;
+  height: 800px;
+  opacity: 0.1;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2), transparent 70%);
+  filter: blur(80px);
+}
+
+body::after {
+  bottom: -300px;
+  left: -300px;
+  width: 900px;
+  height: 900px;
+  opacity: 0.1;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 70%);
+  filter: blur(100px);
+}
+
+/* Dark Mode: Vivid Neon Aurora Blobs */
+html.dark body::before {
+  top: -300px;
+  right: -300px;
+  width: 1200px;
+  height: 1200px;
+  opacity: 0.4;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.5) 0%, rgba(6, 182, 212, 0.3) 50%, transparent 70%);
+  filter: blur(100px);
+  animation: aurora-float 20s ease-in-out infinite;
+}
+
+html.dark body::after {
+  bottom: -400px;
+  left: -400px;
+  width: 1400px;
+  height: 1400px;
+  opacity: 0.4;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.5) 0%, rgba(236, 72, 153, 0.3) 50%, transparent 70%);
+  filter: blur(120px);
+  animation: aurora-float 25s ease-in-out infinite reverse;
+}
+
+@keyframes aurora-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(50px, -50px) scale(1.1);
+    opacity: 0.6;
+  }
+}
+
+/* PHASE 8 REVISION: Terceiro blob Aurora - usando container wrapper */
+#aurora-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+#aurora-blob-3 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1000px;
+  height: 1000px;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+html.dark #aurora-blob-3 {
+  opacity: 0.3;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.4) 0%, rgba(6, 182, 212, 0.3) 50%, transparent 70%);
+  filter: blur(110px);
+  animation: aurora-float 30s ease-in-out infinite;
+  animation-delay: -10s;
 }
 
 :root {
@@ -67,13 +247,477 @@ html, body {
   overflow-x: hidden;
 }
 
-/* PHASE 8: Garantir background sólido em todos os elementos principais */
+/* PHASE 10: FORÇA ALTO CONTRASTE - Garantir backgrounds dinâmicos */
 #__next, [data-nextjs-scroll-focus-boundary] {
-  background: #F8F9FC; /* PHASE 8: Clean Slate */
   min-height: 100vh;
-  transition: background-color 0.3s ease;
+  background-color: var(--background);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
-.dark #__next, .dark [data-nextjs-scroll-focus-boundary] {
-  background: #0F172A; /* PHASE 8: Deep Navy */
+/* PHASE 10: FORÇA ALTO CONTRASTE - Cards devem usar variáveis CSS */
+.rounded-2xl[class*="bg-white"],
+.rounded-2xl[class*="bg-\[#1C1F2E"],
+.rounded-2xl[class*="bg-\[#0B0E14"],
+.rounded-2xl[class*="bg-slate"],
+.rounded-2xl[class*="bg-gray"] {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Força textos em cards para usar variáveis */
+.rounded-2xl[class*="bg-white"] *,
+.rounded-2xl[class*="bg-\[#1C1F2E"] *,
+.rounded-2xl[class*="bg-\[#0B0E14"] * {
+  color: inherit;
+}
+
+/* Sidebar e Header também devem usar variáveis */
+aside[class*="bg-white"],
+aside[class*="bg-\[#"],
+header[class*="bg-white"],
+header[class*="bg-\[#"] {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* PHASE 8: FORÇA MUDANÇA DRÁSTICA - Forçar variáveis com !important */
+html:not(.dark) {
+  --bg-app: #F4F7FE !important;
+  --bg-card: #FFFFFF !important;
+  --text-main: #1C1F2E !important;
+}
+
+html.dark {
+  --bg-app: #0B0E14 !important;
+  --bg-card: #111C44 !important;
+  --text-main: #FFFFFF !important;
+}
+
+/* PHASE 8: Forçar background em elementos principais usando variáveis */
+html, body, #__next, [data-nextjs-scroll-focus-boundary] {
+  background-color: var(--bg-app) !important;
+  color: var(--text-main) !important;
+}
+
+/* PHASE 8: "TOTAL NEON" UNIVERSAL CLASS */
+/* Light Mode Recipe */
+.neon-card {
+  background: #FFFFFF !important;
+  border: 2px solid rgba(99, 102, 241, 0.4) !important;
+  border-radius: 1rem;
+  box-shadow: 
+    0 0 20px rgba(99, 102, 241, 0.2),
+    0 4px 12px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  color: #1B254B !important;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Dark Mode Recipe - Cyberpunk/Futuristic */
+html.dark .neon-card {
+  background: linear-gradient(145deg, #111C44 0%, #1B2559 100%) !important;
+  border: 2px solid rgba(117, 81, 255, 0.6) !important;
+  box-shadow: 
+    0 0 25px rgba(117, 81, 255, 0.3),
+    0 4px 15px rgba(117, 81, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  color: #FFFFFF !important;
+}
+
+/* Tipografia dentro das neon cards */
+.neon-card h1,
+.neon-card h2,
+.neon-card h3,
+.neon-card h4,
+.neon-card p,
+.neon-card span {
+  color: var(--text-main);
+}
+
+.neon-card table,
+.neon-card table th,
+.neon-card table td {
+  color: var(--text-main);
+}
+
+html.dark .neon-card h1,
+html.dark .neon-card h2,
+html.dark .neon-card h3,
+html.dark .neon-card h4,
+html.dark .neon-card p,
+html.dark .neon-card span,
+html.dark .neon-card table,
+html.dark .neon-card table th,
+html.dark .neon-card table td {
+  color: #FFFFFF !important;
+}
+
+/* Melhorar visibilidade dos textos dentro dos cards neon no dark mode */
+html.dark .neon-card h1,
+html.dark .neon-card h2,
+html.dark .neon-card h3,
+html.dark .neon-card h4,
+html.dark .neon-card p,
+html.dark .neon-card span:not([class*="text-"]),
+html.dark .neon-card div:not([class*="text-"]) {
+  color: #FFFFFF !important;
+}
+
+/* PHASE 8: Ghost Busting - Remove all backdrop-blur and transparency */
+.neon-card,
+.neon-card *,
+[class*="backdrop-blur"],
+[class*="bg-opacity"],
+[class*="bg-transparent"][class*="backdrop"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-blend-mode: normal !important;
+  opacity: 1 !important;
+}
+
+/* Force solid backgrounds - no transparency */
+.neon-card {
+  background: var(--bg-card) !important;
+  opacity: 1 !important;
+}
+
+html:not(.dark) .neon-card {
+  background: #FFFFFF !important;
+  border: 2px solid rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 
+    0 0 20px rgba(99, 102, 241, 0.2),
+    0 4px 12px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+html.dark .neon-card {
+  background: linear-gradient(145deg, #111C44 0%, #1B2559 100%) !important;
+}
+
+/* PHASE 8: Force Neon Card on all card-like elements (Global Sweep) */
+.rounded-2xl[class*="bg-white"],
+.rounded-2xl[class*="bg-\[#"],
+.rounded-2xl[class*="dark:bg-"],
+.rounded-xl[class*="bg-white"],
+.rounded-xl[class*="dark:bg-"],
+[class*="bg-white"][class*="shadow"],
+[class*="bg-gray"][class*="dark:bg-"] {
+  /* These will be replaced with neon-card class in components */
+}
+
+/* Global: Remove any remaining backdrop-blur */
+* {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Exception: Only allow backdrop-blur in specific cases if needed */
+/* But force solid backgrounds on all cards */
+
+/* Removed old glass-panel - now using neon-card */
+
+/* PHASE 8: Sidebar Active State - Cyan Glow (Neon Style) */
+.hospital-nav-active {
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, transparent 100%) !important;
+  border-left: 4px solid #06B6D4 !important;
+  color: #06B6D4 !important;
+  font-weight: 600 !important;
+  position: relative !important;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.6) !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.2) !important;
+}
+
+.hospital-nav-active::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, #06B6D4, #8B5CF6) !important;
+  box-shadow: 
+    0 0 10px rgba(6, 182, 212, 0.8),
+    0 0 20px rgba(6, 182, 212, 0.6),
+    0 0 30px rgba(139, 92, 246, 0.4) !important;
+  border-radius: 0 2px 2px 0;
+  animation: neon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes neon-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 
+      0 0 10px rgba(6, 182, 212, 0.8),
+      0 0 20px rgba(6, 182, 212, 0.6),
+      0 0 30px rgba(139, 92, 246, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 
+      0 0 15px rgba(6, 182, 212, 1),
+      0 0 30px rgba(6, 182, 212, 0.8),
+      0 0 45px rgba(139, 92, 246, 0.6);
+  }
+}
+
+html.dark .hospital-nav-active {
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(139, 92, 246, 0.1) 50%, transparent 100%) !important;
+  box-shadow: 
+    0 0 20px rgba(6, 182, 212, 0.3),
+    inset 0 0 30px rgba(6, 182, 212, 0.1) !important;
+}
+
+html.dark .hospital-nav-active::before {
+  box-shadow: 
+    0 0 15px rgba(6, 182, 212, 1),
+    0 0 30px rgba(6, 182, 212, 0.8),
+    0 0 45px rgba(139, 92, 246, 0.6) !important;
+}
+
+html:not(.dark) .hospital-nav-active {
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.08) 0%, transparent 100%) !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.2) !important;
+}
+
+/* PHASE 9: Form Elements Polish - Inputs e Selects */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"],
+input[type="search"],
+input[type="tel"],
+input[type="file"],
+textarea,
+select {
+  border-radius: 0.75rem; /* rounded-xl */
+  padding: 0.625rem 1rem; /* py-2.5 px-4 */
+  transition: all 0.2s ease;
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem;
+}
+
+input[type="text"]:not([class]),
+input[type="email"]:not([class]),
+input[type="password"]:not([class]),
+input[type="number"]:not([class]),
+input[type="url"]:not([class]),
+input[type="search"]:not([class]),
+input[type="tel"]:not([class]),
+textarea:not([class]),
+select:not([class]) {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+}
+
+.dark input[type="text"]:not([class]),
+.dark input[type="email"]:not([class]),
+.dark input[type="password"]:not([class]),
+.dark input[type="number"]:not([class]),
+.dark input[type="url"]:not([class]),
+.dark input[type="search"]:not([class]),
+.dark input[type="tel"]:not([class]),
+.dark textarea:not([class]),
+.dark select:not([class]) {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-primary);
+}
+
+input[type="text"]:focus:not([class]),
+input[type="email"]:focus:not([class]),
+input[type="password"]:focus:not([class]),
+input[type="number"]:focus:not([class]),
+input[type="url"]:focus:not([class]),
+input[type="search"]:focus:not([class]),
+input[type="tel"]:focus:not([class]),
+textarea:focus:not([class]),
+select:focus:not([class]) {
+  outline: none;
+  border-color: #06B6D4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.dark input[type="text"]:focus:not([class]),
+.dark input[type="email"]:focus:not([class]),
+.dark input[type="password"]:focus:not([class]),
+.dark input[type="number"]:focus:not([class]),
+.dark input[type="url"]:focus:not([class]),
+.dark input[type="search"]:focus:not([class]),
+.dark input[type="tel"]:focus:not([class]),
+.dark textarea:focus:not([class]),
+.dark select:focus:not([class]) {
+  border-color: #06B6D4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+
+/* PHASE 8: Scroll dentro de caixas neon */
+.neon-card .overflow-x-auto,
+.neon-card .overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.neon-card .overflow-x-auto::-webkit-scrollbar,
+.neon-card .overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.neon-card .overflow-x-auto::-webkit-scrollbar-track,
+.neon-card .overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.neon-card .overflow-x-auto::-webkit-scrollbar-thumb,
+.neon-card .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.neon-card .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+.neon-card .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+  background-clip: padding-box;
+}
+
+html.dark .neon-card .overflow-x-auto::-webkit-scrollbar-thumb,
+html.dark .neon-card .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(117, 81, 255, 0.5);
+  background-clip: padding-box;
+}
+
+html.dark .neon-card .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+html.dark .neon-card .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(117, 81, 255, 0.7);
+  background-clip: padding-box;
+}
+
+/* PHASE 10: Custom Scrollbar - Estilo Premium */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+  background-clip: padding-box;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.6);
+  background-clip: padding-box;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.8);
+  background-clip: padding-box;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+}
+
+html.dark * {
+  scrollbar-color: rgba(75, 85, 99, 0.6) transparent;
+}
+
+/* PHASE 10: Melhorias de Consistência Visual - Botões e Textos */
+
+/* Botões Primary - Gradiente Vibrante (Modo Claro e Escuro) */
+button[class*="bg-gradient-to-r"],
+a[class*="bg-gradient-to-r"],
+.btn-primary,
+[class*="bg-indigo-600"]:not([class*="text-"]),
+[class*="bg-purple-600"]:not([class*="text-"]) {
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
+  transition: all 0.3s ease !important;
+}
+
+html:not(.dark) button[class*="bg-gradient-to-r"],
+html:not(.dark) a[class*="bg-gradient-to-r"] {
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+}
+
+html.dark button[class*="bg-gradient-to-r"],
+html.dark a[class*="bg-gradient-to-r"] {
+  box-shadow: 0 4px 20px rgba(117, 81, 255, 0.5) !important;
+}
+
+/* Melhorar visibilidade dos textos no modo claro */
+html:not(.dark) .neon-card,
+html:not(.dark) .neon-card * {
+  color: var(--text-main) !important;
+}
+
+html:not(.dark) .neon-card h1,
+html:not(.dark) .neon-card h2,
+html:not(.dark) .neon-card h3,
+html:not(.dark) .neon-card h4,
+html:not(.dark) .neon-card h5,
+html:not(.dark) .neon-card h6 {
+  color: #1B254B !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .neon-card p,
+html:not(.dark) .neon-card span:not([class*="text-"]),
+html:not(.dark) .neon-card label {
+  color: #4B5563 !important;
+}
+
+html:not(.dark) .neon-card [class*="text-gray"],
+html:not(.dark) .neon-card [class*="text-slate"] {
+  color: #6B7280 !important;
+}
+
+/* Inputs e Selects - Melhor contraste no modo claro */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) textarea,
+html:not(.dark) select {
+  background-color: #FFFFFF !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  color: #1B254B !important;
+}
+
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):focus,
+html:not(.dark) textarea:focus,
+html:not(.dark) select:focus {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Bordas neon mais visíveis em inputs no modo claro */
+html:not(.dark) [class*="border-gray-300"],
+html:not(.dark) [class*="border-indigo-500"] {
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+/* Melhorar contraste dos placeholders */
+html:not(.dark) ::placeholder,
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #9CA3AF !important;
+  opacity: 1 !important;
 }

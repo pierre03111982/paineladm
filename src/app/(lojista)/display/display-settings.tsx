@@ -89,10 +89,10 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
   }
 
   return (
-    <section className="rounded-2xl border border-zinc-800/60 bg-zinc-950/40 p-6">
+    <section className="neon-card rounded-2xl p-6">
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-2">Orientação do Display</h3>
-        <p className="text-sm text-zinc-400">
+        <h3 className="text-lg font-bold text-[var(--text-main)] mb-2">Orientação do Display</h3>
+        <p className="text-sm text-[var(--text-secondary)]">
           Configure como o display será exibido na tela. Escolha entre modo horizontal (paisagem) ou vertical (retrato).
         </p>
       </div>
@@ -105,38 +105,38 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
             onOrientationChange?.("horizontal");
           }}
           className={cn(
-            "relative rounded-xl border-2 p-6 transition-all",
+            "relative neon-card rounded-xl border-2 p-6 transition-all hover:scale-[1.02]",
             orientation === "horizontal"
-              ? "border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/20"
-              : "border-zinc-700 bg-zinc-900/40 hover:border-zinc-600"
+              ? "border-cyan-400/80 dark:border-cyan-500/80 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 dark:from-cyan-900/30 dark:to-blue-900/30 shadow-lg shadow-cyan-500/30"
+              : "border-gray-300/50 dark:border-gray-600/50 bg-[var(--bg-card)]/60 hover:border-cyan-400/50 dark:hover:border-cyan-500/50"
           )}
         >
           <div className="flex flex-col items-center gap-4">
             <div className={cn(
-              "p-4 rounded-lg transition-colors",
+              "p-4 rounded-lg transition-all",
               orientation === "horizontal"
-                ? "bg-cyan-500/20"
-                : "bg-zinc-800"
+                ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 dark:from-cyan-900/50 dark:to-blue-900/50 shadow-lg shadow-cyan-500/30"
+                : "bg-[var(--bg-card)]/40"
             )}>
               <Monitor className={cn(
                 "h-8 w-8",
-                orientation === "horizontal" ? "text-cyan-400" : "text-zinc-400"
+                orientation === "horizontal" ? "text-cyan-600 dark:text-cyan-400" : "text-[var(--text-secondary)]"
               )} />
             </div>
             <div className="text-center">
               <h4 className={cn(
-                "font-semibold mb-1",
-                orientation === "horizontal" ? "text-cyan-200" : "text-zinc-300"
+                "font-bold mb-1",
+                orientation === "horizontal" ? "text-cyan-700 dark:text-cyan-300" : "text-[var(--text-main)]"
               )}>
                 Horizontal
               </h4>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Paisagem (16:9)
               </p>
             </div>
             {orientation === "horizontal" && (
               <div className="absolute top-2 right-2">
-                <div className="h-6 w-6 rounded-full bg-cyan-500 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/50">
                   <Check className="h-4 w-4 text-white" />
                 </div>
               </div>
@@ -151,38 +151,38 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
             onOrientationChange?.("vertical");
           }}
           className={cn(
-            "relative rounded-xl border-2 p-6 transition-all",
+            "relative neon-card rounded-xl border-2 p-6 transition-all hover:scale-[1.02]",
             orientation === "vertical"
-              ? "border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/20"
-              : "border-zinc-700 bg-zinc-900/40 hover:border-zinc-600"
+              ? "border-cyan-400/80 dark:border-cyan-500/80 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 dark:from-cyan-900/30 dark:to-blue-900/30 shadow-lg shadow-cyan-500/30"
+              : "border-gray-300/50 dark:border-gray-600/50 bg-[var(--bg-card)]/60 hover:border-cyan-400/50 dark:hover:border-cyan-500/50"
           )}
         >
           <div className="flex flex-col items-center gap-4">
             <div className={cn(
-              "p-4 rounded-lg transition-colors",
+              "p-4 rounded-lg transition-all",
               orientation === "vertical"
-                ? "bg-cyan-500/20"
-                : "bg-zinc-800"
+                ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 dark:from-cyan-900/50 dark:to-blue-900/50 shadow-lg shadow-cyan-500/30"
+                : "bg-[var(--bg-card)]/40"
             )}>
               <Smartphone className={cn(
                 "h-8 w-8",
-                orientation === "vertical" ? "text-cyan-400" : "text-zinc-400"
+                orientation === "vertical" ? "text-cyan-600 dark:text-cyan-400" : "text-[var(--text-secondary)]"
               )} />
             </div>
             <div className="text-center">
               <h4 className={cn(
-                "font-semibold mb-1",
-                orientation === "vertical" ? "text-cyan-200" : "text-zinc-300"
+                "font-bold mb-1",
+                orientation === "vertical" ? "text-cyan-700 dark:text-cyan-300" : "text-[var(--text-main)]"
               )}>
                 Vertical
               </h4>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-[var(--text-secondary)]">
                 Retrato (9:16)
               </p>
             </div>
             {orientation === "vertical" && (
               <div className="absolute top-2 right-2">
-                <div className="h-6 w-6 rounded-full bg-cyan-500 flex items-center justify-center">
+                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/50">
                   <Check className="h-4 w-4 text-white" />
                 </div>
               </div>
@@ -193,15 +193,15 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
 
       {/* Botão Salvar */}
       <div className="flex items-center justify-between">
-        <div className="text-xs text-zinc-500">
+        <div className="text-xs">
           {saveStatus === "success" && (
-            <span className="text-emerald-400 flex items-center gap-2">
+            <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-semibold">
               <Check className="h-4 w-4" />
               Configuração salva com sucesso!
             </span>
           )}
           {saveStatus === "error" && (
-            <span className="text-rose-400">
+            <span className="text-rose-600 dark:text-rose-400 font-semibold">
               Erro ao salvar configuração. Tente novamente.
             </span>
           )}
@@ -209,7 +209,7 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
         <Button
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-cyan-600 hover:bg-cyan-700 text-white"
+          className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold shadow-lg shadow-cyan-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
             <>

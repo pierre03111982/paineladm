@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Heart, Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles } from "lucide-react";
+import { Heart, Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COMPOSICOES_TIMEFRAMES } from "./constants";
 
@@ -652,21 +652,21 @@ export function ComposicoesGallery({
       ) : null}
       {/* Barra de ações para seleção múltipla */}
       {selectedComposicoes.size > 0 && (
-        <div className="flex items-center justify-between rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-4">
+        <div className="neon-card flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-indigo-200">
+            <span className="text-sm font-bold text-[var(--text-main)]">
               {selectedComposicoes.size} composição(ões) selecionada(s)
             </span>
             <button
               onClick={handleSelectAll}
-              className="text-xs text-indigo-300 hover:text-indigo-200 underline"
+              className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline transition-colors"
             >
               {selectedComposicoes.size === items.length ? "Desmarcar todas" : "Selecionar todas"}
             </button>
           </div>
           <button
             onClick={handleOpenBulkPromotion}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-400"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02]"
           >
             <Send className="h-4 w-4" />
             Enviar Promoção Massiva
@@ -674,12 +674,12 @@ export function ComposicoesGallery({
         </div>
       )}
 
-      <form className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 text-xs text-slate-600 md:grid-cols-7">
+      <form className="neon-card grid grid-cols-1 gap-3 p-4 text-xs md:grid-cols-7">
         <label className="flex flex-col gap-1">
-          <span>Cliente</span>
+          <span className="font-medium text-[var(--text-secondary)]">Cliente</span>
           <select
             className={cn(
-              "rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-0",
+              "rounded-xl border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
               isPending && "cursor-wait opacity-70"
             )}
             value={filters.cliente}
@@ -696,10 +696,10 @@ export function ComposicoesGallery({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span>Produto</span>
+          <span className="font-medium text-[var(--text-secondary)]">Produto</span>
           <select
             className={cn(
-              "rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-0",
+              "rounded-xl border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
               isPending && "cursor-wait opacity-70"
             )}
             value={filters.produto}
@@ -716,10 +716,10 @@ export function ComposicoesGallery({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span>Período</span>
+          <span className="font-medium text-[var(--text-secondary)]">Período</span>
           <select
             className={cn(
-              "rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-0",
+              "rounded-xl border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
               isPending && "cursor-wait opacity-70"
             )}
             value={filters.timeframe}
@@ -739,18 +739,18 @@ export function ComposicoesGallery({
             type="checkbox"
             checked={filters.liked}
             onChange={(event) => handleFilterChange({ liked: event.target.checked })}
-            className="h-4 w-4 rounded border border-gray-300 bg-white accent-rose-500"
+            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-rose-500"
           />
-          Mostrar apenas curtidas
+          <span className="text-[var(--text-secondary)]">Mostrar apenas curtidas</span>
         </label>
         <label className="mt-5 inline-flex items-center gap-2">
           <input
             type="checkbox"
             checked={filters.shared}
             onChange={(event) => handleFilterChange({ shared: event.target.checked })}
-            className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900 accent-sky-500"
+            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-sky-500"
           />
-          Apenas enviados
+          <span className="text-[var(--text-secondary)]">Apenas enviados</span>
         </label>
         <label className="mt-5 inline-flex items-center gap-2">
           <input
@@ -759,9 +759,9 @@ export function ComposicoesGallery({
             onChange={(event) =>
               handleFilterChange({ anonymous: event.target.checked })
             }
-            className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900 accent-emerald-500"
+            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-emerald-500"
           />
-          Apenas anônimas
+          <span className="text-[var(--text-secondary)]">Apenas anônimas</span>
         </label>
         <label className="mt-5 inline-flex items-center gap-2">
           <input
@@ -770,18 +770,18 @@ export function ComposicoesGallery({
             onChange={(event) =>
               handleFilterChange({ highConversion: event.target.checked })
             }
-            className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900 accent-purple-500"
+            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-purple-500"
           />
-          Alta conversão
+          <span className="text-[var(--text-secondary)]">Alta conversão</span>
         </label>
       </form>
 
-      <div className="text-xs text-zinc-500">
+      <div className="text-xs font-medium text-[var(--text-secondary)]">
         {items.length} {resultsSummaryLabel}
       </div>
 
       {emptyState ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-slate-600">
+        <div className="neon-card p-10 text-center text-sm text-[var(--text-secondary)]">
           Nenhuma composição encontrada com os filtros selecionados.
         </div>
       ) : (
@@ -793,11 +793,11 @@ export function ComposicoesGallery({
               <article
                 key={item.id}
                 className={cn(
-                  "group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md hover:shadow-lg transition hover:-translate-y-1",
+                  "group relative overflow-hidden neon-card rounded-xl border-2 transition-all hover:-translate-y-1",
                   item.liked
-                    ? "border-rose-300 shadow-rose-100 hover:border-rose-400"
-                    : "border-gray-200 hover:border-indigo-300",
-                  selectedComposicoes.has(item.id) && "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white"
+                    ? "border-rose-400/60 dark:border-rose-500/60 shadow-rose-500/20 hover:border-rose-500/80 dark:hover:border-rose-400/80"
+                    : "hover:border-indigo-400/60 dark:hover:border-indigo-500/60",
+                  selectedComposicoes.has(item.id) && "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-[var(--bg-app)]"
                 )}
               >
                 {/* Checkbox de seleção */}
@@ -864,24 +864,8 @@ export function ComposicoesGallery({
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent opacity-70" />
-                  <div className={cn(
-                    "absolute inline-flex items-center gap-2 rounded-full bg-indigo-500/25 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-100",
-                    selectedComposicoes.has(item.id) ? "left-14 top-4" : "left-4 top-4"
-                  )}>
-                    #{String(index + 1).padStart(2, "0")}
-                  </div>
-                  {item.liked ? (
-                    <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border-2 border-rose-400 dark:border-rose-400 bg-rose-100 dark:bg-rose-900/50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-rose-700 dark:text-rose-100 shadow-md">
-                      <Heart className="h-3.5 w-3.5 fill-current animate-pulse" />
-                      Favorito
-                    </div>
-                  ) : null}
-                  <div className="absolute left-4 bottom-4 inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-900 dark:text-slate-100 shadow-md">
-                    <Share2 className="h-3.5 w-3.5" />
-                    {item.shares > 0 ? `${item.shares} envio(s)` : "Sem envios"}
-                  </div>
                   {item.isAnonymous ? (
-                    <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/10 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-emerald-100">
+                    <div className="absolute right-4 bottom-4 inline-flex items-center gap-2 rounded-full border-2 border-emerald-400/80 dark:border-emerald-500/80 bg-gradient-to-r from-emerald-500/30 to-teal-500/30 dark:from-emerald-900/50 dark:to-teal-900/50 backdrop-blur-sm px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-900 dark:text-emerald-100 shadow-lg shadow-emerald-500/40">
                       <ShieldAlert className="h-3.5 w-3.5" />
                       Avatar IA
                     </div>
@@ -890,25 +874,30 @@ export function ComposicoesGallery({
 
                 <div className="space-y-4 p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-white">
-                        {item.productName}
-                      </p>
-                      <p className="text-xs text-zinc-500">
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="inline-flex items-center rounded-full border-2 border-indigo-400/60 dark:border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 dark:from-indigo-900/30 dark:to-purple-900/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                          #{String(index + 1).padStart(2, "0")}
+                        </span>
+                        <p className="text-sm font-bold text-[var(--text-main)]">
+                          {item.productName}
+                        </p>
+                      </div>
+                      <p className="text-xs text-[var(--text-secondary)]">
                         {item.customerName}
                       </p>
                     </div>
-                    <span className="rounded-full border border-gray-300 px-3 py-1 text-xs text-slate-600">
+                    <span className="rounded-full border border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-3 py-1 text-xs font-medium text-[var(--text-secondary)] whitespace-nowrap">
                       {formatRelative(createdAt)}
                     </span>
                   </div>
                   
                   {/* Informações de tempo */}
                   {item.processingTime !== null && item.processingTime !== undefined ? (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    <div className="neon-card rounded-lg border-2 border-indigo-300/50 dark:border-indigo-500/50 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/30 p-3 shadow-sm">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-600">Tempo:</span>
-                        <span className="font-semibold text-indigo-400">
+                        <span className="font-medium text-[var(--text-secondary)]">Tempo:</span>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">
                           {item.processingTime < 1000 
                             ? `${item.processingTime}ms`
                             : item.processingTime < 60000
@@ -919,23 +908,23 @@ export function ComposicoesGallery({
                     </div>
                   ) : null}
 
-                  <div className="flex items-center justify-between text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => handleToggleLike(item)}
                         disabled={likePendingId === item.id}
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-full border px-2 py-1 transition",
+                          "inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-xs font-semibold transition-all flex-1 min-w-[120px] justify-center",
                           item.liked
-                            ? "border-rose-400/60 bg-rose-500/10 text-rose-100 hover:border-rose-300/80"
-                            : "border-zinc-700 text-rose-300 hover:border-rose-400 hover:text-rose-200",
+                            ? "border-rose-400/60 dark:border-rose-500/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-700 dark:text-rose-300 hover:from-rose-500/30 hover:to-pink-500/30 shadow-lg shadow-rose-500/30"
+                            : "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400 hover:shadow-md",
                           likePendingId === item.id && "cursor-not-allowed opacity-60"
                         )}
                       >
                         <Heart
                           className={cn(
-                            "h-3.5 w-3.5",
-                            item.liked ? "fill-current text-rose-300" : undefined
+                            "h-4 w-4",
+                            item.liked ? "fill-current" : undefined
                           )}
                         />
                         {item.liked ? "Curtido" : "Curtir"}
@@ -946,20 +935,21 @@ export function ComposicoesGallery({
                           shareSubmitting && shareModal?.item.id === item.id
                         }
                         className={cn(
-                          "inline-flex items-center gap-2 rounded-full border border-zinc-700 px-2 py-1 text-zinc-300 transition hover:border-indigo-400 hover:text-indigo-200",
+                          "inline-flex items-center gap-1.5 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-all flex-1 min-w-[120px] justify-center hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-lg hover:shadow-indigo-500/30",
                           shareSubmitting &&
                             shareModal?.item.id === item.id &&
                             "cursor-wait opacity-60"
                         )}
                       >
-                        <Share2 className="h-3.5 w-3.5" />
+                        <Share2 className="h-4 w-4" />
                         {item.shares > 0 ? `${item.shares} envios` : "Enviar"}
                       </button>
                     </div>
                     <button
                       onClick={() => handleOpenDetails(item)}
-                      className="rounded-lg border border-zinc-700 px-3 py-1 text-xs text-zinc-300 transition hover:border-indigo-400 hover:text-indigo-200"
+                      className="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
                     >
+                      <Eye className="h-4 w-4" />
                       Ver detalhes
                     </button>
                   </div>

@@ -31,14 +31,14 @@ function ProductGridCard({
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
 
   return (
-    <div className="group relative rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-sm dark:shadow-md hover:shadow-md dark:hover:shadow-lg transition-all">
+    <div className="group relative neon-card rounded-lg overflow-hidden hover:shadow-lg transition-all">
       {/* Status Badge - Top Right Overlay */}
       <div className="absolute top-2 right-2 z-10">
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
             produto.arquivado
-              ? "bg-gray-100 text-gray-600 border border-gray-200"
-              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              ? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
+              : "bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30"
           }`}
         >
           {produto.arquivado ? "Arquivado" : "Ativo"}
@@ -49,17 +49,17 @@ function ProductGridCard({
       <button
         onClick={() => !loading && toggleProductSelection(produto.id)}
         disabled={loading}
-        className="absolute top-2 left-2 z-10 p-1 rounded bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-md hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+        className="absolute top-2 left-2 z-10 p-1 rounded bg-white dark:bg-[var(--bg-card)] border border-gray-200 dark:border-gray-700 shadow-md hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80 transition"
       >
         {selectedProducts.has(produto.id) ? (
           <CheckSquare className="h-4 w-4 text-indigo-600" />
         ) : (
-          <Square className="h-4 w-4 text-gray-400" />
+          <Square className="h-4 w-4 text-gray-400 dark:text-gray-500" />
         )}
       </button>
 
       {/* Product Image - Hero */}
-      <div className="aspect-square w-full overflow-hidden bg-gray-100">
+      <div className="aspect-square w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
         {imagemPrincipal ? (
           <img
             src={imagemPrincipal}
@@ -67,8 +67,8 @@ function ProductGridCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="h-full w-full flex items-center justify-center bg-gray-50">
-            <Package className="h-12 w-12 text-gray-300" />
+          <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
           </div>
         )}
       </div>
@@ -76,41 +76,41 @@ function ProductGridCard({
       {/* Content */}
       <div className="p-4 space-y-3">
         <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 min-h-[2.5rem]">
+          <h3 className="font-semibold text-[var(--text-main)] text-sm line-clamp-2 min-h-[2.5rem]">
             {produto.nome}
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">ID {produto.id.slice(0, 6)}</p>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">ID {produto.id.slice(0, 6)}</p>
         </div>
 
         <div className="space-y-1.5 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Categoria:</span>
-            <span className="text-gray-900 dark:text-white font-medium">{produto.categoria}</span>
+            <span className="text-[var(--text-secondary)]">Categoria:</span>
+            <span className="text-[var(--text-main)] font-medium">{produto.categoria}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Preço:</span>
-            <span className="text-lg font-bold text-gray-900 dark:text-white">R$ {produto.preco.toFixed(2)}</span>
+            <span className="text-[var(--text-secondary)]">Preço:</span>
+            <span className="text-lg font-bold text-[var(--text-main)]">R$ {produto.preco.toFixed(2)}</span>
           </div>
           {produto.tamanhos && produto.tamanhos.length > 0 && (
             <div className="flex items-center justify-between">
-              <span className="text-gray-600">Tamanhos:</span>
-              <span className="text-gray-900 font-medium">{produto.tamanhos.join(", ")}</span>
+              <span className="text-[var(--text-secondary)]">Tamanhos:</span>
+              <span className="text-[var(--text-main)] font-medium">{produto.tamanhos.join(", ")}</span>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setViewingProduto(produto)}
-            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-2 py-1.5 text-xs font-medium text-gray-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
           >
             <Eye className="h-3.5 w-3.5" />
             Ver
           </button>
           <button
             onClick={() => setEditingProduto(produto)}
-            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-2 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 px-2 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-all hover:bg-indigo-100 dark:hover:bg-indigo-500/30"
           >
             <Edit className="h-3.5 w-3.5" />
             Editar
@@ -524,16 +524,16 @@ export function ProductsTable({
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm dark:shadow-md transition-colors">
-        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+      <div className="neon-card rounded-xl">
+        <div className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-3">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-[var(--text-secondary)]">
               {searchTerm.trim() || categoryFilter !== "all"
                 ? `${filteredProdutos.length} produto(s) encontrado(s).`
                 : `${produtos.length} produto(s) cadastrado(s).`}
             </div>
             <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
+              <label className="flex items-center gap-2 text-sm text-[var(--text-main)]">
                 <input
                   type="checkbox"
                   checked={showArchived}
@@ -545,7 +545,7 @@ export function ProductsTable({
             </div>
             {selectedProducts.size > 0 && (
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm font-semibold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">
+                <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-500/30">
                   {selectedProducts.size} selecionado(s)
                 </span>
                 <button
@@ -567,20 +567,20 @@ export function ProductsTable({
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar por nome, categoria..."
-                className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 pl-10 pr-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] pl-10 pr-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
+              <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">Todas</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -594,26 +594,26 @@ export function ProductsTable({
         </div>
 
       {/* Controle de desconto global */}
-      <div className="mx-4 mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 sm:mx-6">
+      <div className="mx-4 mt-4 neon-card rounded-xl p-4 sm:mx-6" style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-indigo-900">Desconto Redes Sociais</p>
-            <p className="text-xs text-indigo-700">
+            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Desconto Redes Sociais</p>
+            <p className="text-xs text-indigo-700 dark:text-indigo-300">
               Quando o cliente seguir suas redes, este percentual será aplicado em todos os produtos automaticamente.
             </p>
-            <p className="text-[11px] text-indigo-600">
+            <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
               Use o campo <span className="font-semibold">Desconto Especial</span> dentro do formulário do produto para bonificar itens específicos.
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end md:w-auto">
             <div className="w-full sm:w-48">
-              <label className="block text-xs font-medium text-indigo-900 mb-1">
+              <label className="block text-xs font-medium text-indigo-900 dark:text-indigo-200 mb-1">
                 Percentual padrão
               </label>
               <select
                 value={selectedDiscountOption}
                 onChange={(e) => handleDiscountSelection(e.target.value)}
-                className="w-full rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 disabled={isUpdatingGlobalDiscount}
               >
                 <option value="0">Sem desconto</option>
@@ -628,7 +628,7 @@ export function ProductsTable({
             {selectedDiscountOption === "custom" && (
               <div className="flex flex-1 items-end gap-2">
                 <div className="w-full">
-                  <label className="block text-xs font-medium text-indigo-900 mb-1">
+                  <label className="block text-xs font-medium text-indigo-900 dark:text-indigo-200 mb-1">
                     Informe o percentual
                   </label>
                   <input
@@ -638,7 +638,7 @@ export function ProductsTable({
                     step={0.1}
                     value={customDiscount}
                     onChange={(e) => setCustomDiscount(e.target.value)}
-                    className="w-full rounded-lg border border-indigo-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full rounded-lg border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     placeholder="Ex: 25"
                   />
                 </div>
@@ -646,16 +646,16 @@ export function ProductsTable({
                   type="button"
                   onClick={handleApplyCustomDiscount}
                   disabled={isUpdatingGlobalDiscount}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                  className="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/30 px-4 py-2 text-sm font-semibold transition-all duration-300 disabled:opacity-50"
                 >
                   {isUpdatingGlobalDiscount ? "Aplicando..." : "Aplicar"}
                 </button>
               </div>
             )}
             {selectedDiscountOption !== "custom" && (
-              <div className="rounded-lg border border-indigo-300 bg-white px-4 py-2 text-center">
-                <p className="text-xs text-gray-600">Atual</p>
-                <p className="text-base font-bold text-indigo-900">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
+              <div className="rounded-lg border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-4 py-2 text-center">
+                <p className="text-xs text-gray-600 dark:text-gray-400">Atual</p>
+                <p className="text-base font-bold text-indigo-900 dark:text-indigo-300">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
               </div>
             )}
           </div>

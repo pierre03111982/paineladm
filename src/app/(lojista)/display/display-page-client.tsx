@@ -42,10 +42,10 @@ export function DisplayPageClient({ lojistaId, displayUrl }: DisplayPageClientPr
         onOrientationChange={setOrientation}
       />
 
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/40 p-6">
+      <div className="neon-card rounded-2xl p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-white mb-2">Visualização do Display</h3>
-          <p className="text-sm text-zinc-400">
+          <h3 className="text-lg font-bold text-[var(--text-main)] mb-2">Visualização do Display</h3>
+          <p className="text-sm text-[var(--text-secondary)]">
             Veja como o display aparecerá na tela com a orientação selecionada.
           </p>
         </div>
@@ -56,6 +56,7 @@ export function DisplayPageClient({ lojistaId, displayUrl }: DisplayPageClientPr
     </>
   );
 }
+
 
 
 

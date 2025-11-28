@@ -103,15 +103,15 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
+    <div className="neon-card p-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-indigo-100 p-2">
-            <Sparkles className="h-5 w-5 text-indigo-600" />
+          <div className="rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 p-2 shadow-lg shadow-indigo-500/50">
+            <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Créditos de IA</h3>
-            <p className="text-sm text-slate-600 dark:text-gray-300">
+            <h3 className="text-lg font-semibold text-[var(--text-main)]">Créditos de IA</h3>
+            <p className="text-sm text-[var(--text-secondary)]">
               Gerencie os créditos para geração de imagens com IA
             </p>
           </div>
@@ -121,43 +121,47 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
           size="sm"
           onClick={loadBalance}
           disabled={loadingBalance}
-          className="border-gray-300 text-slate-700 hover:bg-gray-50"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border-2 border-indigo-400/50 dark:border-purple-400/50 shadow-lg shadow-indigo-500/40 dark:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 font-semibold"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${loadingBalance ? "animate-spin" : ""}`} />
           Atualizar
         </Button>
       </div>
 
-      <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm transition-colors">
+      <div className="mb-6 neon-card rounded-lg p-4">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-slate-900 dark:text-white">
+          <span className="text-3xl font-bold text-[var(--text-main)]">
             {loadingBalance ? "..." : credits?.toLocaleString("pt-BR") || "0"}
           </span>
-          <span className="text-sm text-slate-600 dark:text-gray-300">créditos disponíveis</span>
+          <span className="text-sm text-[var(--text-secondary)]">créditos disponíveis</span>
         </div>
         {credits !== null && credits < 10 && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-yellow-700">
+          <div className="mt-2 flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
             <AlertCircle className="h-4 w-4" />
-            <span>Saldo baixo! Adicione mais créditos para continuar gerando imagens.</span>
+            <span className="text-[var(--text-main)]">Saldo baixo! Adicione mais créditos para continuar gerando imagens.</span>
           </div>
         )}
       </div>
 
       {message && (
-        <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 ${
+        <div className={`mb-4 flex items-center gap-2 rounded-lg border p-3 neon-card ${
           message.type === "success"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-            : "border-red-200 bg-red-50 text-red-800"
+            ? "border-emerald-500/50 dark:border-emerald-400/50 bg-emerald-50/50 dark:bg-emerald-900/20"
+            : "border-red-500/50 dark:border-red-400/50 bg-red-50/50 dark:bg-red-900/20"
         }`}>
           {message.type === "success" ? (
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <XCircle className="h-4 w-4" />
+            <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
           )}
-          <span className="text-sm">{message.text}</span>
+          <span className={`text-sm ${
+            message.type === "success"
+              ? "text-emerald-800 dark:text-emerald-200"
+              : "text-red-800 dark:text-red-200"
+          }`}>{message.text}</span>
           <button
             onClick={() => setMessage(null)}
-            className="ml-auto text-gray-400 hover:text-gray-600"
+            className="ml-auto text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -166,7 +170,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
+          <label className="mb-2 block text-sm font-medium text-[var(--text-main)]">
             Adicionar Créditos
           </label>
           <div className="flex gap-2">
@@ -177,13 +181,13 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               placeholder="Quantidade de créditos"
               value={amountToAdd}
               onChange={(e) => setAmountToAdd(e.target.value)}
-              className="flex-1 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="flex-1 bg-white dark:bg-[var(--bg-card)] border-gray-300 dark:border-purple-500/30 text-slate-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 rounded-xl focus:ring-2 focus:ring-indigo-500 dark:focus:ring-purple-500 focus:border-transparent transition-all duration-300"
               disabled={addingCredits}
             />
             <Button
               onClick={handleAddCredits}
               disabled={addingCredits || !amountToAdd}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border-2 border-indigo-400/50 dark:border-purple-400/50 shadow-lg shadow-indigo-500/40 dark:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105 font-semibold px-6"
             >
               {addingCredits ? (
                 <>
@@ -198,7 +202,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               )}
             </Button>
           </div>
-          <p className="mt-2 text-xs text-slate-600">
+          <p className="mt-2 text-xs text-[var(--text-secondary)]">
             Cada geração de imagem consome 1 crédito
           </p>
         </div>

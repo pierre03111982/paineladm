@@ -84,8 +84,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">Modelo do App Cliente</h3>
-        <p className="text-sm text-slate-600">
+        <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">Modelo do App Cliente</h3>
+        <p className="text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
           Escolha qual layout do aplicativo cliente será usado para sua loja.
         </p>
       </div>
@@ -102,11 +102,11 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                 key={modelo.id}
                 onClick={() => handleModeloSelect(modelo.id)}
                 className={`
-                  relative flex items-start gap-4 rounded-xl border-2 p-4 cursor-pointer transition-all
+                  relative neon-card flex items-start gap-4 rounded-xl border-2 p-4 cursor-pointer transition-all hover:scale-[1.02]
                   ${
                     isSelected
-                      ? "border-indigo-500 bg-indigo-50 shadow-lg shadow-indigo-500/20"
-                      : "border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50 shadow-sm hover:shadow-md"
+                      ? "border-purple-400/80 dark:border-purple-500/80 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-950/30 ring-2 ring-purple-500/30 shadow-lg shadow-purple-500/20"
+                      : "hover:border-purple-400/50 dark:hover:border-purple-500/50"
                   }
                 `}
               >
@@ -116,8 +116,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                     flex h-6 w-6 items-center justify-center rounded-full border-2 mt-0.5 flex-shrink-0 transition-colors
                     ${
                       isSelected
-                        ? "border-indigo-500 bg-indigo-500"
-                        : "border-gray-300 bg-transparent"
+                        ? "border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/40"
+                        : "border-gray-300 dark:border-gray-600 bg-transparent"
                     }
                   `}
                 >
@@ -126,19 +126,19 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-4">
-                    <h4 className={`text-base font-semibold ${isSelected ? "text-indigo-900" : "text-slate-900"}`}>
+                    <h4 className={`text-base font-bold ${isSelected ? "text-purple-700 dark:text-purple-300" : "text-[var(--text-main)]"}`}>
                       {modelo.nome}
                     </h4>
                     <div className="flex items-center gap-2">
                       {isSelected && (
-                        <span className="text-xs font-medium text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
-                          Ativo
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/50 dark:to-green-900/50 px-3 py-1 rounded-full border-2 border-emerald-400/60 dark:border-emerald-500/60 shadow-lg shadow-emerald-500/30">
+                          PADRÃO
                         </span>
                       )}
                       {isSelected && (
                         <button
                           type="submit"
-                          className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg shadow-lg font-semibold text-xs transition-transform active:scale-95"
+                          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white px-4 py-1.5 rounded-lg shadow-lg font-bold text-xs transition-all hover:scale-[1.05] active:scale-[0.95]"
                         >
                           <Save className="h-3 w-3" />
                           Salvar
@@ -146,7 +146,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                       )}
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                  <p className={`text-sm font-medium mt-1 leading-relaxed ${isSelected ? "text-purple-700 dark:text-purple-300" : "text-[var(--text-secondary)]"}`}>
                     {modelo.descricao}
                   </p>
                 </div>
@@ -154,8 +154,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
             );
           })}
 
-          <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-             <p className="text-xs text-yellow-800 leading-relaxed">
+          <div className="mt-6 neon-card rounded-xl border-2 border-yellow-400/60 dark:border-yellow-500/60 bg-gradient-to-br from-yellow-50/50 to-amber-50/50 dark:from-yellow-950/30 dark:to-amber-950/30 p-4 shadow-lg shadow-yellow-500/20">
+             <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 leading-relaxed">
                <strong>Dica:</strong> Ao trocar o modelo aqui, os novos clientes receberão o link atualizado. 
                Clientes antigos que já têm o link continuarão acessando o modelo anterior até receberem um novo link.
              </p>
