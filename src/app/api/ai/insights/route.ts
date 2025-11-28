@@ -142,7 +142,7 @@ async function generateRealInsights(
     if (lowStockProducts.length > 0) {
       // Pegar o primeiro produto com estoque baixo e incluir tamanho se disponível
       const firstProduct = lowStockProducts[0];
-      const tamanho = firstProduct.tamanho || firstProduct.size || "";
+      const tamanho = firstProduct.tamanho || "";
       const tamanhoText = tamanho ? ` (${tamanho})` : "";
       const estoqueText = firstProduct.estoque === 1 ? "1 un" : `${firstProduct.estoque} un`;
       
@@ -154,7 +154,7 @@ async function generateRealInsights(
         });
       } else {
         const productNames = lowStockProducts.slice(0, 2).map(p => {
-          const t = p.tamanho || p.size || "";
+          const t = p.tamanho || "";
           return `${p.nome}${t ? ` (${t})` : ""}`;
         }).join(", ");
         insights.push({
