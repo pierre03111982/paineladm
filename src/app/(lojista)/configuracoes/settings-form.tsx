@@ -279,7 +279,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Logo da Loja */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
         <div className="flex items-start gap-6">
           <div className="flex-shrink-0">
             {logoPreview ? (
@@ -339,7 +339,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Modelo do App Cliente - NOVO COMPONENTE */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
         <ModeloAppSelector 
             modeloAtual={formData.appModel} 
             lojistaId={lojistaId} 
@@ -348,7 +348,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Informações Básicas */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
         <h3 className="mb-4 text-lg font-semibold text-slate-900">Informações Básicas</h3>
         <div className="space-y-4">
           <div>
@@ -383,7 +383,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Redes Sociais e Desconto */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
         <h3 className="mb-4 text-lg font-semibold text-slate-900">Redes Sociais e Desconto</h3>
         <p className="mb-4 text-sm text-slate-600">
           Configure suas redes sociais e defina um desconto para clientes que seguirem sua loja.
@@ -450,7 +450,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* Configurações de Venda */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
         <h3 className="mb-4 text-lg font-semibold text-slate-900">Configurações de Venda</h3>
         <p className="mb-4 text-sm text-slate-600">
           Defina como os clientes vão comprar os produtos no provador virtual.

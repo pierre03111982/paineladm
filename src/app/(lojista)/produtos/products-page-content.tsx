@@ -110,7 +110,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
 
       {/* Seção Manual */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">MANUAL</span>
           </div>
@@ -131,7 +131,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
           <h4 className="text-sm font-semibold text-slate-900 mb-3">Campos sugeridos</h4>
           <ul className="space-y-2 text-sm text-slate-600">
             <li className="flex items-start gap-2">
@@ -162,7 +162,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
 
       {/* Seção Importação */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
+        <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">IMPORTAÇÃO</span>
           </div>
@@ -247,7 +247,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Plataforma de interesse</label>
-                <select className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none">
+                <select className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-400 focus:outline-none">
                   <option>Shopify</option>
                   <option>Nuvemshop</option>
                   <option>VTEX</option>

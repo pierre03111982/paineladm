@@ -44,7 +44,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] dark:bg-[#0F172A] transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 transition-colors">
       {/* Mobile Sidebar Component */}
       <MobileSidebar
         lojaNome={lojaNome}
@@ -97,7 +97,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
         {/* Main Content */}
         <div className="flex flex-1 flex-col min-w-0">
-          <header className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B] p-4 sm:p-6 shadow-md transition-colors">
+          <header className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sm:p-6 shadow-md transition-colors">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">
@@ -135,7 +135,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
             </div>
           </header>
 
-          <main className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B] p-4 sm:rounded-2xl sm:p-6 lg:p-8 shadow-md transition-colors">
+          <main className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sm:rounded-2xl sm:p-6 lg:p-8 shadow-md transition-colors">
             {children}
           </main>
         </div>

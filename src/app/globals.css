@@ -14,17 +14,17 @@
 
 /* Tema claro (Light Theme) - padrão */
 html {
-  background: #F3F4F6;
+  background: #f9fafb;
   color: #111827;
 }
 
 html.dark {
-  background: #0F172A;
-  color: #F9FAFB;
+  background: #020617;
+  color: #f9fafb;
 }
 
 body {
-  background: #F3F4F6;
+  background: #f9fafb;
   color: #111827;
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
@@ -36,8 +36,8 @@ body {
 }
 
 .dark body {
-  background: #0F172A;
-  color: #F9FAFB;
+  background: #020617;
+  color: #f9fafb;
 }
 
 :root {
@@ -67,11 +67,11 @@ html, body {
 
 /* Garantir background em todos os elementos principais */
 #__next, [data-nextjs-scroll-focus-boundary] {
-  background: #F3F4F6;
+  background: #f9fafb;
   min-height: 100vh;
   transition: background-color 0.3s ease;
 }
 
 .dark #__next, .dark [data-nextjs-scroll-focus-boundary] {
-  background: #0F172A;
+  background: #020617;
 }

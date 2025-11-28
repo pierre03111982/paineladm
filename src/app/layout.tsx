@@ -31,7 +31,7 @@ export default function RootLayout({
         <meta name="google-translate-customization" content="false" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#F3F4F6] dark:bg-[#0F172A] text-gray-900 dark:text-[#F9FAFB] transition-colors`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white transition-colors`}
         translate="no"
       >
         <ThemeProvider>
