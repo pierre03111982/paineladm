@@ -502,6 +502,38 @@ export async function POST(request: NextRequest) {
         });
       }
       
+      // PHASE 11 FIX: Smart Framing - Detectar categoria de TODOS os produtos
+      // Se QUALQUER produto for calçado, forçar full body
+      // Se APENAS acessórios (sem calçados), forçar portrait
+      const allCategories = productsData.map(p => (p?.categoria || "").toLowerCase());
+      const hasShoes = allCategories.some(cat => 
+        cat.includes("calçado") || cat.includes("calcado") || 
+        cat.includes("sapato") || cat.includes("tênis") || 
+        cat.includes("tenis") || cat.includes("shoe") || 
+        cat.includes("footwear")
+      );
+      const hasOnlyAccessories = allCategories.length > 0 && 
+        allCategories.every(cat => 
+          cat.includes("acessório") || cat.includes("acessorio") ||
+          cat.includes("óculos") || cat.includes("oculos") ||
+          cat.includes("joia") || cat.includes("relógio") ||
+          cat.includes("relogio") || cat.includes("glasses") ||
+          cat.includes("jewelry")
+        ) && !hasShoes;
+      
+      // Determinar categoria para o prompt (priorizar calçados > roupas > acessórios)
+      let productCategoryForPrompt = primaryProduct?.categoria || "";
+      if (hasShoes) {
+        productCategoryForPrompt = "Calçados";
+        console.log("[API] 🦶 Smart Framing: Detectado calçado(s) - Forçando full body shot");
+      } else if (hasOnlyAccessories) {
+        productCategoryForPrompt = "Acessórios/Óculos/Joias";
+        console.log("[API] 👓 Smart Framing: Apenas acessórios detectados - Forçando portrait shot");
+      } else {
+        productCategoryForPrompt = "Roupas";
+        console.log("[API] 👕 Smart Framing: Roupas detectadas - Usando shot médio");
+      }
+      
       const creativeResult = await orchestrator.createComposition({
         personImageUrl,
         productId: primaryProduct.id,
@@ -521,7 +553,7 @@ export async function POST(request: NextRequest) {
           productUrl: primaryProduct.productUrl || undefined,
           lookType: "creative",
           allProductImageUrls: allProductImageUrls, // Todas as imagens de produtos
-          productCategory: primaryProduct?.categoria || undefined, // Passar categoria para prompts específicos
+          productCategory: productCategoryForPrompt, // PHASE 11: Categoria determinada por Smart Framing
         },
       });
 
