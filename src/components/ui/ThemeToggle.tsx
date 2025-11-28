@@ -29,6 +29,17 @@ export function ThemeToggle() {
     const currentTheme = theme || "light";
     const newTheme = currentTheme === "dark" ? "light" : "dark";
     console.log("[ThemeToggle] Trocando tema de", currentTheme, "para", newTheme);
+    
+    // Forçar aplicação da classe no html
+    if (typeof document !== "undefined") {
+      const html = document.documentElement;
+      if (newTheme === "dark") {
+        html.classList.add("dark");
+      } else {
+        html.classList.remove("dark");
+      }
+    }
+    
     setTheme(newTheme);
   };
 
