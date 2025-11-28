@@ -138,7 +138,7 @@ function Modal({
       <div className="relative w-full max-w-3xl rounded-xl border border-indigo-500/30 bg-zinc-950/95 p-6 shadow-[0_45px_120px_-60px_rgba(99,102,241,0.75)]">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full border border-zinc-700/60 px-2 py-1 text-sm leading-none text-zinc-400 transition hover:border-zinc-500 hover:text-white"
+          className="absolute right-4 top-4 rounded-full border border-gray-300 px-2 py-1 text-sm leading-none text-slate-600 transition hover:border-gray-400 hover:text-slate-900 hover:bg-gray-50"
           aria-label="Fechar modal"
         >
           ✕
@@ -679,7 +679,7 @@ export function ComposicoesGallery({
           <span>Cliente</span>
           <select
             className={cn(
-              "rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 focus:border-indigo-400 focus:outline-none focus:ring-0",
+              "rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-0",
               isPending && "cursor-wait opacity-70"
             )}
             value={filters.cliente}
@@ -699,7 +699,7 @@ export function ComposicoesGallery({
           <span>Produto</span>
           <select
             className={cn(
-              "rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 focus:border-indigo-400 focus:outline-none focus:ring-0",
+              "rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-0",
               isPending && "cursor-wait opacity-70"
             )}
             value={filters.produto}
@@ -719,7 +719,7 @@ export function ComposicoesGallery({
           <span>Período</span>
           <select
             className={cn(
-              "rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 focus:border-indigo-400 focus:outline-none focus:ring-0",
+              "rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none focus:ring-0",
               isPending && "cursor-wait opacity-70"
             )}
             value={filters.timeframe}
@@ -739,7 +739,7 @@ export function ComposicoesGallery({
             type="checkbox"
             checked={filters.liked}
             onChange={(event) => handleFilterChange({ liked: event.target.checked })}
-            className="h-4 w-4 rounded border border-zinc-600 bg-zinc-900 accent-rose-500"
+            className="h-4 w-4 rounded border border-gray-300 bg-white accent-rose-500"
           />
           Mostrar apenas curtidas
         </label>
@@ -781,7 +781,7 @@ export function ComposicoesGallery({
       </div>
 
       {emptyState ? (
-        <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-10 text-center text-sm text-zinc-400">
+        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-slate-600">
           Nenhuma composição encontrada com os filtros selecionados.
         </div>
       ) : (
@@ -793,11 +793,11 @@ export function ComposicoesGallery({
               <article
                 key={item.id}
                 className={cn(
-                  "group relative overflow-hidden rounded-xl border bg-zinc-900/50 shadow-[0_25px_60px_-35px_rgba(79,70,229,0.65)] transition hover:-translate-y-1",
+                  "group relative overflow-hidden rounded-xl border bg-white shadow-lg transition hover:-translate-y-1",
                   item.liked
-                    ? "border-rose-500/40 shadow-[0_25px_60px_-35px_rgba(244,63,94,0.65)] hover:border-rose-400/60"
-                    : "border-zinc-800/60 hover:border-indigo-400/60",
-                  selectedComposicoes.has(item.id) && "ring-2 ring-indigo-500 ring-offset-2 ring-offset-zinc-950"
+                    ? "border-rose-300 shadow-rose-100 hover:border-rose-400"
+                    : "border-gray-200 hover:border-indigo-300",
+                  selectedComposicoes.has(item.id) && "ring-2 ring-indigo-500 ring-offset-2 ring-offset-white"
                 )}
               >
                 {/* Checkbox de seleção */}
@@ -814,7 +814,7 @@ export function ComposicoesGallery({
                     {selectedComposicoes.has(item.id) ? (
                       <CheckSquare className="h-4 w-4 text-indigo-200" />
                     ) : (
-                      <Square className="h-4 w-4 text-zinc-400" />
+                      <Square className="h-4 w-4 text-slate-400" />
                     )}
                   </button>
                 </div>
@@ -898,16 +898,16 @@ export function ComposicoesGallery({
                         {item.customerName}
                       </p>
                     </div>
-                    <span className="rounded-full border border-zinc-700 px-3 py-1 text-xs text-zinc-400">
+                    <span className="rounded-full border border-gray-300 px-3 py-1 text-xs text-slate-600">
                       {formatRelative(createdAt)}
                     </span>
                   </div>
                   
                   {/* Informações de tempo */}
                   {item.processingTime !== null && item.processingTime !== undefined ? (
-                    <div className="rounded-lg border border-zinc-800/60 bg-zinc-950/40 p-3">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-400">Tempo:</span>
+                        <span className="text-slate-600">Tempo:</span>
                         <span className="font-semibold text-indigo-400">
                           {item.processingTime < 1000 
                             ? `${item.processingTime}ms`
@@ -919,7 +919,7 @@ export function ComposicoesGallery({
                     </div>
                   ) : null}
 
-                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                  <div className="flex items-center justify-between text-xs text-slate-600">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleLike(item)}
@@ -992,7 +992,7 @@ export function ComposicoesGallery({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-2">
+              <label className="block text-xs font-medium text-slate-700 mb-2">
                 Template da Mensagem
               </label>
               <textarea
@@ -1004,7 +1004,7 @@ export function ComposicoesGallery({
                   })
                 }
                 rows={6}
-                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
                 placeholder="Olá {{cliente}}! Temos uma promoção especial para você!"
               />
               <p className="text-xs text-zinc-500 mt-1">

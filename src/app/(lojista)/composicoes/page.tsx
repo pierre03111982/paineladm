@@ -416,8 +416,8 @@ export default async function ComposicoesPage({
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Composições</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <h1 className="text-3xl font-bold text-slate-900">Composições</h1>
+        <p className="mt-2 text-sm text-slate-600">
           Visualize e gerencie todas as composições geradas
         </p>
       </div>
