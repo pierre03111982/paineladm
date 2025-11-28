@@ -67,18 +67,20 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now(); // Iniciar contagem de tempo
+  
+  // PHASE 12 FIX: Declarar variáveis fora do try para acesso no catch
+  let personImageUrl: string | null = null;
+  let productIds: string[] = [];
+  let productUrl: string | null = null; // URL do produto (link)
+  let lojistaId: string | null = null;
+  let customerId: string | null = null;
+  let scenePrompts: string[] | null = null;
+  let options: any = null;
+  
   try {
     // Verificar se é FormData ou JSON pelo content-type
     const contentType = request.headers.get("content-type") || "";
     const isFormData = contentType.includes("multipart/form-data");
-    
-    let personImageUrl: string | null = null;
-    let productIds: string[] = [];
-    let productUrl: string | null = null; // URL do produto (link)
-    let lojistaId: string | null = null;
-    let customerId: string | null = null;
-    let scenePrompts: string[] | null = null;
-    let options: any = null;
 
     if (isFormData) {
       // FormData (do frontend)
