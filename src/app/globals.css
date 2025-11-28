@@ -2,14 +2,14 @@
 
 /* PHASE 8: "TOTAL NEON" CSS VARIABLES - NUCLEAR FIX */
 :root {
-  /* Light Mode */
-  --bg-app: #F4F7FE;
+  /* Light Mode - Clean Slate Background */
+  --bg-app: #F8F9FC;
   --bg-card: #FFFFFF;
   --text-main: #0F172A;
   --foreground: #1E293B;
-  --text-primary: #1E293B;
-  --text-secondary: #475569;
-  --text-muted: #64748B;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #475569;
   
   /* HosPtal Accent Colors */
   --accent-cyan: #06B6D4;
@@ -102,7 +102,7 @@ html.dark .btn-gradient-primary:hover {
 
 /* PHASE 8: FORÇA MUDANÇA DRÁSTICA - Usando Variáveis CSS */
 html {
-  background-color: var(--bg-app);
+  background-color: #F8F9FC !important; /* Clean Slate - Light background */
   color: var(--text-main);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -120,10 +120,14 @@ body {
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
-  background-color: var(--bg-app) !important;
+  background-color: #F8F9FC !important; /* Clean Slate - Light background */
   color: var(--text-main) !important;
   transition: background-color 0.3s ease, color 0.3s ease;
   position: relative;
+}
+
+html.dark body {
+  background-color: var(--bg-app) !important;
 }
 
 /* PHASE 8 REVISION: Aurora Background - Multiple Colorful Blobs */
@@ -250,10 +254,14 @@ html, body {
 /* PHASE 10: FORÇA ALTO CONTRASTE - Garantir backgrounds dinâmicos */
 #__next, [data-nextjs-scroll-focus-boundary] {
   min-height: 100vh;
-  background-color: var(--background);
+  background-color: #F8F9FC !important; /* Clean Slate - Light background */
   transition: background-color 0.3s ease, color 0.3s ease;
   position: relative;
   z-index: 1;
+}
+
+html.dark #__next, html.dark [data-nextjs-scroll-focus-boundary] {
+  background-color: var(--background) !important;
 }
 
 /* PHASE 10: FORÇA ALTO CONTRASTE - Cards devem usar variáveis CSS */
@@ -286,9 +294,9 @@ header[class*="bg-\[#"] {
 
 /* PHASE 8: FORÇA MUDANÇA DRÁSTICA - Forçar variáveis com !important */
 html:not(.dark) {
-  --bg-app: #F4F7FE !important;
+  --bg-app: #F8F9FC !important; /* Clean Slate */
   --bg-card: #FFFFFF !important;
-  --text-main: #1C1F2E !important;
+  --text-main: #0F172A !important;
 }
 
 html.dark {
@@ -299,23 +307,151 @@ html.dark {
 
 /* PHASE 8: Forçar background em elementos principais usando variáveis */
 html, body, #__next, [data-nextjs-scroll-focus-boundary] {
-  background-color: var(--bg-app) !important;
+  background-color: #F8F9FC !important; /* Clean Slate - Light background */
   color: var(--text-main) !important;
 }
 
+html.dark, html.dark body, html.dark #__next, html.dark [data-nextjs-scroll-focus-boundary] {
+  background-color: var(--bg-app) !important;
+}
+
 /* PHASE 8: "TOTAL NEON" UNIVERSAL CLASS */
-/* Light Mode Recipe */
+/* Light Mode Recipe - Clean Modern Style with Enhanced Colored Neon Borders */
 .neon-card {
   background: #FFFFFF !important;
-  border: 2px solid rgba(99, 102, 241, 0.4) !important;
-  border-radius: 1rem;
+  border: 2px solid rgba(99, 102, 241, 0.5) !important;
+  border-radius: 0.75rem;
   box-shadow: 
-    0 0 20px rgba(99, 102, 241, 0.2),
-    0 4px 12px rgba(99, 102, 241, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-  color: #1B254B !important;
-  transition: all 0.3s ease;
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 20px rgba(99, 102, 241, 0.25),
+    0 0 40px rgba(99, 102, 241, 0.1) !important;
+  color: #1E293B !important;
+  transition: all 0.2s ease;
   position: relative;
+}
+
+/* Force white background in light mode for all neon-card children and internal cards */
+html:not(.dark) .neon-card,
+html:not(.dark) .neon-card > div,
+html:not(.dark) .neon-card .rounded-lg,
+html:not(.dark) .neon-card [class*="rounded"] {
+  background-color: #FFFFFF !important;
+}
+
+
+/* Ensure internal cards in light mode are white */
+html:not(.dark) .rounded-lg.border-2.bg-white,
+html:not(.dark) .rounded-lg.border.bg-white {
+  background-color: #FFFFFF !important;
+}
+
+/* Neon effect for insight cards - light mode only */
+.neon-insight-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 20px rgba(99, 102, 241, 0.25) !important;
+}
+
+html.dark .neon-insight-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03) !important;
+  /* Removed neon glow effect from background */
+}
+
+/* Neon effect for credit card - light mode only */
+.neon-credit-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 20px rgba(99, 102, 241, 0.25) !important;
+}
+
+html.dark .neon-credit-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Dark mode styling for insight cards - blue background without neon glow */
+html.dark .insight-card-dark,
+html.dark .neon-insight-card.insight-card-dark,
+html.dark [class*="insight-card-dark"] {
+  background: rgba(30, 58, 138, 0.5) !important;
+  background-color: rgba(30, 58, 138, 0.5) !important;
+  background-image: none !important;
+  border: 2px solid rgba(99, 102, 241, 0.9) !important;
+  border-color: rgba(99, 102, 241, 0.9) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05), 
+    0 4px 6px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Dark mode styling for credit display card - blue background without neon glow */
+html.dark .credit-display-dark,
+html.dark .neon-credit-card.credit-display-dark,
+html.dark [class*="credit-display-dark"] {
+  background: rgba(30, 58, 138, 0.5) !important;
+  background-color: rgba(30, 58, 138, 0.5) !important;
+  background-image: none !important;
+  border: 2px solid rgba(99, 102, 241, 0.9) !important;
+  border-color: rgba(99, 102, 241, 0.9) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05), 
+    0 4px 6px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Dark gradient for AI Assistance and Credits cards in dark mode only */
+html.dark .neon-card.ai-assistance-card {
+  background: linear-gradient(145deg, #1e3a8a 0%, #000000 100%) !important;
+  background-image: linear-gradient(145deg, #1e3a8a 0%, #000000 100%) !important;
+}
+
+html.dark .neon-card.ai-credits-card {
+  background: linear-gradient(145deg, #1e3a8a 0%, #000000 100%) !important;
+  background-image: linear-gradient(145deg, #1e3a8a 0%, #000000 100%) !important;
+}
+
+/* Enhanced Neon border colors for specific card types */
+.neon-card[class*="indigo"],
+.neon-card[class*="purple"] {
+  border-color: rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 25px rgba(99, 102, 241, 0.3),
+    0 0 50px rgba(99, 102, 241, 0.15) !important;
+}
+
+.neon-card[class*="emerald"],
+.neon-card[class*="green"] {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 25px rgba(16, 185, 129, 0.3),
+    0 0 50px rgba(16, 185, 129, 0.15) !important;
+}
+
+.neon-card[class*="amber"],
+.neon-card[class*="orange"] {
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 25px rgba(245, 158, 11, 0.3),
+    0 0 50px rgba(245, 158, 11, 0.15) !important;
+}
+
+.neon-card[class*="sky"],
+.neon-card[class*="blue"] {
+  border-color: rgba(14, 165, 233, 0.6) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 25px rgba(14, 165, 233, 0.3),
+    0 0 50px rgba(14, 165, 233, 0.15) !important;
+}
+
+.neon-card[class*="red"] {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 25px rgba(239, 68, 68, 0.3),
+    0 0 50px rgba(239, 68, 68, 0.15) !important;
 }
 
 /* Dark Mode Recipe - Cyberpunk/Futuristic */
@@ -388,16 +524,15 @@ html.dark .neon-card div:not([class*="text-"]) {
 
 html:not(.dark) .neon-card {
   background: #FFFFFF !important;
-  border: 2px solid rgba(99, 102, 241, 0.4) !important;
+  border: 2px solid rgba(99, 102, 241, 0.5) !important;
   box-shadow: 
-    0 0 20px rgba(99, 102, 241, 0.2),
-    0 4px 12px rgba(99, 102, 241, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 0 20px rgba(99, 102, 241, 0.25),
+    0 0 40px rgba(99, 102, 241, 0.1) !important;
 }
 
-html.dark .neon-card {
-  background: linear-gradient(145deg, #111C44 0%, #1B2559 100%) !important;
-}
+/* Removed duplicate - using the gradient defined above */
 
 /* PHASE 8: Force Neon Card on all card-like elements (Global Sweep) */
 .rounded-2xl[class*="bg-white"],
@@ -645,27 +780,37 @@ html.dark * {
 
 /* PHASE 10: Melhorias de Consistência Visual - Botões e Textos */
 
-/* Botões Primary - Gradiente Vibrante (Modo Claro e Escuro) */
+/* Botões Primary - Clean Modern Style (Light Mode) */
 button[class*="bg-gradient-to-r"],
 a[class*="bg-gradient-to-r"],
 .btn-primary,
 [class*="bg-indigo-600"]:not([class*="text-"]),
 [class*="bg-purple-600"]:not([class*="text-"]) {
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
-  transition: all 0.3s ease !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
 }
 
 html:not(.dark) button[class*="bg-gradient-to-r"],
 html:not(.dark) a[class*="bg-gradient-to-r"] {
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  border: none !important;
 }
 
 html.dark button[class*="bg-gradient-to-r"],
 html.dark a[class*="bg-gradient-to-r"] {
-  box-shadow: 0 4px 20px rgba(117, 81, 255, 0.5) !important;
+  box-shadow: 
+    0 4px 20px rgba(117, 81, 255, 0.5),
+    0 0 20px rgba(117, 81, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  border: 2px solid rgba(117, 81, 255, 0.6) !important;
 }
 
-/* Melhorar visibilidade dos textos no modo claro */
+/* Melhorar visibilidade dos textos no modo claro - Enhanced Contrast */
 html:not(.dark) .neon-card,
 html:not(.dark) .neon-card * {
   color: var(--text-main) !important;
@@ -677,19 +822,59 @@ html:not(.dark) .neon-card h3,
 html:not(.dark) .neon-card h4,
 html:not(.dark) .neon-card h5,
 html:not(.dark) .neon-card h6 {
-  color: #1B254B !important;
+  color: #0F172A !important; /* Darker headings */
   font-weight: 700 !important;
 }
 
 html:not(.dark) .neon-card p,
 html:not(.dark) .neon-card span:not([class*="text-"]),
 html:not(.dark) .neon-card label {
-  color: #4B5563 !important;
+  color: #1E293B !important; /* Darker body text */
+  font-weight: 500 !important;
 }
 
 html:not(.dark) .neon-card [class*="text-gray"],
 html:not(.dark) .neon-card [class*="text-slate"] {
-  color: #6B7280 !important;
+  color: #334155 !important; /* Darker muted text */
+  font-weight: 500 !important;
+}
+
+html:not(.dark) .neon-card h1,
+html:not(.dark) .neon-card h2,
+html:not(.dark) .neon-card h3,
+html:not(.dark) .neon-card h4,
+html:not(.dark) .neon-card h5,
+html:not(.dark) .neon-card h6 {
+  color: #0F172A !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) .neon-card p,
+html:not(.dark) .neon-card span:not([class*="text-"]),
+html:not(.dark) .neon-card label {
+  color: #1E293B !important;
+  font-weight: 500 !important;
+}
+
+html:not(.dark) .neon-card [class*="text-gray"],
+html:not(.dark) .neon-card [class*="text-slate"] {
+  color: #334155 !important;
+  font-weight: 500 !important;
+}
+
+/* Force better text contrast in all dashboard elements */
+html:not(.dark) [class*="text-gray-400"],
+html:not(.dark) [class*="text-gray-500"],
+html:not(.dark) [class*="text-slate-400"],
+html:not(.dark) [class*="text-slate-500"] {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+html:not(.dark) [class*="text-gray-600"],
+html:not(.dark) [class*="text-slate-600"] {
+  color: #334155 !important;
+  font-weight: 500 !important;
 }
 
 /* Inputs e Selects - Melhor contraste no modo claro */
@@ -720,4 +905,51 @@ html:not(.dark) input::placeholder,
 html:not(.dark) textarea::placeholder {
   color: #9CA3AF !important;
   opacity: 1 !important;
+}
+
+/* Header - modo claro mantém estilo padrão do neon-card */
+header.header-gradient,
+header.neon-card.header-gradient {
+  /* No modo claro, mantém o estilo padrão do neon-card (branco) */
+}
+
+/* Header com gradiente azul e preto SOMENTE no modo escuro - da esquerda (azul) para direita (preto) */
+html.dark header.header-gradient,
+html.dark header.neon-card.header-gradient,
+html.dark header[class*="header-gradient"],
+html.dark .neon-card.header-gradient {
+  background: linear-gradient(to right, #1e3a8a 0%, #000000 100%) !important;
+  background-image: linear-gradient(to right, #1e3a8a 0%, #000000 100%) !important;
+  background-color: transparent !important;
+  border: 2px solid rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 
+    0 0 25px rgba(99, 102, 241, 0.3),
+    0 4px 15px rgba(99, 102, 241, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Sidebar com gradiente azul e preto horizontal rotacionado 90 graus no modo escuro */
+html.dark aside.sidebar-gradient,
+html.dark aside.neon-card.sidebar-gradient {
+  background: linear-gradient(90deg, #000000 0%, #1e3a8a 100%) !important;
+  border: 2px solid rgba(99, 102, 241, 0.6) !important;
+  box-shadow: 
+    0 0 25px rgba(99, 102, 241, 0.3),
+    0 4px 15px rgba(99, 102, 241, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Título "Painel do Lojista Pro" - Gradiente azul e preto no modo escuro */
+html.dark header h1,
+html.dark header h1.text-2xl,
+html.dark header h1.text-3xl {
+  background: linear-gradient(to right, #1e3a8a 0%, #000000 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  font-weight: 700 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.3) !important;
+  -webkit-text-stroke: none !important;
+  text-stroke: none !important;
 }

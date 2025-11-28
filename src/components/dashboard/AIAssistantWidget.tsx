@@ -53,37 +53,23 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
     fetchInsights();
   }, [lojistaId]);
 
-  const priorityColors = {
-    high: "text-cyan-700 dark:text-cyan-300",
-    medium: "text-indigo-700 dark:text-indigo-300",
-    low: "text-gray-700 dark:text-gray-300",
-  };
 
   return (
-    <div className="neon-card relative overflow-hidden rounded-2xl">
+    <div className="neon-card ai-assistance-card relative overflow-hidden rounded-xl border-indigo-500/60 dark:border-purple-500/60" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03)' }}>
       {/* Inner Content */}
       <div className="relative p-6 h-full">
-        {/* Neon Glow Effect - Matching other cards */}
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-indigo-500/10 opacity-60 pointer-events-none rounded-2xl" />
-        {/* Additional border glow */}
-        <div className="absolute inset-0 rounded-2xl border-2 border-cyan-500/30 dark:border-purple-500/50 pointer-events-none" 
-             style={{
-               boxShadow: '0 0 20px rgba(6, 182, 212, 0.3), inset 0 0 20px rgba(139, 92, 246, 0.1)'
-             }} />
-        
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-4">
           <div className="relative">
-            <div className="absolute inset-0 bg-cyan-500/30 dark:bg-purple-500/30 blur-xl rounded-full animate-pulse" />
-            <div className="relative z-10 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 p-2 shadow-lg shadow-cyan-500/50 dark:shadow-purple-500/50">
+            <div className="relative z-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-purple-500 dark:to-purple-600 p-2 shadow-lg shadow-indigo-500/50 dark:shadow-purple-500/50">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-[var(--text-main)] dark:text-white">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
               Assistência IA
             </h3>
-            <p className="text-xs font-medium text-[var(--text-secondary)] dark:text-gray-300">
+            <p className="text-xs font-medium text-slate-600 dark:text-gray-400">
               Insights estratégicos
             </p>
           </div>
@@ -91,13 +77,13 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
 
           {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 text-cyan-600 dark:text-purple-400 animate-spin" />
-            <span className="ml-2 text-sm font-medium text-[var(--text-secondary)] dark:text-gray-300">
+            <Loader2 className="h-6 w-6 text-indigo-600 dark:text-purple-400 animate-spin" />
+            <span className="ml-2 text-sm font-medium text-slate-700 dark:text-gray-400">
               Analisando dados...
             </span>
           </div>
         ) : error && insights.length === 0 ? (
-          <div className="text-sm font-medium text-red-600 dark:text-red-400 py-4 bg-red-50/50 dark:bg-red-900/20 rounded-lg px-4 border border-red-200 dark:border-red-800/50">
+          <div className="text-sm font-medium text-red-600 dark:text-red-400 py-4 bg-red-50 dark:bg-red-900/20 rounded-lg px-4 border border-red-200 dark:border-red-800/50">
             {error}
           </div>
         ) : (
@@ -105,11 +91,19 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
             {insights.map((insight, index) => (
               <div
                 key={insight.id}
-                className="flex items-start gap-3 p-4 rounded-xl neon-card border-2 border-cyan-200/50 dark:border-purple-500/30 bg-white/80 dark:bg-[#1B2559]/50 animate-in fade-in slide-in-from-bottom-2 shadow-sm hover:shadow-md transition-all duration-300"
-                style={{ animationDelay: `${index * 100}ms` }}
+                className="flex items-start gap-3 p-4 rounded-lg border-2 border-indigo-500/60 dark:border-indigo-500/70 bg-white dark:insight-card-dark shadow-md animate-in fade-in slide-in-from-bottom-2 transition-all duration-200 neon-insight-card"
+                style={{ 
+                  animationDelay: `${index * 100}ms`
+                }}
               >
-                <div className={`mt-1 h-2.5 w-2.5 rounded-full bg-current flex-shrink-0 ${priorityColors[insight.priority]}`} />
-                <p className={`text-sm leading-relaxed font-medium ${priorityColors[insight.priority]} text-[var(--text-main)] dark:text-white`}>
+                <div className={`mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0 ${
+                  insight.priority === "high" 
+                    ? "bg-indigo-500 dark:bg-cyan-400"
+                    : insight.priority === "medium"
+                    ? "bg-indigo-400 dark:bg-indigo-400"
+                    : "bg-slate-400 dark:bg-gray-400"
+                }`} />
+                <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-white">
                   {insight.text}
                 </p>
               </div>

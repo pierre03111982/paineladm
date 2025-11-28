@@ -194,7 +194,7 @@ function CustomersList({ customers }: { customers: ActiveCustomer[] }) {
           </div>
           <Link
             href={`/clientes?focus=${encodeURIComponent(customer.id)}`}
-            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-300/50 dark:border-purple-400/30 hover:from-indigo-500/20 hover:to-purple-500/20 dark:hover:from-indigo-500/30 dark:hover:to-purple-500/30 transition-all duration-300 hover:scale-105"
+            className="inline-flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 transition-all duration-200"
           >
             Ver cliente
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -327,28 +327,28 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           {/* Card ROI/Custo por Try-On */}
           <div className="neon-card p-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="flex items-center gap-2 text-xs font-semibold text-[var(--text-main)]">
+              <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                 <DollarSign className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
                 <span>$ ROI e Custo por Try-On</span>
               </span>
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-xs font-medium text-[var(--text-secondary)]">Custo Total</p>
-                <p className="text-2xl font-bold text-[var(--text-main)]">
+                <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">Custo Total</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatBRL(roiMetrics.totalCostBRL)}
                 </p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mt-1">
                   {roiMetrics.totalTryOns} Try-Ons realizados
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium text-[var(--text-secondary)]">Custo Médio por Try-On</p>
-                <p className="text-xl font-bold text-[var(--text-main)]">
+                <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">Custo Médio por Try-On</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">
                   {formatBRL(roiMetrics.costPerTryOn)}
                 </p>
               </div>
-              <div className="rounded-xl border-2 border-emerald-300/60 dark:border-emerald-500/60 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-950/40 p-4 shadow-lg shadow-emerald-500/20 dark:shadow-emerald-500/30">
+              <div className="rounded-xl border-2 border-emerald-400/60 dark:border-emerald-500/60 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/30 dark:to-emerald-950/40 p-4 shadow-lg" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 20px rgba(16, 185, 129, 0.25)' }}>
                 <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-200">Receita Estimada</p>
                 <p className="text-2xl font-bold text-emerald-950 dark:text-emerald-50">
                   {formatBRL(roiMetrics.estimatedRevenue)}
@@ -373,7 +373,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           {funnel && (
             <div className="neon-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="flex items-center gap-2 text-xs font-semibold text-[var(--text-main)]">
+                <span className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
                   <BarChart3 className="h-4 w-4 text-purple-500 dark:text-purple-400" />
                   <span>Funil de Conversão</span>
                 </span>
@@ -425,11 +425,11 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-              <span className="text-xs font-semibold text-[var(--text-main)]">Alerta de Estoque Baixo</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">Alerta de Estoque Baixo</span>
             </div>
             <Link
               href="/produtos"
-              className="inline-flex items-center gap-1 text-xs font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white border-2 border-amber-400/50 dark:border-orange-400/50 px-3 py-1.5 rounded-lg shadow-lg shadow-amber-500/40 dark:shadow-orange-500/40 transition-all duration-300 hover:scale-105"
+              className="inline-flex items-center gap-1 text-xs font-medium bg-amber-600 hover:bg-amber-700 dark:bg-orange-600 dark:hover:bg-orange-700 text-white border-none px-3 py-1.5 rounded-lg shadow-sm transition-all duration-200"
             >
               Ver produtos
               <ArrowUpRight className="h-3.5 w-3.5" />
@@ -441,21 +441,27 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                 key={alert.produtoId}
                 className={`neon-card rounded-xl border-2 p-3 transition-all duration-300 shadow-sm hover:shadow-md ${
                   alert.prioridade === "alta"
-                    ? "border-red-400/60 dark:border-red-500/60 bg-red-50/80 dark:bg-red-950/30"
+                    ? "border-red-400/70 dark:border-red-500/70 bg-red-50/80 dark:bg-red-950/30"
                     : alert.prioridade === "media"
-                    ? "border-amber-400/60 dark:border-amber-500/60 bg-amber-50/80 dark:bg-amber-950/30"
-                    : "border-yellow-400/60 dark:border-yellow-500/60 bg-yellow-50/80 dark:bg-yellow-950/30"
+                    ? "border-amber-400/70 dark:border-amber-500/70 bg-amber-50/80 dark:bg-amber-950/30"
+                    : "border-yellow-400/70 dark:border-yellow-500/70 bg-yellow-50/80 dark:bg-yellow-950/30"
                 }`}
+                style={alert.prioridade === "alta" 
+                  ? { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 20px rgba(239, 68, 68, 0.25)' }
+                  : alert.prioridade === "media"
+                  ? { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 20px rgba(245, 158, 11, 0.25)' }
+                  : { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 20px rgba(234, 179, 8, 0.25)' }
+                }
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text-main)] truncate">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
                       {alert.produtoNome}
                     </p>
-                    <p className="text-xs font-medium text-amber-800 dark:text-amber-300 mt-1">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mt-1">
                       Estoque: {alert.estoqueAtual} unidades
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mt-1">
                       {alert.experimentacoes} experimentações
                     </p>
                   </div>
@@ -495,7 +501,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {isMicroPlan ? "Cliente confidencial" : lead.name}
                       </p>
-                      <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                      <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">
                         {lead.lastActivity} · {lead.interactions} try-ons
                       </p>
                     </div>
@@ -508,11 +514,11 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${meta.chipClass}`}>
                     {meta.label}
                   </div>
-                  <p className="mt-3 text-sm text-slate-700 dark:text-gray-300">
+                  <p className="mt-3 text-sm font-medium text-slate-800 dark:text-gray-200">
                     {isMicroPlan ? "Desbloqueie o plano Lojista para ver nomes e insights completos." : meta.action}
                   </p>
                   {!isMicroPlan && lead.insight && (
-                    <p className="mt-1 text-xs text-indigo-700">{lead.insight}</p>
+                    <p className="mt-1 text-xs font-medium text-indigo-800 dark:text-indigo-300">{lead.insight}</p>
                   )}
                 </div>
               );
@@ -528,7 +534,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               </p>
             <Link
               href="/planos"
-              className="mt-4 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border-2 border-indigo-400/50 dark:border-purple-400/50 shadow-lg shadow-indigo-500/40 dark:shadow-purple-500/40 px-5 py-2 text-sm font-semibold transition-all duration-300 hover:scale-105"
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 text-white border-none shadow-sm px-5 py-2 text-sm font-medium transition-all duration-200"
             >
               Desbloquear dados
               <ArrowUpRight className="h-4 w-4" />
@@ -565,7 +571,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{alert.productName}</p>
-                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      <p className="text-[11px] font-medium text-amber-800 dark:text-amber-400">
                         {alert.totalReports} alertas · {alert.percentage}% das últimas {alert.totalInteractions} interações
                       </p>
                     </div>
@@ -594,7 +600,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{alert.productName}</p>
-                      <p className="text-[11px] text-pink-700 dark:text-pink-400">
+                      <p className="text-[11px] font-medium text-pink-800 dark:text-pink-400">
                         {alert.totalReports} rejeições · {alert.percentage}% de {alert.totalInteractions} tentativas
                       </p>
                     </div>
@@ -612,14 +618,14 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
       <section className="grid gap-6 lg:grid-cols-4">
         <div className="neon-card p-6">
-          <div className="flex items-center justify-between text-xs font-medium text-[var(--text-secondary)]">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-gray-300">
             <span>Experimentações hoje</span>
             <TrendingUp className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
           </div>
-          <p className="mt-4 text-3xl font-bold text-[var(--text-main)]">
+          <p className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">
             {data.metrics.experimentToday}
           </p>
-          <p className="mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+          <p className="mt-2 text-xs font-semibold text-indigo-700 dark:text-indigo-400">
             +18% vs. média da última semana
           </p>
           <div className="mt-6">
@@ -628,28 +634,28 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
         </div>
 
         <div className="neon-card p-6">
-          <p className="text-xs font-medium text-[var(--text-secondary)]">Últimos 7 dias</p>
-          <p className="mt-3 text-2xl font-bold text-[var(--text-main)]">
+          <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">Últimos 7 dias</p>
+          <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">
             {data.metrics.experimentWeek}
           </p>
-          <p className="mt-4 text-xs text-[var(--text-secondary)]">
+          <p className="mt-4 text-xs font-medium text-slate-600 dark:text-gray-400">
             Média de {Math.max(1, Math.round(data.metrics.experimentWeek / 7))} looks por dia.
           </p>
-          <div className="mt-6 neon-card flex items-center gap-3 rounded-xl border border-amber-300/50 dark:border-amber-500/50 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 px-4 py-3 text-xs text-amber-900 dark:text-amber-200 shadow-sm">
+          <div className="mt-6 flex items-center gap-3 rounded-lg border-2 border-amber-400/60 dark:border-amber-500/60 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-xs text-amber-800 dark:text-amber-200" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 15px rgba(245, 158, 11, 0.2)' }}>
             <Star className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             <span className="font-medium">Campanhas personalizadas continuam alavancando resultados.</span>
           </div>
         </div>
 
         <div className="neon-card p-6">
-          <p className="text-xs font-medium text-[var(--text-secondary)]">Curtidas acumuladas</p>
-          <p className="mt-3 text-2xl font-bold text-[var(--text-main)]">
+          <p className="text-xs font-semibold text-slate-700 dark:text-gray-300">Curtidas acumuladas</p>
+          <p className="mt-3 text-2xl font-bold text-slate-900 dark:text-white">
             {data.metrics.likedTotal}
           </p>
-          <p className="mt-4 text-xs text-[var(--text-secondary)]">
+          <p className="mt-4 text-xs font-medium text-slate-600 dark:text-gray-400">
             Clientes engajados convertem 3x mais em vendas.
           </p>
-          <div className="mt-6 neon-card flex items-center gap-3 rounded-xl border border-emerald-300/50 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 px-4 py-3 text-xs text-emerald-900 dark:text-emerald-200 shadow-sm">
+          <div className="mt-6 flex items-center gap-3 rounded-lg border-2 border-emerald-400/60 dark:border-emerald-500/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-xs text-emerald-800 dark:text-emerald-200" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 15px rgba(16, 185, 129, 0.2)' }}>
             <Heart className="h-4 w-4 fill-current text-emerald-600 dark:text-emerald-400" />
             <span className="font-medium">Dê destaque ao que seus clientes mais amam.</span>
           </div>
@@ -657,30 +663,30 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         <div className="space-y-4 neon-card p-6">
           <div className="space-y-1">
-            <p className="flex items-center gap-2 text-xs font-medium text-[var(--text-secondary)]">
+            <p className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-gray-300">
               <Share2 className="h-4 w-4 text-sky-500 dark:text-sky-400" /> Compartilhamentos
             </p>
-            <p className="text-2xl font-bold text-[var(--text-main)]">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {data.metrics.sharesTotal}
             </p>
-            <p className="text-xs text-[var(--text-secondary)]">
+            <p className="text-xs font-medium text-slate-600 dark:text-gray-400">
               Mensagens e posts impulsionam o alcance da loja.
             </p>
           </div>
 
-          <div className="neon-card rounded-xl border-2 border-amber-300/60 dark:border-amber-500/60 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm">
+          <div className="rounded-lg border-2 border-amber-400/60 dark:border-amber-500/60 bg-amber-50 dark:bg-amber-950/30 p-4" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 20px rgba(245, 158, 11, 0.25)' }}>
             <p className="flex items-center gap-2 text-xs font-medium text-amber-900 dark:text-amber-200">
               <ShoppingCart className="h-4 w-4 text-amber-600 dark:text-amber-400" /> Checkouts
             </p>
-            <p className="mt-1 text-lg font-bold text-[var(--text-main)]">
+            <p className="mt-1 text-lg font-bold text-slate-900 dark:text-white">
               {data.metrics.checkoutTotal}
             </p>
-            <p className="mt-2 text-xs text-amber-800 dark:text-amber-300">
+            <p className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-300">
               {data.metrics.anonymousTotal} looks protegidos com avatar seguro.
             </p>
           </div>
 
-          <p className="text-xs text-[var(--text-secondary)]">
+          <p className="text-xs font-medium text-slate-600 dark:text-gray-400">
             {data.metrics.lastActionLabel}
           </p>
         </div>
@@ -688,13 +694,13 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
       <section className="grid gap-6 lg:grid-cols-7">
         <div className="neon-card p-6 lg:col-span-4 space-y-6 transition-colors duration-300">
-          <div className="flex items-center justify-between text-sm text-slate-700 dark:text-gray-300">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between text-sm">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               Produtos mais provados
             </h2>
             <Link
               href="/produtos"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition hover:text-indigo-800 dark:hover:text-indigo-200 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 transition hover:text-indigo-700 dark:hover:text-indigo-300"
             >
               Ver catálogo
               <ArrowUpRight className="h-4 w-4" />
@@ -733,12 +739,12 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
               Conversões recentes
             </h2>
-            <p className="text-xs text-slate-600 dark:text-gray-400">
-              Monitor de curtidas, compartilhamentos e checkouts.
-            </p>
+                      <p className="text-xs font-medium text-slate-700 dark:text-gray-300">
+                Monitor de curtidas, compartilhamentos e checkouts.
+              </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="neon-card rounded-xl border-2 border-emerald-300/60 dark:border-emerald-500/60 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/30 dark:to-emerald-900/20 p-4 shadow-sm">
+            <div className="rounded-lg border-2 border-emerald-400/60 dark:border-emerald-500/60 bg-emerald-50 dark:bg-emerald-950/30 p-4" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 20px rgba(16, 185, 129, 0.25)' }}>
               <p className="flex items-center gap-2 text-xs font-medium text-emerald-800 dark:text-emerald-300">
                 <Heart className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Curtidas
               </p>
@@ -750,7 +756,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                 {data.metrics.conversionLikeRate.toFixed(1)}%
               </p>
             </div>
-            <div className="neon-card rounded-xl border-2 border-sky-300/60 dark:border-sky-500/60 bg-gradient-to-br from-sky-50 to-sky-100/50 dark:from-sky-950/30 dark:to-sky-900/20 p-4 shadow-sm">
+            <div className="rounded-lg border-2 border-sky-400/60 dark:border-sky-500/60 bg-sky-50 dark:bg-sky-950/30 p-4" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 20px rgba(14, 165, 233, 0.25)' }}>
               <p className="flex items-center gap-2 text-xs font-medium text-sky-800 dark:text-sky-300">
                 <Share2 className="h-4 w-4 text-sky-600 dark:text-sky-400" /> Compartilhamentos
               </p>
@@ -762,7 +768,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                 {data.metrics.conversionCheckoutRate.toFixed(1)}%
               </p>
             </div>
-            <div className="neon-card rounded-xl border-2 border-amber-300/60 dark:border-amber-500/60 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/30 dark:to-amber-900/20 p-4 shadow-sm">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4">
               <p className="flex items-center gap-2 text-xs font-medium text-amber-800 dark:text-amber-300">
                 <ShoppingCart className="h-4 w-4 text-amber-600 dark:text-amber-400" /> Checkouts
               </p>
@@ -777,13 +783,13 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
         </div>
 
         <div className="neon-card p-6 lg:col-span-3 transition-colors duration-300">
-          <div className="flex items-center justify-between text-sm text-slate-700 dark:text-gray-300">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between text-sm">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
               Clientes mais ativos
             </h2>
             <Link
               href="/clientes"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition hover:text-indigo-800 dark:hover:text-indigo-200 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 transition hover:text-indigo-700 dark:hover:text-indigo-300"
             >
               Ver clientes
               <ArrowUpRight className="h-4 w-4" />

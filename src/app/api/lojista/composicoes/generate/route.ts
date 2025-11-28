@@ -518,6 +518,7 @@ export async function POST(request: NextRequest) {
           productUrl: primaryProduct.productUrl || undefined,
           lookType: "creative",
           allProductImageUrls: allProductImageUrls, // Todas as imagens de produtos
+          productCategory: primaryProduct?.categoria || undefined, // Passar categoria para prompts específicos
         },
       });
 

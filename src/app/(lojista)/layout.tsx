@@ -58,7 +58,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
       <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {/* Desktop Sidebar - Hidden on mobile */}
         <aside 
-          className="hidden md:flex w-64 flex-col neon-card p-6"
+          className="hidden md:flex w-64 flex-col neon-card p-6 sidebar-gradient"
         >
           <div className="mb-8 flex flex-col items-center text-center space-y-4">
             <div className="relative">
@@ -104,16 +104,17 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
         {/* Main Content */}
         <div className="flex flex-1 flex-col min-w-0">
           <header 
-            className="mb-6 neon-card p-4 sm:p-6"
+            className="mb-6 neon-card p-4 sm:p-6 header-gradient"
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h1 
-                className="text-2xl sm:text-3xl font-normal uppercase text-[var(--text-main)]"
+                className="text-2xl sm:text-3xl font-bold uppercase"
                 style={{
                   fontFamily: 'var(--font-poppins), "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8)',
+                  color: '#1B2559',
+                  textShadow: '2px 2px 4px rgba(0, 0, 0, 1), 4px 4px 8px rgba(0, 0, 0, 0.8)',
                   letterSpacing: '0.12em',
-                  fontWeight: 400,
+                  fontWeight: 700,
                   fontStyle: 'normal'
                 }}
               >

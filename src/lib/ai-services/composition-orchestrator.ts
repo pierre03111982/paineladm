@@ -44,6 +44,7 @@ export interface CreateCompositionParams {
     lookType?: "natural" | "creative"; // Tipo de look a gerar
     baseImageUrl?: string; // Imagem base para Look Criativo (resultado do Look Natural)
     allProductImageUrls?: string[]; // Todas as imagens de produtos para Look Criativo (incluindo roupas)
+    productCategory?: string; // Categoria do produto para prompts específicos
   };
 }
 
@@ -166,11 +167,35 @@ export class CompositionOrchestrator {
           provider: "gemini-flash-image",
         };
 
+        // PHASE 11: Category-Specific Prompt Modifiers
+        const productCategory = (params.options?.productCategory || "").toLowerCase();
+        let categorySpecificPrompt = "";
+        
+        // Detectar categoria e adicionar prompts específicos (PHASE 11 - Append modifiers)
+        if (productCategory.includes("calçado") || productCategory.includes("calcado") || productCategory.includes("sapato") || productCategory.includes("tênis") || productCategory.includes("tenis") || productCategory.includes("shoe") || productCategory.includes("footwear")) {
+          // Calçados: Forçar corpo inteiro com pés visíveis (conforme MD)
+          categorySpecificPrompt = ", full body shot, wide angle, camera low angle, feet fully visible, standing on floor, showing complete shoes, ground visible";
+          console.log("[Orchestrator] 🦶 Categoria detectada: CALÇADOS - Aplicando prompt para pés visíveis");
+        } else if (productCategory.includes("acessório") || productCategory.includes("acessorio") || productCategory.includes("óculos") || productCategory.includes("oculos") || productCategory.includes("glasses") || productCategory.includes("joia") || productCategory.includes("joia")) {
+          // Acessórios/Óculos/Joias: Close-up no rosto (conforme MD)
+          categorySpecificPrompt = ", close-up portrait, focus on face and neck, high detail accessory, shallow depth of field";
+          console.log("[Orchestrator] 👓 Categoria detectada: ACESSÓRIOS/ÓCULOS/JOIAS - Aplicando prompt de close-up");
+        } else {
+          // Roupas (Default): Shot médio com foco no tecido (conforme MD)
+          categorySpecificPrompt = ", medium-full shot, detailed fabric texture, professional fashion photography, perfect fit";
+          console.log("[Orchestrator] 👕 Categoria detectada: ROUPAS (padrão) - Aplicando prompt de shot médio");
+        }
+
+        // PHASE 11: Strong Negative Prompt para reduzir erros de anatomia e cortes
+        // Conforme especificação: (feet cut off:1.5), (head cut off:1.5)
+        const strongNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (feet cut off:1.5), (head cut off:1.5), text, watermark, bad composition, duplicate";
+
         // Prompt detalhado fornecido pelo usuário - Virtual Try-On Multiproduto
         // 📝 DOCUMENTAÇÃO: Este prompt está documentado em docs/PROMPT_LOOK_CRIATIVO.md
         // ⚠️ IMPORTANTE: Sempre atualize o arquivo MD quando fizer alterações neste prompt!
-        // Versão 2.0 (Final VTO Modular) - Data de Compilação: 17 de Novembro de 2025
-        const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL.
+        // Versão 2.1 (Phase 11 - Category-Specific Prompts) - Data de Compilação: 27 de Novembro de 2025
+        // PHASE 11: Append category modifiers to existing prompt (Hybrid Strategy)
+        const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
 
 META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS. O resultado final DEVE parecer uma FOTO REAL, não gerada.
 
@@ -268,6 +293,7 @@ RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA 
         const geminiResult = await this.geminiFlashImageService.generateImage({
           prompt: creativePrompt,
           imageUrls: imageUrls,
+          negativePrompt: strongNegativePrompt, // PHASE 11: Negative prompt para reduzir erros
           // aspectRatio não é suportado pela API Gemini 2.5 Flash Image
         });
         
