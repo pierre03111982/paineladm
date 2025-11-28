@@ -45,7 +45,7 @@ export function MobileSidebar({
       {/* Hamburger Button - Visível apenas em mobile */}
       <button
         onClick={() => setIsOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-50 p-2.5 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-indigo-500 shadow-md transition"
+        className="md:hidden fixed top-3 left-3 z-50 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:border-indigo-500 shadow-md transition"
         aria-label="Abrir menu"
       >
         <Menu className="h-5 w-5" />
@@ -64,8 +64,8 @@ export function MobileSidebar({
       <aside
         className={`
           md:hidden fixed top-0 left-0 h-full w-80 max-w-[85vw] z-50
-          bg-white border-r border-gray-200 shadow-2xl
-          transform transition-transform duration-300 ease-in-out
+          bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 shadow-2xl
+          transform transition-all duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           overflow-y-auto
         `}
@@ -88,17 +88,17 @@ export function MobileSidebar({
                 )}
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">
+                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">
                   EXPERIMENTE AI
                 </p>
-                <h2 className="text-base font-semibold text-gray-900">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                   {lojaNome}
                 </h2>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition"
+              className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
               aria-label="Fechar menu"
             >
               <X className="h-5 w-5" />
@@ -111,11 +111,11 @@ export function MobileSidebar({
           </div>
 
           {/* Footer */}
-          <div className="mt-auto rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-            <p className="text-sm font-medium text-indigo-900">
+          <div className="mt-auto rounded-xl border border-indigo-100 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950 p-4">
+            <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
               Painel do Lojista
             </p>
-            <p className="mt-1 text-xs text-indigo-700">
+            <p className="mt-1 text-xs text-indigo-700 dark:text-indigo-300">
               Gerencie produtos, clientes e composições.
             </p>
           </div>

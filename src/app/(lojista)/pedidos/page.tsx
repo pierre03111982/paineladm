@@ -28,7 +28,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
           title="Pedidos"
           description="Visualize e gerencie todos os pedidos da sua loja."
         />
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-gray-500 shadow-md">
           ID da loja não encontrado.
         </div>
       </div>

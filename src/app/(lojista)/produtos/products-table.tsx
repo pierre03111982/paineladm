@@ -31,7 +31,7 @@ function ProductGridCard({
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
 
   return (
-    <div className="group relative rounded-lg border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all">
+    <div className="group relative rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] overflow-hidden shadow-md hover:shadow-lg transition-all">
       {/* Status Badge - Top Right Overlay */}
       <div className="absolute top-2 right-2 z-10">
         <span
@@ -524,7 +524,7 @@ export function ProductsTable({
 
   return (
     <>
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] shadow-md transition-colors">
         <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-3">
             <div className="text-sm text-gray-600">

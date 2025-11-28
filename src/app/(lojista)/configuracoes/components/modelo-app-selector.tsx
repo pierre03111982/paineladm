@@ -106,7 +106,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                   ${
                     isSelected
                       ? "border-indigo-500 bg-indigo-50 shadow-lg shadow-indigo-500/20"
-                      : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                      : "border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50 shadow-sm hover:shadow-md"
                   }
                 `}
               >

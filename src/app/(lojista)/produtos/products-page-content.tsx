@@ -110,7 +110,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
 
       {/* Seção Manual */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">MANUAL</span>
           </div>
@@ -131,7 +131,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
           <h4 className="text-sm font-semibold text-slate-900 mb-3">Campos sugeridos</h4>
           <ul className="space-y-2 text-sm text-slate-600">
             <li className="flex items-start gap-2">
@@ -151,7 +151,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               <span>Observações para IA (ex: materiais, detalhes)</span>
             </li>
           </ul>
-          <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+          <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3 shadow-sm">
             <p className="text-xs text-indigo-900">
               <Info className="inline h-3.5 w-3.5 mr-1" />
               Dica: produtos com fotos neutras e fundo limpo têm resultado melhor nas combinações inteligentes do provador.
@@ -162,7 +162,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
 
       {/* Seção Importação */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">IMPORTAÇÃO</span>
           </div>

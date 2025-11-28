@@ -5,6 +5,7 @@ import { LojistaNav } from "@/app/components/lojista-nav";
 import { MobileNavLinks } from "./components/MobileNavLinks";
 import { MobileSidebar } from "./components/MobileSidebar";
 import { LojistaLayoutUpdater } from "./components/LojistaLayoutUpdater";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
 
@@ -43,7 +44,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F3F4F6] dark:bg-[#0F172A] transition-colors">
       {/* Mobile Sidebar Component */}
       <MobileSidebar
         lojaNome={lojaNome}
@@ -54,7 +55,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
       <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {/* Desktop Sidebar - Hidden on mobile */}
-        <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-md transition-colors">
           <div className="mb-8 space-y-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600 text-lg font-semibold text-white">
               {lojaLogo ? (
@@ -70,13 +71,13 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
               )}
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500 font-medium">
+              <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium">
                 EXPERIMENTE AI
               </p>
-              <h2 id="sidebar-loja-nome" className="text-lg font-semibold text-gray-900">
+              <h2 id="sidebar-loja-nome" className="text-lg font-semibold text-gray-900 dark:text-white">
                 {lojaNome}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 {lojaDescricao}
               </p>
             </div>
@@ -84,11 +85,11 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
           <LojistaNav />
 
-          <div className="mt-auto rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-            <p className="text-sm font-medium text-indigo-900">
+          <div className="mt-auto rounded-xl border border-indigo-100 dark:border-indigo-900 bg-indigo-50 dark:bg-indigo-950 p-4">
+            <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
               Painel do Lojista
             </p>
-            <p className="mt-1 text-xs text-indigo-700">
+            <p className="mt-1 text-xs text-indigo-700 dark:text-indigo-300">
               Gerencie produtos, clientes e composições.
             </p>
           </div>
@@ -96,20 +97,21 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
 
         {/* Main Content */}
         <div className="flex flex-1 flex-col min-w-0">
-          <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+          <header className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B] p-4 sm:p-6 shadow-md transition-colors">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-1">
+                <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 font-medium mb-1">
                   PAINEL DO LOJISTA
                 </p>
-                <h1 id="header-loja-nome" className="text-xl font-semibold text-gray-900 sm:text-2xl">
+                <h1 id="header-loja-nome" className="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
                   {lojaNome}
                 </h1>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                   {lojaDescricao}
                 </p>
               </div>
               <div className="flex items-center gap-3 text-sm">
+                <ThemeToggle />
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
                   {lojaLogo ? (
                     <Image
@@ -124,8 +126,8 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                   )}
                 </span>
                 <div className="hidden sm:block">
-                  <p className="font-medium text-gray-900">{lojaNome}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-gray-900 dark:text-white">{lojaNome}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {perfil?.email || "lojista@experimente.ai"}
                   </p>
                 </div>
@@ -133,7 +135,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
             </div>
           </header>
 
-          <main className="flex-1 rounded-xl border border-gray-200 bg-white p-4 sm:rounded-2xl sm:p-6 lg:p-8 shadow-sm">
+          <main className="flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B] p-4 sm:rounded-2xl sm:p-6 lg:p-8 shadow-md transition-colors">
             {children}
           </main>
         </div>

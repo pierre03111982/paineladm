@@ -32,10 +32,10 @@ export function LojistaNav({ collapsed }: LojistaNavProps) {
             key={item.href}
             href={href}
             className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
               active
-                ? "bg-indigo-50 text-indigo-600"
-                : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                ? "bg-[#3B82F6] text-white font-semibold shadow-sm"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
             )}
           >
             <Icon className="h-5 w-5 shrink-0" />

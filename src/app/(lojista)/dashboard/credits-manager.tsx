@@ -103,15 +103,15 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#1E293B] p-6 shadow-md transition-colors">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-indigo-100 p-2">
             <Sparkles className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Créditos de IA</h3>
-            <p className="text-sm text-slate-600">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Créditos de IA</h3>
+            <p className="text-sm text-slate-600 dark:text-gray-300">
               Gerencie os créditos para geração de imagens com IA
             </p>
           </div>
@@ -128,12 +128,12 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
         </Button>
       </div>
 
-      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <div className="mb-6 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm transition-colors">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-slate-900">
+          <span className="text-3xl font-bold text-slate-900 dark:text-white">
             {loadingBalance ? "..." : credits?.toLocaleString("pt-BR") || "0"}
           </span>
-          <span className="text-sm text-slate-600">créditos disponíveis</span>
+          <span className="text-sm text-slate-600 dark:text-gray-300">créditos disponíveis</span>
         </div>
         {credits !== null && credits < 10 && (
           <div className="mt-2 flex items-center gap-2 text-sm text-yellow-700">

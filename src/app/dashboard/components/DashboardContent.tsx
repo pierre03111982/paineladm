@@ -126,7 +126,7 @@ function CustomersList({ customers }: { customers: ActiveCustomer[] }) {
       {customers.map((customer) => (
         <div
           key={customer.id}
-          className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3"
+          className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-md"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
@@ -481,7 +481,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             {opportunityLeads.slice(0, 4).map((lead) => {
               const meta = resolveReasonMeta(isMicroPlan ? undefined : lead.reason);
               return (
-                <div key={lead.customerId} className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-sm">
+                <div key={lead.customerId} className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-md">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">
@@ -553,7 +553,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   <Link
                     key={alert.productId}
                     href={`/produtos?focus=${encodeURIComponent(alert.productId)}`}
-                    className="flex items-center justify-between rounded-xl border border-amber-300 bg-white px-4 py-3 transition hover:border-amber-400"
+                    className="flex items-center justify-between rounded-xl border border-amber-300 bg-white px-4 py-3 shadow-sm transition hover:border-amber-400 hover:shadow-md"
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{alert.productName}</p>
@@ -582,7 +582,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   <Link
                     key={alert.productId}
                     href={`/produtos?focus=${encodeURIComponent(alert.productId)}`}
-                    className="flex items-center justify-between rounded-xl border border-pink-300 bg-white px-4 py-3 transition hover:border-pink-400"
+                    className="flex items-center justify-between rounded-xl border border-pink-300 bg-white px-4 py-3 shadow-sm transition hover:border-pink-400 hover:shadow-md"
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{alert.productName}</p>
@@ -619,7 +619,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-md">
           <p className="text-xs text-slate-600">Últimos 7 dias</p>
           <p className="mt-3 text-2xl font-semibold text-slate-900">
             {data.metrics.experimentWeek}

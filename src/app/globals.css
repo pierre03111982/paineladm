@@ -12,21 +12,32 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Forçar tema claro (Light Theme) */
+/* Tema claro (Light Theme) - padrão */
 html {
-  background: #f9fafb;
-  color: #0f172a;
+  background: #F3F4F6;
+  color: #111827;
+}
+
+html.dark {
+  background: #0F172A;
+  color: #F9FAFB;
 }
 
 body {
-  background: #f9fafb;
-  color: #0f172a;
+  background: #F3F4F6;
+  color: #111827;
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background: #0F172A;
+  color: #F9FAFB;
 }
 
 :root {
@@ -54,8 +65,13 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Garantir background claro em todos os elementos principais */
+/* Garantir background em todos os elementos principais */
 #__next, [data-nextjs-scroll-focus-boundary] {
-  background: #f9fafb;
+  background: #F3F4F6;
   min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+.dark #__next, .dark [data-nextjs-scroll-focus-boundary] {
+  background: #0F172A;
 }

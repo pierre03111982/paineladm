@@ -263,3 +263,4 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
   );
 }
 
+

@@ -98,7 +98,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
       </div>
 
       {/* Profile Card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           {/* Avatar */}
           <div className="flex-shrink-0">
@@ -158,7 +158,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
       {/* Sales Stats Cards - Top Priority */}
       {cliente.salesStats && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-emerald-50 p-2">
                 <DollarSign className="h-5 w-5 text-emerald-600" />
@@ -172,7 +172,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-blue-50 p-2">
                 <ShoppingCart className="h-5 w-5 text-blue-600" />
@@ -184,7 +184,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-indigo-50 p-2">
                 <TrendingUp className="h-5 w-5 text-indigo-600" />
@@ -202,7 +202,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Engagement Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-50 p-2">
               <ImageIcon className="h-5 w-5 text-blue-600" />
@@ -214,7 +214,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-emerald-50 p-2">
               <Heart className="h-5 w-5 text-emerald-600" />
@@ -226,7 +226,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-amber-50 p-2">
               <ThumbsDown className="h-5 w-5 text-amber-600" />
@@ -238,7 +238,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-purple-50 p-2">
               <Share2 className="h-5 w-5 text-purple-600" />
@@ -253,7 +253,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Produtos Favoritos */}
       {topProducts.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Star className="h-5 w-5 text-amber-500" />
             Produtos Favoritos
@@ -274,7 +274,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Purchase History */}
       {cliente.orders && cliente.orders.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Receipt className="h-5 w-5 text-gray-600" />
             Histórico de Compras
@@ -329,7 +329,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Composições Recentes */}
       {cliente.composicoes && cliente.composicoes.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Composições Recentes</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cliente.composicoes.slice(0, 6).map((comp: any) => {

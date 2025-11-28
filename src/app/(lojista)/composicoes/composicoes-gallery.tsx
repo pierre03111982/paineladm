@@ -793,7 +793,7 @@ export function ComposicoesGallery({
               <article
                 key={item.id}
                 className={cn(
-                  "group relative overflow-hidden rounded-xl border bg-white shadow-lg transition hover:-translate-y-1",
+                  "group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md hover:shadow-lg transition hover:-translate-y-1",
                   item.liked
                     ? "border-rose-300 shadow-rose-100 hover:border-rose-400"
                     : "border-gray-200 hover:border-indigo-300",

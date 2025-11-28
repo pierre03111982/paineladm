@@ -117,7 +117,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-50 p-2">
               <Package className="h-5 w-5 text-blue-600" />
@@ -129,7 +129,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-amber-50 p-2">
               <Clock className="h-5 w-5 text-amber-600" />
@@ -141,7 +141,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-emerald-50 p-2">
               <CheckCircle className="h-5 w-5 text-emerald-600" />
@@ -153,7 +153,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-indigo-50 p-2">
               <DollarSign className="h-5 w-5 text-indigo-600" />
@@ -169,7 +169,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
       </div>
 
       {/* Filters */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-md">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -199,7 +199,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
       {/* Mobile: Card View - Stacked Cards */}
       <div className="md:hidden space-y-3">
         {filteredOrders.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-md">
             <Package className="mx-auto mb-4 h-12 w-12 text-gray-400" />
             <p className="text-sm text-gray-500">Nenhum pedido encontrado.</p>
           </div>
@@ -217,7 +217,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
       </div>
 
       {/* Desktop: Table View */}
-      <div className="hidden md:block rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div className="hidden md:block rounded-xl border border-slate-200 bg-white shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -321,7 +321,7 @@ function OrderCard({
   onView: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md hover:shadow-lg transition">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -383,7 +383,7 @@ function OrderDetailModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white shadow-lg max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 border-b border-gray-200 bg-white px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Detalhes do Pedido</h2>
           <button
