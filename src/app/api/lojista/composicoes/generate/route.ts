@@ -571,30 +571,39 @@ export async function POST(request: NextRequest) {
         totalImagensProdutos: allProductImageUrls.length,
       });
       
-      // PHASE 11-B FIX: Usar TODAS as imagens de produtos (não apenas a primeira)
+      // PHASE 14: Detectar se é um remix (tem scenePrompts customizado)
+      const isRemix = scenePrompts && scenePrompts.length > 0 && 
+                     scenePrompts[0].includes("harmonious outfit combination");
+      
+      // PHASE 14 FIX: Usar TODAS as imagens de produtos (não apenas a primeira)
       // O orquestrador já está preparado para receber allProductImageUrls
       const creativeResult = await orchestrator.createComposition({
-        personImageUrl, // PHASE 11-B: Sempre a foto ORIGINAL (garantido pelo frontend)
+        personImageUrl, // PHASE 14: Sempre a foto ORIGINAL (Source of Truth)
         productId: primaryProduct.id, // ID do produto principal (para compatibilidade)
         productImageUrl: finalProductImageUrl, // URL do produto principal (para compatibilidade)
         lojistaId,
         customerId: customerId || undefined,
-        productName: productsData.map(p => p.nome).join(" + "), // PHASE 11-B: Nome combinado de todos os produtos
+        productName: productsData.map(p => p.nome).join(" + "), // PHASE 14: Nome combinado de todos os produtos
         productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
           ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
           : undefined,
         storeName: lojaData?.nome || "Minha Loja",
         logoUrl: lojaData?.logoUrl,
-        scenePrompts: scenePrompts || [], // PHASE 11-B: Usar scenePrompts se fornecido (para Remix)
+        scenePrompts: scenePrompts || [], // PHASE 14: Usar scenePrompts se fornecido (para Remix)
         options: {
           quality: options?.quality || "high",
           skipWatermark: options?.skipWatermark !== false, // Respeitar opção do frontend
           productUrl: primaryProduct.productUrl || undefined,
-          lookType: options?.lookType || "creative", // PHASE 11-B: Respeitar lookType (creative para multi-produto)
-          allProductImageUrls: allProductImageUrls, // PHASE 11-B: TODAS as imagens de produtos (crítico para multi-produto)
-          productCategory: productCategoryForPrompt, // PHASE 11-B: Categoria determinada por Smart Framing (previne "cut legs")
+          lookType: options?.lookType || "creative", // PHASE 14: Respeitar lookType (creative para multi-produto)
+          allProductImageUrls: allProductImageUrls, // PHASE 14: TODAS as imagens de produtos (crítico para multi-produto)
+          productCategory: productCategoryForPrompt, // PHASE 14: Categoria determinada por Smart Framing (previne "cut legs")
+          gerarNovoLook: options?.gerarNovoLook || isRemix, // PHASE 14: Ativar flag se for remix ou se explicitamente solicitado
         },
       });
+      
+      if (isRemix || options?.gerarNovoLook) {
+        console.log("[API] 🎨 PHASE 14: Flag 'GERAR NOVO LOOK' ativada - Permitindo mudança de pose");
+      }
 
       // Adicionar resultado do Look Criativo
       allResults.push({ creative: creativeResult });
@@ -648,24 +657,69 @@ export async function POST(request: NextRequest) {
       }
 
       // Look Criativo - usar a imagem gerada pelo Gemini 2.5 Flash
-      const creativeImageUrl = creativeResult.tryonImageUrl 
-        ? await uploadImageIfNeeded(creativeResult.tryonImageUrl, "creative-gemini", 0)
-        : "";
+      let creativeImageUrl = "";
+      
+      if (creativeResult.tryonImageUrl) {
+        console.log("[API] 📸 Processando imagem gerada pelo Gemini:", {
+          tipo: creativeResult.tryonImageUrl.startsWith("data:") ? "data URL (base64)" : "URL HTTP",
+          tamanho: creativeResult.tryonImageUrl.length,
+          preview: creativeResult.tryonImageUrl.substring(0, 100) + "...",
+        });
+        
+        try {
+          creativeImageUrl = await uploadImageIfNeeded(creativeResult.tryonImageUrl, "creative-gemini", 0);
+          
+          // PHASE 13: Validar que a URL final é válida
+          if (!creativeImageUrl || creativeImageUrl.trim() === "") {
+            console.error("[API] ❌ ERRO: creativeImageUrl está vazia após uploadImageIfNeeded");
+            throw new Error("URL da imagem gerada está vazia");
+          }
+          
+          if (!creativeImageUrl.startsWith("http://") && !creativeImageUrl.startsWith("https://") && !creativeImageUrl.startsWith("data:")) {
+            console.error("[API] ❌ ERRO: creativeImageUrl não é uma URL válida:", creativeImageUrl);
+            throw new Error(`URL da imagem inválida: ${creativeImageUrl.substring(0, 100)}`);
+          }
+          
+          console.log("[API] ✅ Imagem processada com sucesso:", {
+            url: creativeImageUrl.substring(0, 100) + "...",
+            tipo: creativeImageUrl.startsWith("data:") ? "data URL" : "URL HTTP",
+            valida: true,
+          });
+        } catch (uploadError) {
+          console.error("[API] ❌ ERRO ao processar imagem gerada:", uploadError);
+          // Se falhar, tentar usar a URL original (pode ser uma URL HTTP válida)
+          if (creativeResult.tryonImageUrl.startsWith("http://") || creativeResult.tryonImageUrl.startsWith("https://")) {
+            creativeImageUrl = creativeResult.tryonImageUrl;
+            console.log("[API] ⚠️ Usando URL original (HTTP) como fallback:", creativeImageUrl.substring(0, 100) + "...");
+          } else {
+            throw new Error(`Falha ao processar imagem: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
+          }
+        }
+      } else {
+        console.error("[API] ❌ ERRO: creativeResult.tryonImageUrl está vazio ou undefined");
+      }
+
+      // PHASE 13: Validar novamente antes de adicionar ao array
+      if (!creativeImageUrl || creativeImageUrl.trim() === "") {
+        throw new Error("Não foi possível obter URL válida da imagem gerada");
+      }
 
       allLooks.push({
         id: `look-criativo-${Date.now()}`,
         titulo: "Look Criativo IA",
         descricao: `Versão criativa gerada por IA usando ${primaryProduct.nome} e ${allProductImageUrls.length > 1 ? `${allProductImageUrls.length - 1} outro(s) produto(s)` : 'produtos selecionados'}. O produto foi combinado com um cenário personalizado para destacar seu estilo.`,
-        imagemUrl: creativeImageUrl,
+        imagemUrl: creativeImageUrl, // PHASE 13: URL validada
         produtoNome: primaryProduct.nome,
         produtoPreco: primaryProduct.preco,
         watermarkText: "Valor sujeito a alteração. Imagem com marca d'água.",
-        desativado: !creativeImageUrl, // Desativado apenas se não houver imagem
+        desativado: false, // PHASE 13: Sempre ativado se chegou até aqui (URL validada)
+        compositionId: creativeResult.compositionId || `comp_${Date.now()}`,
       });
 
-      console.log("[API] Look Criativo gerado com sucesso:", {
-        creative: creativeImageUrl ? creativeImageUrl.substring(0, 50) + "..." : "❌ ERRO",
+      console.log("[API] ✅ Look Criativo gerado e validado com sucesso:", {
+        imagemUrl: creativeImageUrl.substring(0, 100) + "...",
         totalLooks: allLooks.length,
+        compositionId: allLooks[allLooks.length - 1].compositionId,
       });
 
     } catch (error) {
@@ -708,15 +762,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Se não gerou nenhum look, retornar erro
-    if (allLooks.length === 0) {
+    // PHASE 13: Validar que todos os looks têm URLs válidas
+    const validLooks = allLooks.filter((look) => {
+      const hasValidUrl = look.imagemUrl && 
+                         look.imagemUrl.trim() !== "" && 
+                         (look.imagemUrl.startsWith("http://") || 
+                          look.imagemUrl.startsWith("https://") || 
+                          look.imagemUrl.startsWith("data:"));
+      
+      if (!hasValidUrl) {
+        console.error("[API] ⚠️ Look sem URL válida será filtrado:", {
+          id: look.id,
+          titulo: look.titulo,
+          imagemUrl: look.imagemUrl || "VAZIA",
+        });
+      }
+      
+      return hasValidUrl;
+    });
+    
+    // Se não gerou nenhum look válido, retornar erro
+    if (validLooks.length === 0) {
+      console.error("[API] ❌ ERRO: Nenhum look válido gerado. Looks originais:", allLooks.map(l => ({
+        id: l.id,
+        titulo: l.titulo,
+        imagemUrl: l.imagemUrl ? l.imagemUrl.substring(0, 50) + "..." : "VAZIA",
+      })));
+      
       return applyCors(
         request,
         NextResponse.json(
-          { error: "Não foi possível gerar os looks" },
+          { 
+            error: "Não foi possível gerar os looks",
+            details: "Nenhuma imagem válida foi gerada. Verifique os logs do servidor.",
+          },
           { status: 500 }
         )
       );
+    }
+    
+    // Se alguns looks foram filtrados, logar aviso
+    if (validLooks.length < allLooks.length) {
+      console.warn("[API] ⚠️ Alguns looks foram filtrados por URL inválida:", {
+        totalGerados: allLooks.length,
+        validos: validLooks.length,
+        filtrados: allLooks.length - validLooks.length,
+      });
     }
 
     // Calcular custo total (apenas Look Criativo com Gemini)
@@ -734,11 +825,18 @@ export async function POST(request: NextRequest) {
     // Calcular tempo de processamento total
     const processingTime = Date.now() - startTime; // em milissegundos
 
-    console.log("[API] Composição finalizada:", {
-      looksCount: allLooks.length,
+    console.log("[API] PHASE 13: Composição finalizada e validada:", {
+      looksCount: validLooks.length,
+      looksGerados: allLooks.length,
+      looksFiltrados: allLooks.length - validLooks.length,
       totalCost,
       totalCostBRL,
       primaryProduct: primaryProduct.nome,
+      looksUrls: validLooks.map(l => ({
+        id: l.id,
+        url: l.imagemUrl?.substring(0, 80) + "...",
+        valida: !!(l.imagemUrl && l.imagemUrl.trim() !== ""),
+      })),
     });
 
     // Salvar composição no Firestore
@@ -751,14 +849,15 @@ export async function POST(request: NextRequest) {
         customerId: customerId || null,
         createdAt: new Date(),
         updatedAt: new Date(),
-        looks: allLooks.map((look) => ({
+        looks: validLooks.map((look) => ({
           id: look.id,
           titulo: look.titulo,
           descricao: look.descricao,
-          imagemUrl: look.imagemUrl,
+          imagemUrl: look.imagemUrl, // PHASE 13: URL já validada
           produtoNome: look.produtoNome,
           produtoPreco: look.produtoPreco,
           watermarkText: look.watermarkText,
+          compositionId: look.compositionId,
         })),
         produtos: productIds.length > 0 
           ? productIds.map((id) => ({ id, nome: primaryProduct.nome }))
@@ -810,7 +909,7 @@ export async function POST(request: NextRequest) {
       NextResponse.json({
         success: true,
         composicaoId,
-        looks: allLooks, // Apenas 1 look: Criativo
+        looks: validLooks, // PHASE 13: Apenas looks com URLs válidas
         totalCost,
         totalCostBRL,
         exchangeRate: usdToBrlRate,

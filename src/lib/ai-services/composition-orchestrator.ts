@@ -45,6 +45,7 @@ export interface CreateCompositionParams {
     baseImageUrl?: string; // Imagem base para Look Criativo (resultado do Look Natural)
     allProductImageUrls?: string[]; // Todas as imagens de produtos para Look Criativo (incluindo roupas)
     productCategory?: string; // Categoria do produto para prompts específicos
+    gerarNovoLook?: boolean; // PHASE 14: Flag para ativar mudança de pose (Regra de Postura Condicional)
   };
 }
 
@@ -167,23 +168,49 @@ export class CompositionOrchestrator {
           provider: "gemini-flash-image",
         };
 
-        // PHASE 11: Category-Specific Prompt Modifiers
+        // PHASE 14: Prompt Builder baseado no Prompt Mestre Definitivo
+        // Detectar categoria e aplicar regras de framing (Seção 3 do Prompt Mestre)
         const productCategory = (params.options?.productCategory || "").toLowerCase();
-        let categorySpecificPrompt = "";
+        const gerarNovoLook = params.options?.gerarNovoLook === true; // PHASE 14: Flag para ativar mudança de pose
         
-        // Detectar categoria e adicionar prompts específicos (PHASE 11 - Append modifiers)
-        if (productCategory.includes("calçado") || productCategory.includes("calcado") || productCategory.includes("sapato") || productCategory.includes("tênis") || productCategory.includes("tenis") || productCategory.includes("shoe") || productCategory.includes("footwear")) {
-          // Calçados: Forçar corpo inteiro com pés visíveis (conforme MD)
+        let categorySpecificPrompt = "";
+        let framingRule = "";
+        
+        // PHASE 14: Regras de Framing (Seção 3 do Prompt Mestre)
+        // IF products contains 'Calçados' -> FORCE CONTEXT: FULL BODY SHOT, FEET VISIBLE
+        if (productCategory.includes("calçado") || productCategory.includes("calcado") || 
+            productCategory.includes("sapato") || productCategory.includes("tênis") || 
+            productCategory.includes("tenis") || productCategory.includes("shoe") || 
+            productCategory.includes("footwear")) {
+          // Calçados: FORÇAR corpo inteiro com pés visíveis (REGRA CRÍTICA)
           categorySpecificPrompt = ", full body shot, wide angle, camera low angle, feet fully visible, standing on floor, showing complete shoes, ground visible";
-          console.log("[Orchestrator] 🦶 Categoria detectada: CALÇADOS - Aplicando prompt para pés visíveis");
-        } else if (productCategory.includes("acessório") || productCategory.includes("acessorio") || productCategory.includes("óculos") || productCategory.includes("oculos") || productCategory.includes("glasses") || productCategory.includes("joia") || productCategory.includes("joia")) {
-          // Acessórios/Óculos/Joias: Close-up no rosto (conforme MD)
+          framingRule = "FORCE CONTEXT: FULL BODY SHOT, FEET VISIBLE, WIDE ANGLE.";
+          console.log("[Orchestrator] 🦶 PHASE 14: CALÇADOS detectado - FORÇANDO FULL BODY SHOT (Regra Mestre)");
+        } 
+        // IF products contains 'Óculos' only -> FORCE CONTEXT: CLOSE-UP PORTRAIT
+        else if (productCategory.includes("acessório") || productCategory.includes("acessorio") || 
+                 productCategory.includes("óculos") || productCategory.includes("oculos") || 
+                 productCategory.includes("glasses") || productCategory.includes("joia") || 
+                 productCategory.includes("jewelry")) {
+          // Acessórios/Óculos/Joias: Close-up no rosto (REGRA CRÍTICA)
           categorySpecificPrompt = ", close-up portrait, focus on face and neck, high detail accessory, shallow depth of field";
-          console.log("[Orchestrator] 👓 Categoria detectada: ACESSÓRIOS/ÓCULOS/JOIAS - Aplicando prompt de close-up");
-        } else {
-          // Roupas (Default): Shot médio com foco no tecido (conforme MD)
+          framingRule = "FORCE CONTEXT: CLOSE-UP PORTRAIT.";
+          console.log("[Orchestrator] 👓 PHASE 14: ACESSÓRIOS/ÓCULOS detectado - FORÇANDO CLOSE-UP PORTRAIT (Regra Mestre)");
+        } 
+        else {
+          // Roupas (Default): Shot médio com foco no tecido
           categorySpecificPrompt = ", medium-full shot, detailed fabric texture, professional fashion photography, perfect fit";
-          console.log("[Orchestrator] 👕 Categoria detectada: ROUPAS (padrão) - Aplicando prompt de shot médio");
+          framingRule = "FORCE CONTEXT: MEDIUM-FULL SHOT.";
+          console.log("[Orchestrator] 👕 PHASE 14: ROUPAS (padrão) - Usando shot médio");
+        }
+        
+        // PHASE 14: Injetar flag "GERAR NOVO LOOK" se ativado (Regra de Postura Condicional)
+        const posturaRule = gerarNovoLook 
+          ? "⚠️ GERAR NOVO LOOK: ATIVADO. A IA PODE MUDAR A POSE DA PESSOA COMPLETAMENTE (postura e ângulo corporal) mantendo a P1 (proporções físicas inalteradas) e a P2 (visibilidade dos produtos). A nova pose DEVE ser natural, fotorrealista e otimizar a exibição de todos os produtos selecionados."
+          : "POSTURA PRESERVADA (Padrão): A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios.";
+        
+        if (gerarNovoLook) {
+          console.log("[Orchestrator] 🎨 PHASE 14: Flag 'GERAR NOVO LOOK' ATIVADA - Permitindo mudança de pose");
         }
 
         // PHASE 11-B: Strong Negative Prompt para reduzir erros de anatomia e cortes
@@ -208,12 +235,21 @@ export class CompositionOrchestrator {
           console.log("[Orchestrator] 🦶 PHASE 11-B: Negative prompt reforçado para prevenir 'cut legs'");
         }
 
-        // Prompt detalhado fornecido pelo usuário - Virtual Try-On Multiproduto
-        // 📝 DOCUMENTAÇÃO: Este prompt está documentado em docs/PROMPT_LOOK_CRIATIVO.md
-        // ⚠️ IMPORTANTE: Sempre atualize o arquivo MD quando fizer alterações neste prompt!
-        // Versão 2.1 (Phase 11 - Category-Specific Prompts) - Data de Compilação: 27 de Novembro de 2025
-        // PHASE 11: Append category modifiers to existing prompt (Hybrid Strategy)
+        // PHASE 14: Prompt Mestre Definitivo v2.0 - Estrutura Base
+        // 📝 DOCUMENTAÇÃO: Baseado no "Prompt Mestre Definitivo.txt"
+        // Versão 2.2 (Phase 14 - Master Fix Protocol) - Data de Compilação: 28 de Novembro de 2025
+        // 
+        // ESTRUTURA DO PROMPT:
+        // - IMAGEM_PESSOA: Primeira imagem (personImageUrl) - DNA VISUAL INTOCÁVEL
+        // - IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, IMAGEM_PRODUTO_3: Produtos selecionados (máximo 3)
+        // - Framing Rules: Aplicadas via categorySpecificPrompt e framingRule
+        // - Postura Rule: Aplicada via posturaRule (GERAR NOVO LOOK ou POSTURA PRESERVADA)
+        //
         const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
+
+${framingRule}
+
+${posturaRule}
 
 META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS. O resultado final DEVE parecer uma FOTO REAL, não gerada.
 
@@ -251,7 +287,8 @@ A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE 
 
 2. INTEGRAÇÃO INTELIGENTE E NATURAL DE PRODUTOS E VESTUÁRIO (PRIORIDADE 2 - FIDELIDADE E REALISMO IMPLACÁVEL DO PRODUTO):
 
-    * A IA DEVE ANALISAR CADA IMAGEM_PRODUTO_X (Máximo 3) para inferir sua categoria.
+    * PHASE 14: A IA DEVE ANALISAR CADA IMAGEM_PRODUTO_X (Máximo 3 produtos: IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, IMAGEM_PRODUTO_3) para inferir sua categoria.
+    * PHASE 14: TODOS os produtos fornecidos DEVEM ser integrados na composição final. Nenhum produto pode ser ignorado ou omitido.
 
     * SUBSTITUIÇÃO DE VESTUÁRIO: Se um produto da categoria 'ROUPA' for fornecido: A roupa original DEVE ser **INTEIRAMENTE SUBSTITUÍDA**. O caimento fotorrealista e físico do tecido **(Caimento, Forma, Cor, Tamanho, Proporção)** DEVE ser meticulosamente replicado.
 
