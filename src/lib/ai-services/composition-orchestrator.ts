@@ -46,6 +46,8 @@ export interface CreateCompositionParams {
     allProductImageUrls?: string[]; // Todas as imagens de produtos para Look Criativo (incluindo roupas)
     productCategory?: string; // Categoria do produto para prompts específicos
     gerarNovoLook?: boolean; // PHASE 14: Flag para ativar mudança de pose (Regra de Postura Condicional)
+    smartContext?: string; // PHASE 14: Contexto inteligente (Beach/Office/Studio)
+    smartFraming?: string; // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
   };
 }
 
@@ -168,41 +170,35 @@ export class CompositionOrchestrator {
           provider: "gemini-flash-image",
         };
 
-        // PHASE 14: Prompt Builder baseado no Prompt Mestre Definitivo
-        // Detectar categoria e aplicar regras de framing (Seção 3 do Prompt Mestre)
+        // PHASE 14: Prompt Builder v2.1 - Smart Context Engine
+        // Usar valores do Smart Context Engine se fornecidos, senão detectar automaticamente
+        const smartContext = params.options?.smartContext || "Clean Studio or Urban Street";
+        const smartFraming = params.options?.smartFraming || "medium-full shot";
         const productCategory = (params.options?.productCategory || "").toLowerCase();
         const gerarNovoLook = params.options?.gerarNovoLook === true; // PHASE 14: Flag para ativar mudança de pose
         
-        let categorySpecificPrompt = "";
-        let framingRule = "";
+        // PHASE 14: Construir prompt usando Smart Context e Smart Framing
+        let categorySpecificPrompt = `, ${smartFraming}`;
+        let framingRule = `FORCE CONTEXT: ${smartFraming.toUpperCase()}.`;
+        let contextRule = `SCENE CONTEXT: ${smartContext}.`;
         
-        // PHASE 14: Regras de Framing (Seção 3 do Prompt Mestre)
-        // IF products contains 'Calçados' -> FORCE CONTEXT: FULL BODY SHOT, FEET VISIBLE
-        if (productCategory.includes("calçado") || productCategory.includes("calcado") || 
-            productCategory.includes("sapato") || productCategory.includes("tênis") || 
-            productCategory.includes("tenis") || productCategory.includes("shoe") || 
-            productCategory.includes("footwear")) {
-          // Calçados: FORÇAR corpo inteiro com pés visíveis (REGRA CRÍTICA)
-          categorySpecificPrompt = ", full body shot, wide angle, camera low angle, feet fully visible, standing on floor, showing complete shoes, ground visible";
-          framingRule = "FORCE CONTEXT: FULL BODY SHOT, FEET VISIBLE, WIDE ANGLE.";
-          console.log("[Orchestrator] 🦶 PHASE 14: CALÇADOS detectado - FORÇANDO FULL BODY SHOT (Regra Mestre)");
-        } 
-        // IF products contains 'Óculos' only -> FORCE CONTEXT: CLOSE-UP PORTRAIT
-        else if (productCategory.includes("acessório") || productCategory.includes("acessorio") || 
-                 productCategory.includes("óculos") || productCategory.includes("oculos") || 
-                 productCategory.includes("glasses") || productCategory.includes("joia") || 
-                 productCategory.includes("jewelry")) {
-          // Acessórios/Óculos/Joias: Close-up no rosto (REGRA CRÍTICA)
-          categorySpecificPrompt = ", close-up portrait, focus on face and neck, high detail accessory, shallow depth of field";
-          framingRule = "FORCE CONTEXT: CLOSE-UP PORTRAIT.";
-          console.log("[Orchestrator] 👓 PHASE 14: ACESSÓRIOS/ÓCULOS detectado - FORÇANDO CLOSE-UP PORTRAIT (Regra Mestre)");
-        } 
-        else {
-          // Roupas (Default): Shot médio com foco no tecido
-          categorySpecificPrompt = ", medium-full shot, detailed fabric texture, professional fashion photography, perfect fit";
-          framingRule = "FORCE CONTEXT: MEDIUM-FULL SHOT.";
-          console.log("[Orchestrator] 👕 PHASE 14: ROUPAS (padrão) - Usando shot médio");
+        // Adicionar detalhes específicos baseados no framing
+        if (smartFraming.includes("Full body") || smartFraming.includes("feet")) {
+          categorySpecificPrompt += ", wide angle, camera low angle, feet fully visible, standing on floor, showing complete shoes, ground visible";
+          console.log("[Orchestrator] 🦶 PHASE 14: Smart Framing = FULL BODY SHOT");
+        } else if (smartFraming.includes("close-up") || smartFraming.includes("portrait")) {
+          categorySpecificPrompt += ", focus on face and neck, high detail accessory, shallow depth of field";
+          console.log("[Orchestrator] 👓 PHASE 14: Smart Framing = CLOSE-UP PORTRAIT");
+        } else {
+          categorySpecificPrompt += ", detailed fabric texture, professional fashion photography, perfect fit";
+          console.log("[Orchestrator] 👕 PHASE 14: Smart Framing = MEDIUM-FULL SHOT");
         }
+        
+        console.log("[Orchestrator] 🎨 PHASE 14: Smart Context Engine:", {
+          smartContext,
+          smartFraming,
+          productCategory,
+        });
         
         // PHASE 14: Injetar flag "GERAR NOVO LOOK" se ativado (Regra de Postura Condicional)
         const posturaRule = gerarNovoLook 
@@ -246,6 +242,8 @@ export class CompositionOrchestrator {
         // - Postura Rule: Aplicada via posturaRule (GERAR NOVO LOOK ou POSTURA PRESERVADA)
         //
         const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
+
+${contextRule}
 
 ${framingRule}
 

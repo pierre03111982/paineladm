@@ -521,10 +521,35 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // PHASE 11-B FIX: Smart Framing - Detectar categoria de TODOS os produtos
-      // Se QUALQUER produto for calçado, forçar full body (previne "cut legs" bug)
-      // Se APENAS acessórios (sem calçados), forçar portrait
+      // PHASE 14: Smart Context Engine (Prompt Mestre v2.1)
+      // Step 1: Context Detection baseado em keywords dos produtos
+      const allProductNames = productsData.map(p => (p?.nome || "").toLowerCase()).join(" ");
       const allCategories = productsData.map(p => (p?.categoria || "").toLowerCase());
+      const allText = `${allProductNames} ${allCategories.join(" ")}`;
+      
+      let smartContext = "Clean Studio or Urban Street"; // Default
+      
+      // Bikini/Sunga/Praia → Beach
+      if (allText.includes("biquini") || allText.includes("sunga") || 
+          allText.includes("praia") || allText.includes("beach") ||
+          allText.includes("maiô") || allText.includes("maio")) {
+        smartContext = "Sunny Beach or Poolside";
+        console.log("[API] 🏖️ PHASE 14 Smart Context: BEACH detectado (Bikini/Sunga/Praia)");
+      }
+      // Terno/Blazer/Social → Office
+      else if (allText.includes("terno") || allText.includes("blazer") || 
+               allText.includes("social") || allText.includes("suit") ||
+               allText.includes("trabalho") || allText.includes("escritório") ||
+               allText.includes("escritorio") || allText.includes("office")) {
+        smartContext = "Modern Office or Luxury Lobby";
+        console.log("[API] 🏢 PHASE 14 Smart Context: OFFICE detectado (Terno/Blazer/Social)");
+      }
+      // Default já definido acima
+      else {
+        console.log("[API] 🏙️ PHASE 14 Smart Context: DEFAULT (Clean Studio or Urban Street)");
+      }
+      
+      // Step 2: Framing Detection
       const hasShoes = allCategories.some(cat => 
         cat.includes("calçado") || cat.includes("calcado") || 
         cat.includes("sapato") || cat.includes("tênis") || 
@@ -540,19 +565,31 @@ export async function POST(request: NextRequest) {
           cat.includes("jewelry")
         ) && !hasShoes;
       
-      // PHASE 11-B: Determinar categoria para o prompt (priorizar calçados > roupas > acessórios)
+      // PHASE 14: Determinar categoria para o prompt (priorizar calçados > roupas > acessórios)
       // CRÍTICO: Se tem calçado, SEMPRE forçar "Calçados" para garantir full body
       let productCategoryForPrompt = primaryProduct?.categoria || "";
+      let smartFraming = "medium-full shot"; // Default
+      
       if (hasShoes) {
         productCategoryForPrompt = "Calçados";
-        console.log("[API] 🦶 PHASE 11-B Smart Framing: Detectado calçado(s) - FORÇANDO full body shot para prevenir 'cut legs'");
+        smartFraming = "Full body shot, feet fully visible, standing on floor";
+        console.log("[API] 🦶 PHASE 14 Smart Framing: CALÇADOS detectado - FORÇANDO full body shot");
       } else if (hasOnlyAccessories) {
         productCategoryForPrompt = "Acessórios/Óculos/Joias";
-        console.log("[API] 👓 PHASE 11-B Smart Framing: Apenas acessórios detectados - Forçando portrait shot");
+        smartFraming = "close-up portrait, focus on face and neck";
+        console.log("[API] 👓 PHASE 14 Smart Framing: ACESSÓRIOS detectado - Forçando portrait shot");
       } else {
         productCategoryForPrompt = "Roupas";
-        console.log("[API] 👕 PHASE 11-B Smart Framing: Roupas detectadas - Usando shot médio");
+        smartFraming = "medium-full shot, detailed fabric texture";
+        console.log("[API] 👕 PHASE 14 Smart Framing: ROUPAS detectado - Usando shot médio");
       }
+      
+      console.log("[API] 📊 PHASE 14 Smart Context Engine:", {
+        smartContext,
+        smartFraming,
+        productCategoryForPrompt,
+        totalProdutos: productsData.length,
+      });
       
       // PHASE 11-B: Log detalhado dos produtos para debug
       console.log("[API] 📊 PHASE 11-B: Resumo de produtos para geração:", {
@@ -598,6 +635,8 @@ export async function POST(request: NextRequest) {
           allProductImageUrls: allProductImageUrls, // PHASE 14: TODAS as imagens de produtos (crítico para multi-produto)
           productCategory: productCategoryForPrompt, // PHASE 14: Categoria determinada por Smart Framing (previne "cut legs")
           gerarNovoLook: options?.gerarNovoLook || isRemix, // PHASE 14: Ativar flag se for remix ou se explicitamente solicitado
+          smartContext: smartContext, // PHASE 14: Contexto inteligente (Beach/Office/Studio)
+          smartFraming: smartFraming, // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
         },
       });
       
