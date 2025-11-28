@@ -150,7 +150,26 @@ export async function POST(request: NextRequest) {
     } else {
       // JSON (compatibilidade com chamadas antigas)
       const body = await request.json();
-      personImageUrl = body.personImageUrl;
+      
+      // PHASE 13: Source of Truth - Sempre priorizar original_photo_url
+      // Se original_photo_url for fornecido, usar ele. Caso contrário, usar personImageUrl.
+      // IMPORTANTE: Ignorar qualquer "previous_image" ou imagem gerada anteriormente
+      const originalPhotoUrl = body.original_photo_url || body.personImageUrl;
+      
+      // PHASE 13: Validar que não estamos usando uma imagem gerada anteriormente
+      // Se a URL contiver indicadores de imagem gerada (ex: "composicoes/", "generated-"), logar aviso
+      if (originalPhotoUrl && (
+        originalPhotoUrl.includes("/composicoes/") || 
+        originalPhotoUrl.includes("generated-") ||
+        originalPhotoUrl.includes("look-")
+      )) {
+        console.warn("[API] ⚠️ PHASE 13: ATENÇÃO - URL pode ser de imagem gerada, mas será usada como original:", {
+          url: originalPhotoUrl.substring(0, 100) + "...",
+          motivo: "URL contém indicadores de imagem gerada",
+        });
+      }
+      
+      personImageUrl = originalPhotoUrl; // PHASE 13: Sempre usar original_photo_url se fornecido
       productIds = body.productId ? [body.productId] : body.productIds || [];
       lojistaId = body.lojistaId;
       customerId = body.customerId || null;
@@ -158,7 +177,7 @@ export async function POST(request: NextRequest) {
       options = body.options || null;
     }
 
-    console.log("[API] Parâmetros recebidos:", {
+    console.log("[API] PHASE 13: Parâmetros recebidos (Source of Truth - Foto Original):", {
       lojistaId,
       productIdsCount: productIds.length,
       hasPersonImage: !!personImageUrl,
