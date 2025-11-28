@@ -134,8 +134,8 @@ function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10 backdrop-blur-sm">
-      <div className="relative w-full max-w-3xl rounded-xl border border-indigo-500/30 bg-zinc-950/95 p-6 shadow-[0_45px_120px_-60px_rgba(99,102,241,0.75)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 py-10">
+      <div className="relative w-full max-w-3xl rounded-xl border border-indigo-500 dark:border-indigo-500 bg-white dark:bg-slate-800 p-6 shadow-lg">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 rounded-full border border-gray-300 px-2 py-1 text-sm leading-none text-slate-600 transition hover:border-gray-400 hover:text-slate-900 hover:bg-gray-50"
@@ -805,10 +805,10 @@ export function ComposicoesGallery({
                   <button
                     onClick={() => handleToggleSelection(item.id)}
                     className={cn(
-                      "rounded-full border-2 bg-zinc-950/80 p-1.5 backdrop-blur-sm transition",
+                      "rounded-full border-2 bg-white dark:bg-slate-800 p-1.5 shadow-md transition",
                       selectedComposicoes.has(item.id)
-                        ? "border-indigo-400 bg-indigo-500/30"
-                        : "border-zinc-600 hover:border-indigo-400"
+                        ? "border-indigo-500 dark:border-indigo-400 bg-indigo-100 dark:bg-indigo-900/50"
+                        : "border-gray-300 dark:border-slate-600 hover:border-indigo-400"
                     )}
                   >
                     {selectedComposicoes.has(item.id) ? (
@@ -871,12 +871,12 @@ export function ComposicoesGallery({
                     #{String(index + 1).padStart(2, "0")}
                   </div>
                   {item.liked ? (
-                    <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border-2 border-rose-400/80 bg-rose-500/30 backdrop-blur-sm px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-rose-100 shadow-lg shadow-rose-500/50">
+                    <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full border-2 border-rose-400 dark:border-rose-400 bg-rose-100 dark:bg-rose-900/50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-rose-700 dark:text-rose-100 shadow-md">
                       <Heart className="h-3.5 w-3.5 fill-current animate-pulse" />
                       Favorito
                     </div>
                   ) : null}
-                  <div className="absolute left-4 bottom-4 inline-flex items-center gap-2 rounded-full border border-zinc-100/20 bg-zinc-950/60 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-zinc-100">
+                  <div className="absolute left-4 bottom-4 inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-900 dark:text-slate-100 shadow-md">
                     <Share2 className="h-3.5 w-3.5" />
                     {item.shares > 0 ? `${item.shares} envio(s)` : "Sem envios"}
                   </div>

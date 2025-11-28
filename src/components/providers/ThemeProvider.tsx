@@ -10,6 +10,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       defaultTheme="light"
       enableSystem={false}
       disableTransitionOnChange={false}
+      storageKey="paineladm-theme"
     >
       {children}
     </NextThemesProvider>

@@ -49,7 +49,7 @@ function ProductGridCard({
       <button
         onClick={() => !loading && toggleProductSelection(produto.id)}
         disabled={loading}
-        className="absolute top-2 left-2 z-10 p-1 rounded bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm hover:bg-white transition"
+        className="absolute top-2 left-2 z-10 p-1 rounded bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-md hover:bg-gray-50 dark:hover:bg-slate-700 transition"
       >
         {selectedProducts.has(produto.id) ? (
           <CheckSquare className="h-4 w-4 text-indigo-600" />
@@ -76,7 +76,7 @@ function ProductGridCard({
       {/* Content */}
       <div className="p-4 space-y-3">
         <div>
-          <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 min-h-[2.5rem]">
+          <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 min-h-[2.5rem]">
             {produto.nome}
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">ID {produto.id.slice(0, 6)}</p>
@@ -85,11 +85,11 @@ function ProductGridCard({
         <div className="space-y-1.5 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Categoria:</span>
-            <span className="text-gray-900 font-medium">{produto.categoria}</span>
+            <span className="text-gray-900 dark:text-white font-medium">{produto.categoria}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Preço:</span>
-            <span className="text-lg font-bold text-gray-900">R$ {produto.preco.toFixed(2)}</span>
+            <span className="text-lg font-bold text-gray-900 dark:text-white">R$ {produto.preco.toFixed(2)}</span>
           </div>
           {produto.tamanhos && produto.tamanhos.length > 0 && (
             <div className="flex items-center justify-between">

@@ -34,8 +34,8 @@ export function LojistaNav({ collapsed }: LojistaNavProps) {
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
               active
-                ? "bg-[#3B82F6] text-white font-semibold shadow-sm"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
+                ? "bg-blue-600 text-white font-medium shadow-md"
+                : "text-slate-400 dark:text-slate-400 hover:text-slate-100 dark:hover:text-slate-100 hover:bg-white/10 dark:hover:bg-white/10"
             )}
           >
             <Icon className="h-5 w-5 shrink-0" />

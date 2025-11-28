@@ -117,31 +117,31 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
+        <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-md transition-colors">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-50 p-2">
               <Package className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Total</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
+        <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-md transition-colors">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-amber-50 p-2">
               <Clock className="h-5 w-5 text-amber-600" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Pendentes</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.pending}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
+        <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-md transition-colors">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-emerald-50 p-2">
               <CheckCircle className="h-5 w-5 text-emerald-600" />
@@ -153,7 +153,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-md">
+        <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-md transition-colors">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-indigo-50 p-2">
               <DollarSign className="h-5 w-5 text-indigo-600" />

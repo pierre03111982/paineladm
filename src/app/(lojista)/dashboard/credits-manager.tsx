@@ -177,7 +177,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               placeholder="Quantidade de créditos"
               value={amountToAdd}
               onChange={(e) => setAmountToAdd(e.target.value)}
-              className="flex-1 bg-white border-gray-300 text-slate-900 placeholder:text-gray-400"
+              className="flex-1 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-slate-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               disabled={addingCredits}
             />
             <Button

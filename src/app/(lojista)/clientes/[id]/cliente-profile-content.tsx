@@ -92,13 +92,13 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           Voltar
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Perfil do Cliente</h1>
-          <p className="text-sm text-gray-600 mt-1">Visualize informações e histórico completo</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Perfil do Cliente</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Visualize informações e histórico completo</p>
         </div>
       </div>
 
       {/* Profile Card */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
+      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           {/* Avatar */}
           <div className="flex-shrink-0">
@@ -111,8 +111,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           <div className="flex-1 min-w-0">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900">{cliente.nome || "Cliente Anônimo"}</h2>
-                <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{cliente.nome || "Cliente Anônimo"}</h2>
+                <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
                   {cliente.whatsapp && (
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
@@ -164,8 +164,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <DollarSign className="h-5 w-5 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Gasto</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total Gasto</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   R$ {cliente.salesStats.totalSpent.toFixed(2)}
                 </p>
               </div>
@@ -178,8 +178,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <ShoppingCart className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Pedidos</p>
-                <p className="text-2xl font-bold text-gray-900">{cliente.salesStats.orderCount}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Total Pedidos</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{cliente.salesStats.orderCount}</p>
               </div>
             </div>
           </div>
@@ -190,8 +190,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <TrendingUp className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Ticket Médio</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-600 dark:text-gray-300">Ticket Médio</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   R$ {cliente.salesStats.averageTicket.toFixed(2)}
                 </p>
               </div>
@@ -208,8 +208,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               <ImageIcon className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Composições</p>
-              <p className="text-2xl font-bold text-gray-900">{totalComposicoes}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Composições</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalComposicoes}</p>
             </div>
           </div>
         </div>
@@ -220,8 +220,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               <Heart className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Curtidas</p>
-              <p className="text-2xl font-bold text-gray-900">{totalLikes}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Curtidas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalLikes}</p>
             </div>
           </div>
         </div>
@@ -232,8 +232,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               <ThumbsDown className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Rejeições</p>
-              <p className="text-2xl font-bold text-gray-900">{totalDislikes}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Rejeições</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalDislikes}</p>
             </div>
           </div>
         </div>
@@ -244,8 +244,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               <Share2 className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Compartilhamentos</p>
-              <p className="text-2xl font-bold text-gray-900">{totalShares}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Compartilhamentos</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalShares}</p>
             </div>
           </div>
         </div>
@@ -253,7 +253,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Produtos Favoritos */}
       {topProducts.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
+        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Star className="h-5 w-5 text-amber-500" />
             Produtos Favoritos
@@ -262,10 +262,10 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {topProducts.map(([productId, count]) => (
               <div
                 key={productId}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700 px-4 py-3"
               >
-                <span className="text-sm font-medium text-gray-900">Produto {productId.slice(0, 8)}</span>
-                <span className="text-sm text-gray-600">{count} curtida(s)</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Produto {productId.slice(0, 8)}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">{count} curtida(s)</span>
               </div>
             ))}
           </div>
@@ -274,7 +274,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Purchase History */}
       {cliente.orders && cliente.orders.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
+        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Receipt className="h-5 w-5 text-gray-600" />
             Histórico de Compras
@@ -295,7 +295,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
                         Pedido #{order.id.slice(0, 8)}
                       </span>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${statusBadge}`}>
@@ -316,7 +316,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
                       R$ {order.total?.toFixed(2) || "0.00"}
                     </p>
                   </div>
@@ -329,8 +329,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Composições Recentes */}
       {cliente.composicoes && cliente.composicoes.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-md">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Composições Recentes</h3>
+        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Composições Recentes</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cliente.composicoes.slice(0, 6).map((comp: any) => {
               const previewUrl = comp.looks?.[0]?.imagemUrl || comp.imagemUrl || comp.imageUrl;
@@ -339,7 +339,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               return (
                 <div
                   key={comp.id}
-                  className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
+                  className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm dark:shadow-md transition hover:shadow-md dark:hover:shadow-lg"
                 >
                   {previewUrl && (
                     <div className="aspect-square w-full overflow-hidden bg-gray-100">

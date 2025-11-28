@@ -481,13 +481,13 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             {opportunityLeads.slice(0, 4).map((lead) => {
               const meta = resolveReasonMeta(isMicroPlan ? undefined : lead.reason);
               return (
-                <div key={lead.customerId} className="rounded-2xl border border-indigo-200 bg-white p-4 shadow-md">
+                <div key={lead.customerId} className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-800 p-4 shadow-md transition-colors">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {isMicroPlan ? "Cliente confidencial" : lead.name}
                       </p>
-                      <p className="text-xs text-indigo-700">
+                      <p className="text-xs text-indigo-700 dark:text-indigo-300">
                         {lead.lastActivity} · {lead.interactions} try-ons
                       </p>
                     </div>
@@ -512,9 +512,9 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           </div>
 
           {isMicroPlan && (
-            <div className="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-indigo-300 bg-white/95 text-center px-6 shadow-lg">
-              <p className="text-xs uppercase tracking-[0.4em] text-indigo-700">Plano Impulso</p>
-              <h3 className="mt-2 text-xl font-semibold text-slate-900">5 clientes online agora!</h3>
+            <div className="pointer-events-auto absolute inset-0 flex flex-col items-center justify-center rounded-2xl border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-slate-800 text-center px-6 shadow-lg">
+              <p className="text-xs uppercase tracking-[0.4em] text-indigo-700 dark:text-indigo-300">Plano Impulso</p>
+              <h3 className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">5 clientes online agora!</h3>
               <p className="mt-2 text-sm text-slate-700">
                 Assine o Plano Lojista para ver nomes, motivos e disparar ofertas em um clique.
               </p>

@@ -85,11 +85,11 @@ export function AppClienteContent({ lojistaId, perfil }: AppClienteContentProps)
   return (
     <div className="space-y-6">
       {/* Descrição */}
-      <div className="rounded-2xl border border-zinc-800/60 bg-zinc-950/40 p-6 shadow-lg backdrop-blur-xl">
-        <h2 className="text-2xl font-bold text-white mb-2">
+      <div className="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
           Links e QR Codes dos Modelos
         </h2>
-        <p className="text-base text-zinc-400">
+        <p className="text-base text-slate-600 dark:text-slate-300">
           Aqui estão os links e QR codes para os 3 modelos disponíveis. O modelo selecionado como padrão nas configurações está destacado.
         </p>
       </div>
@@ -160,10 +160,10 @@ function ModeloCard({
   };
   return (
     <div
-      className={`relative rounded-2xl border-2 p-6 shadow-lg backdrop-blur-xl transition-all ${
+      className={`relative rounded-2xl border-2 p-6 shadow-md dark:shadow-lg transition-all ${
         isPadrao
-          ? "border-green-500/80 bg-green-500/10 ring-2 ring-green-500/30"
-          : "border-zinc-800/60 bg-zinc-950/40"
+          ? "border-green-500 dark:border-green-500 bg-green-50 dark:bg-green-900/30 ring-2 ring-green-500/30"
+          : "border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800"
       }`}
     >
       {/* Badge de Modelo Padrão */}
@@ -178,7 +178,7 @@ function ModeloCard({
 
       {/* Header do Card */}
       <div className="mb-4 text-center">
-        <h3 className={`text-xl font-bold ${isPadrao ? "text-green-300" : "text-white"}`}>
+        <h3 className={`text-xl font-bold ${isPadrao ? "text-green-700 dark:text-green-300" : "text-slate-900 dark:text-white"}`}>
           {modelo.nome}
         </h3>
         {isPadrao && (
@@ -190,13 +190,13 @@ function ModeloCard({
 
       {/* Link Input */}
       <div className="mb-4">
-        <div className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/70 p-3 shadow-inner">
-          <Smartphone className="h-4 w-4 text-indigo-400 shrink-0" />
+        <div className="flex items-center gap-2 rounded-xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 p-3 shadow-inner">
+          <Smartphone className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
           <input
             type="text"
             readOnly
             value={appClienteUrl}
-            className="flex-1 bg-transparent text-xs text-white outline-none font-mono truncate"
+            className="flex-1 bg-transparent text-xs text-slate-900 dark:text-white outline-none font-mono truncate"
           />
         </div>
         <button
@@ -213,7 +213,7 @@ function ModeloCard({
       </div>
 
       {/* QR Code */}
-      <div className="mb-4 flex flex-col items-center space-y-3 bg-white/5 p-4 rounded-xl border border-white/10">
+      <div className="mb-4 flex flex-col items-center space-y-3 bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl border border-gray-200 dark:border-slate-600">
         <div className="relative h-40 w-40 rounded-lg bg-white p-2 shadow-xl">
           {qrCodeUrl ? (
             <img

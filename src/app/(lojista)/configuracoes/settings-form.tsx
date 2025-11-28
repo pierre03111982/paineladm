@@ -304,8 +304,8 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
             )}
           </div>
           <div className="flex-1 space-y-2">
-            <h3 className="text-lg font-semibold text-slate-900">Logo da Loja</h3>
-            <p className="text-sm text-slate-600">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Logo da Loja</h3>
+            <p className="text-sm text-slate-600 dark:text-gray-300">
               O logo aparece no provador virtual e no simulador. Use uma imagem quadrada (recomendado: 512x512px).
             </p>
             <div className="flex items-center gap-3">
@@ -319,7 +319,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               />
               <label
                 htmlFor="logo-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 hover:bg-gray-50 transition-colors"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
               >
                 {isUploadingLogo ? (
                   <>
@@ -349,7 +349,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
 
       {/* Informações Básicas */}
       <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
-        <h3 className="mb-4 text-lg font-semibold text-slate-900">Informações Básicas</h3>
+        <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">Informações Básicas</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -359,7 +359,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               type="text"
               value={formData.nome}
               onChange={(e) => handleNomeChange(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-slate-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
+              className="w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2.5 text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
               placeholder="Ex: Pierre Loja"
               required
             />

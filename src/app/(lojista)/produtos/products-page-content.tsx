@@ -114,8 +114,8 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">MANUAL</span>
           </div>
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">Cadastro manual de produto</h3>
-          <p className="text-sm text-slate-600 mb-4">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Cadastro manual de produto</h3>
+          <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
             Preencha as informações essenciais do produto, faça upload da foto e disponibilize imediatamente no provador. Ideal para peças exclusivas ou lançamentos rápidos.
           </p>
           <div className="flex gap-2">
