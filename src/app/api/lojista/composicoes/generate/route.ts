@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getCompositionOrchestrator } from "@/lib/ai-services/composition-orchestrator";
 import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
+import { logError } from "@/lib/logger";
 
 const db = getAdminDb();
 const storage = (() => {
@@ -597,6 +598,18 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error(`[API] Erro ao gerar composição:`, error);
       
+      // PHASE 12: Logar erro crítico no Firestore
+      await logError(
+        "AI Generation API",
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          storeId: lojistaId,
+          errorType: "AIGenerationError",
+          customerId: customerId || null,
+          productIds: productIds,
+        }
+      ).catch(err => console.error("[API] Erro ao salvar log:", err));
+      
       // Tratamento específico para erro 429 (Rate Limit)
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       let userFriendlyMessage = "Erro ao gerar composição";
@@ -738,6 +751,18 @@ export async function POST(request: NextRequest) {
     console.error("[API] Stack trace:", error instanceof Error ? error.stack : "N/A");
     console.error("[API] Tipo do erro:", typeof error);
     console.error("[API] Nome do erro:", error instanceof Error ? error.name : "N/A");
+    
+    // PHASE 12: Logar erro crítico no Firestore
+    await logError(
+      "AI Generation API (Outer Catch)",
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        storeId: lojistaId || "unknown",
+        errorType: "AIGenerationError",
+        customerId: customerId || null,
+        productIds: productIds || [],
+      }
+    ).catch(err => console.error("[API] Erro ao salvar log:", err));
     
     // Tratamento específico para diferentes tipos de erro
     const errorMessage = error instanceof Error ? error.message : String(error);

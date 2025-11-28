@@ -234,6 +234,52 @@ export class Logger {
 // Instância singleton
 export const logger = new Logger();
 
+/**
+ * PHASE 12: Helper function logError para facilitar uso em catch blocks
+ * Salva erros críticos no Firestore system_logs
+ */
+export async function logError(
+  context: string,
+  error: Error | unknown,
+  additionalContext?: {
+    userId?: string;
+    storeId?: string;
+    errorType?: string;
+    [key: string]: any;
+  }
+): Promise<void> {
+  const errorObj = error instanceof Error ? error : new Error(String(error));
+  
+  const entry: LogEntry = {
+    level: LogLevel.ERROR,
+    message: `[${context}] ${errorObj.message}`,
+    error: {
+      name: errorObj.name,
+      message: errorObj.message,
+      stack: errorObj.stack,
+    },
+    context: {
+      errorType: additionalContext?.errorType || "UnknownError",
+      ...additionalContext,
+    },
+    userId: additionalContext?.userId,
+    lojistaId: additionalContext?.storeId,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+  };
+
+  try {
+    await db.collection("system_logs").add({
+      ...entry,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (saveError) {
+    // Se falhar ao salvar no Firestore, pelo menos logar no console
+    console.error("[logError] Erro ao salvar log no Firestore:", saveError);
+    console.error("[logError] Entry que falhou:", entry);
+  }
+}
+
 
 
 
