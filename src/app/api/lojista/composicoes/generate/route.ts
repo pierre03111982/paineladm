@@ -502,8 +502,8 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // PHASE 11 FIX: Smart Framing - Detectar categoria de TODOS os produtos
-      // Se QUALQUER produto for calçado, forçar full body
+      // PHASE 11-B FIX: Smart Framing - Detectar categoria de TODOS os produtos
+      // Se QUALQUER produto for calçado, forçar full body (previne "cut legs" bug)
       // Se APENAS acessórios (sem calçados), forçar portrait
       const allCategories = productsData.map(p => (p?.categoria || "").toLowerCase());
       const hasShoes = allCategories.some(cat => 
@@ -521,39 +521,59 @@ export async function POST(request: NextRequest) {
           cat.includes("jewelry")
         ) && !hasShoes;
       
-      // Determinar categoria para o prompt (priorizar calçados > roupas > acessórios)
+      // PHASE 11-B: Determinar categoria para o prompt (priorizar calçados > roupas > acessórios)
+      // CRÍTICO: Se tem calçado, SEMPRE forçar "Calçados" para garantir full body
       let productCategoryForPrompt = primaryProduct?.categoria || "";
       if (hasShoes) {
         productCategoryForPrompt = "Calçados";
-        console.log("[API] 🦶 Smart Framing: Detectado calçado(s) - Forçando full body shot");
+        console.log("[API] 🦶 PHASE 11-B Smart Framing: Detectado calçado(s) - FORÇANDO full body shot para prevenir 'cut legs'");
       } else if (hasOnlyAccessories) {
         productCategoryForPrompt = "Acessórios/Óculos/Joias";
-        console.log("[API] 👓 Smart Framing: Apenas acessórios detectados - Forçando portrait shot");
+        console.log("[API] 👓 PHASE 11-B Smart Framing: Apenas acessórios detectados - Forçando portrait shot");
       } else {
         productCategoryForPrompt = "Roupas";
-        console.log("[API] 👕 Smart Framing: Roupas detectadas - Usando shot médio");
+        console.log("[API] 👕 PHASE 11-B Smart Framing: Roupas detectadas - Usando shot médio");
       }
       
+      // PHASE 11-B: Log detalhado dos produtos para debug
+      console.log("[API] 📊 PHASE 11-B: Resumo de produtos para geração:", {
+        totalProdutos: productsData.length,
+        produtos: productsData.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          categoria: p.categoria || "N/A",
+          temImagem: !!(p?.productUrl || p?.imagemUrl),
+        })),
+        smartFraming: {
+          hasShoes,
+          hasOnlyAccessories,
+          productCategoryForPrompt,
+        },
+        totalImagensProdutos: allProductImageUrls.length,
+      });
+      
+      // PHASE 11-B FIX: Usar TODAS as imagens de produtos (não apenas a primeira)
+      // O orquestrador já está preparado para receber allProductImageUrls
       const creativeResult = await orchestrator.createComposition({
-        personImageUrl,
-        productId: primaryProduct.id,
-        productImageUrl: finalProductImageUrl,
+        personImageUrl, // PHASE 11-B: Sempre a foto ORIGINAL (garantido pelo frontend)
+        productId: primaryProduct.id, // ID do produto principal (para compatibilidade)
+        productImageUrl: finalProductImageUrl, // URL do produto principal (para compatibilidade)
         lojistaId,
         customerId: customerId || undefined,
-        productName: primaryProduct?.nome,
-        productPrice: primaryProduct?.preco
-          ? `R$ ${primaryProduct.preco.toFixed(2)}`
+        productName: productsData.map(p => p.nome).join(" + "), // PHASE 11-B: Nome combinado de todos os produtos
+        productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
+          ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
           : undefined,
         storeName: lojaData?.nome || "Minha Loja",
         logoUrl: lojaData?.logoUrl,
-        scenePrompts: [], // Não usado no Gemini Flash Image
+        scenePrompts: scenePrompts || [], // PHASE 11-B: Usar scenePrompts se fornecido (para Remix)
         options: {
           quality: options?.quality || "high",
-          skipWatermark: true, // Desabilitar watermark para Look Criativo (caixa branca no frontend já exibe as informações)
+          skipWatermark: options?.skipWatermark !== false, // Respeitar opção do frontend
           productUrl: primaryProduct.productUrl || undefined,
-          lookType: "creative",
-          allProductImageUrls: allProductImageUrls, // Todas as imagens de produtos
-          productCategory: productCategoryForPrompt, // PHASE 11: Categoria determinada por Smart Framing
+          lookType: options?.lookType || "creative", // PHASE 11-B: Respeitar lookType (creative para multi-produto)
+          allProductImageUrls: allProductImageUrls, // PHASE 11-B: TODAS as imagens de produtos (crítico para multi-produto)
+          productCategory: productCategoryForPrompt, // PHASE 11-B: Categoria determinada por Smart Framing (previne "cut legs")
         },
       });
 

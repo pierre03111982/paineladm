@@ -186,9 +186,27 @@ export class CompositionOrchestrator {
           console.log("[Orchestrator] 👕 Categoria detectada: ROUPAS (padrão) - Aplicando prompt de shot médio");
         }
 
-        // PHASE 11: Strong Negative Prompt para reduzir erros de anatomia e cortes
+        // PHASE 11-B: Strong Negative Prompt para reduzir erros de anatomia e cortes
         // Conforme especificação: (feet cut off:1.5), (head cut off:1.5)
-        const strongNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (feet cut off:1.5), (head cut off:1.5), text, watermark, bad composition, duplicate";
+        // PHASE 11-B: Reforçar negative prompt quando há calçados para prevenir "cut legs"
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate";
+        
+        // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
+        const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
+                                   productCategory.includes("sapato") || productCategory.includes("tênis") || 
+                                   productCategory.includes("tenis") || productCategory.includes("shoe") || 
+                                   productCategory.includes("footwear")
+          ? `${baseNegativePrompt}, (feet cut off:1.8), (cropped legs:1.6), (legs cut off:1.6), close up portrait, portrait shot, upper body only`
+          : `${baseNegativePrompt}, (feet cut off:1.5)`;
+        
+        const strongNegativePrompt = feetNegativePrompt;
+        
+        if (productCategory.includes("calçado") || productCategory.includes("calcado") || 
+            productCategory.includes("sapato") || productCategory.includes("tênis") || 
+            productCategory.includes("tenis") || productCategory.includes("shoe") || 
+            productCategory.includes("footwear")) {
+          console.log("[Orchestrator] 🦶 PHASE 11-B: Negative prompt reforçado para prevenir 'cut legs'");
+        }
 
         // Prompt detalhado fornecido pelo usuário - Virtual Try-On Multiproduto
         // 📝 DOCUMENTAÇÃO: Este prompt está documentado em docs/PROMPT_LOOK_CRIATIVO.md
