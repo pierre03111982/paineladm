@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       facebook,
       tiktok,
       logoUrl,
+      app_icon_url, // PHASE 17: Ícone do aplicativo PWA
       descontoRedesSociais,
       descontoRedesSociaisExpiraEm,
       appModel, // Campo adicionado
@@ -104,6 +105,15 @@ export async function POST(request: NextRequest) {
       // Se logoUrl está vazio, remover logo
       if (!logoUrl) {
         updateData.logoStoragePath = null;
+      }
+    }
+
+    // PHASE 17: App Icon URL - sempre incluir se fornecido
+    if (app_icon_url !== undefined) {
+      updateData.app_icon_url = app_icon_url || null;
+      // Se app_icon_url está vazio, remover ícone
+      if (!app_icon_url) {
+        updateData.app_icon_storage_path = null;
       }
     }
 

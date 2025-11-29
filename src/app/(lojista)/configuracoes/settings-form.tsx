@@ -8,6 +8,7 @@ import { ModeloAppSelector } from "./components/modelo-app-selector";
 type LojaPerfil = {
   nome?: string | null;
   logoUrl?: string | null;
+  app_icon_url?: string | null; // PHASE 17: Ícone do aplicativo PWA
   descricao?: string | null;
   whatsapp?: string | null;
   instagram?: string | null;
@@ -34,7 +35,10 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(perfil?.logoUrl || null);
+  const [isUploadingAppIcon, setIsUploadingAppIcon] = useState(false);
+  const [appIconPreview, setAppIconPreview] = useState<string | null>(perfil?.app_icon_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const appIconInputRef = useRef<HTMLInputElement>(null);
   
   // Formatação: nome em caixa alta
   const handleNomeChange = (value: string) => {
@@ -123,6 +127,9 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       if (perfil.logoUrl) {
         setLogoPreview(perfil.logoUrl);
       }
+      if (perfil.app_icon_url) {
+        setAppIconPreview(perfil.app_icon_url);
+      }
     }
   }, [perfil]);
 
@@ -195,6 +202,100 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
     }
   };
 
+  const handleAppIconUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor, selecione uma imagem válida");
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("A imagem deve ter no máximo 5MB");
+      return;
+    }
+
+    // Validar dimensões (deve ser quadrada, preferencialmente 512x512)
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    img.onload = async () => {
+      URL.revokeObjectURL(objectUrl);
+      
+      if (img.width !== img.height) {
+        alert("O ícone do aplicativo deve ser quadrado (mesma largura e altura). Recomendado: 512x512px");
+        return;
+      }
+
+      if (img.width < 192 || img.height < 192) {
+        alert("O ícone deve ter pelo menos 192x192 pixels");
+        return;
+      }
+
+      setIsUploadingAppIcon(true);
+
+      try {
+        // Criar preview temporário
+        const previewUrl = URL.createObjectURL(file);
+        setAppIconPreview(previewUrl);
+
+        // Upload para o servidor
+        const uploadFormData = new FormData();
+        uploadFormData.append("appIcon", file);
+        uploadFormData.append("lojistaId", lojistaId);
+
+        console.log("[SettingsForm] Fazendo upload do ícone do app...");
+
+        const response = await fetch("/api/lojista/perfil/upload-app-icon", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("[SettingsForm] Erro no upload:", response.status, errorData);
+          throw new Error(errorData.error || "Erro ao fazer upload do ícone do app");
+        }
+
+        const data = await response.json();
+        console.log("[SettingsForm] App icon upload response:", data);
+        
+        if (data.appIconUrl) {
+          // Limpar preview temporário
+          URL.revokeObjectURL(previewUrl);
+          // Atualizar com URL real do Firebase Storage
+          setAppIconPreview(data.appIconUrl);
+          console.log("[SettingsForm] App icon preview atualizado para:", data.appIconUrl);
+        } else {
+          throw new Error("App Icon URL não retornada pela API");
+        }
+      } catch (error) {
+        console.error("Erro ao fazer upload:", error);
+        alert("Erro ao fazer upload do ícone do app. Tente novamente.");
+        setAppIconPreview(perfil?.app_icon_url || null);
+      } finally {
+        setIsUploadingAppIcon(false);
+      }
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      alert("Erro ao carregar a imagem. Verifique se o arquivo é uma imagem válida.");
+    };
+
+    img.src = objectUrl;
+  };
+
+  const handleRemoveAppIcon = () => {
+    setAppIconPreview(null);
+    if (appIconInputRef.current) {
+      appIconInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -222,6 +323,9 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
 
       // LogoUrl - sempre incluir (pode ser null se não houver logo)
       payload.logoUrl = logoPreview || null;
+      
+      // App Icon URL - sempre incluir (pode ser null se não houver ícone)
+      payload.app_icon_url = appIconPreview || null;
 
       // SalesConfig - sempre incluir
       payload.salesConfig = {
