@@ -277,6 +277,12 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           // Atualizar com URL real do Firebase Storage
           setAppIconPreview(data.appIconUrl);
           console.log("[SettingsForm] App icon preview atualizado para:", data.appIconUrl);
+          
+          // Forçar atualização do perfil após 500ms para garantir que o Firestore foi atualizado
+          setTimeout(() => {
+            // Recarregar a página para buscar o perfil atualizado
+            window.location.reload();
+          }, 500);
         } else {
           throw new Error("App Icon URL não retornada pela API");
         }
