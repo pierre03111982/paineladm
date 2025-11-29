@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { PageHeader } from "../components/page-header";
 import { DisplayLinkPanel } from "./display-link-panel";
 import { DisplayPageClient } from "./display-page-client";
+import { DisplayDiscovery } from "./display-discovery";
 import { buildClientAppDisplayUrl } from "@/lib/client-app";
 
 function resolveDisplayUrl(
@@ -80,6 +81,8 @@ export default async function DisplayPage({ searchParams }: DisplayPageProps) {
         title="Display da Loja"
         description="Projete o provador virtual em monitores e tablets na loja física. O display acompanha as últimas composições e destaca as chamadas para compra."
       />
+
+      <DisplayDiscovery lojistaId={lojistaId} />
 
       <DisplayLinkPanel lojistaId={lojistaId} panelBaseUrl={panelBaseUrl} />
 

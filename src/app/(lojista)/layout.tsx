@@ -111,7 +111,7 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                 className="text-2xl sm:text-3xl font-bold uppercase"
                 style={{
                   fontFamily: 'var(--font-poppins), "Poppins", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                  color: '#ffffff',
+                  color: '#1B2559',
                   textShadow: '2px 2px 4px rgba(0, 0, 0, 1), 4px 4px 8px rgba(0, 0, 0, 0.8)',
                   letterSpacing: '0.12em',
                   fontWeight: 700,

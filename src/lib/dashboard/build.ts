@@ -260,7 +260,7 @@ function buildInsight(reason?: string | null, productName?: string | null) {
 }
 
 function buildOpportunityRadar(composicoes: ComposicaoDoc[]): OpportunityLead[] {
-  const cutoff = Date.now() - 2 * 60 * 60 * 1000; // 2 horas
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 horas (aumentado de 2 horas)
   const map = new Map<
     string,
     { name: string; events: ComposicaoDoc[] }
@@ -280,7 +280,8 @@ function buildOpportunityRadar(composicoes: ComposicaoDoc[]): OpportunityLead[] 
 
   const leads: OpportunityLead[] = [];
   map.forEach(({ name, events }, customerId) => {
-    if (events.length < 3) return;
+    // Reduzido de 3 para 1 evento mínimo para aparecer no radar
+    if (events.length < 1) return;
     events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     const latest = events[0];
     const productName = latest.products?.[0]?.nome;

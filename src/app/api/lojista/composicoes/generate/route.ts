@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
   let productUrl: string | null = null; // URL do produto (link)
   let lojistaId: string | null = null;
   let customerId: string | null = null;
+  let customerName: string | null = null;
   let scenePrompts: string[] | null = null;
   let options: any = null;
   
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
       productUrl = (formData.get("productUrl") as string) || null;
 
       customerId = (formData.get("customerId") as string) || null;
+      customerName = (formData.get("customerName") as string) || null;
     } else {
       // JSON (compatibilidade com chamadas antigas)
       const body = await request.json();
@@ -173,6 +175,7 @@ export async function POST(request: NextRequest) {
       productIds = body.productId ? [body.productId] : body.productIds || [];
       lojistaId = body.lojistaId;
       customerId = body.customerId || null;
+      customerName = body.customerName || null;
       scenePrompts = body.scenePrompts || null;
       options = body.options || null;
     }
@@ -553,35 +556,145 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // PHASE 14: Smart Context Engine (Prompt Mestre v2.1)
-      // Step 1: Context Detection baseado em keywords dos produtos
-      const allProductNames = productsData.map(p => (p?.nome || "").toLowerCase()).join(" ");
-      const allCategories = productsData.map(p => (p?.categoria || "").toLowerCase());
-      const allText = `${allProductNames} ${allCategories.join(" ")}`;
+      /**
+       * PHASE 15: Smart Scenario Detection
+       * Detecta o cenário apropriado baseado na categoria do produto
+       * Evita alucinações lógicas (ex: casaco de inverno na praia)
+       */
+      const getSmartScenario = (products: any[], isRemix: boolean = false): { context: string; forbidden: string[] } => {
+        // Fallback padrão
+        let context = "Clean professional studio background with soft lighting";
+        let forbidden: string[] = [];
+
+        // Coletar todas as informações dos produtos
+        const categories = products.map(p => (p?.categoria || "").toLowerCase());
+        const names = products.map(p => (p?.nome || "").toLowerCase());
+        const allText = [...categories, ...names].join(" ");
+
+        // Matriz de Coerência (FASE 15)
+        // Prioridade: Moda Praia > Social/Formal > Fitness > Festa > Casual > Inverno > Lingerie > Calçados
+
+        // 1. MODA PRAIA (Prioridade mais alta)
+        if (allText.match(/biqu|maiô|sunga|praia|beachwear|saída de praia/i)) {
+          const beachScenarios = [
+            "Sunny tropical beach with turquoise water, white sand, clear blue sky, luxury resort atmosphere",
+            "Luxury poolside resort with modern architecture, palm trees, golden hour lighting",
+            "Wooden deck near ocean with sunset colors, elegant and sophisticated setting",
+            "Golden hour sand dunes with soft natural lighting, minimalist and photorealistic"
+          ];
+          context = beachScenarios[isRemix ? Math.floor(Math.random() * beachScenarios.length) : 0];
+          forbidden = ["Office", "City Street", "Snow", "Gym", "Shopping Mall", "Bedroom"];
+          console.log("[API] 🏖️ PHASE 15 Smart Scenario: MODA PRAIA detectado");
+        }
+        // 2. FITNESS / SPORT
+        else if (allText.match(/legging|fitness|academia|tênis esportivo|short corrida|dry fit|sport/i)) {
+          const fitnessScenarios = [
+            "Modern bright gym with mirrors, professional equipment, high-end atmosphere, clean and spacious",
+            "Outdoor running track in a park with natural lighting, urban environment, professional photography",
+            "Yoga studio with wood floor, soft natural light, minimalist and peaceful atmosphere",
+            "Urban concrete stairs for street workout, modern city setting, dynamic lighting"
+          ];
+          context = fitnessScenarios[isRemix ? Math.floor(Math.random() * fitnessScenarios.length) : 0];
+          forbidden = ["Bedroom", "Luxury Lobby", "Beach (sand)", "Formal Event", "Restaurant"];
+          console.log("[API] 💪 PHASE 15 Smart Scenario: FITNESS/SPORT detectado");
+        }
+        // 3. SOCIAL / FORMAL
+        else if (allText.match(/terno|blazer|social|alfaiataria|vestido longo|gravata|suit|formal/i)) {
+          const formalScenarios = [
+            "Modern corporate office with glass walls, minimalist architecture, professional lighting",
+            "Luxury Hotel Lobby with elegant design, sophisticated atmosphere, premium materials",
+            "High-end minimal apartment with contemporary furniture, clean lines, natural lighting",
+            "Abstract architectural background with modern design, professional photography style"
+          ];
+          context = formalScenarios[isRemix ? Math.floor(Math.random() * formalScenarios.length) : 0];
+          forbidden = ["Beach", "Gym", "Messy Room", "Forest", "Dirt road"];
+          console.log("[API] 👔 PHASE 15 Smart Scenario: SOCIAL/FORMAL detectado");
+        }
+        // 4. FESTA / GALA
+        else if (allText.match(/festa|gala|paetê|salto alto fino|clutch|vestido de festa|brilho/i)) {
+          const partyScenarios = [
+            "Red carpet event with bokeh lights, elegant atmosphere, professional photography, glamorous setting",
+            "Elegant ballroom with sophisticated decor, soft ambient lighting, premium atmosphere",
+            "Rooftop bar at night with city lights in background, modern and sophisticated, golden hour",
+            "Marble staircase with elegant architecture, luxury setting, professional fashion photography"
+          ];
+          context = partyScenarios[isRemix ? Math.floor(Math.random() * partyScenarios.length) : 0];
+          forbidden = ["Gym", "Beach", "Supermarket", "Daylight street", "Office cubicle"];
+          console.log("[API] 🎉 PHASE 15 Smart Scenario: FESTA/GALA detectado");
+        }
+        // 5. CASUAL / STREET
+        else if (allText.match(/jeans|t-shirt|moletom|tênis casual|jaqueta jeans|casual|street/i)) {
+          const casualScenarios = [
+            "Busy urban street with blurred crowd, modern city atmosphere, natural lighting, professional photography",
+            "Cozy Coffee Shop with warm lighting, comfortable setting, contemporary design",
+            "Brick wall loft with industrial style, modern and minimalist, soft natural light",
+            "Casual city park with green spaces, natural lighting, relaxed atmosphere, professional style"
+          ];
+          context = casualScenarios[isRemix ? Math.floor(Math.random() * casualScenarios.length) : 0];
+          forbidden = ["Gym", "Swimming pool", "Formal wedding"];
+          console.log("[API] 👕 PHASE 15 Smart Scenario: CASUAL/STREET detectado");
+        }
+        // 6. INVERNO
+        else if (allText.match(/casaco|sobretudo|bota|cachecol|couro|inverno|winter|coat/i)) {
+          const winterScenarios = [
+            "Autumn city street with falling leaves, urban environment, natural lighting, photorealistic",
+            "Cozy indoor fireplace setting with warm lighting, comfortable atmosphere, elegant interior",
+            "Cloudy urban skyline with modern architecture, professional photography, sophisticated setting",
+            "Modern concrete structure with architectural design, minimalist and contemporary, natural light"
+          ];
+          context = winterScenarios[isRemix ? Math.floor(Math.random() * winterScenarios.length) : 0];
+          forbidden = ["Tropical Beach", "Pool", "Sunny summer park"];
+          console.log("[API] 🧥 PHASE 15 Smart Scenario: INVERNO detectado");
+        }
+        // 7. LINGERIE / SLEEP
+        else if (allText.match(/pijama|lingerie|robe|camisola|sleep|nightwear/i)) {
+          const lingerieScenarios = [
+            "Cozy bright bedroom with white sheets, soft morning light, minimalist and elegant",
+            "Minimalist bathroom with marble, clean design, natural lighting, sophisticated atmosphere",
+            "Soft morning light window with elegant interior, comfortable setting, professional photography"
+          ];
+          context = lingerieScenarios[isRemix ? Math.floor(Math.random() * lingerieScenarios.length) : 0];
+          forbidden = ["Street", "Office", "Gym", "Public places", "Crowd"];
+          console.log("[API] 🛏️ PHASE 15 Smart Scenario: LINGERIE/SLEEP detectado");
+        }
+        // 8. CALÇADOS (Geral)
+        else if (allText.match(/sandália|rasteirinha|sapatilha|calçado|shoe|footwear/i)) {
+          const shoesScenarios = [
+            "Paved street surface with clean background, professional photography, natural lighting",
+            "Wooden floor with elegant interior, minimalist setting, soft natural light",
+            "Tiled clean floor with modern design, professional photography, sophisticated atmosphere"
+          ];
+          context = shoesScenarios[isRemix ? Math.floor(Math.random() * shoesScenarios.length) : 0];
+          forbidden = ["Mud", "Grass (hiding the shoe)", "Water"];
+          console.log("[API] 👠 PHASE 15 Smart Scenario: CALÇADOS detectado");
+        }
+        // Default: Clean Studio
+        else {
+          console.log("[API] 🎬 PHASE 15 Smart Scenario: DEFAULT (Clean Studio)");
+        }
+
+        return { context, forbidden };
+      };
+
+      // PHASE 15: Smart Context Engine (usando getSmartScenario)
+      // Detectar se é remix
+      const isRemix = (scenePrompts && scenePrompts.length > 0) || options?.gerarNovoLook || false;
       
-      let smartContext = "Clean Studio or Urban Street"; // Default
+      // Obter cenário inteligente
+      const smartScenario = getSmartScenario(productsData, isRemix);
+      const smartContext = smartScenario.context;
+      const forbiddenScenarios = smartScenario.forbidden;
       
-      // Bikini/Sunga/Praia → Beach
-      if (allText.includes("biquini") || allText.includes("sunga") || 
-          allText.includes("praia") || allText.includes("beach") ||
-          allText.includes("maiô") || allText.includes("maio")) {
-        smartContext = "Sunny Beach or Poolside";
-        console.log("[API] 🏖️ PHASE 14 Smart Context: BEACH detectado (Bikini/Sunga/Praia)");
-      }
-      // Terno/Blazer/Social → Office
-      else if (allText.includes("terno") || allText.includes("blazer") || 
-               allText.includes("social") || allText.includes("suit") ||
-               allText.includes("trabalho") || allText.includes("escritório") ||
-               allText.includes("escritorio") || allText.includes("office")) {
-        smartContext = "Modern Office or Luxury Lobby";
-        console.log("[API] 🏢 PHASE 14 Smart Context: OFFICE detectado (Terno/Blazer/Social)");
-      }
-      // Default já definido acima
-      else {
-        console.log("[API] 🏙️ PHASE 14 Smart Context: DEFAULT (Clean Studio or Urban Street)");
-      }
+      console.log("[API] 📍 PHASE 15 Smart Scenario aplicado:", {
+        context: smartContext,
+        forbidden: forbiddenScenarios,
+        isRemix,
+        totalProdutos: productsData.length,
+      });
       
       // Step 2: Framing Detection
+      // Coletar categorias para detecção de framing
+      const allCategories = productsData.map(p => (p?.categoria || "").toLowerCase());
       const hasShoes = allCategories.some(cat => 
         cat.includes("calçado") || cat.includes("calcado") || 
         cat.includes("sapato") || cat.includes("tênis") || 
@@ -667,8 +780,9 @@ export async function POST(request: NextRequest) {
           allProductImageUrls: allProductImageUrls, // PHASE 14: TODAS as imagens de produtos (crítico para multi-produto)
           productCategory: productCategoryForPrompt, // PHASE 14: Categoria determinada por Smart Framing (previne "cut legs")
           gerarNovoLook: options?.gerarNovoLook || isRemix, // PHASE 14: Ativar flag se for remix ou se explicitamente solicitado
-          smartContext: smartContext, // PHASE 14: Contexto inteligente (Beach/Office/Studio)
+          smartContext: smartContext, // PHASE 15: Contexto inteligente (Beach/Office/Studio)
           smartFraming: smartFraming, // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
+          forbiddenScenarios: forbiddenScenarios, // PHASE 15: Cenários proibidos para negative prompt
         },
       });
       
@@ -934,6 +1048,25 @@ export async function POST(request: NextRequest) {
       })),
     });
 
+    // Buscar nome do cliente se customerId foi fornecido mas customerName não
+    if (customerId && !customerName && lojistaId) {
+      try {
+        const clienteDoc = await db
+          .collection("lojas")
+          .doc(lojistaId)
+          .collection("clientes")
+          .doc(customerId)
+          .get();
+        
+        if (clienteDoc.exists) {
+          const clienteData = clienteDoc.data();
+          customerName = clienteData?.nome || clienteData?.name || null;
+        }
+      } catch (error) {
+        console.warn("[API] Erro ao buscar nome do cliente:", error);
+      }
+    }
+
     // Salvar composição no Firestore
     let composicaoId: string | null = null;
     try {
@@ -942,6 +1075,7 @@ export async function POST(request: NextRequest) {
         id: composicaoId,
         lojistaId,
         customerId: customerId || null,
+        customerName: customerName || null, // Adicionar customerName para o Radar funcionar
         createdAt: new Date(),
         updatedAt: new Date(),
         looks: validLooks.map((look) => ({

@@ -982,7 +982,7 @@ export async function fetchComposicoesRecentes(
         customer: data.customerId
           ? {
               id: data.customerId,
-              nome: data.customerName || "Cliente",
+              nome: data.customerName || data.customer?.nome || "Cliente",
             }
           : null,
         products: Array.isArray(data.looks) && data.looks.length > 0

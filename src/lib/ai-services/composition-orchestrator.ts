@@ -46,8 +46,9 @@ export interface CreateCompositionParams {
     allProductImageUrls?: string[]; // Todas as imagens de produtos para Look Criativo (incluindo roupas)
     productCategory?: string; // Categoria do produto para prompts específicos
     gerarNovoLook?: boolean; // PHASE 14: Flag para ativar mudança de pose (Regra de Postura Condicional)
-    smartContext?: string; // PHASE 14: Contexto inteligente (Beach/Office/Studio)
+    smartContext?: string; // PHASE 15: Contexto inteligente (Beach/Office/Studio)
     smartFraming?: string; // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
+    forbiddenScenarios?: string[]; // PHASE 15: Cenários proibidos para negative prompt
   };
 }
 
@@ -263,7 +264,17 @@ export class CompositionOrchestrator {
           ? `${baseNegativePrompt}, (feet cut off:1.8), (cropped legs:1.6), (legs cut off:1.6), close up portrait, portrait shot, upper body only`
           : `${baseNegativePrompt}, (feet cut off:1.5)`;
         
-        const strongNegativePrompt = feetNegativePrompt;
+        // PHASE 15: Adicionar cenários proibidos ao negative prompt
+        const forbiddenScenarios = params.options?.forbiddenScenarios || [];
+        const forbiddenPrompt = forbiddenScenarios.length > 0
+          ? `, ${forbiddenScenarios.map(s => `(${s}:1.5)`).join(", ")}`
+          : "";
+        
+        const strongNegativePrompt = `${feetNegativePrompt}${forbiddenPrompt}`;
+        
+        if (forbiddenScenarios.length > 0) {
+          console.log("[Orchestrator] 🚫 PHASE 15: Cenários proibidos adicionados ao negative prompt:", forbiddenScenarios);
+        }
         
         if (productCategory.includes("calçado") || productCategory.includes("calcado") || 
             productCategory.includes("sapato") || productCategory.includes("tênis") || 

@@ -25,6 +25,7 @@ import {
   Package,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Cell,
   Line,
@@ -42,7 +43,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import { CreditsManager } from "../../(lojista)/dashboard/credits-manager";
+import { CreditsManager } from "@/app/(lojista)/dashboard/credits-manager";
 import { AIAssistantWidget } from "@/components/dashboard/AIAssistantWidget";
 
 type DashboardContentProps = {
@@ -234,6 +235,7 @@ function FunnelStep({
 }
 
 export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
+  const router = useRouter();
   const formatBRL = (value: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -246,6 +248,26 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
   const [funnel, setFunnel] = useState<any>(null);
   const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
+
+  // Auto-refresh do dashboard a cada 20 segundos
+  useEffect(() => {
+    if (!lojistaId) return;
+
+    const refreshDashboard = () => {
+      try {
+        console.log("[DashboardContent] Atualizando dados do dashboard...");
+        // Usar router.refresh() para atualizar os dados do servidor sem recarregar a página inteira
+        router.refresh();
+      } catch (error) {
+        console.error("[DashboardContent] Erro ao atualizar dashboard:", error);
+      }
+    };
+
+    // Atualizar a cada 20 segundos
+    const intervalId = setInterval(refreshDashboard, 20000);
+    
+    return () => clearInterval(intervalId);
+  }, [lojistaId, router]);
 
   // Carregar métricas avançadas
   useEffect(() => {
@@ -267,6 +289,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     };
 
     loadMetrics();
+    
+    // Atualizar métricas a cada 20 segundos também
+    const metricsInterval = setInterval(loadMetrics, 20000);
+    return () => clearInterval(metricsInterval);
   }, []);
 
   const opportunityLeads = data.opportunityRadar ?? [];
