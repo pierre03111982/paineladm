@@ -200,7 +200,8 @@ export class CompositionOrchestrator {
         // PHASE 14 FIX: Se for remix, usar o scenePrompts para substituir contextRule e framingRule
         let categorySpecificPrompt = `, ${smartFraming}`;
         let framingRule = `FORCE CONTEXT: ${smartFraming.toUpperCase()}.`;
-        let contextRule = `SCENE CONTEXT: ${smartContext}.`;
+        // PHASE 15: Reforçar o contexto no prompt principal
+        let contextRule = `⚠️ CRITICAL SCENE CONTEXT (MANDATORY): ${smartContext}. THE BACKGROUND MUST MATCH THIS EXACT CONTEXT. DO NOT USE ANY OTHER BACKGROUND.`;
         
         if (isRemix && params.scenePrompts && params.scenePrompts.length > 0) {
           // PHASE 14 FIX: Incorporar o prompt do remix diretamente no contextRule
@@ -264,16 +265,29 @@ export class CompositionOrchestrator {
           ? `${baseNegativePrompt}, (feet cut off:1.8), (cropped legs:1.6), (legs cut off:1.6), close up portrait, portrait shot, upper body only`
           : `${baseNegativePrompt}, (feet cut off:1.5)`;
         
-        // PHASE 15: Adicionar cenários proibidos ao negative prompt
+        // PHASE 15: Adicionar cenários proibidos ao negative prompt (FORÇAR com peso alto)
         const forbiddenScenarios = params.options?.forbiddenScenarios || [];
         const forbiddenPrompt = forbiddenScenarios.length > 0
-          ? `, ${forbiddenScenarios.map(s => `(${s}:1.5)`).join(", ")}`
+          ? `, ${forbiddenScenarios.map(s => `(${s}:2.0)`).join(", ")}` // Aumentado peso de 1.5 para 2.0
           : "";
         
-        const strongNegativePrompt = `${feetNegativePrompt}${forbiddenPrompt}`;
+        // PHASE 15: Adicionar reforço adicional se houver cenários proibidos relacionados a praia/piscina
+        // Só adicionar se os forbiddenScenarios incluírem palavras relacionadas a praia/piscina
+        const hasBeachForbidden = forbiddenScenarios.some(s => 
+          /beach|pool|ocean|sand|tropical|summer|seaside|palm/i.test(s)
+        );
+        const additionalForbiddenReinforcement = hasBeachForbidden
+          ? `, (beach scene:2.5), (ocean background:2.5), (sand:2.5), (palm trees:2.5), (tropical:2.5), (summer beach:2.5), (swimming pool:2.5), (beach resort:2.5), (seaside:2.5), (paradise beach:2.5), (sunny beach:2.5)`
+          : "";
+        
+        const strongNegativePrompt = `${feetNegativePrompt}${forbiddenPrompt}${additionalForbiddenReinforcement}`;
         
         if (forbiddenScenarios.length > 0) {
-          console.log("[Orchestrator] 🚫 PHASE 15: Cenários proibidos adicionados ao negative prompt:", forbiddenScenarios);
+          console.log("[Orchestrator] 🚫 PHASE 15: Cenários proibidos FORÇADOS no negative prompt (peso 2.0):", {
+            forbiddenScenarios,
+            totalForbidden: forbiddenScenarios.length,
+            additionalReinforcement: additionalForbiddenReinforcement.length > 0
+          });
         }
         
         if (productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -346,7 +360,7 @@ A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE 
         * SE a categoria for JOIAS, RELÓGIOS ou ÓCULOS: A composição fotográfica DEVE priorizar um CLOSE-UP, **A MENOS QUE** a Regra Mestra de Enquadramento (Seção 3) exija um Cenário de Contexto.
         * SE a categoria for COSMÉTICOS: O produto fornecido deve ser aplicado na pessoa com **MÁXIMA FIDELIDADE TÉCNICA** e aplicação SUAVE, NATURAL E FOTORREALISTA, **SUBSTITUINDO** a maquiagem original.
 
-3. CENÁRIO E ILUMINAÇÃO DINÂMICOS (Adaptação Contextual e Coesa):
+3. CENÁRIO E ILUMINAÇÃO DINÂMICOS (Adaptação Contextual e Coesa - OBRIGATÓRIO):
 
     **⚠️ REGRA MESTRA DE ENQUADRAMENTO (PRIORIDADE CRÍTICA DE CENA):**
     * O ENQUADRAMENTO FINAL DA CENA DEVE SER SEMPRE DINÂMICO E DETERMINADO PELOS PRODUTOS SELECIONADOS.

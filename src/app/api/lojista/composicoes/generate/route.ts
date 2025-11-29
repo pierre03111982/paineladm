@@ -573,9 +573,46 @@ export async function POST(request: NextRequest) {
 
         // Matriz de Coerência (FASE 15)
         // Prioridade: Moda Praia > Social/Formal > Fitness > Festa > Casual > Inverno > Lingerie > Calçados
+        // IMPORTANTE: Detectar INVERNO/COURO ANTES de outras categorias para evitar conflitos
 
-        // 1. MODA PRAIA (Prioridade mais alta)
-        if (allText.match(/biqu|maiô|sunga|praia|beachwear|saída de praia/i)) {
+        // 0. INVERNO/COURO (Verificar PRIMEIRO para evitar detecção incorreta)
+        // Se tiver "couro" ou palavras de inverno, SEMPRE classificar como inverno, mesmo que tenha outras palavras
+        if (allText.match(/couro|leather|casaco|sobretudo|bota|cachecol|inverno|winter|coat|pérola|veludo|lã|wool|woollen/i)) {
+          const winterScenarios = [
+            "Autumn city street with falling leaves, urban environment, natural lighting, photorealistic",
+            "Cozy indoor fireplace setting with warm lighting, comfortable atmosphere, elegant interior",
+            "Cloudy urban skyline with modern architecture, professional photography, sophisticated setting",
+            "Modern concrete structure with architectural design, minimalist and contemporary, natural light"
+          ];
+          context = winterScenarios[isRemix ? Math.floor(Math.random() * winterScenarios.length) : 0];
+          // FORÇAR proibição de praia, piscina e cenários de verão
+          forbidden = [
+            "Tropical Beach", 
+            "Beach", 
+            "Pool", 
+            "Swimming pool", 
+            "Sunny summer park", 
+            "Ocean", 
+            "Sand", 
+            "Palm trees", 
+            "Summer", 
+            "Hot weather",
+            "Beach resort",
+            "Seaside",
+            "Tropical",
+            "Paradise beach",
+            "Sunny beach",
+            "Beach scene"
+          ];
+          console.log("[API] 🧥 PHASE 15 Smart Scenario: INVERNO/COURO detectado (PRIORIDADE) - PROIBINDO PRAIA:", {
+            context,
+            forbidden,
+            detectedText: allText,
+            products: products.map(p => ({ nome: p?.nome, categoria: p?.categoria }))
+          });
+        }
+        // 1. MODA PRAIA (Prioridade mais alta - mas DEPOIS de inverno)
+        else if (allText.match(/biqu|maiô|sunga|praia|beachwear|saída de praia/i)) {
           const beachScenarios = [
             "Sunny tropical beach with turquoise water, white sand, clear blue sky, luxury resort atmosphere",
             "Luxury poolside resort with modern architecture, palm trees, golden hour lighting",
@@ -633,18 +670,6 @@ export async function POST(request: NextRequest) {
           context = casualScenarios[isRemix ? Math.floor(Math.random() * casualScenarios.length) : 0];
           forbidden = ["Gym", "Swimming pool", "Formal wedding"];
           console.log("[API] 👕 PHASE 15 Smart Scenario: CASUAL/STREET detectado");
-        }
-        // 6. INVERNO
-        else if (allText.match(/casaco|sobretudo|bota|cachecol|couro|inverno|winter|coat/i)) {
-          const winterScenarios = [
-            "Autumn city street with falling leaves, urban environment, natural lighting, photorealistic",
-            "Cozy indoor fireplace setting with warm lighting, comfortable atmosphere, elegant interior",
-            "Cloudy urban skyline with modern architecture, professional photography, sophisticated setting",
-            "Modern concrete structure with architectural design, minimalist and contemporary, natural light"
-          ];
-          context = winterScenarios[isRemix ? Math.floor(Math.random() * winterScenarios.length) : 0];
-          forbidden = ["Tropical Beach", "Pool", "Sunny summer park"];
-          console.log("[API] 🧥 PHASE 15 Smart Scenario: INVERNO detectado");
         }
         // 7. LINGERIE / SLEEP
         else if (allText.match(/pijama|lingerie|robe|camisola|sleep|nightwear/i)) {
