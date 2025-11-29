@@ -753,10 +753,6 @@ export async function POST(request: NextRequest) {
         totalImagensProdutos: allProductImageUrls.length,
       });
       
-      // PHASE 14: Detectar se é um remix (tem scenePrompts customizado)
-      const isRemix = scenePrompts && scenePrompts.length > 0 && 
-                     scenePrompts[0].includes("harmonious outfit combination");
-      
       // PHASE 14 FIX: Usar TODAS as imagens de produtos (não apenas a primeira)
       // O orquestrador já está preparado para receber allProductImageUrls
       const creativeResult = await orchestrator.createComposition({
