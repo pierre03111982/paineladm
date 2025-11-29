@@ -41,13 +41,28 @@ export async function fetchActiveClients(
     // Buscar composições criadas nas últimas 24h
     const compositionsRef = db.collection("composicoes");
     
-    // Buscar todas as composições do lojista sem orderBy para evitar necessidade de índice
-    // Vamos ordenar em memória depois
-    const allCompositionsQuery = compositionsRef
-      .where("lojistaId", "==", lojistaId)
-      .limit(500); // Aumentar limite para garantir que pegamos todas as recentes
+    // Buscar todas as composições do lojista
+    // Usar Timestamp para filtrar por data
+    const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
+    
+    try {
+      // Tentar buscar com filtro de data (requer índice)
+      const allCompositionsQuery = compositionsRef
+        .where("lojistaId", "==", lojistaId)
+        .where("createdAt", ">=", cutoffTimestamp)
+        .orderBy("createdAt", "desc")
+        .limit(1000);
 
-    const compositionsSnapshot = await allCompositionsQuery.get();
+      var compositionsSnapshot = await allCompositionsQuery.get();
+    } catch (error: any) {
+      // Se não tiver índice, buscar todas e filtrar em memória
+      console.log("[CRM] Índice não encontrado, buscando todas e filtrando:", error.message);
+      const allCompositionsQuery = compositionsRef
+        .where("lojistaId", "==", lojistaId)
+        .limit(1000);
+      
+      var compositionsSnapshot = await allCompositionsQuery.get();
+    }
 
     // Agrupar por customerId
     const clientMap = new Map<string, ActiveClient>();
@@ -122,29 +137,17 @@ export async function fetchActiveClients(
 
       const client = clientMap.get(customerId)!;
       
-      // REGRA 1: Excluir composições de remix (identificadas por não ter productImageUrls ou ter flag isRemix)
-      const isRemix = data.isRemix === true || 
-                     (!data.productImageUrls || (Array.isArray(data.productImageUrls) && data.productImageUrls.length === 0)) ||
-                     (data.scenePrompts && Array.isArray(data.scenePrompts) && data.scenePrompts.length > 0);
+      // REGRA 1: Excluir APENAS remix explícito (flag isRemix = true)
+      // NÃO excluir por falta de productImageUrls, pois composições normais podem não ter esse campo
+      const isRemix = data.isRemix === true;
       
       if (isRemix) {
         console.log("[CRM] Composição de remix ignorada:", doc.id);
-        continue; // Não contar remix
+        continue; // Não contar remix explícito
       }
       
-      // REGRA 2: Para composições de refinamento (adicionar acessório), só contar se tiver like
-      const isRefinement = data.isRefined === true || 
-                          data.refinementProducts || 
-                          (data.refinementCount && data.refinementCount > 0);
-      
-      if (isRefinement) {
-        // Verificar se tem like (curtido ou liked)
-        const hasLike = data.curtido === true || data.liked === true;
-        if (!hasLike) {
-          console.log("[CRM] Composição de refinamento sem like ignorada:", doc.id);
-          continue; // Não contar refinamento sem like
-        }
-      }
+      // REGRA 2: Para composições de refinamento, contar normalmente (remover restrição de like)
+      // O refinamento é uma interação válida e deve ser contada
       
       client.compositionCount++;
       
