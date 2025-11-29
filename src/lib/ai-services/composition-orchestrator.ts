@@ -170,17 +170,58 @@ export class CompositionOrchestrator {
           provider: "gemini-flash-image",
         };
 
+        // PHASE 14 FIX: Detectar se é remix (tem scenePrompts customizado)
+        // Detectar remix por palavras-chave específicas do prompt de remix
+        const remixPromptText = params.scenePrompts && params.scenePrompts.length > 0 ? params.scenePrompts[0].toLowerCase() : "";
+        const isRemix = params.scenePrompts && params.scenePrompts.length > 0 && 
+                       (remixPromptText.includes("harmonious outfit combination") || 
+                        remixPromptText.includes("critical remix instruction") ||
+                        remixPromptText.includes("remix generation") ||
+                        remixPromptText.includes("dramatically different") ||
+                        remixPromptText.includes("completely new photoshoot") ||
+                        remixPromptText.includes("walking") || 
+                        remixPromptText.includes("sitting") ||
+                        remixPromptText.includes("leaning") ||
+                        remixPromptText.includes("beach") ||
+                        remixPromptText.includes("hotel") ||
+                        remixPromptText.includes("city street") ||
+                        remixPromptText.includes("vibrant sunny") ||
+                        remixPromptText.includes("luxury") ||
+                        remixPromptText.includes("rooftop"));
+        
         // PHASE 14: Prompt Builder v2.1 - Smart Context Engine
         // Usar valores do Smart Context Engine se fornecidos, senão detectar automaticamente
         const smartContext = params.options?.smartContext || "Clean Studio or Urban Street";
         const smartFraming = params.options?.smartFraming || "medium-full shot";
         const productCategory = (params.options?.productCategory || "").toLowerCase();
-        const gerarNovoLook = params.options?.gerarNovoLook === true; // PHASE 14: Flag para ativar mudança de pose
+        const gerarNovoLook = params.options?.gerarNovoLook === true || isRemix; // PHASE 14: Flag para ativar mudança de pose (sempre ativo em remix)
         
-        // PHASE 14: Construir prompt usando Smart Context e Smart Framing
+        // PHASE 14 FIX: Se for remix, usar o scenePrompts para substituir contextRule e framingRule
         let categorySpecificPrompt = `, ${smartFraming}`;
         let framingRule = `FORCE CONTEXT: ${smartFraming.toUpperCase()}.`;
         let contextRule = `SCENE CONTEXT: ${smartContext}.`;
+        
+        if (isRemix && params.scenePrompts && params.scenePrompts.length > 0) {
+          // PHASE 14 FIX: Incorporar o prompt do remix diretamente no contextRule
+          // O remix já contém informações de cenário e pose
+          const remixPromptText = params.scenePrompts[0];
+          // PHASE 14 FIX: O prompt do remix já contém todas as instruções necessárias
+          // Vamos incorporá-lo diretamente no prompt principal para máxima eficácia
+          contextRule = `🎨 REMIX MODE ACTIVATED: ${remixPromptText}`;
+          framingRule = `⚠️ CRITICAL: DRAMATIC SCENE AND POSE CHANGE REQUIRED. The background, lighting, camera angle, and person's pose must be COMPLETELY DIFFERENT from the original photo. This is a REMIX generation - create a NEW PHOTOSHOOT in a NEW LOCATION with a NEW POSE.`;
+          console.log("[Orchestrator] 🎨 PHASE 14 FIX: REMIX DETECTADO - Usando scenePrompts customizado:", {
+            isRemix: true,
+            remixPromptLength: remixPromptText.length,
+            remixPromptPreview: remixPromptText.substring(0, 200) + "...",
+            contextRulePreview: contextRule.substring(0, 150) + "...",
+            framingRulePreview: framingRule.substring(0, 150) + "...",
+          });
+        } else {
+          console.log("[Orchestrator] 📸 Modo Normal (não é remix):", {
+            hasScenePrompts: !!params.scenePrompts,
+            scenePromptsLength: params.scenePrompts?.length || 0,
+          });
+        }
         
         // Adicionar detalhes específicos baseados no framing
         if (smartFraming.includes("Full body") || smartFraming.includes("feet")) {
@@ -212,7 +253,7 @@ export class CompositionOrchestrator {
         // PHASE 11-B: Strong Negative Prompt para reduzir erros de anatomia e cortes
         // Conforme especificação: (feet cut off:1.5), (head cut off:1.5)
         // PHASE 11-B: Reforçar negative prompt quando há calçados para prevenir "cut legs"
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate";
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -343,10 +384,20 @@ RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA 
           },
         });
 
+        // PHASE 14 FIX: Aumentar temperatura para remix (mais variação)
+        const temperature = isRemix ? 0.75 : 0.4; // Remix: 0.75 (mais variação), Normal: 0.4 (mais consistência)
+        
+        console.log("[Orchestrator] 🎨 PHASE 14 FIX: Configuração de geração:", {
+          isRemix,
+          temperature,
+          promptLength: creativePrompt.length,
+        });
+        
         const geminiResult = await this.geminiFlashImageService.generateImage({
           prompt: creativePrompt,
           imageUrls: imageUrls,
           negativePrompt: strongNegativePrompt, // PHASE 11: Negative prompt para reduzir erros
+          temperature: temperature, // PHASE 14 FIX: Temperatura aumentada para remix
           // aspectRatio não é suportado pela API Gemini 2.5 Flash Image
         });
         

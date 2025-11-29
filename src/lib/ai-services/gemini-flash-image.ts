@@ -36,6 +36,7 @@ export interface GeminiFlashImageParams {
   imageUrls: string[]; // Array de URLs de imagens (primeira é a pessoa, seguintes são produtos)
   negativePrompt?: string;
   aspectRatio?: "1:1" | "4:3" | "3:4" | "16:9" | "9:16";
+  temperature?: number; // PHASE 14 FIX: Temperatura para controlar variação (0.0-1.0, padrão 0.4)
   safetySettings?: {
     category: string;
     threshold: string;
@@ -219,10 +220,12 @@ export class GeminiFlashImageService {
       // NOTA: O modelo gemini-2.5-flash-image gera imagens automaticamente quando recebe
       // imagens de entrada junto com um prompt. Não é necessário especificar responseModalities
       // para o endpoint do Vertex AI (diferente de outros provedores).
+      // PHASE 14 FIX: Usar temperatura customizada se fornecida (maior temperatura = mais variação)
+      const temperature = params.temperature !== undefined ? params.temperature : 0.4;
       const requestBody: any = {
         contents,
         generationConfig: {
-          temperature: 0.4,
+          temperature: temperature, // PHASE 14 FIX: Temperatura configurável (0.4 padrão, 0.7-0.9 para remix)
           topP: 0.95,
           topK: 40,
           maxOutputTokens: 8192,
