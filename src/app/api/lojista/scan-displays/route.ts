@@ -115,14 +115,24 @@ export async function GET(request: NextRequest) {
         deviceBrand = "Firefox";
       }
 
+      // Calcular tempo desde o último heartbeat
+      const lastHeartbeatMs = data.lastHeartbeat?.toMillis?.() || data.lastHeartbeat?.seconds * 1000 || Date.now();
+      const timeSinceHeartbeat = Date.now() - lastHeartbeatMs;
+      const isOnline = timeSinceHeartbeat < 2 * 60 * 1000; // Online se heartbeat nos últimos 2 minutos
+
       displays.push({
         id: doc.id,
         displayUuid: doc.id,
         deviceType,
         deviceBrand,
-        userAgent: userAgent.substring(0, 100),
-        lastHeartbeat: data.lastHeartbeat?.toMillis?.() || data.lastHeartbeat?.seconds * 1000 || Date.now(),
+        userAgent: userAgent, // Enviar userAgent completo
+        lastHeartbeat: lastHeartbeatMs,
         ip: data.lastKnownIp || "unknown",
+        status: data.status || "idle",
+        isOnline,
+        timeSinceHeartbeat,
+        createdAt: data.createdAt?.toMillis?.() || data.createdAt?.seconds * 1000 || null,
+        lojistaId: data.lojistaId || null,
       });
     });
 
