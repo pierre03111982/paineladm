@@ -177,6 +177,37 @@ export async function POST(request: NextRequest) {
       options = body.options || null;
     }
 
+    // FIX MOBILE: Se personImageUrl for data URL (base64), fazer upload para obter URL HTTP
+    // URLs data: não podem ser acessadas diretamente pelo orchestrator, precisam ser convertidas
+    if (personImageUrl && personImageUrl.startsWith('data:') && bucket) {
+      try {
+        console.log("[API] 🔄 Convertendo data URL para URL HTTP...");
+        const match = /^data:(.+?);base64,(.+)$/.exec(personImageUrl);
+        if (match) {
+          const contentType = match[1];
+          const base64Data = match[2];
+          const buffer = Buffer.from(base64Data, "base64");
+          const extension = contentType?.split("/")[1]?.split(";")[0] || "jpg";
+          const fileName = `composicoes/${lojistaId}/uploads/${Date.now()}-original.${extension}`;
+          const file = bucket.file(fileName);
+          
+          await file.save(buffer, {
+            metadata: {
+              contentType,
+            },
+          });
+          
+          await file.makePublic();
+          personImageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+          console.log("[API] ✅ Data URL convertida para URL HTTP:", personImageUrl.substring(0, 100) + "...");
+        }
+      } catch (dataUrlError) {
+        console.error("[API] ❌ Erro ao converter data URL:", dataUrlError);
+        // Continuar com data URL original e deixar o orchestrator lidar
+        console.warn("[API] ⚠️ Continuando com data URL original (pode falhar no orchestrator)");
+      }
+    }
+
     console.log("[API] PHASE 13: Parâmetros recebidos (Source of Truth - Foto Original):", {
       lojistaId,
       productIdsCount: productIds.length,
@@ -184,6 +215,7 @@ export async function POST(request: NextRequest) {
       personImageUrl: personImageUrl ? personImageUrl.substring(0, 100) + "..." : null,
       hasProductUrl: !!productUrl,
       isFormData,
+      isDataUrl: personImageUrl?.startsWith('data:') || false,
     });
 
     // Validação básica: precisa ter foto, lojistaId e (produtos OU productUrl)
