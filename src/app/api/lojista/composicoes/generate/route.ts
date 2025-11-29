@@ -776,17 +776,38 @@ export async function POST(request: NextRequest) {
         }
       ).catch(err => console.error("[API] Erro ao salvar log:", err));
       
-      // Tratamento específico para erro 429 (Rate Limit)
+      // Tratamento específico para diferentes tipos de erro
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       let userFriendlyMessage = "Erro ao gerar composição";
+      let userFriendlyDetails = "Erro ao processar requisição. Tente novamente em alguns instantes.";
       let statusCode = 500;
       
-      if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
-        userFriendlyMessage = "Limite de requisições atingido. Por favor, aguarde alguns instantes e tente novamente.";
+      console.error("[API] Erro detalhado:", {
+        message: errorMessage,
+        name: error instanceof Error ? error.name : "Unknown",
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      
+      if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("Resource exhausted")) {
+        userFriendlyMessage = "Erro ao gerar composição";
+        userFriendlyDetails = "Muitas requisições. Aguarde alguns instantes e tente novamente.";
         statusCode = 429;
-      } else if (errorMessage.includes("Resource exhausted")) {
-        userFriendlyMessage = "Recursos temporariamente esgotados. Por favor, tente novamente em alguns minutos.";
-        statusCode = 429;
+      } else if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
+        userFriendlyMessage = "Erro ao gerar composição";
+        userFriendlyDetails = "O processo está demorando mais que o esperado. Tente novamente em alguns instantes.";
+        statusCode = 504;
+      } else if (errorMessage.includes("network") || errorMessage.includes("ECONNREFUSED") || errorMessage.includes("fetch failed")) {
+        userFriendlyMessage = "Erro ao gerar composição";
+        userFriendlyDetails = "Não foi possível conectar ao servidor. Verifique sua conexão com a internet.";
+        statusCode = 503;
+      } else if (errorMessage.includes("400") || errorMessage.includes("Bad Request") || errorMessage.includes("inválid")) {
+        userFriendlyMessage = "Erro ao gerar composição";
+        userFriendlyDetails = "Dados inválidos. Verifique se a foto e os produtos estão corretos.";
+        statusCode = 400;
+      } else if (errorMessage.includes("URL") || errorMessage.includes("url") || errorMessage.includes("imagem")) {
+        userFriendlyMessage = "Erro ao gerar composição";
+        userFriendlyDetails = "Erro ao processar imagem. Verifique se a foto está correta e tente novamente.";
+        statusCode = 400;
       }
       
       return applyCors(
@@ -794,7 +815,10 @@ export async function POST(request: NextRequest) {
         NextResponse.json(
           {
             error: userFriendlyMessage,
-            details: errorMessage,
+            details: userFriendlyDetails,
+            ...(process.env.NODE_ENV === 'development' && {
+              originalError: errorMessage,
+            }),
           },
           { status: statusCode }
         )
