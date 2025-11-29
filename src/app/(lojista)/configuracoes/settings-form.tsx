@@ -225,13 +225,21 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
     img.onload = async () => {
       URL.revokeObjectURL(objectUrl);
       
-      if (img.width !== img.height) {
-        alert("O ícone do aplicativo deve ser quadrado (mesma largura e altura). Recomendado: 512x512px");
+      console.log("[SettingsForm] Dimensões da imagem:", { width: img.width, height: img.height });
+      
+      // Validar se é quadrada (tolerância de 5px para pequenas diferenças)
+      const isSquare = Math.abs(img.width - img.height) <= 5;
+      if (!isSquare) {
+        alert(`O ícone do aplicativo deve ser quadrado (mesma largura e altura).\n\nDimensões atuais: ${img.width}x${img.height}px\nRecomendado: 512x512px`);
+        setIsUploadingAppIcon(false);
         return;
       }
 
-      if (img.width < 192 || img.height < 192) {
-        alert("O ícone deve ter pelo menos 192x192 pixels");
+      // Validar tamanho mínimo
+      const minSize = Math.min(img.width, img.height);
+      if (minSize < 192) {
+        alert(`O ícone deve ter pelo menos 192x192 pixels.\n\nDimensões atuais: ${img.width}x${img.height}px`);
+        setIsUploadingAppIcon(false);
         return;
       }
 

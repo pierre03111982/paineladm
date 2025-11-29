@@ -27,6 +27,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
   nome?: string | null;
   descricao?: string | null;
   logoUrl?: string | null;
+  app_icon_url?: string | null; // PHASE 17: Ícone do aplicativo PWA
   instagram?: string | null;
   facebook?: string | null;
   tiktok?: string | null;
@@ -64,6 +65,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         nome: data?.nome || null,
         descricao: data?.descricao || null,
         logoUrl: data?.logoUrl || null,
+        app_icon_url: data?.app_icon_url || null, // PHASE 17
         instagram: data?.instagram || null,
         facebook: data?.facebook || null,
         tiktok: data?.tiktok || null,
@@ -91,6 +93,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
           nome: lojaData?.nome || null,
           descricao: lojaData?.descricao || null,
           logoUrl: lojaData?.logoUrl || null,
+          app_icon_url: lojaData?.app_icon_url || null, // PHASE 17
           instagram: lojaData?.instagram || null,
           facebook: lojaData?.facebook || null,
           tiktok: lojaData?.tiktok || null,
@@ -117,6 +120,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         nome: data?.nome || null,
         descricao: data?.descricao || null,
         logoUrl: data?.logoUrl || null,
+        app_icon_url: data?.app_icon_url || null, // PHASE 17
         instagram: data?.instagram || null,
         facebook: data?.facebook || null,
         tiktok: data?.tiktok || null,
@@ -151,6 +155,8 @@ export async function updateLojaPerfil(
     descricao?: string;
     logoUrl?: string | null;
     logoStoragePath?: string | null;
+    app_icon_url?: string | null; // PHASE 17: Ícone do aplicativo PWA
+    app_icon_storage_path?: string | null; // PHASE 17: Caminho do ícone no storage
     instagram?: string;
     facebook?: string;
     tiktok?: string;
@@ -181,6 +187,13 @@ export async function updateLojaPerfil(
       cleanData.logoUrl = updateData.logoUrl;
       if (updateData.logoStoragePath !== undefined) {
         cleanData.logoStoragePath = updateData.logoStoragePath;
+      }
+    }
+    // PHASE 17: App Icon URL
+    if (updateData.app_icon_url !== undefined) {
+      cleanData.app_icon_url = updateData.app_icon_url;
+      if (updateData.app_icon_storage_path !== undefined) {
+        cleanData.app_icon_storage_path = updateData.app_icon_storage_path;
       }
     }
     if (updateData.instagram !== undefined) cleanData.instagram = updateData.instagram;

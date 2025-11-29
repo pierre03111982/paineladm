@@ -4,9 +4,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminStorage, getAdminDb } from "@/lib/firebaseAdmin";
-
-const db = getAdminDb();
+import { getAdminStorage } from "@/lib/firebaseAdmin";
+import { updateLojaPerfil } from "@/lib/firestore/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -73,12 +72,11 @@ export async function POST(request: NextRequest) {
     await file.makePublic();
     const publicUrl = `https://storage.googleapis.com/${bucketName}/${fileName}`;
 
-    // Atualizar perfil do lojista com app_icon_url
-    await db.collection("lojas").doc(lojistaId).set({
+    // Atualizar perfil do lojista com app_icon_url usando updateLojaPerfil
+    await updateLojaPerfil(lojistaId, {
       app_icon_url: publicUrl,
       app_icon_storage_path: fileName,
-      updatedAt: new Date(),
-    }, { merge: true });
+    });
 
     console.log("[Upload App Icon] Ícone do app salvo:", {
       lojistaId,
