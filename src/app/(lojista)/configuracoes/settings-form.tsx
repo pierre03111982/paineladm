@@ -442,6 +442,73 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         </div>
       </div>
 
+      {/* PHASE 17: Ícone do Aplicativo (PWA) */}
+      <div className="neon-card rounded-2xl p-6">
+        <div className="flex items-start gap-6">
+          <div className="flex-shrink-0">
+            {appIconPreview ? (
+              <div className="relative">
+                <div className="relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-gray-300/50 dark:border-purple-500/50 neon-card shadow-lg bg-white dark:bg-gray-800 p-2">
+                  <img
+                    src={appIconPreview}
+                    alt="Ícone do aplicativo"
+                    className="h-full w-full rounded-xl object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveAppIcon}
+                  className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg transition-all"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-300/50 dark:border-purple-500/50 neon-card bg-[var(--bg-card)]/60">
+                <ImageIcon className="h-8 w-8 text-[var(--text-secondary)]" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1 space-y-3">
+            <h3 className="text-xl font-bold text-[var(--text-main)]">Ícone do Aplicativo (PWA)</h3>
+            <p className="text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
+              Este ícone aparece quando o cliente instala o aplicativo no celular. Deve ser <strong>quadrado</strong> (mesma largura e altura). Recomendado: <strong>512x512px</strong> em formato PNG.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                ref={appIconInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg"
+                onChange={handleAppIconUpload}
+                className="hidden"
+                id="app-icon-upload"
+              />
+              <label
+                htmlFor="app-icon-upload"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-gray-300 dark:border-indigo-500/50 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] transition-all active:scale-[0.98]"
+              >
+                {isUploadingAppIcon ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    {appIconPreview ? "Trocar ícone" : "Enviar ícone"}
+                  </>
+                )}
+              </label>
+            </div>
+            {appIconPreview && (
+              <p className="text-xs text-green-500 dark:text-green-400 font-medium">
+                ✓ Ícone configurado. O aplicativo usará este ícone quando instalado no celular.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Modelo do App Cliente - NOVO COMPONENTE */}
       <div className="neon-card rounded-2xl p-6">
         <ModeloAppSelector 
