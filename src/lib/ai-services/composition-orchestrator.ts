@@ -255,7 +255,8 @@ export class CompositionOrchestrator {
         // PHASE 11-B: Strong Negative Prompt para reduzir erros de anatomia e cortes
         // Conforme especificação: (feet cut off:1.5), (head cut off:1.5)
         // PHASE 11-B: Reforçar negative prompt quando há calçados para prevenir "cut legs"
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4)";
+        // PHASE 16: Adicionar instruções sobre sombras no negative prompt
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -373,6 +374,13 @@ A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE 
 
     * Estilo: Fotografia de moda ou lifestyle.
     * Iluminação: Natural ou de estúdio, cinematográfica, REFLITANDO O CENÁRIO ADAPTADO E COM SOMBRAS/REFLEXOS FISICAMENTE CORRETOS.
+    * **⚠️ SOMBRAS REALISTAS OBRIGATÓRIAS (CRÍTICO):**
+        * A pessoa DEVE projetar sombras NATURAIS E FISICAMENTE CORRETAS no chão/superfície abaixo dela, baseadas na direção da luz do cenário.
+        * As sombras DEVEM ser suaves, graduais e com bordas difusas (soft shadows), não duras ou cortadas.
+        * A intensidade e direção das sombras DEVEM corresponder à iluminação do ambiente (ex: luz solar = sombra definida, luz suave = sombra suave).
+        * **CRÍTICO**: A ausência de sombras torna a imagem claramente artificial. SEMPRE inclua sombras realistas da pessoa no chão.
+        * As sombras DEVEM seguir a forma e postura da pessoa, criando profundidade e ancorando a pessoa no ambiente de forma realista.
+        * Se houver múltiplas fontes de luz, as sombras podem ser múltiplas, mas sempre suaves e naturalmente sobrepostas.
     * Resolução: Ultra alta definição 8K.
     * Foco/Profundidade de Campo: Foco nítido na pessoa e no(s) produto(s), com um fundo suavemente desfocado (bokeh ÓPTICO E REALISTA).
 

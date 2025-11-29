@@ -263,12 +263,138 @@ export async function fetchActiveClients(
       console.log("[CRM] Coleção de sessões não encontrada ou erro ao buscar:", error);
     }
 
+    // Buscar favoritos com like das últimas 24h para incluir no radar
+    try {
+      const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
+      
+      // Buscar favoritos de todos os clientes do lojista
+      const lojaRef = db.collection("lojas").doc(lojistaId);
+      const clientesSnapshot = await lojaRef.collection("clientes").get();
+      
+      for (const clienteDoc of clientesSnapshot.docs) {
+        const customerId = clienteDoc.id;
+        const clienteData = clienteDoc.data();
+        
+        try {
+          // Buscar favoritos com like deste cliente
+          const favoritosRef = lojaRef
+            .collection("clientes")
+            .doc(customerId)
+            .collection("favoritos");
+          
+          // Buscar favoritos com like das últimas 24h
+          let favoritosSnapshot;
+          try {
+            favoritosSnapshot = await favoritosRef
+              .where("action", "==", "like")
+              .where("createdAt", ">=", cutoffTimestamp)
+              .orderBy("createdAt", "desc")
+              .limit(50)
+              .get();
+          } catch (error: any) {
+            // Se não tiver índice, buscar todos e filtrar
+            console.log("[CRM] Índice de favoritos não encontrado, buscando todos:", error.message);
+            const allFavoritos = await favoritosRef
+              .where("action", "==", "like")
+              .limit(200)
+              .get();
+            
+            favoritosSnapshot = {
+              forEach: (callback: any) => {
+                allFavoritos.forEach((doc) => {
+                  const data = doc.data();
+                  const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt || 0);
+                  if (createdAt >= cutoffDate) {
+                    callback(doc);
+                  }
+                });
+              },
+            } as any;
+          }
+          
+          favoritosSnapshot.forEach((doc: any) => {
+            const data = typeof doc.data === "function" ? doc.data() : doc.data;
+            if (!data) return;
+            
+            // Converter Timestamp do Firestore para Date
+            let createdAt: Date;
+            if (data.createdAt) {
+              if (data.createdAt.toDate) {
+                createdAt = data.createdAt.toDate();
+              } else if (typeof data.createdAt === "string") {
+                createdAt = new Date(data.createdAt);
+              } else {
+                createdAt = new Date();
+              }
+            } else {
+              createdAt = new Date();
+            }
+            
+            // Filtrar apenas favoritos das últimas 24h
+            if (createdAt < cutoffDate) {
+              return;
+            }
+            
+            // Verificar se tem imagem válida
+            const imagemUrl = data.imagemUrl || data.imageUrl;
+            if (!imagemUrl || imagemUrl.trim() === "") {
+              return; // Ignorar favoritos sem imagem
+            }
+            
+            // Adicionar ou atualizar cliente no mapa
+            if (!clientMap.has(customerId)) {
+              clientMap.set(customerId, {
+                customerId,
+                nome: clienteData?.nome || data.customerName || "Cliente",
+                whatsapp: clienteData?.whatsapp || "",
+                avatar: clienteData?.avatar || clienteData?.fotoUrl || clienteData?.photoUrl || null,
+                lastActivity: createdAt,
+                lastActivityType: "generation",
+                lastProductName: data.produtoNome || data.productName || undefined,
+                compositionCount: 0,
+                compositions: [],
+              });
+            }
+            
+            const client = clientMap.get(customerId)!;
+            
+            // Adicionar favorito como composição
+            client.compositionCount++;
+            client.compositions.push({
+              id: doc.id,
+              imagemUrl: imagemUrl,
+              createdAt,
+              produtoNome: data.produtoNome || data.productName || undefined,
+            });
+            
+            // Atualizar última atividade se for mais recente
+            if (createdAt > client.lastActivity) {
+              client.lastActivity = createdAt;
+              client.lastActivityType = "generation";
+              client.lastProductName = data.produtoNome || data.productName || undefined;
+            }
+          });
+        } catch (error) {
+          console.warn(`[CRM] Erro ao buscar favoritos do cliente ${customerId}:`, error);
+          // Continuar com próximo cliente
+        }
+      }
+      
+      console.log("[CRM] Favoritos com like incluídos no radar");
+    } catch (error) {
+      console.warn("[CRM] Erro ao buscar favoritos:", error);
+      // Continuar mesmo se houver erro ao buscar favoritos
+    }
+
     // Converter para array e ordenar por mais recente
     const activeClients = Array.from(clientMap.values()).sort(
       (a, b) => b.lastActivity.getTime() - a.lastActivity.getTime()
     );
 
-    console.log("[CRM] Clientes ativos encontrados:", activeClients.length);
+    console.log("[CRM] Clientes ativos encontrados:", activeClients.length, {
+      comComposicoes: activeClients.filter(c => c.compositionCount > 0).length,
+      totalComposicoes: activeClients.reduce((sum, c) => sum + c.compositionCount, 0),
+    });
 
     return activeClients;
   } catch (error) {
