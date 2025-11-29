@@ -939,17 +939,21 @@ html.dark aside.neon-card.sidebar-gradient {
     inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Título "Painel do Lojista Pro" - Gradiente azul e preto no modo escuro */
+/* Título "Painel do Lojista Pro" - Branco com sombra preta (sem contorno) */
 html.dark header h1,
 html.dark header h1.text-2xl,
-html.dark header h1.text-3xl {
-  background: linear-gradient(to right, #1e3a8a 0%, #000000 100%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  color: transparent !important;
+html.dark header h1.text-3xl,
+header h1,
+header h1.text-2xl,
+header h1.text-3xl {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1), 4px 4px 8px rgba(0, 0, 0, 0.8) !important;
   font-weight: 700 !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.3) !important;
+  /* Remover qualquer contorno e gradiente */
   -webkit-text-stroke: none !important;
   text-stroke: none !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
 }
