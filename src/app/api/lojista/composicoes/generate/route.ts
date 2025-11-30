@@ -662,12 +662,26 @@ export async function POST(request: NextRequest) {
         // PHASE 21 FIX: Melhorar detecção de roupas de banho e moda fitness
         const hasSport = allText.match(/legging|fitness|academia|tênis esportivo|tênis esportivo|sneaker|short corrida|dry fit|sport|atividade física|moda fitness|workout|gym|treino|esportivo/i);
         const hasNonSport = allText.match(/vestido|dress|jeans|alfaiataria|blazer|camisa|saia|skirt|salto|heels|terno|suit|formal/i);
-        // PHASE 21 FIX: Detecção mais abrangente de roupas de banho
-        const hasBeach = allText.match(/biqu|bikini|maiô|maio|sunga|praia|beachwear|saída de praia|swimwear|moda praia|banho|nado|piscina|swim|beach/i);
+        // PHASE 21 FIX: Detecção mais abrangente de roupas de banho (PRIORIDADE MÁXIMA)
+        const hasBeach = allText.match(/biqu|bikini|maiô|maio|sunga|praia|beachwear|saída de praia|swimwear|moda praia|banho|nado|piscina|swim|beach|biquini|biquíni/i);
         const hasWinter = allText.match(/couro|leather|casaco|sobretudo|bota|cachecol|inverno|winter|coat|pérola|veludo|lã|wool|woollen|boot/i);
         const hasFormal = allText.match(/terno|blazer|social|alfaiataria|vestido longo|gravata|suit|formal|festa|gala|paetê|salto alto fino|clutch|vestido de festa|brilho/i);
         const hasCasual = allText.match(/jeans|t-shirt|moletom|tênis casual|jaqueta jeans|casual|street/i);
         const hasParty = allText.match(/festa|gala|paetê|salto alto fino|clutch|vestido de festa|brilho|noite|night|evening/i);
+        
+        // PHASE 21 FIX: Log detalhado de detecção para debug
+        console.log("[API] 🔍 PHASE 21 FIX: Detecção de produtos:", {
+          allText: allText.substring(0, 200),
+          hasBeach: !!hasBeach,
+          hasSport: !!hasSport,
+          hasNonSport: !!hasNonSport,
+          hasWinter: !!hasWinter,
+          hasFormal: !!hasFormal,
+          hasCasual: !!hasCasual,
+          hasParty: !!hasParty,
+          totalProdutos: products.length,
+          produtos: products.map(p => ({ nome: p?.nome, categoria: p?.categoria }))
+        });
 
         // REGRA 0: INVERNO/COURO (Prioridade ABSOLUTA - verificar PRIMEIRO)
         if (hasWinter) {
@@ -693,22 +707,28 @@ export async function POST(request: NextRequest) {
             "Office", "City Street", "Snow", "Gym", "Shopping Mall", "Bedroom",
             "Urban", "Night", "Winter", "Indoor", "Corporate", "Formal",
             "Street", "City", "Urban street", "Busy street", "Neon-lit city",
-            "Subway", "Skate park", "Coffee shop", "Rooftop terrace"
+            "Subway", "Skate park", "Coffee shop", "Rooftop terrace",
+            "Fitness center", "Gym", "Academia", "Workout", "Exercise", "Training",
+            "Modern fitness center", "Fitness", "Sport", "Athletic", "Running track",
+            "Yoga studio", "Crossfit", "Basketball court", "Soccer field"
           ];
           console.log("[API] 🏖️ PHASE 21 FIX: BIKINI LAW - MODA PRAIA detectado - FORÇANDO Beach/Pool/Cachoeira (cenário selecionado:", selectedIndex + 1, "de", beachScenarios.length, ")");
+          console.log("[API] 🏖️ PHASE 21 FIX: PROIBINDO TODOS os cenários de academia/fitness/gym");
           return { context, forbidden };
         }
 
         // PHASE 21 FIX: REGRA 2 - GYM INTEGRITY (STRICT - Requer UNANIMIDADE)
         // Gym/Academia/Corrida no parque SÓ é permitido se TODOS os produtos forem esportivos/fitness
         // Se houver qualquer produto não-esportivo, NÃO usar cenários de fitness
-        if (hasSport && !hasNonSport) {
+        // CRÍTICO: Se houver roupas de banho, NUNCA usar fitness (já foi tratado na regra anterior)
+        if (hasSport && !hasNonSport && !hasBeach) {
           // PHASE 21 FIX: Sempre sortear aleatoriamente dos 10 cenários de fitness
           const selectedIndex = Math.floor(Math.random() * fitnessScenarios.length);
           context = fitnessScenarios[selectedIndex];
           forbidden = [
             "Bedroom", "Luxury Lobby", "Beach (sand)", "Formal Event", "Restaurant",
-            "City Street", "Urban street", "Office", "Shopping Mall"
+            "City Street", "Urban street", "Office", "Shopping Mall",
+            "Beach", "Pool", "Swimming pool", "Ocean", "Tropical", "Resort"
           ];
           console.log("[API] 💪 PHASE 21 FIX: FITNESS/SPORT (UNANIMIDADE) - Gym/Academia permitido (cenário selecionado:", selectedIndex + 1, "de", fitnessScenarios.length, ")");
           return { context, forbidden };
@@ -801,14 +821,27 @@ export async function POST(request: NextRequest) {
         return { context, forbidden };
       };
 
-      // PHASE 15 V2: Smart Context Engine (usando getSmartScenario com resolução de conflitos)
-      // Detectar se é remix
+      // PHASE 21 FIX: Smart Context Engine (usando getSmartScenario com resolução de conflitos)
+      // CRÍTICO: SEMPRE calcular smartContext usando getSmartScenario, independente de scenePrompts
+      // O getSmartScenario aplica a Bikini Law e outras regras de coerência corretamente
+      // Detectar se é remix (para variação de cenário, mas sempre respeitando as regras)
       const isRemix = (scenePrompts && scenePrompts.length > 0) || options?.gerarNovoLook || false;
       
-      // Obter cenário inteligente com resolução de conflitos
+      // PHASE 21 FIX: SEMPRE obter cenário inteligente com resolução de conflitos
+      // Isso garante que a Bikini Law e outras regras sejam aplicadas em TODAS as gerações
       const smartScenario = getSmartScenario(productsData, isRemix);
       const smartContext = smartScenario.context;
       const forbiddenScenarios = smartScenario.forbidden;
+      
+      // PHASE 21 FIX: Se houver scenePrompts, IGNORAR o cenário do scenePrompts e usar smartContext
+      // O scenePrompts pode conter instruções de pose, mas o cenário DEVE vir do smartContext
+      if (scenePrompts && scenePrompts.length > 0) {
+        console.log("[API] ⚠️ PHASE 21 FIX: scenePrompts fornecido, mas usando smartContext do getSmartScenario:", {
+          scenePromptsPreview: scenePrompts[0].substring(0, 150) + "...",
+          smartContext: smartContext,
+          forbiddenScenarios: forbiddenScenarios,
+        });
+      }
       
       console.log("[API] 📍 PHASE 15 V2 Smart Scenario aplicado:", {
         context: smartContext,
@@ -892,7 +925,8 @@ export async function POST(request: NextRequest) {
           : undefined,
         storeName: lojaData?.nome || "Minha Loja",
         logoUrl: lojaData?.logoUrl,
-        scenePrompts: scenePrompts || [], // PHASE 14: Usar scenePrompts se fornecido (para Remix)
+        // PHASE 21 FIX: NÃO passar scenePrompts - backend sempre usa getSmartScenario para determinar cenário
+        // scenePrompts: scenePrompts || [], // REMOVIDO - backend sempre usa getSmartScenario
         options: {
           quality: options?.quality || "high",
           skipWatermark: options?.skipWatermark !== false, // Respeitar opção do frontend

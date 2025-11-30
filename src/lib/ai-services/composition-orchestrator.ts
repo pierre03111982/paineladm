@@ -205,33 +205,35 @@ export class CompositionOrchestrator {
         const hasTop = allText.match(/camisa|blusa|blouse|shirt|top|jaqueta|jacket|moletom|hoodie/i);
         const hasBottom = allText.match(/calça|pants|jeans|saia|skirt|shorts|vestido|dress/i);
         const hasShoes = allText.match(/calçado|calcado|sapato|tênis|tenis|sneaker|shoe|footwear/i);
-        const isBeachContext = smartContext.toLowerCase().includes("beach") || smartContext.toLowerCase().includes("pool") || smartContext.toLowerCase().includes("ocean");
+        // PHASE 21 FIX: Detecção melhorada de roupas de banho
+        const hasBeach = allText.match(/biqu|bikini|maiô|maio|sunga|praia|beachwear|saída de praia|swimwear|moda praia|banho|nado|piscina|swim|beach/i);
+        const isBeachContext = smartContext.toLowerCase().includes("beach") || smartContext.toLowerCase().includes("pool") || smartContext.toLowerCase().includes("ocean") || smartContext.toLowerCase().includes("waterfall") || smartContext.toLowerCase().includes("cachoeira");
         
-        // PHASE 14 FIX: Se for remix, usar o scenePrompts para substituir contextRule e framingRule
+        // PHASE 21 FIX: Sempre usar smartContext do backend (aplica Bikini Law e outras regras)
+        // Mesmo em remix, o smartContext já foi calculado corretamente pelo backend usando getSmartScenario
         let categorySpecificPrompt = `, ${smartFraming}`;
         let framingRule = `FORCE CONTEXT: ${smartFraming.toUpperCase()}.`;
-        // PHASE 15: Reforçar o contexto no prompt principal
+        // PHASE 21 FIX: SEMPRE usar smartContext do backend (não substituir por scenePrompts)
         let contextRule = `⚠️ CRITICAL SCENE CONTEXT (MANDATORY): ${smartContext}. THE BACKGROUND MUST MATCH THIS EXACT CONTEXT. DO NOT USE ANY OTHER BACKGROUND.`;
         
+        // PHASE 21 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose mas MANTER o smartContext
+        let remixPoseInstructions = "";
         if (isRemix && params.scenePrompts && params.scenePrompts.length > 0) {
-          // PHASE 14 FIX: Incorporar o prompt do remix diretamente no contextRule
-          // O remix já contém informações de cenário e pose
           const remixPromptText = params.scenePrompts[0];
-          // PHASE 14 FIX: O prompt do remix já contém todas as instruções necessárias
-          // Vamos incorporá-lo diretamente no prompt principal para máxima eficácia
-          contextRule = `🎨 REMIX MODE ACTIVATED: ${remixPromptText}`;
+          // PHASE 21 FIX: Extrair apenas instruções de pose do remixPrompt, mas MANTER o smartContext
+          remixPoseInstructions = `\n\n🎨 REMIX MODE: ${remixPromptText}`;
           framingRule = `⚠️ CRITICAL: DRAMATIC SCENE AND POSE CHANGE REQUIRED. The background, lighting, camera angle, and person's pose must be COMPLETELY DIFFERENT from the original photo. This is a REMIX generation - create a NEW PHOTOSHOOT in a NEW LOCATION with a NEW POSE.`;
-          console.log("[Orchestrator] 🎨 PHASE 14 FIX: REMIX DETECTADO - Usando scenePrompts customizado:", {
+          console.log("[Orchestrator] 🎨 PHASE 21 FIX: REMIX DETECTADO - Usando smartContext do backend + instruções de pose do remix:", {
             isRemix: true,
+            smartContext: smartContext,
             remixPromptLength: remixPromptText.length,
             remixPromptPreview: remixPromptText.substring(0, 200) + "...",
-            contextRulePreview: contextRule.substring(0, 150) + "...",
-            framingRulePreview: framingRule.substring(0, 150) + "...",
           });
         } else {
           console.log("[Orchestrator] 📸 Modo Normal (não é remix):", {
             hasScenePrompts: !!params.scenePrompts,
             scenePromptsLength: params.scenePrompts?.length || 0,
+            smartContext: smartContext,
           });
         }
         
@@ -268,6 +270,16 @@ export class CompositionOrchestrator {
         if (hasTop && !hasBottom) {
           completeTheLookPrompt = " wearing neutral blue denim jeans";
           console.log("[Orchestrator] 👖 PHASE 20: Complete the Look ativado - Adicionando jeans automático");
+        }
+        
+        // PHASE 21 FIX: Roupas de banho - chinelo ou sem calçado nos pés
+        let beachFootwearPrompt = "";
+        if (hasBeach || isBeachContext) {
+          // Se não tem sapatos selecionados, forçar chinelo ou pés descalços
+          if (!hasShoes) {
+            beachFootwearPrompt = " barefoot or wearing simple flip-flops/sandals, NO boots, NO sneakers, NO closed shoes";
+            console.log("[Orchestrator] 🏖️ PHASE 21 FIX: Roupas de banho detectadas - Forçando chinelo ou pés descalços");
+          }
         }
         
         // PHASE 20: Smart Accessory Placement - Óculos no rosto
@@ -352,13 +364,13 @@ export class CompositionOrchestrator {
         //
         const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
 
-${contextRule}
+${contextRule}${remixPoseInstructions}
 
 ${framingRule}
 
 ${posturaRule}
 
-META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS${completeTheLookPrompt}${accessoryPrompt}. O resultado final DEVE parecer uma FOTO REAL, não gerada.
+META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}. O resultado final DEVE parecer uma FOTO REAL, não gerada.
 
 ⚠️ CRITICAL PRODUCT TRANSFER RULE (PHASE 21 - CLONE THE CLOTHES):
 The clothing item(s) in the [IMAGEM_PRODUTO_X] inputs must be CLONED EXACTLY as they appear (fabric texture, print, color, cut, embroidery, patterns, details). DO NOT replace, modify, or create new garments. Your task is to TRANSFER the exact item from the product image onto the person's body, maintaining 100% fidelity to the original product design. The garment must look IDENTICAL to the product photo, only adapted to fit the user's body proportions.
