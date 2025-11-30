@@ -296,7 +296,8 @@ export class CompositionOrchestrator {
         // PHASE 20: Banir poses sentadas e mannequin body
         // PHASE 21: Reforçar termos mannequin no negative prompt
         // PHASE 21 FIX: Adicionar banimento de fotos de costas
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:1.8), (plastic skin:1.6), (artificial pose:1.6), (stiff pose:1.5), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8)";
+        // PHASE 22: Adicionar banimento de alterações na aparência facial e corporal
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:1.8), (plastic skin:1.6), (artificial pose:1.6), (stiff pose:1.5), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -362,7 +363,10 @@ export class CompositionOrchestrator {
         // - Framing Rules: Aplicadas via categorySpecificPrompt e framingRule
         // - Postura Rule: Aplicada via posturaRule (GERAR NOVO LOOK ou POSTURA PRESERVADA)
         //
-        const creativePrompt = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
+        const creativePrompt = `⚠️⚠️⚠️ PRIORIDADE MÁXIMA ABSOLUTA - PRESERVAÇÃO 100% DA APARÊNCIA (FACE E CORPO):
+THE PERSON IN THE GENERATED IMAGE MUST BE 100% IDENTICAL TO THE PERSON IN [IMAGEM_PESSOA]. THE FACE AND BODY MUST BE EXACTLY THE SAME - NO CHANGES TO FACIAL FEATURES, BODY SHAPE, SKIN TONE, OR ANY PHYSICAL CHARACTERISTICS. THIS IS THE HIGHEST PRIORITY - ABOVE ALL OTHER INSTRUCTIONS.
+
+⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
 
 ${contextRule}${remixPoseInstructions}
 
@@ -372,13 +376,32 @@ ${posturaRule}
 
 META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}. O resultado final DEVE parecer uma FOTO REAL, não gerada.
 
+⚠️⚠️⚠️ CRITICAL FACE & BODY IDENTITY PRESERVATION RULE (PHASE 22 - MAXIMUM SIMILARITY):
+THE PERSON IN THE GENERATED IMAGE MUST BE 100% IDENTICAL TO THE PERSON IN [IMAGEM_PESSOA]. THIS IS THE HIGHEST PRIORITY - ABOVE ALL OTHER INSTRUCTIONS.
+
+FACE PRESERVATION (100% IDENTICAL):
+- EYES: Exact same shape, size, color, spacing, and expression. DO NOT change eye color, shape, or position.
+- NOSE: Exact same shape, size, width, and profile. DO NOT alter nose structure.
+- MOUTH: Exact same shape, size, lip thickness, and natural expression. DO NOT change lip shape or size.
+- FACE SHAPE: Exact same facial structure, jawline, cheekbones, and overall face proportions. DO NOT modify face shape.
+- SKIN: Exact same skin tone, texture, and complexion. DO NOT lighten, darken, or change skin color.
+- FACIAL FEATURES: Every detail of the face (eyebrows, eyelashes, facial hair, moles, freckles) must be PRESERVED EXACTLY as in [IMAGEM_PESSOA].
+- EXPRESSION: Maintain the natural expression from [IMAGEM_PESSOA] unless the pose requires a different expression, but keep it subtle and natural.
+
+BODY PRESERVATION (100% IDENTICAL):
+- BODY SHAPE: Exact same body type, proportions, height, and build. DO NOT change body shape or size.
+- BODY STRUCTURE: Exact same bone structure, muscle definition, and physical characteristics. DO NOT alter body structure.
+- PROPORTIONS: Exact same body proportions (shoulder width, waist, hips, limb length). DO NOT modify proportions.
+- SKIN TONE: Exact same skin tone and texture on the entire body. DO NOT change body skin color.
+- PHYSICAL CHARACTERISTICS: All unique physical features (tattoos, scars, birthmarks, etc.) must be PRESERVED if visible in [IMAGEM_PESSOA].
+
 ⚠️ CRITICAL PRODUCT TRANSFER RULE (PHASE 21 - CLONE THE CLOTHES):
 The clothing item(s) in the [IMAGEM_PRODUTO_X] inputs must be CLONED EXACTLY as they appear (fabric texture, print, color, cut, embroidery, patterns, details). DO NOT replace, modify, or create new garments. Your task is to TRANSFER the exact item from the product image onto the person's body, maintaining 100% fidelity to the original product design. The garment must look IDENTICAL to the product photo, only adapted to fit the user's body proportions.
 
 ⚠️ CRITICAL BODY STRUCTURE RULE (PHASE 21 - IGNORE MANNEQUIN BODY):
 Use ONLY the body shape, pose, and proportions from the [IMAGEM_PESSOA] (User Upload). COMPLETELY IGNORE the body shape of the mannequin or model in the product image. The clothes must drape and fit according to the user's body, not the mannequin's. The person's body proportions MUST come exclusively from the IMAGEM_PESSOA. The mannequin's body shape, pose, and proportions are IRRELEVANT and must be completely disregarded.
 
-A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE PRODUTO QUE COMPROMETA A IDENTIDADE VISUAL DA PESSOA SERÁ CONSIDERADA UMA FALHA CRÍTICA.
+A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE PRODUTO QUE COMPROMETA A IDENTIDADE VISUAL DA PESSOA SERÁ CONSIDERADA UMA FALHA CRÍTICA. THE FACE AND BODY MUST BE 100% IDENTICAL TO [IMAGEM_PESSOA] - NO EXCEPTIONS.
 
 🎯 PRIORIZAÇÃO ABSOLUTA E INEGOCIÁVEL (ORDEM DE PRIORIDADE CRÍTICA E INALTERÁVEL):
 
@@ -392,10 +415,24 @@ A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE 
 
 1. PRESERVAÇÃO MÁXIMA E ABSOLUTA DA SEMELHANÇA DA PESSOA (Lei Inegociável - PRIORIDADE 1 - CRÍTICO ANTI-ARTIFICIALIDADE):
 
-    * ROSTO - PRESERVAÇÃO INTEGRAL COM REFINAMENTO ESTÉTICO MÍNIMO:
+    * ROSTO - PRESERVAÇÃO INTEGRAL COM REFINAMENTO ESTÉTICO MÍNIMO (100% IDÊNTICO):
+        * ⚠️⚠️⚠️ CRÍTICO: O ROSTO DEVE SER 100% IDÊNTICO AO DA IMAGEM_PESSOA. TODAS as características faciais devem ser preservadas EXATAMENTE:
+            * OLHOS: Mesma forma, tamanho, cor, espaçamento e expressão. NÃO alterar cor dos olhos, forma ou posição.
+            * NARIZ: Mesma forma, tamanho, largura e perfil. NÃO alterar estrutura do nariz.
+            * BOCA: Mesma forma, tamanho, espessura dos lábios e expressão natural. NÃO alterar forma ou tamanho dos lábios.
+            * FORMATO DO ROSTO: Mesma estrutura facial, linha da mandíbula, maçãs do rosto e proporções gerais do rosto. NÃO modificar formato do rosto.
+            * PELE: Mesmo tom de pele, textura e compleição. NÃO clarear, escurecer ou alterar cor da pele.
+            * CARACTERÍSTICAS FACIAIS: Todos os detalhes do rosto (sobrancelhas, cílios, pelos faciais, pintas, sardas) devem ser PRESERVADOS EXATAMENTE como na IMAGEM_PESSOA.
+            * EXPRESSÃO: Manter a expressão natural da IMAGEM_PESSOA, a menos que a pose exija uma expressão diferente, mas mantê-la sutil e natural.
         * MAQUIAGEM/COSMÉTICOS (Condicionalidade de Preservação): A maquiagem ou cosméticos **originais** da IMAGEM_PESSOA devem ser preservados e mantidos **IDÊNTICOS**, A MENOS QUE um produto da categoria 'COSMÉTICOS' seja fornecido na lista de produtos.
 
-    * CORPO - MÁXIMA FIDELIDADE E PROPORÇÕES FÍSICAS INALTERADAS: Manter o tipo físico, estrutura óssea, musculatura e PROPORÇÕES CORPORAIS EXATAMENTE E SEM NENHUMA ALTERAÇÃO.
+    * CORPO - MÁXIMA FIDELIDADE E PROPORÇÕES FÍSICAS INALTERADAS (100% IDÊNTICO):
+        * ⚠️⚠️⚠️ CRÍTICO: O CORPO DEVE SER 100% IDÊNTICO AO DA IMAGEM_PESSOA. TODAS as características corporais devem ser preservadas EXATAMENTE:
+            * FORMA DO CORPO: Mesmo tipo físico, proporções, altura e estrutura. NÃO alterar forma ou tamanho do corpo.
+            * ESTRUTURA CORPORAL: Mesma estrutura óssea, definição muscular e características físicas. NÃO alterar estrutura corporal.
+            * PROPORÇÕES: Mesmas proporções corporais (largura dos ombros, cintura, quadris, comprimento dos membros). NÃO modificar proporções.
+            * TOM DE PELE: Mesmo tom de pele e textura em todo o corpo. NÃO alterar cor da pele do corpo.
+            * CARACTERÍSTICAS FÍSICAS: Todas as características físicas únicas (tatuagens, cicatrizes, marcas de nascença, etc.) devem ser PRESERVADAS se visíveis na IMAGEM_PESSOA.
         * REFORÇO DE FOCO: Para garantir a P1, a IA DEVE **IGNORAR O CONTEÚDO ESTRUTURAL DO FUNDO/CENÁRIO** da IMAGEM_PESSOA ao analisar a semelhança.
         * **⚠️ REGRA DE POSTURA CONDICIONAL (GERAR NOVO LOOK):**
             * **POSTURA PRESERVADA (Padrão):** A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios.
