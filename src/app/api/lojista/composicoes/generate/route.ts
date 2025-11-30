@@ -582,7 +582,12 @@ export async function POST(request: NextRequest) {
           "Beach bar with thatched roof and tropical drinks, relaxed atmosphere",
           "Rocky coastline with crashing waves, dramatic sunlight",
           "Private yacht deck on open sea, luxury lifestyle vibe",
-          "Hammock between two palm trees on a secluded beach"
+          "Hammock between two palm trees on a secluded beach",
+          "Natural waterfall with crystal clear water and tropical vegetation, lush green surroundings",
+          "Resort swimming pool with palm trees and blue water, luxury vacation setting",
+          "Tropical beach at sunset with warm golden light, peaceful atmosphere",
+          "Modern infinity pool with ocean view, sophisticated resort setting",
+          "Natural pool in a tropical forest, surrounded by rocks and vegetation"
         ];
 
         const urbanScenarios = [
@@ -654,9 +659,11 @@ export async function POST(request: NextRequest) {
         // Verificar conflitos ANTES de aplicar regras específicas
 
         // Detectar tipos de produtos
-        const hasSport = allText.match(/legging|fitness|academia|tênis esportivo|tênis|sneaker|short corrida|dry fit|sport|atividade física/i);
+        // PHASE 21 FIX: Melhorar detecção de roupas de banho e moda fitness
+        const hasSport = allText.match(/legging|fitness|academia|tênis esportivo|tênis esportivo|sneaker|short corrida|dry fit|sport|atividade física|moda fitness|workout|gym|treino|esportivo/i);
         const hasNonSport = allText.match(/vestido|dress|jeans|alfaiataria|blazer|camisa|saia|skirt|salto|heels|terno|suit|formal/i);
-        const hasBeach = allText.match(/biqu|maiô|sunga|praia|beachwear|saída de praia|swimwear/i);
+        // PHASE 21 FIX: Detecção mais abrangente de roupas de banho
+        const hasBeach = allText.match(/biqu|bikini|maiô|maio|sunga|praia|beachwear|saída de praia|swimwear|moda praia|banho|nado|piscina|swim|beach/i);
         const hasWinter = allText.match(/couro|leather|casaco|sobretudo|bota|cachecol|inverno|winter|coat|pérola|veludo|lã|wool|woollen|boot/i);
         const hasFormal = allText.match(/terno|blazer|social|alfaiataria|vestido longo|gravata|suit|formal|festa|gala|paetê|salto alto fino|clutch|vestido de festa|brilho/i);
         const hasCasual = allText.match(/jeans|t-shirt|moletom|tênis casual|jaqueta jeans|casual|street/i);
@@ -664,64 +671,77 @@ export async function POST(request: NextRequest) {
 
         // REGRA 0: INVERNO/COURO (Prioridade ABSOLUTA - verificar PRIMEIRO)
         if (hasWinter) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * winterScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * winterScenarios.length);
           context = winterScenarios[selectedIndex];
           forbidden = [
             "Tropical Beach", "Beach", "Pool", "Swimming pool", "Sunny summer park", 
             "Ocean", "Sand", "Palm trees", "Summer", "Hot weather",
             "Beach resort", "Seaside", "Tropical", "Paradise beach", "Sunny beach", "Beach scene"
           ];
-          console.log("[API] 🧥 PHASE 20: INVERNO/COURO detectado (PRIORIDADE) - PROIBINDO PRAIA");
+          console.log("[API] 🧥 PHASE 21 FIX: INVERNO/COURO detectado (PRIORIDADE) - PROIBINDO PRAIA (cenário selecionado:", selectedIndex + 1, "de", winterScenarios.length, ")");
           return { context, forbidden };
         }
 
-        // PHASE 20: REGRA 1 - "BIKINI LAW" (STRICT - Se tem swimwear, DEVE ser Beach/Pool)
+        // PHASE 21 FIX: REGRA 1 - "BIKINI LAW" (STRICT - Se tem swimwear, DEVE ser Beach/Pool/Cachoeira)
+        // PRIORIDADE ABSOLUTA (após inverno) - Se tem roupas de banho, SEMPRE usar cenário aquático
         if (hasBeach) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * beachScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente dos 15 cenários de praia/piscina/cachoeira
+          const selectedIndex = Math.floor(Math.random() * beachScenarios.length);
           context = beachScenarios[selectedIndex];
           forbidden = [
             "Office", "City Street", "Snow", "Gym", "Shopping Mall", "Bedroom",
-            "Urban", "Night", "Winter", "Indoor", "Corporate", "Formal"
+            "Urban", "Night", "Winter", "Indoor", "Corporate", "Formal",
+            "Street", "City", "Urban street", "Busy street", "Neon-lit city",
+            "Subway", "Skate park", "Coffee shop", "Rooftop terrace"
           ];
-          console.log("[API] 🏖️ PHASE 20: BIKINI LAW - MODA PRAIA detectado - FORÇANDO Beach/Pool (60 cenários)");
+          console.log("[API] 🏖️ PHASE 21 FIX: BIKINI LAW - MODA PRAIA detectado - FORÇANDO Beach/Pool/Cachoeira (cenário selecionado:", selectedIndex + 1, "de", beachScenarios.length, ")");
           return { context, forbidden };
         }
 
-        // REGRA 2: GYM INTEGRITY (STRICT - Requer UNANIMIDADE)
-        // Gym só é permitido se TODOS os produtos forem esportivos
+        // PHASE 21 FIX: REGRA 2 - GYM INTEGRITY (STRICT - Requer UNANIMIDADE)
+        // Gym/Academia/Corrida no parque SÓ é permitido se TODOS os produtos forem esportivos/fitness
+        // Se houver qualquer produto não-esportivo, NÃO usar cenários de fitness
         if (hasSport && !hasNonSport) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * fitnessScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente dos 10 cenários de fitness
+          const selectedIndex = Math.floor(Math.random() * fitnessScenarios.length);
           context = fitnessScenarios[selectedIndex];
-          forbidden = ["Bedroom", "Luxury Lobby", "Beach (sand)", "Formal Event", "Restaurant"];
-          console.log("[API] 💪 PHASE 20: FITNESS/SPORT (UNANIMIDADE) - Gym permitido (60 cenários)");
+          forbidden = [
+            "Bedroom", "Luxury Lobby", "Beach (sand)", "Formal Event", "Restaurant",
+            "City Street", "Urban street", "Office", "Shopping Mall"
+          ];
+          console.log("[API] 💪 PHASE 21 FIX: FITNESS/SPORT (UNANIMIDADE) - Gym/Academia permitido (cenário selecionado:", selectedIndex + 1, "de", fitnessScenarios.length, ")");
           return { context, forbidden };
         }
 
         // REGRA 3: PARTY/GALA (Prioridade sobre Formal)
         if (hasParty) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * partyScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * partyScenarios.length);
           context = partyScenarios[selectedIndex];
           forbidden = ["Beach", "Gym", "Messy Room", "Forest", "Dirt road", "Office", "Daylight"];
-          console.log("[API] 🎉 PHASE 20: FESTA/GALA detectado - Party forçado (60 cenários)");
+          console.log("[API] 🎉 PHASE 21 FIX: FESTA/GALA detectado - Party forçado (cenário selecionado:", selectedIndex + 1, "de", partyScenarios.length, ")");
           return { context, forbidden };
         }
 
         // REGRA 4: FORMAL DOMINANCE (Dominante - força contexto formal)
         if (hasFormal) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * formalScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * formalScenarios.length);
           context = formalScenarios[selectedIndex];
           forbidden = ["Beach", "Gym", "Messy Room", "Forest", "Dirt road"];
-          console.log("[API] 👔 PHASE 20: SOCIAL/FORMAL (DOMINANTE) - Formal forçado (60 cenários)");
+          console.log("[API] 👔 PHASE 21 FIX: SOCIAL/FORMAL (DOMINANTE) - Formal forçado (cenário selecionado:", selectedIndex + 1, "de", formalScenarios.length, ")");
           return { context, forbidden };
         }
 
         // REGRA 5: FALLBACK (Safe Zone - para conflitos como Vestido + Tênis)
         // Se houver conflito (ex: Sport + Non-Sport), usar cenários neutros
         if ((hasSport && hasNonSport) || (hasBeach && hasWinter)) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * urbanScenarios.length);
           context = urbanScenarios[selectedIndex];
           forbidden = ["Gym", "Beach", "Swimming pool"];
-          console.log("[API] 🏙️ PHASE 20: CONFLITO DETECTADO - Usando FALLBACK (Urban/Studio - 60 cenários)", {
+          console.log("[API] 🏙️ PHASE 21 FIX: CONFLITO DETECTADO - Usando FALLBACK (Urban/Studio - cenário selecionado:", selectedIndex + 1, "de", urbanScenarios.length, ")", {
             hasSport: !!hasSport,
             hasNonSport: !!hasNonSport,
             hasBeach: !!hasBeach,
@@ -732,10 +752,11 @@ export async function POST(request: NextRequest) {
 
         // REGRA 6: CASUAL / STREET (se não houver conflito)
         if (hasCasual) {
-          const selectedIndex = isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * urbanScenarios.length);
           context = urbanScenarios[selectedIndex];
           forbidden = ["Gym", "Swimming pool", "Formal wedding"];
-          console.log("[API] 👕 PHASE 20: CASUAL/STREET detectado (60 cenários)");
+          console.log("[API] 👕 PHASE 21 FIX: CASUAL/STREET detectado (cenário selecionado:", selectedIndex + 1, "de", urbanScenarios.length, ")");
           return { context, forbidden };
         }
 
@@ -746,9 +767,11 @@ export async function POST(request: NextRequest) {
             "Minimalist bathroom with marble, clean design, natural lighting, sophisticated atmosphere",
             "Soft morning light window with elegant interior, comfortable setting, professional photography"
           ];
-          context = lingerieScenarios[isRemix ? Math.floor(Math.random() * lingerieScenarios.length) : 0];
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * lingerieScenarios.length);
+          context = lingerieScenarios[selectedIndex];
           forbidden = ["Street", "Office", "Gym", "Public places", "Crowd"];
-          console.log("[API] 🛏️ PHASE 20: LINGERIE/SLEEP detectado");
+          console.log("[API] 🛏️ PHASE 21 FIX: LINGERIE/SLEEP detectado (cenário selecionado:", selectedIndex + 1, "de", lingerieScenarios.length, ")");
           return { context, forbidden };
         }
 
@@ -762,17 +785,18 @@ export async function POST(request: NextRequest) {
             "Modern minimalist concrete studio with soft shadows",
             "City park pathway with green trees and benches"
           ];
-          const selectedIndex = isRemix ? Math.floor(Math.random() * shoesScenarios.length) : 0;
+          // PHASE 21 FIX: Sempre sortear aleatoriamente
+          const selectedIndex = Math.floor(Math.random() * shoesScenarios.length);
           context = shoesScenarios[selectedIndex];
           forbidden = ["Mud", "Grass (hiding the shoe)", "Water"];
-          console.log("[API] 👠 PHASE 20: CALÇADOS detectado");
+          console.log("[API] 👠 PHASE 21 FIX: CALÇADOS detectado (cenário selecionado:", selectedIndex + 1, "de", shoesScenarios.length, ")");
           return { context, forbidden };
         }
 
-        // Default: Urban/Studio (fallback final - usar cenários urbanos)
-        const selectedIndex = isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0;
+        // PHASE 21 FIX: Default: Urban/Studio (fallback final - sempre sortear aleatoriamente)
+        const selectedIndex = Math.floor(Math.random() * urbanScenarios.length);
         context = urbanScenarios[selectedIndex];
-        console.log("[API] 🎬 PHASE 20: DEFAULT (Urban/Studio - 60 cenários) - Nenhuma regra específica aplicada");
+        console.log("[API] 🎬 PHASE 21 FIX: DEFAULT (Urban/Studio - cenário selecionado:", selectedIndex + 1, "de", urbanScenarios.length, ") - Nenhuma regra específica aplicada");
 
         return { context, forbidden };
       };
