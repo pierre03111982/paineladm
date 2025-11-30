@@ -557,9 +557,9 @@ export async function POST(request: NextRequest) {
       }
       
       /**
-       * PHASE 15 V2: Smart Scenario Detection with Conflict Resolution
+       * PHASE 20: Master Logic & Behavioral Refinement
        * Detecta o cenário apropriado baseado na categoria do produto
-       * Implementa resolução de conflitos para evitar incoerências (ex: Vestido + Tênis em Gym)
+       * Implementa resolução de conflitos e integra os 60 cenários de alta qualidade
        */
       const getSmartScenario = (products: any[], isRemix: boolean = false): { context: string; forbidden: string[] } => {
         // Fallback padrão
@@ -571,7 +571,86 @@ export async function POST(request: NextRequest) {
         const names = products.map(p => (p?.nome || "").toLowerCase());
         const allText = [...categories, ...names].join(" ");
 
-        // PHASE 15 V2: Conflict Resolution Logic
+        // PHASE 20: 60 High-Quality Scenarios
+        const beachScenarios = [
+          "Sunny tropical beach with turquoise water and white sand, clear blue sky",
+          "Luxury wooden pool deck with lounge chairs, bright sunlight",
+          "Golden hour sand dunes with soft shadows, warm lighting",
+          "Tropical garden with palm trees and vibrant flowers, natural light",
+          "Infinity pool overlooking the ocean at sunset, cinematic lighting",
+          "Wooden pier extending into calm blue water, bright day",
+          "Beach bar with thatched roof and tropical drinks, relaxed atmosphere",
+          "Rocky coastline with crashing waves, dramatic sunlight",
+          "Private yacht deck on open sea, luxury lifestyle vibe",
+          "Hammock between two palm trees on a secluded beach"
+        ];
+
+        const urbanScenarios = [
+          "Busy urban street with blurred crowd and city lights",
+          "Modern minimalist concrete studio with soft shadows",
+          "Trendy coffee shop exterior with brick walls and outdoor seating",
+          "City park pathway with green trees and benches",
+          "Industrial loft with exposed brick walls and large windows",
+          "Graffiti art wall in a vibrant alleyway, urban culture vibe",
+          "Rooftop terrace with city skyline view at dusk",
+          "Subway station platform with modern architecture",
+          "Skate park with concrete ramps and graffiti",
+          "Neon-lit city street at night, cyberpunk aesthetic"
+        ];
+
+        const formalScenarios = [
+          "Modern corporate office with glass walls and city view",
+          "Luxury Hotel Lobby with marble floors and chandeliers",
+          "High-end minimalist apartment living room",
+          "Abstract architectural background with clean lines",
+          "Classic library with wooden shelves and leather chairs",
+          "Conference room with sleek table and modern chairs",
+          "Museum gallery with white walls and soft spotlighting",
+          "Upscale restaurant interior with elegant table setting",
+          "Modern co-working space with plants and natural light",
+          "Executive private jet interior, luxury travel vibe"
+        ];
+
+        const partyScenarios = [
+          "Red carpet event with bokeh lights and paparazzi flashes",
+          "Elegant ballroom with crystal chandeliers and grand staircase",
+          "Rooftop bar at night with sparkling city lights background",
+          "Marble staircase in a luxury mansion",
+          "Opera house foyer with velvet curtains and gold details",
+          "Garden party at twilight with string lights",
+          "Champagne bar with dim, romantic lighting",
+          "VIP club lounge with neon accents and velvet sofas",
+          "Wedding reception hall with floral arrangements",
+          "Casino interior with vibrant lights and excitement"
+        ];
+
+        const fitnessScenarios = [
+          "Modern bright gym interior with mirrors and equipment",
+          "Outdoor running track in a park with morning sun",
+          "Yoga studio with wood floor, plants, and soft morning light",
+          "Urban concrete stairs for street workout",
+          "Tennis court with green surface and white lines",
+          "Hiking trail in a forest with dappled sunlight",
+          "Crossfit box with industrial look and weights",
+          "Pilates studio with reformer machines and calm vibe",
+          "Basketball court outdoor with chain-link fence",
+          "Soccer field with green grass and stadium lights"
+        ];
+
+        const winterScenarios = [
+          "Autumn city street with falling orange leaves",
+          "Cozy indoor fireplace setting with rug and armchair",
+          "Cloudy urban skyline with grey tones",
+          "Snowy mountain landscape with pine trees",
+          "Winter cabin porch with wood details and snow",
+          "Foggy forest path with mysterious atmosphere",
+          "Christmas market with festive lights and stalls",
+          "Ski resort lodge with panoramic snow view",
+          "Rainy city street with reflections on wet pavement",
+          "Library reading nook with warm lamp light"
+        ];
+
+        // PHASE 20: Conflict Resolution Logic
         // Verificar conflitos ANTES de aplicar regras específicas
 
         // Detectar tipos de produtos
@@ -581,81 +660,68 @@ export async function POST(request: NextRequest) {
         const hasWinter = allText.match(/couro|leather|casaco|sobretudo|bota|cachecol|inverno|winter|coat|pérola|veludo|lã|wool|woollen|boot/i);
         const hasFormal = allText.match(/terno|blazer|social|alfaiataria|vestido longo|gravata|suit|formal|festa|gala|paetê|salto alto fino|clutch|vestido de festa|brilho/i);
         const hasCasual = allText.match(/jeans|t-shirt|moletom|tênis casual|jaqueta jeans|casual|street/i);
+        const hasParty = allText.match(/festa|gala|paetê|salto alto fino|clutch|vestido de festa|brilho|noite|night|evening/i);
 
         // REGRA 0: INVERNO/COURO (Prioridade ABSOLUTA - verificar PRIMEIRO)
         if (hasWinter) {
-          const winterScenarios = [
-            "Autumn city street with falling leaves, urban environment, natural lighting, photorealistic",
-            "Cozy indoor fireplace setting with warm lighting, comfortable atmosphere, elegant interior",
-            "Cloudy urban skyline with modern architecture, professional photography, sophisticated setting",
-            "Modern concrete structure with architectural design, minimalist and contemporary, natural light"
-          ];
-          context = winterScenarios[isRemix ? Math.floor(Math.random() * winterScenarios.length) : 0];
+          const selectedIndex = isRemix ? Math.floor(Math.random() * winterScenarios.length) : 0;
+          context = winterScenarios[selectedIndex];
           forbidden = [
             "Tropical Beach", "Beach", "Pool", "Swimming pool", "Sunny summer park", 
             "Ocean", "Sand", "Palm trees", "Summer", "Hot weather",
             "Beach resort", "Seaside", "Tropical", "Paradise beach", "Sunny beach", "Beach scene"
           ];
-          console.log("[API] 🧥 PHASE 15 V2: INVERNO/COURO detectado (PRIORIDADE) - PROIBINDO PRAIA");
+          console.log("[API] 🧥 PHASE 20: INVERNO/COURO detectado (PRIORIDADE) - PROIBINDO PRAIA");
           return { context, forbidden };
         }
 
-        // REGRA 1: GYM INTEGRITY (STRICT - Requer UNANIMIDADE)
+        // PHASE 20: REGRA 1 - "BIKINI LAW" (STRICT - Se tem swimwear, DEVE ser Beach/Pool)
+        if (hasBeach) {
+          const selectedIndex = isRemix ? Math.floor(Math.random() * beachScenarios.length) : 0;
+          context = beachScenarios[selectedIndex];
+          forbidden = [
+            "Office", "City Street", "Snow", "Gym", "Shopping Mall", "Bedroom",
+            "Urban", "Night", "Winter", "Indoor", "Corporate", "Formal"
+          ];
+          console.log("[API] 🏖️ PHASE 20: BIKINI LAW - MODA PRAIA detectado - FORÇANDO Beach/Pool (60 cenários)");
+          return { context, forbidden };
+        }
+
+        // REGRA 2: GYM INTEGRITY (STRICT - Requer UNANIMIDADE)
         // Gym só é permitido se TODOS os produtos forem esportivos
         if (hasSport && !hasNonSport) {
-          const fitnessScenarios = [
-            "Modern bright gym with mirrors, professional equipment, high-end atmosphere, clean and spacious",
-            "Outdoor running track in a park with natural lighting, urban environment, professional photography",
-            "Yoga studio with wood floor, soft natural light, minimalist and peaceful atmosphere",
-            "Urban concrete stairs for street workout, modern city setting, dynamic lighting"
-          ];
-          context = fitnessScenarios[isRemix ? Math.floor(Math.random() * fitnessScenarios.length) : 0];
+          const selectedIndex = isRemix ? Math.floor(Math.random() * fitnessScenarios.length) : 0;
+          context = fitnessScenarios[selectedIndex];
           forbidden = ["Bedroom", "Luxury Lobby", "Beach (sand)", "Formal Event", "Restaurant"];
-          console.log("[API] 💪 PHASE 15 V2: FITNESS/SPORT (UNANIMIDADE) - Gym permitido");
+          console.log("[API] 💪 PHASE 20: FITNESS/SPORT (UNANIMIDADE) - Gym permitido (60 cenários)");
           return { context, forbidden };
         }
 
-        // REGRA 2: BEACH INTEGRITY (STRICT - Veto se houver inverno)
-        if (hasBeach && !hasWinter) {
-          const beachScenarios = [
-            "Sunny tropical beach with turquoise water, white sand, clear blue sky, luxury resort atmosphere",
-            "Luxury poolside resort with modern architecture, palm trees, golden hour lighting",
-            "Wooden deck near ocean with sunset colors, elegant and sophisticated setting",
-            "Golden hour sand dunes with soft natural lighting, minimalist and photorealistic"
-          ];
-          context = beachScenarios[isRemix ? Math.floor(Math.random() * beachScenarios.length) : 0];
-          forbidden = ["Office", "City Street", "Snow", "Gym", "Shopping Mall", "Bedroom"];
-          console.log("[API] 🏖️ PHASE 15 V2: MODA PRAIA (SEM INVERNO) - Beach permitido");
+        // REGRA 3: PARTY/GALA (Prioridade sobre Formal)
+        if (hasParty) {
+          const selectedIndex = isRemix ? Math.floor(Math.random() * partyScenarios.length) : 0;
+          context = partyScenarios[selectedIndex];
+          forbidden = ["Beach", "Gym", "Messy Room", "Forest", "Dirt road", "Office", "Daylight"];
+          console.log("[API] 🎉 PHASE 20: FESTA/GALA detectado - Party forçado (60 cenários)");
           return { context, forbidden };
         }
 
-        // REGRA 3: FORMAL DOMINANCE (Dominante - força contexto formal)
+        // REGRA 4: FORMAL DOMINANCE (Dominante - força contexto formal)
         if (hasFormal) {
-          const formalScenarios = [
-            "Modern corporate office with glass walls, minimalist architecture, professional lighting",
-            "Luxury Hotel Lobby with elegant design, sophisticated atmosphere, premium materials",
-            "High-end minimal apartment with contemporary furniture, clean lines, natural lighting",
-            "Abstract architectural background with modern design, professional photography style"
-          ];
-          context = formalScenarios[isRemix ? Math.floor(Math.random() * formalScenarios.length) : 0];
+          const selectedIndex = isRemix ? Math.floor(Math.random() * formalScenarios.length) : 0;
+          context = formalScenarios[selectedIndex];
           forbidden = ["Beach", "Gym", "Messy Room", "Forest", "Dirt road"];
-          console.log("[API] 👔 PHASE 15 V2: SOCIAL/FORMAL (DOMINANTE) - Formal forçado");
+          console.log("[API] 👔 PHASE 20: SOCIAL/FORMAL (DOMINANTE) - Formal forçado (60 cenários)");
           return { context, forbidden };
         }
 
-        // REGRA 4: FALLBACK (Safe Zone - para conflitos como Vestido + Tênis)
+        // REGRA 5: FALLBACK (Safe Zone - para conflitos como Vestido + Tênis)
         // Se houver conflito (ex: Sport + Non-Sport), usar cenários neutros
         if ((hasSport && hasNonSport) || (hasBeach && hasWinter)) {
-          const urbanScenarios = [
-            "Sunny urban street with blurred city background, modern city atmosphere, natural lighting, professional photography",
-            "Modern minimalist concrete studio with soft natural lighting, clean and contemporary",
-            "Trendy coffee shop exterior with warm lighting, comfortable setting, contemporary design",
-            "City park pathway with green spaces, natural lighting, relaxed atmosphere, professional style",
-            "Brick wall loft with industrial style, modern and minimalist, soft natural light"
-          ];
-          context = urbanScenarios[isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0];
+          const selectedIndex = isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0;
+          context = urbanScenarios[selectedIndex];
           forbidden = ["Gym", "Beach", "Swimming pool"];
-          console.log("[API] 🏙️ PHASE 15 V2: CONFLITO DETECTADO - Usando FALLBACK (Urban/Studio)", {
+          console.log("[API] 🏙️ PHASE 20: CONFLITO DETECTADO - Usando FALLBACK (Urban/Studio - 60 cenários)", {
             hasSport: !!hasSport,
             hasNonSport: !!hasNonSport,
             hasBeach: !!hasBeach,
@@ -664,21 +730,16 @@ export async function POST(request: NextRequest) {
           return { context, forbidden };
         }
 
-        // REGRA 5: CASUAL / STREET (se não houver conflito)
+        // REGRA 6: CASUAL / STREET (se não houver conflito)
         if (hasCasual) {
-          const casualScenarios = [
-            "Busy urban street with blurred crowd, modern city atmosphere, natural lighting, professional photography",
-            "Cozy Coffee Shop with warm lighting, comfortable setting, contemporary design",
-            "Brick wall loft with industrial style, modern and minimalist, soft natural light",
-            "Casual city park with green spaces, natural lighting, relaxed atmosphere, professional style"
-          ];
-          context = casualScenarios[isRemix ? Math.floor(Math.random() * casualScenarios.length) : 0];
+          const selectedIndex = isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0;
+          context = urbanScenarios[selectedIndex];
           forbidden = ["Gym", "Swimming pool", "Formal wedding"];
-          console.log("[API] 👕 PHASE 15 V2: CASUAL/STREET detectado");
+          console.log("[API] 👕 PHASE 20: CASUAL/STREET detectado (60 cenários)");
           return { context, forbidden };
         }
 
-        // REGRA 6: LINGERIE / SLEEP
+        // REGRA 7: LINGERIE / SLEEP
         if (allText.match(/pijama|lingerie|robe|camisola|sleep|nightwear/i)) {
           const lingerieScenarios = [
             "Cozy bright bedroom with white sheets, soft morning light, minimalist and elegant",
@@ -687,25 +748,31 @@ export async function POST(request: NextRequest) {
           ];
           context = lingerieScenarios[isRemix ? Math.floor(Math.random() * lingerieScenarios.length) : 0];
           forbidden = ["Street", "Office", "Gym", "Public places", "Crowd"];
-          console.log("[API] 🛏️ PHASE 15 V2: LINGERIE/SLEEP detectado");
+          console.log("[API] 🛏️ PHASE 20: LINGERIE/SLEEP detectado");
           return { context, forbidden };
         }
 
-        // REGRA 7: CALÇADOS (Geral - apenas se não houver conflito)
+        // REGRA 8: CALÇADOS (Geral - apenas se não houver conflito)
         if (allText.match(/sandália|rasteirinha|sapatilha|calçado|shoe|footwear/i)) {
+          // Usar cenários urbanos para calçados (pavimento, chão limpo)
           const shoesScenarios = [
             "Paved street surface with clean background, professional photography, natural lighting",
             "Wooden floor with elegant interior, minimalist setting, soft natural light",
-            "Tiled clean floor with modern design, professional photography, sophisticated atmosphere"
+            "Tiled clean floor with modern design, professional photography, sophisticated atmosphere",
+            "Modern minimalist concrete studio with soft shadows",
+            "City park pathway with green trees and benches"
           ];
-          context = shoesScenarios[isRemix ? Math.floor(Math.random() * shoesScenarios.length) : 0];
+          const selectedIndex = isRemix ? Math.floor(Math.random() * shoesScenarios.length) : 0;
+          context = shoesScenarios[selectedIndex];
           forbidden = ["Mud", "Grass (hiding the shoe)", "Water"];
-          console.log("[API] 👠 PHASE 15 V2: CALÇADOS detectado");
+          console.log("[API] 👠 PHASE 20: CALÇADOS detectado");
           return { context, forbidden };
         }
 
-        // Default: Clean Studio (fallback final)
-        console.log("[API] 🎬 PHASE 15 V2: DEFAULT (Clean Studio) - Nenhuma regra específica aplicada");
+        // Default: Urban/Studio (fallback final - usar cenários urbanos)
+        const selectedIndex = isRemix ? Math.floor(Math.random() * urbanScenarios.length) : 0;
+        context = urbanScenarios[selectedIndex];
+        console.log("[API] 🎬 PHASE 20: DEFAULT (Urban/Studio - 60 cenários) - Nenhuma regra específica aplicada");
 
         return { context, forbidden };
       };
@@ -813,6 +880,7 @@ export async function POST(request: NextRequest) {
           smartContext: smartContext, // PHASE 15: Contexto inteligente (Beach/Office/Studio)
           smartFraming: smartFraming, // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
           forbiddenScenarios: forbiddenScenarios, // PHASE 15: Cenários proibidos para negative prompt
+          productsData: productsData, // PHASE 20: Dados completos dos produtos para lógica de "Complete the Look" e acessórios
         },
       });
       

@@ -142,3 +142,4 @@ Se você encontrar problemas ou tiver dúvidas, entre em contato com o suporte t
 **Última atualização**: Dezembro 2024
 **Versão**: 1.0
 
+

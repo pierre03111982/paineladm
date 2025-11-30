@@ -49,6 +49,7 @@ export interface CreateCompositionParams {
     smartContext?: string; // PHASE 15: Contexto inteligente (Beach/Office/Studio)
     smartFraming?: string; // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
     forbiddenScenarios?: string[]; // PHASE 15: Cenários proibidos para negative prompt
+    productsData?: any[]; // PHASE 20: Dados completos dos produtos para lógica de "Complete the Look" e acessórios
   };
 }
 
@@ -197,6 +198,15 @@ export class CompositionOrchestrator {
         const productCategory = (params.options?.productCategory || "").toLowerCase();
         const gerarNovoLook = params.options?.gerarNovoLook === true || isRemix; // PHASE 14: Flag para ativar mudança de pose (sempre ativo em remix)
         
+        // PHASE 20: Detectar produtos para lógica de "Complete the Look" e acessórios
+        const productsData = params.options?.productsData || [];
+        const allText = productsData.map(p => `${p?.categoria || ""} ${p?.nome || ""}`).join(" ").toLowerCase();
+        const hasGlasses = allText.match(/óculos|oculos|glasses|sunglasses/i);
+        const hasTop = allText.match(/camisa|blusa|blouse|shirt|top|jaqueta|jacket|moletom|hoodie/i);
+        const hasBottom = allText.match(/calça|pants|jeans|saia|skirt|shorts|vestido|dress/i);
+        const hasShoes = allText.match(/calçado|calcado|sapato|tênis|tenis|sneaker|shoe|footwear/i);
+        const isBeachContext = smartContext.toLowerCase().includes("beach") || smartContext.toLowerCase().includes("pool") || smartContext.toLowerCase().includes("ocean");
+        
         // PHASE 14 FIX: Se for remix, usar o scenePrompts para substituir contextRule e framingRule
         let categorySpecificPrompt = `, ${smartFraming}`;
         let framingRule = `FORCE CONTEXT: ${smartFraming.toUpperCase()}.`;
@@ -245,18 +255,33 @@ export class CompositionOrchestrator {
         
         // PHASE 14: Injetar flag "GERAR NOVO LOOK" se ativado (Regra de Postura Condicional)
         const posturaRule = gerarNovoLook 
-          ? "⚠️ GERAR NOVO LOOK: ATIVADO. A IA PODE MUDAR A POSE DA PESSOA COMPLETAMENTE (postura e ângulo corporal) mantendo a P1 (proporções físicas inalteradas) e a P2 (visibilidade dos produtos). A nova pose DEVE ser natural, fotorrealista e otimizar a exibição de todos os produtos selecionados."
-          : "POSTURA PRESERVADA (Padrão): A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios.";
+          ? "⚠️ GERAR NOVO LOOK: ATIVADO. A IA PODE MUDAR A POSE DA PESSOA COMPLETAMENTE (postura e ângulo corporal) mantendo a P1 (proporções físicas inalteradas) e a P2 (visibilidade dos produtos). A nova pose DEVE ser natural, fotorrealista e otimizar a exibição de todos os produtos selecionados. IMPORTANTE: A pessoa DEVE estar em pé (standing), caminhando (walking) ou apoiada em parede (leaning against wall). NUNCA sentada, ajoelhada ou em cadeira."
+          : "POSTURA PRESERVADA (Padrão): A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios. IMPORTANTE: A pessoa DEVE estar em pé (standing), caminhando (walking) ou apoiada em parede (leaning against wall). NUNCA sentada, ajoelhada ou em cadeira.";
         
         if (gerarNovoLook) {
           console.log("[Orchestrator] 🎨 PHASE 14: Flag 'GERAR NOVO LOOK' ATIVADA - Permitindo mudança de pose");
+        }
+        
+        // PHASE 20: "Complete the Look" (Auto-Jeans) - Se tem Top mas não tem Bottom, adicionar jeans
+        let completeTheLookPrompt = "";
+        if (hasTop && !hasBottom) {
+          completeTheLookPrompt = " wearing neutral blue denim jeans";
+          console.log("[Orchestrator] 👖 PHASE 20: Complete the Look ativado - Adicionando jeans automático");
+        }
+        
+        // PHASE 20: Smart Accessory Placement - Óculos no rosto
+        let accessoryPrompt = "";
+        if (hasGlasses) {
+          accessoryPrompt = " wearing sunglasses ON EYES, wearing glasses ON FACE";
+          console.log("[Orchestrator] 👓 PHASE 20: Óculos detectado - Forçando no rosto");
         }
 
         // PHASE 11-B: Strong Negative Prompt para reduzir erros de anatomia e cortes
         // Conforme especificação: (feet cut off:1.5), (head cut off:1.5)
         // PHASE 11-B: Reforçar negative prompt quando há calçados para prevenir "cut legs"
         // PHASE 16: Adicionar instruções sobre sombras no negative prompt
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4)";
+        // PHASE 20: Banir poses sentadas e mannequin body
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:1.6), (plastic skin:1.5), (artificial pose:1.5)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -265,6 +290,20 @@ export class CompositionOrchestrator {
                                    productCategory.includes("footwear")
           ? `${baseNegativePrompt}, (feet cut off:1.8), (cropped legs:1.6), (legs cut off:1.6), close up portrait, portrait shot, upper body only`
           : `${baseNegativePrompt}, (feet cut off:1.5)`;
+        
+        // PHASE 20: Phantom Boots Fix - Se contexto é Beach e não tem sapatos, banir boots/sneakers
+        let phantomBootsNegative = "";
+        if (isBeachContext && !hasShoes) {
+          phantomBootsNegative = ", (boots:2.0), (shoes:1.5), (sneakers:1.5)";
+          console.log("[Orchestrator] 🏖️ PHASE 20: Phantom Boots Fix - Beach sem sapatos, banindo boots/sneakers");
+        }
+        
+        // PHASE 20: Glasses Placement Fix - Banir óculos no chão ou na mão
+        let glassesNegative = "";
+        if (hasGlasses) {
+          glassesNegative = ", (glasses on floor:2.0), (glasses in hand:2.0)";
+          console.log("[Orchestrator] 👓 PHASE 20: Glasses Placement Fix - Banindo óculos no chão/mão");
+        }
         
         // PHASE 15: Adicionar cenários proibidos ao negative prompt (FORÇAR com peso alto)
         const forbiddenScenarios = params.options?.forbiddenScenarios || [];
@@ -281,7 +320,7 @@ export class CompositionOrchestrator {
           ? `, (beach scene:2.5), (ocean background:2.5), (sand:2.5), (palm trees:2.5), (tropical:2.5), (summer beach:2.5), (swimming pool:2.5), (beach resort:2.5), (seaside:2.5), (paradise beach:2.5), (sunny beach:2.5)`
           : "";
         
-        const strongNegativePrompt = `${feetNegativePrompt}${forbiddenPrompt}${additionalForbiddenReinforcement}`;
+        const strongNegativePrompt = `${feetNegativePrompt}${phantomBootsNegative}${glassesNegative}${forbiddenPrompt}${additionalForbiddenReinforcement}`;
         
         if (forbiddenScenarios.length > 0) {
           console.log("[Orchestrator] 🚫 PHASE 15: Cenários proibidos FORÇADOS no negative prompt (peso 2.0):", {
@@ -316,7 +355,9 @@ ${framingRule}
 
 ${posturaRule}
 
-META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS. O resultado final DEVE parecer uma FOTO REAL, não gerada.
+META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS${completeTheLookPrompt}${accessoryPrompt}. O resultado final DEVE parecer uma FOTO REAL, não gerada.
+
+⚠️ CRITICAL: IGNORE the body shape of the mannequin in any input product image. Use ONLY the body shape from the IMAGEM_PESSOA (User Photo). The person's body proportions MUST come exclusively from the IMAGEM_PESSOA.
 
 A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE PRODUTO QUE COMPROMETA A IDENTIDADE VISUAL DA PESSOA SERÁ CONSIDERADA UMA FALHA CRÍTICA.
 
