@@ -195,6 +195,7 @@ export async function updateLojaPerfil(
       if (updateData.app_icon_storage_path !== undefined) {
         cleanData.app_icon_storage_path = updateData.app_icon_storage_path;
       }
+      console.log("[updateLojaPerfil] PHASE 25: Salvando app_icon_url:", updateData.app_icon_url ? (updateData.app_icon_url.length > 50 ? updateData.app_icon_url.substring(0, 50) + "..." : updateData.app_icon_url) : "null");
     }
     if (updateData.instagram !== undefined) cleanData.instagram = updateData.instagram;
     if (updateData.facebook !== undefined) cleanData.facebook = updateData.facebook;
