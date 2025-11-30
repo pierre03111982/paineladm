@@ -211,18 +211,20 @@ export class CompositionOrchestrator {
         
         // PHASE 21 FIX: Sempre usar smartContext do backend (aplica Bikini Law e outras regras)
         // Mesmo em remix, o smartContext já foi calculado corretamente pelo backend usando getSmartScenario
+        // PHASE 24: Simplified context and framing rules (50% reduction)
         let categorySpecificPrompt = `, ${smartFraming}`;
-        let framingRule = `FORCE CONTEXT: ${smartFraming.toUpperCase()}.`;
-        // PHASE 21 FIX: SEMPRE usar smartContext do backend (não substituir por scenePrompts)
-        let contextRule = `⚠️ CRITICAL SCENE CONTEXT (MANDATORY): ${smartContext}. THE BACKGROUND MUST MATCH THIS EXACT CONTEXT. DO NOT USE ANY OTHER BACKGROUND.`;
+        let framingRule = `FRAMING: ${smartFraming}.`;
+        // PHASE 24: Simplified context rule
+        let contextRule = `SCENARIO: ${smartContext}.`;
         
         // PHASE 21 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose mas MANTER o smartContext
         let remixPoseInstructions = "";
         if (isRemix && params.scenePrompts && params.scenePrompts.length > 0) {
           const remixPromptText = params.scenePrompts[0];
           // PHASE 21 FIX: Extrair apenas instruções de pose do remixPrompt, mas MANTER o smartContext
-          remixPoseInstructions = `\n\n🎨 REMIX MODE: ${remixPromptText}`;
-          framingRule = `⚠️ CRITICAL: DRAMATIC SCENE AND POSE CHANGE REQUIRED. The background, lighting, camera angle, and person's pose must be COMPLETELY DIFFERENT from the original photo. This is a REMIX generation - create a NEW PHOTOSHOOT in a NEW LOCATION with a NEW POSE.`;
+          // PHASE 24: Simplified remix instructions
+          remixPoseInstructions = `\n\nREMIX: ${remixPromptText}`;
+          framingRule = `REMIX: Dramatic scene and pose change. New location, new pose.`;
           console.log("[Orchestrator] 🎨 PHASE 21 FIX: REMIX DETECTADO - Usando smartContext do backend + instruções de pose do remix:", {
             isRemix: true,
             smartContext: smartContext,
@@ -272,6 +274,43 @@ export class CompositionOrchestrator {
           console.log("[Orchestrator] 👖 PHASE 20: Complete the Look ativado - Adicionando jeans automático");
         }
         
+        // PHASE 23: Spatial Instructions for Multi-Product (explicit body part assignment)
+        let spatialProductInstructions = "";
+        if (productsData.length > 1) {
+          const productAssignments: string[] = [];
+          productsData.forEach((product, index) => {
+            const category = (product?.categoria || "").toLowerCase();
+            const name = (product?.nome || "").toLowerCase();
+            const productName = product?.nome || `Product ${index + 1}`;
+            
+            // Verificar se ESTE produto específico é um top
+            const isThisProductTop = category.includes("camisa") || category.includes("blusa") || category.includes("blouse") || category.includes("shirt") || category.includes("top") || category.includes("jaqueta") || category.includes("jacket") || category.includes("moletom") || category.includes("hoodie") || name.match(/camisa|blusa|blouse|shirt|top|jaqueta|jacket|moletom|hoodie/i);
+            // Verificar se ESTE produto específico é um bottom
+            const isThisProductBottom = category.includes("calça") || category.includes("pants") || category.includes("jeans") || category.includes("saia") || category.includes("skirt") || category.includes("shorts") || category.includes("vestido") || category.includes("dress") || name.match(/calça|pants|jeans|saia|skirt|shorts|vestido|dress/i);
+            // Verificar se ESTE produto específico é um calçado
+            const isThisProductShoes = category.includes("calçado") || category.includes("calcado") || category.includes("sapato") || category.includes("tênis") || category.includes("tenis") || category.includes("sneaker") || category.includes("shoe") || category.includes("footwear") || name.match(/calçado|calcado|sapato|tênis|tenis|sneaker|shoe|footwear/i);
+            // Verificar se ESTE produto específico é óculos
+            const isThisProductGlasses = category.includes("óculos") || category.includes("oculos") || category.includes("glasses") || category.includes("sunglasses") || name.match(/óculos|oculos|glasses|sunglasses/i);
+            
+            if (isThisProductTop) {
+              productAssignments.push(`[${productName}] on torso/upper body`);
+            } else if (isThisProductBottom) {
+              productAssignments.push(`[${productName}] on legs/lower body`);
+            } else if (isThisProductShoes) {
+              productAssignments.push(`[${productName}] on feet`);
+            } else if (isThisProductGlasses) {
+              productAssignments.push(`[${productName}] on face/head`);
+            } else {
+              productAssignments.push(`[${productName}] integrated naturally`);
+            }
+          });
+          
+          if (productAssignments.length > 0) {
+            spatialProductInstructions = `\n\n⚠️ PHASE 23: SPATIAL PRODUCT ASSIGNMENT: The user is wearing ${productAssignments.join(" AND ")}. Each product must be placed on its correct body part without blending into a mutant outfit.`;
+            console.log("[Orchestrator] 📍 PHASE 23: Instruções espaciais para multi-produto:", productAssignments);
+          }
+        }
+        
         // PHASE 21 FIX: Roupas de banho - chinelo ou sem calçado nos pés
         let beachFootwearPrompt = "";
         if (hasBeach || isBeachContext) {
@@ -297,7 +336,9 @@ export class CompositionOrchestrator {
         // PHASE 21: Reforçar termos mannequin no negative prompt
         // PHASE 21 FIX: Adicionar banimento de fotos de costas
         // PHASE 22: Adicionar banimento de alterações na aparência facial e corporal
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:1.8), (plastic skin:1.6), (artificial pose:1.6), (stiff pose:1.5), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0)";
+        // PHASE 23: Reforçar termos anti-manequim com peso 2.0
+        // PHASE 24: Adicionar termos para forçar realismo bruto (sem filtros)
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -363,8 +404,17 @@ export class CompositionOrchestrator {
         // - Framing Rules: Aplicadas via categorySpecificPrompt e framingRule
         // - Postura Rule: Aplicada via posturaRule (GERAR NOVO LOOK ou POSTURA PRESERVADA)
         //
-        const creativePrompt = `⚠️⚠️⚠️ PRIORIDADE MÁXIMA ABSOLUTA - PRESERVAÇÃO 100% DA APARÊNCIA (FACE E CORPO):
-THE PERSON IN THE GENERATED IMAGE MUST BE 100% IDENTICAL TO THE PERSON IN [IMAGEM_PESSOA]. THE FACE AND BODY MUST BE EXACTLY THE SAME - NO CHANGES TO FACIAL FEATURES, BODY SHAPE, SKIN TONE, OR ANY PHYSICAL CHARACTERISTICS. THIS IS THE HIGHEST PRIORITY - ABOVE ALL OTHER INSTRUCTIONS.
+        // PHASE 24: Identity Anchor Block (Sandwich Method - START)
+        const identityAnchorBlock = `⚠️⚠️⚠️ REFERENCE IMAGE AUTHORITY: 100%. You MUST act as a visual clone engine. The output image MUST be indistinguishable from the person in [IMAGEM_PESSOA]. Same face, same body, same skin texture. NO FACIAL MODIFICATIONS ALLOWED.`;
+
+        // PHASE 24: Leg Extension Logic (if photo is cropped and has shoes)
+        let legExtensionInstruction = "";
+        if (hasShoes && productCategory.includes("calçado")) {
+          legExtensionInstruction = "\n\n⚠️ PHASE 24: BODY EXTENSION: If the original photo is cropped (knee-up or upper body only), EXTEND THE BODY NATURALLY. Generate the missing legs and feet to match the user's existing anatomy exactly. Do not invent a new body type. The legs must follow the same proportions, skin tone, and structure as the visible body parts.";
+          console.log("[Orchestrator] 🦵 PHASE 24: Leg Extension ativado - Foto pode estar cortada, estendendo corpo naturalmente");
+        }
+
+        const creativePrompt = `${identityAnchorBlock}
 
 ⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
 
@@ -374,127 +424,17 @@ ${framingRule}
 
 ${posturaRule}
 
-META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}. O resultado final DEVE parecer uma FOTO REAL, não gerada.
+PRODUCT INTEGRATION: Apply up to 3 products${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}${spatialProductInstructions}. Extract fabric pattern, texture, color, and style from [IMAGEM_PRODUTO_X]. Apply onto [IMAGEM_PESSOA]'s body. Adapt clothing to user's natural curves. Fabric must drape naturally with realistic folds and shadows. Use ONLY body shape from [IMAGEM_PESSOA]. IGNORE mannequin's body shape.${legExtensionInstruction}
 
-⚠️⚠️⚠️ CRITICAL FACE & BODY IDENTITY PRESERVATION RULE (PHASE 22 - MAXIMUM SIMILARITY):
-THE PERSON IN THE GENERATED IMAGE MUST BE 100% IDENTICAL TO THE PERSON IN [IMAGEM_PESSOA]. THIS IS THE HIGHEST PRIORITY - ABOVE ALL OTHER INSTRUCTIONS.
+${contextRule}${remixPoseInstructions}
 
-FACE PRESERVATION (100% IDENTICAL):
-- EYES: Exact same shape, size, color, spacing, and expression. DO NOT change eye color, shape, or position.
-- NOSE: Exact same shape, size, width, and profile. DO NOT alter nose structure.
-- MOUTH: Exact same shape, size, lip thickness, and natural expression. DO NOT change lip shape or size.
-- FACE SHAPE: Exact same facial structure, jawline, cheekbones, and overall face proportions. DO NOT modify face shape.
-- SKIN: Exact same skin tone, texture, and complexion. DO NOT lighten, darken, or change skin color.
-- FACIAL FEATURES: Every detail of the face (eyebrows, eyelashes, facial hair, moles, freckles) must be PRESERVED EXACTLY as in [IMAGEM_PESSOA].
-- EXPRESSION: Maintain the natural expression from [IMAGEM_PESSOA] unless the pose requires a different expression, but keep it subtle and natural.
+${framingRule}
 
-BODY PRESERVATION (100% IDENTICAL):
-- BODY SHAPE: Exact same body type, proportions, height, and build. DO NOT change body shape or size.
-- BODY STRUCTURE: Exact same bone structure, muscle definition, and physical characteristics. DO NOT alter body structure.
-- PROPORTIONS: Exact same body proportions (shoulder width, waist, hips, limb length). DO NOT modify proportions.
-- SKIN TONE: Exact same skin tone and texture on the entire body. DO NOT change body skin color.
-- PHYSICAL CHARACTERISTICS: All unique physical features (tattoos, scars, birthmarks, etc.) must be PRESERVED if visible in [IMAGEM_PESSOA].
+PHOTOGRAPHY: Professional fashion photography. Natural lighting. Realistic shadows. 8K resolution. Sharp focus on person and products.
 
-⚠️ CRITICAL PRODUCT TRANSFER RULE (PHASE 21 - CLONE THE CLOTHES):
-The clothing item(s) in the [IMAGEM_PRODUTO_X] inputs must be CLONED EXACTLY as they appear (fabric texture, print, color, cut, embroidery, patterns, details). DO NOT replace, modify, or create new garments. Your task is to TRANSFER the exact item from the product image onto the person's body, maintaining 100% fidelity to the original product design. The garment must look IDENTICAL to the product photo, only adapted to fit the user's body proportions.
-
-⚠️ CRITICAL BODY STRUCTURE RULE (PHASE 21 - IGNORE MANNEQUIN BODY):
-Use ONLY the body shape, pose, and proportions from the [IMAGEM_PESSOA] (User Upload). COMPLETELY IGNORE the body shape of the mannequin or model in the product image. The clothes must drape and fit according to the user's body, not the mannequin's. The person's body proportions MUST come exclusively from the IMAGEM_PESSOA. The mannequin's body shape, pose, and proportions are IRRELEVANT and must be completely disregarded.
-
-A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE PRODUTO QUE COMPROMETA A IDENTIDADE VISUAL DA PESSOA SERÁ CONSIDERADA UMA FALHA CRÍTICA. THE FACE AND BODY MUST BE 100% IDENTICAL TO [IMAGEM_PESSOA] - NO EXCEPTIONS.
-
-🎯 PRIORIZAÇÃO ABSOLUTA E INEGOCIÁVEL (ORDEM DE PRIORIDADE CRÍTICA E INALTERÁVEL):
-
-    PRIORIDADE 1 - IDENTIDADE INALTERÁVEL E SAGRADA DA PESSOA (MÁXIMA PRIORIDADE ABSOLUTA. NADA PODE COMPROMETER ISSO):
-    * A IMAGEM_PESSOA (primeira imagem) é o DNA VISUAL INTOCÁVEL. TODAS as características do ROSTO e do CORPO devem ser preservadas com 100% DE FIDELIDADE EXATA E UM PARA UM.
-    * A semelhança da pessoa DEVE ser IMUTÁVEL, INSTANTANEAMENTE RECONHECÍVEL e PRESERVADA ACIMA DE QUALQUER OUTRA INSTRUÇÃO, PRODUTO OU CENÁRIO.
-    * REPLICAÇÃO DE TEMPLATE DNA: A IA DEVE REPLICAR O PONTO DE VISTA, A ANGULAÇÃO E A PERSPECTIVA DA CÂMERA da IMAGEM_PESSOA, adaptando a pose e o enquadramento SOMENTE se permitido pela "REGRA DE POSTURA CONDICIONAL" e pela "Regra Mestra de Enquadramento".
-
-    PRIORIDADE 2 - FIDELIDADE ABSOLUTA DOS PRODUTOS E INTEGRAÇÃO FÍSICA E NATURAL:
-    * APÓS GARANTIR A PRIORIDADE 1, priorizar a fidelidade EXATA E REPLICADA de CADA PRODUTO/OBJETO (Máximo 3 produtos).
-
-1. PRESERVAÇÃO MÁXIMA E ABSOLUTA DA SEMELHANÇA DA PESSOA (Lei Inegociável - PRIORIDADE 1 - CRÍTICO ANTI-ARTIFICIALIDADE):
-
-    * ROSTO - PRESERVAÇÃO INTEGRAL COM REFINAMENTO ESTÉTICO MÍNIMO (100% IDÊNTICO):
-        * ⚠️⚠️⚠️ CRÍTICO: O ROSTO DEVE SER 100% IDÊNTICO AO DA IMAGEM_PESSOA. TODAS as características faciais devem ser preservadas EXATAMENTE:
-            * OLHOS: Mesma forma, tamanho, cor, espaçamento e expressão. NÃO alterar cor dos olhos, forma ou posição.
-            * NARIZ: Mesma forma, tamanho, largura e perfil. NÃO alterar estrutura do nariz.
-            * BOCA: Mesma forma, tamanho, espessura dos lábios e expressão natural. NÃO alterar forma ou tamanho dos lábios.
-            * FORMATO DO ROSTO: Mesma estrutura facial, linha da mandíbula, maçãs do rosto e proporções gerais do rosto. NÃO modificar formato do rosto.
-            * PELE: Mesmo tom de pele, textura e compleição. NÃO clarear, escurecer ou alterar cor da pele.
-            * CARACTERÍSTICAS FACIAIS: Todos os detalhes do rosto (sobrancelhas, cílios, pelos faciais, pintas, sardas) devem ser PRESERVADOS EXATAMENTE como na IMAGEM_PESSOA.
-            * EXPRESSÃO: Manter a expressão natural da IMAGEM_PESSOA, a menos que a pose exija uma expressão diferente, mas mantê-la sutil e natural.
-        * MAQUIAGEM/COSMÉTICOS (Condicionalidade de Preservação): A maquiagem ou cosméticos **originais** da IMAGEM_PESSOA devem ser preservados e mantidos **IDÊNTICOS**, A MENOS QUE um produto da categoria 'COSMÉTICOS' seja fornecido na lista de produtos.
-
-    * CORPO - MÁXIMA FIDELIDADE E PROPORÇÕES FÍSICAS INALTERADAS (100% IDÊNTICO):
-        * ⚠️⚠️⚠️ CRÍTICO: O CORPO DEVE SER 100% IDÊNTICO AO DA IMAGEM_PESSOA. TODAS as características corporais devem ser preservadas EXATAMENTE:
-            * FORMA DO CORPO: Mesmo tipo físico, proporções, altura e estrutura. NÃO alterar forma ou tamanho do corpo.
-            * ESTRUTURA CORPORAL: Mesma estrutura óssea, definição muscular e características físicas. NÃO alterar estrutura corporal.
-            * PROPORÇÕES: Mesmas proporções corporais (largura dos ombros, cintura, quadris, comprimento dos membros). NÃO modificar proporções.
-            * TOM DE PELE: Mesmo tom de pele e textura em todo o corpo. NÃO alterar cor da pele do corpo.
-            * CARACTERÍSTICAS FÍSICAS: Todas as características físicas únicas (tatuagens, cicatrizes, marcas de nascença, etc.) devem ser PRESERVADAS se visíveis na IMAGEM_PESSOA.
-        * REFORÇO DE FOCO: Para garantir a P1, a IA DEVE **IGNORAR O CONTEÚDO ESTRUTURAL DO FUNDO/CENÁRIO** da IMAGEM_PESSOA ao analisar a semelhança.
-        * **⚠️ REGRA DE POSTURA CONDICIONAL (GERAR NOVO LOOK):**
-            * **POSTURA PRESERVADA (Padrão):** A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios.
-            * **MUDANÇA DE POSE (SE 'GERAR NOVO LOOK' Ativado):** SE a instrução explícita de "GERAR NOVO LOOK" for fornecida (via prompt de texto), a IA **PODE MUDAR A POSE DA PESSOA COMPLETAMENTE** (postura e ângulo corporal) mantendo a P1 (proporções físicas inalteradas) e a P2 (visibilidade dos produtos). A nova pose DEVE ser natural, fotorrealista e otimizar a exibição de todos os produtos selecionados e o novo enquadramento.
-
-    * CABELO - APLICAÇÃO NATURAL DE TINTURA E APRIMORAMENTO (Condicionalidade e Substituição):
-        * SE um produto de tintura de cabelo for fornecido: 
-            * A cor do cabelo original DEVE ser **COMPLETAMENTE SUBSTITUÍDA** pela cor identificada do produto de tintura (analisar a cor dominante na IMAGEM_PRODUTO_X).
-            * O resultado final DEVE parecer um cabelo **REALMENTE TINGIDO**, com aplicação uniforme, natural e fotorrealista da tintura em TODOS os fios de cabelo visíveis.
-            * A tintura DEVE ser aplicada de forma **HOMOGÊNEA E PROFISSIONAL**, como se tivesse sido feita em um salão de beleza, cobrindo completamente a cor original do cabelo.
-            * **CRÍTICO**: A cor da tintura DEVE ser extraída diretamente da imagem do produto (IMAGEM_PRODUTO_X) e aplicada de forma **FOTORREALISTA E NATURAL**, sem deixar resquícios da cor original do cabelo.
-            * A textura, volume e estilo do cabelo DEVEM ser preservados, APENAS a cor deve ser alterada para corresponder exatamente à cor do produto de tintura.
-        * SE NENHUM produto de tintura de cabelo for fornecido: Preservar a cor EXATA, textura IDÊNTICA, volume e estilo **IDÊNTICOS** aos da IMAGEM_PESSOA.
-
-2. INTEGRAÇÃO INTELIGENTE E NATURAL DE PRODUTOS E VESTUÁRIO (PRIORIDADE 2 - FIDELIDADE E REALISMO IMPLACÁVEL DO PRODUTO):
-
-    * PHASE 14: A IA DEVE ANALISAR CADA IMAGEM_PRODUTO_X (Máximo 3 produtos: IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, IMAGEM_PRODUTO_3) para inferir sua categoria.
-    * PHASE 14: TODOS os produtos fornecidos DEVEM ser integrados na composição final. Nenhum produto pode ser ignorado ou omitido.
-
-    * SUBSTITUIÇÃO DE VESTUÁRIO: Se um produto da categoria 'ROUPA' for fornecido: A roupa original DEVE ser **INTEIRAMENTE SUBSTITUÍDA**. O caimento fotorrealista e físico do tecido **(Caimento, Forma, Cor, Tamanho, Proporção)** DEVE ser meticulosamente replicado.
-    
-    * **⚠️ PHASE 21: CLONE THE CLOTHES RULE (CRÍTICO):**
-        * A roupa na IMAGEM_PRODUTO_X DEVE ser CLONADA EXATAMENTE como aparece (textura do tecido, estampa, cor, corte, bordado, padrões, detalhes).
-        * NÃO substitua, modifique ou crie novas peças. Sua tarefa é TRANSFERIR a peça exata da imagem do produto para o corpo da pessoa.
-        * A peça DEVE parecer IDÊNTICA à foto do produto, apenas adaptada para caber nas proporções corporais do usuário.
-        * Mantenha 100% de fidelidade ao design original do produto.
-    
-    * **⚠️ PHASE 21: IGNORE MANNEQUIN BODY RULE (CRÍTICO):**
-        * Use APENAS a forma do corpo, pose e proporções da IMAGEM_PESSOA (Upload do Usuário).
-        * IGNORE COMPLETAMENTE a forma do corpo do manequim ou modelo na imagem do produto.
-        * As roupas devem cair e se ajustar de acordo com o corpo do usuário, NÃO com o corpo do manequim.
-        * As proporções corporais da pessoa DEVEM vir EXCLUSIVAMENTE da IMAGEM_PESSOA.
-        * A forma do corpo, pose e proporções do manequim são IRRELEVANTES e devem ser completamente desconsideradas.
-
-    * Outros Acessórios/Itens (Adição e Substituição Condicional):
-        * SE a categoria for JOIAS, RELÓGIOS ou ÓCULOS: A composição fotográfica DEVE priorizar um CLOSE-UP, **A MENOS QUE** a Regra Mestra de Enquadramento (Seção 3) exija um Cenário de Contexto.
-        * SE a categoria for COSMÉTICOS: O produto fornecido deve ser aplicado na pessoa com **MÁXIMA FIDELIDADE TÉCNICA** e aplicação SUAVE, NATURAL E FOTORREALISTA, **SUBSTITUINDO** a maquiagem original.
-
-3. CENÁRIO E ILUMINAÇÃO DINÂMICOS (Adaptação Contextual e Coesa - OBRIGATÓRIO):
-
-    **⚠️ REGRA MESTRA DE ENQUADRAMENTO (PRIORIDADE CRÍTICA DE CENA):**
-    * O ENQUADRAMENTO FINAL DA CENA DEVE SER SEMPRE DINÂMICO E DETERMINADO PELOS PRODUTOS SELECIONADOS.
-    * **CENÁRIO DE DETALHE (Close-up/Plano Médio):** SE a lista de produtos for composta **EXCLUSIVAMENTE** por itens que exigem close-up (Óculos, Joias, Relógios, Cosméticos, Tintura (Cabelo)) E o número total de produtos for 1 ou 2, o enquadramento DEVE se aproximar para focar no detalhe e realce.
-    * **CENÁRIO DE CONTEXTO (Corpo Inteiro/Plano Americano):** SE a lista de produtos incluir qualquer item de GRANDE VOLUME (Roupas, Calçados, Bolsas), OU o número de produtos for 3, o enquadramento DEVE se afastar para garantir que TODOS os itens sejam exibidos de forma COESA.
-
-    * **MUDANÇA DE AMBIENTE:** O cenário e a iluminação DEVEM ser AUTOMATICAMENTE ADAPTADOS para complementar o look. **MUDANÇAS SUTIS NO AMBIENTE** (ex: alteração de objetos de fundo, cor da parede, luz ambiente) são permitidas para criar uma sensação de "Novo Look" ao lado da nova pose.
-
-4. QUALIDADE FOTOGRÁFICA PROFISSIONAL (ULTRA-REALISTA E SEM ARTIFICIALIDADE DE IA):
-
-    * Estilo: Fotografia de moda ou lifestyle.
-    * Iluminação: Natural ou de estúdio, cinematográfica, REFLITANDO O CENÁRIO ADAPTADO E COM SOMBRAS/REFLEXOS FISICAMENTE CORRETOS.
-    * **⚠️ SOMBRAS REALISTAS OBRIGATÓRIAS (CRÍTICO):**
-        * A pessoa DEVE projetar sombras NATURAIS E FISICAMENTE CORRETAS no chão/superfície abaixo dela, baseadas na direção da luz do cenário.
-        * As sombras DEVEM ser suaves, graduais e com bordas difusas (soft shadows), não duras ou cortadas.
-        * A intensidade e direção das sombras DEVEM corresponder à iluminação do ambiente (ex: luz solar = sombra definida, luz suave = sombra suave).
-        * **CRÍTICO**: A ausência de sombras torna a imagem claramente artificial. SEMPRE inclua sombras realistas da pessoa no chão.
-        * As sombras DEVEM seguir a forma e postura da pessoa, criando profundidade e ancorando a pessoa no ambiente de forma realista.
-        * Se houver múltiplas fontes de luz, as sombras podem ser múltiplas, mas sempre suaves e naturalmente sobrepostas.
-    * Resolução: Ultra alta definição 8K.
-    * Foco/Profundidade de Campo: Foco nítido na pessoa e no(s) produto(s), com um fundo suavemente desfocado (bokeh ÓPTICO E REALISTA).
-
-RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA onde a pessoa é 100% IDÊNTICA (P1), todos os produtos fornecidos são FIÉIS (P2) e a cena completa é COESA, FOTORREALISTA E TOTALMENTE LIVRE DE QUALQUER INDÍCIO DE GERAÇÃO POR INTELIGÊNCIA ARTIFICIAL.`;
+⚠️⚠️⚠️ FINAL CHECK (PHASE 24 - IDENTITY ANCHOR - SANDWICH METHOD END):
+${identityAnchorBlock}
+The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes the body shape (e.g., makes it look like a plastic mannequin), it is a FAILURE. Keep the human skin texture and imperfections. The person should look like they are WEARING the clothes, not like the clothes are replacing their body. The fabric must drape naturally over the user's actual body shape, following gravity and creating realistic folds and shadows.`;
 
         // Construir array de imagens: primeira é a pessoa, seguintes são os produtos
         const imageUrls = [

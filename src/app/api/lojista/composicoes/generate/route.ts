@@ -562,8 +562,8 @@ export async function POST(request: NextRequest) {
        * Implementa resolução de conflitos e integra os 60 cenários de alta qualidade
        */
       const getSmartScenario = (products: any[], isRemix: boolean = false): { context: string; forbidden: string[] } => {
-        // Fallback padrão
-        let context = "Clean professional studio background with soft lighting";
+        // PHASE 24: Simplified fallback
+        let context = "Background: Clean studio";
         let forbidden: string[] = [];
 
         // Coletar todas as informações dos produtos
@@ -572,87 +572,88 @@ export async function POST(request: NextRequest) {
         const allText = [...categories, ...names].join(" ");
 
         // PHASE 20: 60 High-Quality Scenarios
+        // PHASE 24: Simplified descriptions (50% reduction) to save token attention for Face
         const beachScenarios = [
-          "Sunny tropical beach with turquoise water and white sand, clear blue sky",
-          "Luxury wooden pool deck with lounge chairs, bright sunlight",
-          "Golden hour sand dunes with soft shadows, warm lighting",
-          "Tropical garden with palm trees and vibrant flowers, natural light",
-          "Infinity pool overlooking the ocean at sunset, cinematic lighting",
-          "Wooden pier extending into calm blue water, bright day",
-          "Beach bar with thatched roof and tropical drinks, relaxed atmosphere",
-          "Rocky coastline with crashing waves, dramatic sunlight",
-          "Private yacht deck on open sea, luxury lifestyle vibe",
-          "Hammock between two palm trees on a secluded beach",
-          "Natural waterfall with crystal clear water and tropical vegetation, lush green surroundings",
-          "Resort swimming pool with palm trees and blue water, luxury vacation setting",
-          "Tropical beach at sunset with warm golden light, peaceful atmosphere",
-          "Modern infinity pool with ocean view, sophisticated resort setting",
-          "Natural pool in a tropical forest, surrounded by rocks and vegetation"
+          "Background: Sunny tropical beach",
+          "Background: Luxury pool deck",
+          "Background: Golden hour sand dunes",
+          "Background: Tropical garden",
+          "Background: Infinity pool at sunset",
+          "Background: Wooden pier",
+          "Background: Beach bar",
+          "Background: Rocky coastline",
+          "Background: Yacht deck",
+          "Background: Secluded beach",
+          "Background: Natural waterfall",
+          "Background: Resort pool",
+          "Background: Beach at sunset",
+          "Background: Modern infinity pool",
+          "Background: Natural pool in forest"
         ];
 
         const urbanScenarios = [
-          "Busy urban street with blurred crowd and city lights",
-          "Modern minimalist concrete studio with soft shadows",
-          "Trendy coffee shop exterior with brick walls and outdoor seating",
-          "City park pathway with green trees and benches",
-          "Industrial loft with exposed brick walls and large windows",
-          "Graffiti art wall in a vibrant alleyway, urban culture vibe",
-          "Rooftop terrace with city skyline view at dusk",
-          "Subway station platform with modern architecture",
-          "Skate park with concrete ramps and graffiti",
-          "Neon-lit city street at night, cyberpunk aesthetic"
+          "Background: Urban street",
+          "Background: Minimalist studio",
+          "Background: Coffee shop",
+          "Background: City park",
+          "Background: Industrial loft",
+          "Background: Graffiti alleyway",
+          "Background: Rooftop terrace",
+          "Background: Subway station",
+          "Background: Skate park",
+          "Background: Neon-lit street"
         ];
 
         const formalScenarios = [
-          "Modern corporate office with glass walls and city view",
-          "Luxury Hotel Lobby with marble floors and chandeliers",
-          "High-end minimalist apartment living room",
-          "Abstract architectural background with clean lines",
-          "Classic library with wooden shelves and leather chairs",
-          "Conference room with sleek table and modern chairs",
-          "Museum gallery with white walls and soft spotlighting",
-          "Upscale restaurant interior with elegant table setting",
-          "Modern co-working space with plants and natural light",
-          "Executive private jet interior, luxury travel vibe"
+          "Background: Corporate office",
+          "Background: Luxury hotel lobby",
+          "Background: Minimalist apartment",
+          "Background: Abstract architecture",
+          "Background: Classic library",
+          "Background: Conference room",
+          "Background: Museum gallery",
+          "Background: Upscale restaurant",
+          "Background: Co-working space",
+          "Background: Private jet interior"
         ];
 
         const partyScenarios = [
-          "Red carpet event with bokeh lights and paparazzi flashes",
-          "Elegant ballroom with crystal chandeliers and grand staircase",
-          "Rooftop bar at night with sparkling city lights background",
-          "Marble staircase in a luxury mansion",
-          "Opera house foyer with velvet curtains and gold details",
-          "Garden party at twilight with string lights",
-          "Champagne bar with dim, romantic lighting",
-          "VIP club lounge with neon accents and velvet sofas",
-          "Wedding reception hall with floral arrangements",
-          "Casino interior with vibrant lights and excitement"
+          "Background: Red carpet event",
+          "Background: Elegant ballroom",
+          "Background: Rooftop bar",
+          "Background: Luxury mansion",
+          "Background: Opera house",
+          "Background: Garden party",
+          "Background: Champagne bar",
+          "Background: VIP club",
+          "Background: Wedding reception",
+          "Background: Casino"
         ];
 
         const fitnessScenarios = [
-          "Modern bright gym interior with mirrors and equipment",
-          "Outdoor running track in a park with morning sun",
-          "Yoga studio with wood floor, plants, and soft morning light",
-          "Urban concrete stairs for street workout",
-          "Tennis court with green surface and white lines",
-          "Hiking trail in a forest with dappled sunlight",
-          "Crossfit box with industrial look and weights",
-          "Pilates studio with reformer machines and calm vibe",
-          "Basketball court outdoor with chain-link fence",
-          "Soccer field with green grass and stadium lights"
+          "Background: Modern gym",
+          "Background: Running track",
+          "Background: Yoga studio",
+          "Background: Urban stairs",
+          "Background: Tennis court",
+          "Background: Hiking trail",
+          "Background: Crossfit box",
+          "Background: Pilates studio",
+          "Background: Basketball court",
+          "Background: Soccer field"
         ];
 
         const winterScenarios = [
-          "Autumn city street with falling orange leaves",
-          "Cozy indoor fireplace setting with rug and armchair",
-          "Cloudy urban skyline with grey tones",
-          "Snowy mountain landscape with pine trees",
-          "Winter cabin porch with wood details and snow",
-          "Foggy forest path with mysterious atmosphere",
-          "Christmas market with festive lights and stalls",
-          "Ski resort lodge with panoramic snow view",
-          "Rainy city street with reflections on wet pavement",
-          "Library reading nook with warm lamp light"
+          "Background: Autumn street",
+          "Background: Fireplace setting",
+          "Background: Cloudy skyline",
+          "Background: Snowy mountain",
+          "Background: Winter cabin",
+          "Background: Foggy forest",
+          "Background: Christmas market",
+          "Background: Ski resort",
+          "Background: Rainy street",
+          "Background: Library nook"
         ];
 
         // PHASE 20: Conflict Resolution Logic
@@ -783,9 +784,9 @@ export async function POST(request: NextRequest) {
         // REGRA 7: LINGERIE / SLEEP
         if (allText.match(/pijama|lingerie|robe|camisola|sleep|nightwear/i)) {
           const lingerieScenarios = [
-            "Cozy bright bedroom with white sheets, soft morning light, minimalist and elegant",
-            "Minimalist bathroom with marble, clean design, natural lighting, sophisticated atmosphere",
-            "Soft morning light window with elegant interior, comfortable setting, professional photography"
+            "Background: Bright bedroom",
+            "Background: Minimalist bathroom",
+            "Background: Morning light window"
           ];
           // PHASE 21 FIX: Sempre sortear aleatoriamente
           const selectedIndex = Math.floor(Math.random() * lingerieScenarios.length);
@@ -799,11 +800,11 @@ export async function POST(request: NextRequest) {
         if (allText.match(/sandália|rasteirinha|sapatilha|calçado|shoe|footwear/i)) {
           // Usar cenários urbanos para calçados (pavimento, chão limpo)
           const shoesScenarios = [
-            "Paved street surface with clean background, professional photography, natural lighting",
-            "Wooden floor with elegant interior, minimalist setting, soft natural light",
-            "Tiled clean floor with modern design, professional photography, sophisticated atmosphere",
-            "Modern minimalist concrete studio with soft shadows",
-            "City park pathway with green trees and benches"
+            "Background: Paved street",
+            "Background: Wooden floor",
+            "Background: Tiled floor",
+            "Background: Minimalist studio",
+            "Background: City park"
           ];
           // PHASE 21 FIX: Sempre sortear aleatoriamente
           const selectedIndex = Math.floor(Math.random() * shoesScenarios.length);
@@ -814,9 +815,10 @@ export async function POST(request: NextRequest) {
         }
 
         // PHASE 21 FIX: Default: Urban/Studio (fallback final - sempre sortear aleatoriamente)
+        // PHASE 24: Simplified fallback
         const selectedIndex = Math.floor(Math.random() * urbanScenarios.length);
         context = urbanScenarios[selectedIndex];
-        console.log("[API] 🎬 PHASE 21 FIX: DEFAULT (Urban/Studio - cenário selecionado:", selectedIndex + 1, "de", urbanScenarios.length, ") - Nenhuma regra específica aplicada");
+        console.log("[API] 🎬 PHASE 24: DEFAULT (Urban/Studio - cenário selecionado:", selectedIndex + 1, "de", urbanScenarios.length, ") - Nenhuma regra específica aplicada");
 
         return { context, forbidden };
       };
