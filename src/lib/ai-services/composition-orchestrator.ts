@@ -281,7 +281,8 @@ export class CompositionOrchestrator {
         // PHASE 11-B: Reforçar negative prompt quando há calçados para prevenir "cut legs"
         // PHASE 16: Adicionar instruções sobre sombras no negative prompt
         // PHASE 20: Banir poses sentadas e mannequin body
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:1.6), (plastic skin:1.5), (artificial pose:1.5)";
+        // PHASE 21: Reforçar termos mannequin no negative prompt
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:1.8), (plastic skin:1.6), (artificial pose:1.6), (stiff pose:1.5), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -357,7 +358,11 @@ ${posturaRule}
 
 META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS${completeTheLookPrompt}${accessoryPrompt}. O resultado final DEVE parecer uma FOTO REAL, não gerada.
 
-⚠️ CRITICAL: IGNORE the body shape of the mannequin in any input product image. Use ONLY the body shape from the IMAGEM_PESSOA (User Photo). The person's body proportions MUST come exclusively from the IMAGEM_PESSOA.
+⚠️ CRITICAL PRODUCT TRANSFER RULE (PHASE 21 - CLONE THE CLOTHES):
+The clothing item(s) in the [IMAGEM_PRODUTO_X] inputs must be CLONED EXACTLY as they appear (fabric texture, print, color, cut, embroidery, patterns, details). DO NOT replace, modify, or create new garments. Your task is to TRANSFER the exact item from the product image onto the person's body, maintaining 100% fidelity to the original product design. The garment must look IDENTICAL to the product photo, only adapted to fit the user's body proportions.
+
+⚠️ CRITICAL BODY STRUCTURE RULE (PHASE 21 - IGNORE MANNEQUIN BODY):
+Use ONLY the body shape, pose, and proportions from the [IMAGEM_PESSOA] (User Upload). COMPLETELY IGNORE the body shape of the mannequin or model in the product image. The clothes must drape and fit according to the user's body, not the mannequin's. The person's body proportions MUST come exclusively from the IMAGEM_PESSOA. The mannequin's body shape, pose, and proportions are IRRELEVANT and must be completely disregarded.
 
 A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE PRODUTO QUE COMPROMETA A IDENTIDADE VISUAL DA PESSOA SERÁ CONSIDERADA UMA FALHA CRÍTICA.
 
@@ -397,6 +402,19 @@ A IMAGEM_PESSOA É UMA LEI DE FIDELIDADE INEGOCIÁVEL. QUALQUER INTEGRAÇÃO DE 
     * PHASE 14: TODOS os produtos fornecidos DEVEM ser integrados na composição final. Nenhum produto pode ser ignorado ou omitido.
 
     * SUBSTITUIÇÃO DE VESTUÁRIO: Se um produto da categoria 'ROUPA' for fornecido: A roupa original DEVE ser **INTEIRAMENTE SUBSTITUÍDA**. O caimento fotorrealista e físico do tecido **(Caimento, Forma, Cor, Tamanho, Proporção)** DEVE ser meticulosamente replicado.
+    
+    * **⚠️ PHASE 21: CLONE THE CLOTHES RULE (CRÍTICO):**
+        * A roupa na IMAGEM_PRODUTO_X DEVE ser CLONADA EXATAMENTE como aparece (textura do tecido, estampa, cor, corte, bordado, padrões, detalhes).
+        * NÃO substitua, modifique ou crie novas peças. Sua tarefa é TRANSFERIR a peça exata da imagem do produto para o corpo da pessoa.
+        * A peça DEVE parecer IDÊNTICA à foto do produto, apenas adaptada para caber nas proporções corporais do usuário.
+        * Mantenha 100% de fidelidade ao design original do produto.
+    
+    * **⚠️ PHASE 21: IGNORE MANNEQUIN BODY RULE (CRÍTICO):**
+        * Use APENAS a forma do corpo, pose e proporções da IMAGEM_PESSOA (Upload do Usuário).
+        * IGNORE COMPLETAMENTE a forma do corpo do manequim ou modelo na imagem do produto.
+        * As roupas devem cair e se ajustar de acordo com o corpo do usuário, NÃO com o corpo do manequim.
+        * As proporções corporais da pessoa DEVEM vir EXCLUSIVAMENTE da IMAGEM_PESSOA.
+        * A forma do corpo, pose e proporções do manequim são IRRELEVANTES e devem ser completamente desconsideradas.
 
     * Outros Acessórios/Itens (Adição e Substituição Condicional):
         * SE a categoria for JOIAS, RELÓGIOS ou ÓCULOS: A composição fotográfica DEVE priorizar um CLOSE-UP, **A MENOS QUE** a Regra Mestra de Enquadramento (Seção 3) exija um Cenário de Contexto.
