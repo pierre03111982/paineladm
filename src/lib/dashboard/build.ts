@@ -260,7 +260,7 @@ function buildInsight(reason?: string | null, productName?: string | null) {
 }
 
 function buildOpportunityRadar(composicoes: ComposicaoDoc[]): OpportunityLead[] {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 horas (aumentado de 2 horas)
+  const cutoff = Date.now() - 72 * 60 * 60 * 1000; // 72 horas
   const map = new Map<
     string,
     { name: string; events: ComposicaoDoc[] }

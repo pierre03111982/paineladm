@@ -1,6 +1,6 @@
 /**
  * Queries para CRM - Radar de Oportunidades
- * Busca clientes ativos nas últimas 24h
+ * Busca clientes ativos nas últimas 72h
  */
 
 import { getAdminDb } from "../firebaseAdmin";
@@ -26,11 +26,11 @@ export interface ActiveClient {
 }
 
 /**
- * Busca clientes que tiveram atividade nas últimas 24h
+ * Busca clientes que tiveram atividade nas últimas 72h
  */
 export async function fetchActiveClients(
   lojistaId: string,
-  hoursAgo: number = 24
+  hoursAgo: number = 72
 ): Promise<ActiveClient[]> {
   try {
     const now = new Date();
@@ -38,7 +38,7 @@ export async function fetchActiveClients(
 
     console.log("[CRM] Buscando clientes ativos desde:", cutoffDate.toISOString());
 
-    // Buscar composições criadas nas últimas 24h
+    // Buscar composições criadas nas últimas 72h
     const compositionsRef = db.collection("composicoes");
     
     // Buscar todas as composições do lojista
@@ -85,7 +85,7 @@ export async function fetchActiveClients(
         createdAt = new Date();
       }
 
-      // Filtrar apenas composições das últimas 24h
+      // Filtrar apenas composições das últimas 72h
       if (createdAt < cutoffDate) {
         continue;
       }
@@ -202,7 +202,7 @@ export async function fetchActiveClients(
           createdAt = new Date();
         }
 
-        // Filtrar apenas sessões das últimas 24h (já que removemos o where de data)
+        // Filtrar apenas sessões das últimas 72h (já que removemos o where de data)
         if (createdAt < cutoffDate) {
           continue;
         }
@@ -263,7 +263,7 @@ export async function fetchActiveClients(
       console.log("[CRM] Coleção de sessões não encontrada ou erro ao buscar:", error);
     }
 
-    // Buscar favoritos com like das últimas 24h para incluir no radar
+    // Buscar favoritos com like das últimas 72h para incluir no radar
     try {
       const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
       
@@ -282,7 +282,7 @@ export async function fetchActiveClients(
             .doc(customerId)
             .collection("favoritos");
           
-          // Buscar favoritos com like das últimas 24h
+          // Buscar favoritos com like das últimas 72h
           let favoritosSnapshot;
           try {
             favoritosSnapshot = await favoritosRef
@@ -330,7 +330,7 @@ export async function fetchActiveClients(
               createdAt = new Date();
             }
             
-            // Filtrar apenas favoritos das últimas 24h
+            // Filtrar apenas favoritos das últimas 72h
             if (createdAt < cutoffDate) {
               return;
             }

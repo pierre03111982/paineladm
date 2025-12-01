@@ -954,7 +954,7 @@ header h1.text-3xl {
   background-clip: unset !important;
 }
 
-/* Título "Painel do Lojista Pro" - Azul claro no modo escuro */
+/* Título "Painel do Lojista Pro" - Azul claro com sombra preta no modo escuro */
 html.dark header h1,
 html.dark header h1.text-2xl,
 html.dark header h1.text-3xl {
@@ -963,6 +963,7 @@ html.dark header h1.text-3xl {
   background: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 4px 4px 8px rgba(0, 0, 0, 0.6) !important; /* Sombra preta */
   color: transparent !important;
   font-weight: 700 !important;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.3) !important;
