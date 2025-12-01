@@ -15,6 +15,8 @@ type SalesConfigPayload = {
     mercadopago_public_key?: string | null;
     mercadopago_access_token?: string | null;
     melhor_envio_token?: string | null;
+    melhor_envio_client_id?: string | null;
+    melhor_envio_client_secret?: string | null;
   };
 };
 
@@ -37,6 +39,8 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
     mpPublicKey: initialConfig?.integrations?.mercadopago_public_key ?? "",
     mpAccessToken: initialConfig?.integrations?.mercadopago_access_token ?? "",
     melhorEnvioToken: initialConfig?.integrations?.melhor_envio_token ?? "",
+    melhorEnvioClientId: initialConfig?.integrations?.melhor_envio_client_id ?? "",
+    melhorEnvioClientSecret: initialConfig?.integrations?.melhor_envio_client_secret ?? "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -66,6 +70,10 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
             form.paymentGateway === "mercadopago" ? form.mpAccessToken.trim() || null : null,
           melhor_envio_token:
             form.shippingProvider === "melhor_envio" ? form.melhorEnvioToken.trim() || null : null,
+          melhor_envio_client_id:
+            form.shippingProvider === "melhor_envio" ? form.melhorEnvioClientId.trim() || null : null,
+          melhor_envio_client_secret:
+            form.shippingProvider === "melhor_envio" ? form.melhorEnvioClientSecret.trim() || null : null,
         },
       };
 
@@ -239,13 +247,96 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
           />
         )}
         {form.shippingProvider === "melhor_envio" && (
-          <input
-            type="password"
-            value={form.melhorEnvioToken}
-            onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioToken: e.target.value }))}
-            placeholder="Token da API Melhor Envio"
-            className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
-          />
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
+                  Client ID do Melhor Envio
+                </label>
+                <input
+                  type="text"
+                  value={form.melhorEnvioClientId}
+                  onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientId: e.target.value }))}
+                  placeholder="21117"
+                  className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
+                  Secret do Melhor Envio
+                </label>
+                <input
+                  type="password"
+                  value={form.melhorEnvioClientSecret}
+                  onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientSecret: e.target.value }))}
+                  placeholder="6tqGHAGHVFpbTSFugNxXeXe8flzU9MUTMjMANd30"
+                  className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                />
+              </div>
+            </div>
+            
+            {form.melhorEnvioClientId && form.melhorEnvioClientSecret && (
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  onClick={async () => {
+                    // Primeiro salvar as credenciais
+                    try {
+                      const payload = {
+                        enabled: form.enabled,
+                        payment_gateway: form.paymentGateway as SalesConfigPayload["payment_gateway"],
+                        shipping_provider: form.shippingProvider as SalesConfigPayload["shipping_provider"],
+                        origin_zip: form.originZip?.trim() || null,
+                        integrations: {
+                          melhor_envio_client_id: form.melhorEnvioClientId.trim() || null,
+                          melhor_envio_client_secret: form.melhorEnvioClientSecret.trim() || null,
+                        },
+                      };
+
+                      await fetch("/api/lojista/sales-config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ lojistaId, salesConfig: payload }),
+                      });
+                    } catch (error) {
+                      console.error("Erro ao salvar credenciais:", error);
+                    }
+
+                    // Redirecionar para autorização OAuth
+                    const authUrl = `/api/melhor-envio/auth?lojistaId=${lojistaId}`;
+                    window.location.href = authUrl;
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  🔐 Autorizar e Obter Token
+                </Button>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
+                Token da API Melhor Envio
+                {form.melhorEnvioToken && (
+                  <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400 font-normal">
+                    ✓ Token configurado
+                  </span>
+                )}
+              </label>
+              <input
+                type="password"
+                value={form.melhorEnvioToken}
+                onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioToken: e.target.value }))}
+                placeholder={form.melhorEnvioToken ? "Token configurado (oculto)" : "Token será obtido automaticamente após autorização"}
+                disabled={!!form.melhorEnvioToken}
+                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <p className="mt-2 text-xs font-medium text-[var(--text-secondary)]">
+                {form.melhorEnvioToken 
+                  ? "Token obtido via OAuth. Clique em 'Autorizar e Obter Token' para renovar."
+                  : "Preencha Client ID e Secret acima, depois clique em 'Autorizar e Obter Token' para obter o token automaticamente via OAuth."}
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
