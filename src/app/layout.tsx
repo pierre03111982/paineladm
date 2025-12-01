@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { AdminFavicon } from "@/components/admin-favicon";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,6 +23,10 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Painel Experimente AI",
   description: "Gerencie sua loja, clientes e resultados do Provador Virtual.",
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -35,6 +40,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <meta name="google" content="notranslate" />
         <meta name="google-translate-customization" content="false" />
+        <AdminFavicon />
         <script
           dangerouslySetInnerHTML={{
             __html: `
