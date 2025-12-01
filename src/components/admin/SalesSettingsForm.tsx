@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2, ShieldCheck, Truck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -26,6 +27,9 @@ type SalesSettingsFormProps = {
 };
 
 export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFormProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   const [form, setForm] = useState({
     enabled: initialConfig?.enabled ?? false,
     paymentGateway: initialConfig?.payment_gateway ?? "manual_whatsapp",
@@ -39,12 +43,74 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
     mpPublicKey: initialConfig?.integrations?.mercadopago_public_key ?? "",
     mpAccessToken: initialConfig?.integrations?.mercadopago_access_token ?? "",
     melhorEnvioToken: initialConfig?.integrations?.melhor_envio_token ?? "",
-    melhorEnvioClientId: "", // Sempre começar vazio
-    melhorEnvioClientSecret: "", // Sempre começar vazio
+    melhorEnvioClientId: initialConfig?.integrations?.melhor_envio_client_id ?? "",
+    melhorEnvioClientSecret: initialConfig?.integrations?.melhor_envio_client_secret ?? "",
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Atualizar formulário quando initialConfig mudar (após refresh)
+  useEffect(() => {
+    if (initialConfig) {
+      setForm((prev) => ({
+        ...prev,
+        enabled: initialConfig?.enabled ?? prev.enabled,
+        paymentGateway: initialConfig?.payment_gateway ?? prev.paymentGateway,
+        manualContact: initialConfig?.manual_contact ?? prev.manualContact,
+        shippingProvider: initialConfig?.shipping_provider ?? prev.shippingProvider,
+        originZip: initialConfig?.origin_zip ?? prev.originZip,
+        fixedShippingPrice:
+          typeof initialConfig?.fixed_shipping_price === "number"
+            ? String(initialConfig.fixed_shipping_price)
+            : prev.fixedShippingPrice,
+        mpPublicKey: initialConfig?.integrations?.mercadopago_public_key ?? prev.mpPublicKey,
+        mpAccessToken: initialConfig?.integrations?.mercadopago_access_token ?? prev.mpAccessToken,
+        melhorEnvioToken: initialConfig?.integrations?.melhor_envio_token ?? prev.melhorEnvioToken,
+        melhorEnvioClientId: initialConfig?.integrations?.melhor_envio_client_id ?? prev.melhorEnvioClientId,
+        melhorEnvioClientSecret: initialConfig?.integrations?.melhor_envio_client_secret ?? prev.melhorEnvioClientSecret,
+      }));
+    }
+  }, [initialConfig]);
+
+  // Detectar parâmetros de sucesso/erro na URL e recarregar dados
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const error = searchParams.get("error");
+    const message = searchParams.get("message");
+
+    if (success === "melhor-envio-auth-success") {
+      setFeedback("✅ Token do Melhor Envio configurado com sucesso! Recarregando dados...");
+      // Recarregar a página após 1 segundo para pegar os dados atualizados
+      setTimeout(() => {
+        router.refresh();
+        // Limpar parâmetros da URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("success");
+        newUrl.searchParams.delete("error");
+        newUrl.searchParams.delete("message");
+        router.replace(newUrl.pathname + newUrl.search);
+      }, 1500);
+    } else if (error?.startsWith("melhor-envio")) {
+      const errorMessages: Record<string, string> = {
+        "melhor-envio-auth-error": `Erro na autorização: ${message || "Erro desconhecido"}`,
+        "melhor-envio-auth-failed": "Falha na autenticação. Verifique se o código foi recebido corretamente.",
+        "melhor-envio-config-not-found": "Configurações da loja não encontradas.",
+        "melhor-envio-credentials-missing": "Client ID ou Secret não configurados. Configure primeiro.",
+        "melhor-envio-token-error": `Erro ao obter token: ${message || "Erro desconhecido"}`,
+        "melhor-envio-callback-error": "Erro no callback do OAuth. Tente novamente.",
+      };
+      setFeedback(`❌ ${errorMessages[error] || "Erro ao configurar Melhor Envio"}`);
+      // Limpar parâmetros da URL após mostrar erro
+      setTimeout(() => {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("success");
+        newUrl.searchParams.delete("error");
+        newUrl.searchParams.delete("message");
+        router.replace(newUrl.pathname + newUrl.search);
+      }, 5000);
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -330,14 +396,13 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                 type="password"
                 value={form.melhorEnvioToken}
                 onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioToken: e.target.value }))}
-                placeholder={form.melhorEnvioToken ? "Token configurado (oculto)" : "Token será obtido automaticamente após autorização"}
-                disabled={!!form.melhorEnvioToken}
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder={form.melhorEnvioToken ? "Token configurado (oculto)" : "Cole seu token aqui ou use OAuth abaixo"}
+                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
               />
               <p className="mt-2 text-xs font-medium text-[var(--text-secondary)]">
                 {form.melhorEnvioToken 
-                  ? "Token obtido via OAuth. Clique em 'Autorizar e Obter Token' para renovar."
-                  : "Preencha Client ID e Secret acima, depois clique em 'Autorizar e Obter Token' para obter o token automaticamente via OAuth."}
+                  ? "Token configurado. Você pode editar manualmente ou usar OAuth para renovar."
+                  : "Você pode colar o token manualmente aqui ou usar o botão 'Autorizar e Obter Token' para obter via OAuth."}
               </p>
             </div>
           </div>
