@@ -275,10 +275,11 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
               </div>
             </div>
             
-            {form.melhorEnvioClientId && form.melhorEnvioClientSecret && (
+            {(form.melhorEnvioClientId?.trim() || form.melhorEnvioClientSecret?.trim()) && (
               <div className="flex items-center gap-3">
                 <Button
                   type="button"
+                  disabled={!form.melhorEnvioClientId?.trim() || !form.melhorEnvioClientSecret?.trim()}
                   onClick={async () => {
                     // Primeiro salvar as credenciais
                     try {
