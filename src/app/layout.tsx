@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { AdminFavicon } from "@/components/admin-favicon";
+import { getAdminDb } from "@/lib/firebaseAdmin";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,14 +20,37 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700", "800", "900"],
 });
 
-export const metadata: Metadata = {
-  title: "Painel Experimente AI",
-  description: "Gerencie sua loja, clientes e resultados do Provador Virtual.",
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/favicon.ico',
-  },
-};
+async function getAdminLogo(): Promise<string | null> {
+  try {
+    const db = getAdminDb();
+    const configDoc = await db.collection("admin").doc("config").get();
+    
+    if (configDoc.exists) {
+      const data = configDoc.data();
+      return data?.logoUrl || null;
+    }
+  } catch (error) {
+    console.error("[Layout] Erro ao buscar logo do admin:", error);
+  }
+  return null;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const adminLogo = await getAdminLogo();
+  
+  return {
+    title: "Painel Experimente AI",
+    description: "Gerencie sua loja, clientes e resultados do Provador Virtual.",
+    icons: adminLogo ? {
+      icon: adminLogo,
+      apple: adminLogo,
+      shortcut: adminLogo,
+    } : {
+      icon: '/favicon.ico',
+      apple: '/favicon.ico',
+    },
+  };
+}
 
 export default function RootLayout({
   children,
@@ -40,7 +63,6 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <meta name="google" content="notranslate" />
         <meta name="google-translate-customization" content="false" />
-        <AdminFavicon />
         <script
           dangerouslySetInnerHTML={{
             __html: `
