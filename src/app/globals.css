@@ -954,14 +954,15 @@ header h1.text-3xl {
   background-clip: unset !important;
 }
 
-/* Título "Painel do Lojista Pro" - Gradiente azul e preto no modo escuro */
+/* Título "Painel do Lojista Pro" - Azul claro no modo escuro */
 html.dark header h1,
 html.dark header h1.text-2xl,
 html.dark header h1.text-3xl {
-  background: linear-gradient(to right, #1e3a8a 0%, #000000 100%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
+  color: #60a5fa !important; /* Azul claro (blue-400) */
+  -webkit-text-fill-color: #60a5fa !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
   color: transparent !important;
   font-weight: 700 !important;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 4px 4px 8px rgba(0, 0, 0, 0.3) !important;
