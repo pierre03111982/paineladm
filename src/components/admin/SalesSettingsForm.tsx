@@ -39,8 +39,8 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
     mpPublicKey: initialConfig?.integrations?.mercadopago_public_key ?? "",
     mpAccessToken: initialConfig?.integrations?.mercadopago_access_token ?? "",
     melhorEnvioToken: initialConfig?.integrations?.melhor_envio_token ?? "",
-    melhorEnvioClientId: initialConfig?.integrations?.melhor_envio_client_id ?? "",
-    melhorEnvioClientSecret: initialConfig?.integrations?.melhor_envio_client_secret ?? "",
+    melhorEnvioClientId: "", // Sempre começar vazio
+    melhorEnvioClientSecret: "", // Sempre começar vazio
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -257,7 +257,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                   type="text"
                   value={form.melhorEnvioClientId}
                   onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientId: e.target.value }))}
-                  placeholder="21117"
+                  placeholder="Digite o Client ID"
                   className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
               </div>
@@ -269,7 +269,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                   type="password"
                   value={form.melhorEnvioClientSecret}
                   onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientSecret: e.target.value }))}
-                  placeholder="6tqGHAGHVFpbTSFugNxXeXe8flzU9MUTMjMANd30"
+                  placeholder="Digite o Secret"
                   className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
               </div>
