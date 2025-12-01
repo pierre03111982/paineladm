@@ -565,3 +565,6 @@ const hasBeach = allText.match(/biqu|bikini|maiô|maio|sunga|praia|beachwear|sa�
 
 **FIM DO RELATÓRIO**
 
+
+
+

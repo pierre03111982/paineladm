@@ -71,3 +71,6 @@ O painel admin está configurado corretamente para:
 - ✅ Geração de Composições com IA
 - ✅ Integração com Firebase Storage
 
+
+
+
