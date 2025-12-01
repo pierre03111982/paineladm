@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Heart, Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles, Eye } from "lucide-react";
+import { Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COMPOSICOES_TIMEFRAMES } from "./constants";
 
@@ -909,42 +909,21 @@ export function ComposicoesGallery({
                   ) : null}
 
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => handleToggleLike(item)}
-                        disabled={likePendingId === item.id}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-2 text-xs font-semibold transition-all flex-1 min-w-[120px] justify-center",
-                          item.liked
-                            ? "border-rose-400/60 dark:border-rose-500/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-700 dark:text-rose-300 hover:from-rose-500/30 hover:to-pink-500/30 shadow-lg shadow-rose-500/30"
-                            : "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-rose-400 hover:text-rose-600 dark:hover:text-rose-400 hover:shadow-md",
-                          likePendingId === item.id && "cursor-not-allowed opacity-60"
-                        )}
-                      >
-                        <Heart
-                          className={cn(
-                            "h-4 w-4",
-                            item.liked ? "fill-current" : undefined
-                          )}
-                        />
-                        {item.liked ? "Curtido" : "Curtir"}
-                      </button>
-                      <button
-                        onClick={() => handleOpenShareModal(item)}
-                        disabled={
-                          shareSubmitting && shareModal?.item.id === item.id
-                        }
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-all flex-1 min-w-[120px] justify-center hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-lg hover:shadow-indigo-500/30",
-                          shareSubmitting &&
-                            shareModal?.item.id === item.id &&
-                            "cursor-wait opacity-60"
-                        )}
-                      >
-                        <Share2 className="h-4 w-4" />
-                        {item.shares > 0 ? `${item.shares} envios` : "Enviar"}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleOpenShareModal(item)}
+                      disabled={
+                        shareSubmitting && shareModal?.item.id === item.id
+                      }
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-all w-full justify-center hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-lg hover:shadow-indigo-500/30",
+                        shareSubmitting &&
+                          shareModal?.item.id === item.id &&
+                          "cursor-wait opacity-60"
+                      )}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      {item.shares > 0 ? `${item.shares} envios` : "Enviar"}
+                    </button>
                     <button
                       onClick={() => handleOpenDetails(item)}
                       className="w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-indigo-500/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
