@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Loader2, ShieldCheck, Truck, MessageCircle } from "lucide-react";
+import { Loader2, ShieldCheck, Truck, MessageCircle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type SalesConfigPayload = {
@@ -49,6 +49,8 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
 
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isValidatingToken, setIsValidatingToken] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState<"valid" | "invalid" | "expired" | null>(null);
 
   // Atualizar formulário quando initialConfig mudar (após refresh)
   useEffect(() => {
@@ -111,6 +113,44 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
       }, 5000);
     }
   }, [searchParams, router]);
+
+  // Função para validar o token do Melhor Envio
+  const validateToken = async () => {
+    if (!form.melhorEnvioToken?.trim()) {
+      setFeedback("❌ Por favor, insira um token para validar.");
+      return;
+    }
+
+    setIsValidatingToken(true);
+    setTokenStatus(null);
+    setFeedback(null);
+
+    try {
+      // Validar token via API route para evitar problemas de CORS
+      const response = await fetch("/api/melhor-envio/validate-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token: form.melhorEnvioToken.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid) {
+        setTokenStatus("valid");
+        setFeedback("✅ Token válido! A conexão com o Melhor Envio está funcionando.");
+      } else {
+        setTokenStatus("invalid");
+        setFeedback(`❌ ${data.error || "Token inválido ou expirado"}`);
+      }
+    } catch (error: any) {
+      setTokenStatus("invalid");
+      setFeedback(`❌ Erro ao validar token: ${error.message || "Erro desconhecido"}`);
+    } finally {
+      setIsValidatingToken(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -317,93 +357,104 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
-                  Client ID do Melhor Envio
+                  Client ID
                 </label>
                 <input
                   type="text"
                   value={form.melhorEnvioClientId}
                   onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientId: e.target.value }))}
-                  placeholder="Digite o Client ID"
+                  placeholder="Client ID do Melhor Envio"
                   className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
-                  Secret do Melhor Envio
+                  Client Secret
                 </label>
                 <input
                   type="password"
                   value={form.melhorEnvioClientSecret}
                   onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientSecret: e.target.value }))}
-                  placeholder="Digite o Secret"
+                  placeholder="Secret do Melhor Envio"
                   className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div>
+              <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-main)] mb-2">
+                Token de Acesso
+                {tokenStatus === "valid" && (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                )}
+                {tokenStatus === "invalid" && (
+                  <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                )}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={form.melhorEnvioToken}
+                  onChange={(e) => {
+                    setForm((prev) => ({ ...prev, melhorEnvioToken: e.target.value }));
+                    setTokenStatus(null);
+                  }}
+                  placeholder="Cole o token aqui ou obtenha via OAuth"
+                  className="flex-1 rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                />
+                <Button
+                  type="button"
+                  onClick={validateToken}
+                  disabled={!form.melhorEnvioToken?.trim() || isValidatingToken}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isValidatingToken ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Validar"
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
                 disabled={!form.melhorEnvioClientId?.trim() || !form.melhorEnvioClientSecret?.trim()}
                 onClick={async () => {
                   if (!form.melhorEnvioClientId?.trim() || !form.melhorEnvioClientSecret?.trim()) {
-                    alert("Por favor, preencha o Client ID e Secret antes de autorizar.")
-                    return
+                    setFeedback("❌ Preencha o Client ID e Secret antes de autorizar.");
+                    return;
                   }
-                    // Primeiro salvar as credenciais
-                    try {
-                      const payload = {
-                        enabled: form.enabled,
-                        payment_gateway: form.paymentGateway as SalesConfigPayload["payment_gateway"],
-                        shipping_provider: form.shippingProvider as SalesConfigPayload["shipping_provider"],
-                        origin_zip: form.originZip?.trim() || null,
-                        integrations: {
-                          melhor_envio_client_id: form.melhorEnvioClientId.trim() || null,
-                          melhor_envio_client_secret: form.melhorEnvioClientSecret.trim() || null,
-                        },
-                      };
+                  // Salvar credenciais antes de redirecionar
+                  try {
+                    const payload = {
+                      enabled: form.enabled,
+                      payment_gateway: form.paymentGateway as SalesConfigPayload["payment_gateway"],
+                      shipping_provider: form.shippingProvider as SalesConfigPayload["shipping_provider"],
+                      origin_zip: form.originZip?.trim() || null,
+                      integrations: {
+                        melhor_envio_client_id: form.melhorEnvioClientId.trim() || null,
+                        melhor_envio_client_secret: form.melhorEnvioClientSecret.trim() || null,
+                      },
+                    };
 
-                      await fetch("/api/lojista/sales-config", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ lojistaId, salesConfig: payload }),
-                      });
-                    } catch (error) {
-                      console.error("Erro ao salvar credenciais:", error);
-                    }
+                    await fetch("/api/lojista/sales-config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ lojistaId, salesConfig: payload }),
+                    });
+                  } catch (error) {
+                    console.error("Erro ao salvar credenciais:", error);
+                  }
 
-                    // Redirecionar para autorização OAuth no app cliente
-                    // Usar URL fixa do app cliente em produção
-                    const authUrl = `https://app2.experimenteai.com.br/api/melhor-envio/auth?lojistaId=${lojistaId}`;
-                    window.open(authUrl, "_blank", "noopener,noreferrer");
-                  }}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  🔐 Autorizar e Obter Token
-                </Button>
-              </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
-                Token da API Melhor Envio
-                {form.melhorEnvioToken && (
-                  <span className="ml-2 text-xs text-emerald-600 dark:text-emerald-400 font-normal">
-                    ✓ Token configurado
-                  </span>
-                )}
-              </label>
-              <input
-                type="password"
-                value={form.melhorEnvioToken}
-                onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioToken: e.target.value }))}
-                placeholder={form.melhorEnvioToken ? "Token configurado (oculto)" : "Cole seu token aqui ou use OAuth abaixo"}
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
-              />
-              <p className="mt-2 text-xs font-medium text-[var(--text-secondary)]">
-                {form.melhorEnvioToken 
-                  ? "Token configurado. Você pode editar manualmente ou usar OAuth para renovar."
-                  : "Você pode colar o token manualmente aqui ou usar o botão 'Autorizar e Obter Token' para obter via OAuth."}
-              </p>
+                  const authUrl = `https://app2.experimenteai.com.br/api/melhor-envio/auth?lojistaId=${lojistaId}`;
+                  window.open(authUrl, "_blank", "noopener,noreferrer");
+                }}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                🔐 Obter Token via OAuth
+              </Button>
             </div>
           </div>
         )}
