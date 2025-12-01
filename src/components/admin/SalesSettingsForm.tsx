@@ -303,11 +303,9 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                     }
 
                     // Redirecionar para autorização OAuth no app cliente
-                    const clientAppUrl = process.env.NEXT_PUBLIC_CLIENT_APP_URL || 
-                                       process.env.NEXT_PUBLIC_APP_URL ||
-                                       "https://app2.experimenteai.com.br";
-                    const authUrl = `${clientAppUrl}/api/melhor-envio/auth?lojistaId=${lojistaId}`;
-                    window.location.href = authUrl;
+                    // Usar URL fixa do app cliente em produção
+                    const authUrl = `https://app2.experimenteai.com.br/api/melhor-envio/auth?lojistaId=${lojistaId}`;
+                    window.open(authUrl, "_blank", "noopener,noreferrer");
                   }}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
                 >
