@@ -275,12 +275,15 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
               </div>
             </div>
             
-            {(form.melhorEnvioClientId?.trim() || form.melhorEnvioClientSecret?.trim()) && (
-              <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  disabled={!form.melhorEnvioClientId?.trim() || !form.melhorEnvioClientSecret?.trim()}
-                  onClick={async () => {
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                disabled={!form.melhorEnvioClientId?.trim() || !form.melhorEnvioClientSecret?.trim()}
+                onClick={async () => {
+                  if (!form.melhorEnvioClientId?.trim() || !form.melhorEnvioClientSecret?.trim()) {
+                    alert("Por favor, preencha o Client ID e Secret antes de autorizar.")
+                    return
+                  }
                     // Primeiro salvar as credenciais
                     try {
                       const payload = {
@@ -308,12 +311,11 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                     const authUrl = `https://app2.experimenteai.com.br/api/melhor-envio/auth?lojistaId=${lojistaId}`;
                     window.open(authUrl, "_blank", "noopener,noreferrer");
                   }}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   🔐 Autorizar e Obter Token
                 </Button>
               </div>
-            )}
 
             <div>
               <label className="block text-xs font-semibold text-[var(--text-main)] mb-2">
