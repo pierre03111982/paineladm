@@ -46,6 +46,7 @@ export interface CreateCompositionParams {
     allProductImageUrls?: string[]; // Todas as imagens de produtos para Look Criativo (incluindo roupas)
     productCategory?: string; // Categoria do produto para prompts específicos
     gerarNovoLook?: boolean; // PHASE 14: Flag para ativar mudança de pose (Regra de Postura Condicional)
+    forceNewPose?: boolean; // MASTER PROMPT: Flag para Remix agressivo (forçar nova pose)
     smartContext?: string; // PHASE 15: Contexto inteligente (Beach/Office/Studio)
     smartFraming?: string; // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
     forbiddenScenarios?: string[]; // PHASE 15: Cenários proibidos para negative prompt
