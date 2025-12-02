@@ -196,22 +196,22 @@ export async function POST(req: NextRequest) {
 
     // Construir params para o orchestrator
     const params = {
-      personImageUrl: jobData.personImageUrl,
-      productId: primaryProduct.id,
-      productImageUrl: allProductImageUrls[0] || "",
-      lojistaId: jobData.lojistaId,
-      customerId: jobData.customerId,
-      productName: productsData.map(p => p.nome).join(" + "),
-      productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
-        ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
-        : undefined,
-      storeName: lojaData?.nome || "Minha Loja",
-      logoUrl: lojaData?.logoUrl,
-      scenePrompts: jobData.scenePrompts,
-      options: {
-        ...jobData.options,
-        allProductImageUrls,
-        productsData,
+        personImageUrl: jobData.personImageUrl,
+        productId: primaryProduct.id,
+        productImageUrl: allProductImageUrls[0] || "",
+        lojistaId: jobData.lojistaId,
+        customerId: jobData.customerId,
+        productName: productsData.map(p => p.nome).join(" + "),
+        productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
+          ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
+          : undefined,
+        storeName: lojaData?.nome || "Minha Loja",
+        logoUrl: lojaData?.logoUrl,
+        scenePrompts: jobData.scenePrompts,
+        options: {
+          ...jobData.options,
+          allProductImageUrls,
+          productsData,
         // MASTER PROMPT PIVOT: Passar apenas STRINGS (categoria/prompt), NÃO URL de imagem
         // scenarioImageUrl deve ser undefined para forçar geração de fundo
         scenarioImageUrl: undefined, // SEMPRE undefined - forçar geração via prompt
@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
     console.log(`[process-job] Sucesso! URL gerada: ${finalUrl.substring(0, 100)}...`);
 
     // Incrementar métrica de gerações de API (independente de visualização)
-    const lojistaId = jobData.lojistaId || "unknown";
+    // lojistaId já foi declarado acima (linha 238)
     const lojistaRef = db.collection("lojistas").doc(lojistaId);
     
     try {
@@ -324,7 +324,7 @@ export async function POST(req: NextRequest) {
                     reservationId: jobData.reservationId,
                     lojistaId: jobData.lojistaId,
                 });
-                await rollbackCredit(jobData.lojistaId, jobData.reservationId);
+        await rollbackCredit(jobData.lojistaId, jobData.reservationId);
             }
         }
     } catch(e) {
