@@ -207,17 +207,27 @@ export async function POST(request: NextRequest) {
       });
 
       // Atualizar Job com resultado
+      // PHASE 27: Garantir que todos os valores sejam primitivos serializáveis pelo Firestore
+      const sanitizedResult: any = {
+        compositionId: String(creativeResult.compositionId || ""),
+        imageUrl: String(creativeResult.tryonImageUrl || ""),
+        sceneImageUrls: Array.isArray(creativeResult.sceneImageUrls) 
+          ? creativeResult.sceneImageUrls.map(url => String(url)).filter(Boolean)
+          : [],
+        totalCost: typeof creativeResult.totalCost === "number" ? creativeResult.totalCost : 0,
+        processingTime: typeof processingTime === "number" ? processingTime : 0,
+      };
+      
+      // Remover campos vazios ou inválidos
+      if (!sanitizedResult.compositionId) delete sanitizedResult.compositionId;
+      if (!sanitizedResult.imageUrl) delete sanitizedResult.imageUrl;
+      if (sanitizedResult.sceneImageUrls.length === 0) delete sanitizedResult.sceneImageUrls;
+      
       await jobsRef.doc(jobId).update({
         status: "COMPLETED" as JobStatus,
         completedAt: FieldValue.serverTimestamp(),
-        result: {
-          compositionId: creativeResult.compositionId,
-          imageUrl: creativeResult.tryonImageUrl,
-          sceneImageUrls: creativeResult.sceneImageUrls,
-          totalCost: creativeResult.totalCost,
-          processingTime,
-        },
-        apiCost: creativeResult.totalCost,
+        result: sanitizedResult,
+        apiCost: typeof creativeResult.totalCost === "number" ? creativeResult.totalCost : 0,
       });
 
       console.log("[process-job] Job processado com sucesso:", {
