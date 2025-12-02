@@ -156,7 +156,15 @@ export async function POST(request: NextRequest) {
         .map(doc => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })) as Array<{
+          id: string;
+          nome?: string;
+          preco?: number;
+          productUrl?: string;
+          imagemUrl?: string;
+          categoria?: string;
+          [key: string]: any;
+        }>;
 
       if (productsData.length === 0) {
         throw new Error("Nenhum produto encontrado");
