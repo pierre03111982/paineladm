@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/triggers/process-pending-jobs",
-      "schedule": "*/1 * * * *"
+      "schedule": "0 * * * *"
     }
   ],
   "headers": [
