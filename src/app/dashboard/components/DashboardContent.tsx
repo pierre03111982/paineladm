@@ -45,6 +45,8 @@ import {
 } from "recharts";
 import { CreditsManager } from "@/app/(lojista)/dashboard/credits-manager";
 import { AIAssistantWidget } from "@/components/dashboard/AIAssistantWidget";
+import { AIInsightsFeed } from "@/components/dashboard/AIInsightsFeed";
+import { ChatButton } from "@/components/ai-chat/ChatButton";
 
 type DashboardContentProps = {
   data: DashboardMock;
@@ -340,6 +342,11 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
   return (
     <div className="space-y-12 pb-12">
+      {/* Botão Flutuante do Chat com Ana */}
+      {lojistaId && <ChatButton lojistaId={lojistaId} />}
+
+      {/* FASE 2: Cérebro da Loja - Feed de Insights da IA */}
+      {lojistaId && <AIInsightsFeed lojistaId={lojistaId} />}
 
       {/* AI Assistant Widget - Top Priority */}
       <AIAssistantWidget lojistaId={lojistaId} />

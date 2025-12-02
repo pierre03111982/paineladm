@@ -122,7 +122,7 @@ export class CompositionOrchestrator {
       watermark: { status: "pending" },
       status: "processing",
       startedAt: new Date(),
-      steps: {},
+      steps: {}, // Sempre inicializar steps como objeto vazio
     };
 
     let totalCost = 0;
@@ -784,7 +784,10 @@ FINAL QUALITY CHECK:
           console.log("[Orchestrator] ✅ personImageUrl válida:", params.personImageUrl.substring(0, 100) + "...");
           console.log("[Orchestrator] ✅ productImageUrl válida:", params.productImageUrl ? params.productImageUrl.substring(0, 100) + "..." : "NÃO FORNECIDA");
           
-          if (!status.steps) status.steps = {};
+          // Garantir que steps existe (já inicializado, mas TypeScript precisa de garantia)
+          if (!status.steps) {
+            status.steps = {};
+          }
           status.steps.tryon = {
             status: "processing",
             startedAt: new Date(),

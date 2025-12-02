@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { ClientStyleProfile } from "@/components/clients/ClientStyleProfile";
 // Helper para formatar data relativa
 function formatRelativeTime(date: Date): string {
   const now = new Date();
@@ -250,6 +251,9 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           </div>
         </div>
       </div>
+
+      {/* FASE 3: Dossiê do Cliente - Análise de Estilo pela IA */}
+      <ClientStyleProfile cliente={cliente} lojistaId={lojistaId} />
 
       {/* Produtos Favoritos */}
       {topProducts.length > 0 && (

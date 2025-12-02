@@ -1,5 +1,7 @@
 "use client";
 
+import { ProductPerformanceAI } from "@/components/products/ProductPerformanceAI";
+
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, CheckSquare, Square } from "lucide-react";
 import type { ProdutoDoc } from "@/lib/firestore/types";
@@ -766,6 +768,19 @@ export function ProductsTable({
                   <p className="text-sm text-zinc-100">{viewingProduto.obs}</p>
                 </div>
               )}
+              {/* FASE 4: Diagnóstico da IA - Feedback de Produto */}
+              {viewingProduto.qualityMetrics && (
+                <div className="mb-4">
+                  <ProductPerformanceAI
+                    productId={viewingProduto.id}
+                    lojistaId={lojistaIdParam || ""}
+                    productName={viewingProduto.nome}
+                    complaintRate={viewingProduto.qualityMetrics.complaintRate || 0}
+                    conversionRate={viewingProduto.qualityMetrics.conversionRate || 0}
+                  />
+                </div>
+              )}
+
               {viewingProduto.qualityMetrics && (
                 <div>
                   <label className="block text-xs font-medium text-zinc-400 mb-1">Métricas de Qualidade</label>
