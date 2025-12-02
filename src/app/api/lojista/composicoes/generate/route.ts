@@ -77,6 +77,11 @@ export async function POST(request: NextRequest) {
   let customerName: string | null = null;
   let scenePrompts: string[] | null = null;
   let options: any = null;
+  // PHASE 26: Declarar variáveis de cenário fora do bloco if/else
+  let scenarioImageUrl: string | null = null;
+  let scenarioLightingPrompt: string | null = null;
+  let scenarioCategory: string | null = null;
+  let scenarioInstructions: string | null = null;
   
   try {
     // Verificar se é FormData ou JSON pelo content-type
@@ -180,10 +185,10 @@ export async function POST(request: NextRequest) {
       options = body.options || null;
       
       // PHASE 26: Receber dados do cenário (imagem e prompt)
-      const scenarioImageUrl = body.scenarioImageUrl || null;
-      const scenarioLightingPrompt = body.scenarioLightingPrompt || null;
-      const scenarioCategory = body.scenarioCategory || null;
-      const scenarioInstructions = body.scenarioInstructions || null;
+      scenarioImageUrl = body.scenarioImageUrl || null;
+      scenarioLightingPrompt = body.scenarioLightingPrompt || null;
+      scenarioCategory = body.scenarioCategory || null;
+      scenarioInstructions = body.scenarioInstructions || null;
       
       console.log("[API] PHASE 26: Dados do cenário recebidos:", {
         hasScenarioImage: !!scenarioImageUrl,
