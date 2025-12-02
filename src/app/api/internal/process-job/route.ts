@@ -364,7 +364,7 @@ export async function POST(request: NextRequest) {
       }
       
       // PHASE 27: Tentar salvar com estrutura validada
-      // Se falhar, tentar com estrutura mínima absoluta
+      // FIX: Remover valores 'undefined' que o Firestore rejeita usando JSON.parse/stringify
       try {
         const updateData: any = {
           status: "COMPLETED" as JobStatus,
@@ -373,7 +373,25 @@ export async function POST(request: NextRequest) {
         
         // Adicionar result apenas se for válido
         if (finalResult && typeof finalResult === "object" && Object.keys(finalResult).length > 0) {
-          updateData.result = finalResult;
+          // FIX: Remove 'undefined' values which Firestore rejects
+          // JSON.parse/stringify remove automaticamente campos undefined e garante Plain Object
+          try {
+            updateData.result = JSON.parse(JSON.stringify(finalResult));
+          } catch (jsonError) {
+            // Se JSON falhar (ex: circular reference), usar sanitização manual
+            console.warn("[process-job] JSON.parse falhou, usando sanitização manual:", jsonError);
+            const manualClean: any = {};
+            for (const [key, value] of Object.entries(finalResult)) {
+              if (value !== undefined && value !== null) {
+                if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+                  manualClean[key] = value;
+                } else if (Array.isArray(value)) {
+                  manualClean[key] = value.filter(item => item !== undefined && item !== null);
+                }
+              }
+            }
+            updateData.result = manualClean;
+          }
         } else {
           // Estrutura mínima absoluta
           updateData.result = {
@@ -390,13 +408,16 @@ export async function POST(request: NextRequest) {
           updateData.apiCost = apiCostValue;
         }
         
+        // FIX: Limpar updateData também para remover undefined
+        const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
+        
         console.log("[process-job] Tentando atualizar Job com:", {
-          hasResult: !!updateData.result,
-          resultKeys: updateData.result ? Object.keys(updateData.result) : [],
-          hasApiCost: !!updateData.apiCost,
+          hasResult: !!cleanUpdateData.result,
+          resultKeys: cleanUpdateData.result ? Object.keys(cleanUpdateData.result) : [],
+          hasApiCost: !!cleanUpdateData.apiCost,
         });
         
-        await jobsRef.doc(jobId).update(updateData);
+        await jobsRef.doc(jobId).update(cleanUpdateData);
         console.log("[process-job] ✅ Job atualizado com sucesso no Firestore");
       } catch (firestoreError: any) {
         console.error("[process-job] ❌ Erro ao atualizar Job no Firestore:", firestoreError);
@@ -411,7 +432,7 @@ export async function POST(request: NextRequest) {
         // PHASE 27: Tentar salvar com estrutura absolutamente mínima como último recurso
         try {
           console.log("[process-job] Tentando salvar com estrutura mínima absoluta...");
-          await jobsRef.doc(jobId).update({
+          const minimalData = {
             status: "COMPLETED" as JobStatus,
             completedAt: FieldValue.serverTimestamp(),
             result: {
@@ -421,7 +442,12 @@ export async function POST(request: NextRequest) {
             apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
               ? creativeResult.totalCost 
               : 0,
-          });
+          };
+          
+          // FIX: Limpar valores undefined também no fallback
+          const cleanMinimalData = JSON.parse(JSON.stringify(minimalData));
+          
+          await jobsRef.doc(jobId).update(cleanMinimalData);
           console.log("[process-job] ✅ Job atualizado com estrutura mínima");
         } catch (minimalError: any) {
           console.error("[process-job] ❌ Erro mesmo com estrutura mínima:", minimalError);
