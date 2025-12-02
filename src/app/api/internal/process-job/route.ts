@@ -258,16 +258,62 @@ export async function POST(request: NextRequest) {
         sceneImageUrlsCount: sanitizedResult.sceneImageUrls?.length || 0,
         hasTotalCost: typeof sanitizedResult.totalCost === "number",
         hasProcessingTime: typeof sanitizedResult.processingTime === "number",
+        sanitizedResultKeys: Object.keys(sanitizedResult),
       });
       
-      await jobsRef.doc(jobId).update({
-        status: "COMPLETED" as JobStatus,
-        completedAt: FieldValue.serverTimestamp(),
-        result: sanitizedResult,
-        apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
-          ? creativeResult.totalCost 
-          : 0,
+      // PHASE 27: Validar estrutura final antes de salvar
+      // Garantir que não há objetos aninhados ou valores não serializáveis
+      const finalResult: any = {};
+      for (const [key, value] of Object.entries(sanitizedResult)) {
+        if (value === null || value === undefined) continue;
+        
+        // Validar tipo do valor
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+          finalResult[key] = value;
+        } else if (Array.isArray(value)) {
+          // Validar que o array contém apenas primitivos
+          const sanitizedArray = value
+            .map((item: any) => {
+              if (typeof item === "string") return item;
+              if (typeof item === "number") return item;
+              if (typeof item === "boolean") return item;
+              return null;
+            })
+            .filter((item: any) => item !== null);
+          
+          if (sanitizedArray.length > 0) {
+            finalResult[key] = sanitizedArray;
+          }
+        }
+        // Ignorar objetos complexos
+      }
+      
+      console.log("[process-job] Result final validado:", {
+        keys: Object.keys(finalResult),
+        hasCompositionId: !!finalResult.compositionId,
+        hasImageUrl: !!finalResult.imageUrl,
+        sceneImageUrlsType: Array.isArray(finalResult.sceneImageUrls) ? "array" : typeof finalResult.sceneImageUrls,
       });
+      
+      try {
+        await jobsRef.doc(jobId).update({
+          status: "COMPLETED" as JobStatus,
+          completedAt: FieldValue.serverTimestamp(),
+          result: finalResult,
+          apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
+            ? creativeResult.totalCost 
+            : 0,
+        });
+        console.log("[process-job] ✅ Job atualizado com sucesso no Firestore");
+      } catch (firestoreError: any) {
+        console.error("[process-job] ❌ Erro ao atualizar Job no Firestore:", firestoreError);
+        console.error("[process-job] Detalhes do erro:", {
+          message: firestoreError.message,
+          code: firestoreError.code,
+          resultStructure: JSON.stringify(finalResult, null, 2),
+        });
+        throw firestoreError;
+      }
 
       console.log("[process-job] Job processado com sucesso:", {
         jobId,
