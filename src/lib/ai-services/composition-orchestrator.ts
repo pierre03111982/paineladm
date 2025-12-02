@@ -434,8 +434,9 @@ export class CompositionOrchestrator {
 
         // PHASE 24: Leg Extension Logic (if photo is cropped and has shoes)
         // CRÍTICO: Manter SEMELHANÇA FÍSICA COMPLETA ao estender pernas
+        // Ativar sempre que houver calçados, independente da categoria do produto principal
         let legExtensionInstruction = "";
-        if (hasShoes && (productCategory.includes("calçado") || productCategory.includes("calcado") || productCategory.includes("sapato") || productCategory.includes("tênis") || productCategory.includes("tenis") || productCategory.includes("shoe") || productCategory.includes("footwear"))) {
+        if (hasShoes) {
           legExtensionInstruction = `\n\n⚠️⚠️⚠️ CRITICAL BODY EXTENSION (PHASE 24 - SEMELHANÇA FÍSICA COMPLETA):
 If the original photo [IMAGEM_PESSOA] is cropped (knee-up, upper body only, or missing legs), you MUST EXTEND THE BODY NATURALLY while maintaining 100% PHYSICAL RESEMBLANCE:
 
