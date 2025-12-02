@@ -196,9 +196,17 @@ export class CompositionOrchestrator {
                         remixPromptText.includes("luxury") ||
                         remixPromptText.includes("rooftop"));
         
+        // PHASE 26: Construir array de imagens: primeira é a pessoa, seguintes são os produtos, última é o cenário (se fornecido)
+        const scenarioImageUrl = params.options?.scenarioImageUrl;
+        const scenarioInstructions = params.options?.scenarioInstructions;
+        const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
+        
         // PHASE 14: Prompt Builder v2.1 - Smart Context Engine
+        // PHASE 26 FIX: Se scenarioImageUrl foi fornecido, NÃO usar smartContext no prompt (a imagem será usada)
         // Usar valores do Smart Context Engine se fornecidos, senão detectar automaticamente
-        const smartContext = params.options?.smartContext || "Clean Studio or Urban Street";
+        const smartContext = (scenarioImageUrl && scenarioImageUrl.startsWith("http")) 
+          ? "" // PHASE 26: Se temos imagem de cenário, não usar smartContext (evita gerar cenário via prompt)
+          : (params.options?.smartContext || "Clean Studio or Urban Street");
         const smartFraming = params.options?.smartFraming || "medium-full shot";
         const productCategory = (params.options?.productCategory || "").toLowerCase();
         const gerarNovoLook = params.options?.gerarNovoLook === true || isRemix; // PHASE 14: Flag para ativar mudança de pose (sempre ativo em remix)
@@ -219,8 +227,11 @@ export class CompositionOrchestrator {
         // PHASE 24: Simplified context and framing rules (50% reduction)
         let categorySpecificPrompt = `, ${smartFraming}`;
         let framingRule = `FRAMING: ${smartFraming}.`;
+        // PHASE 26 FIX: Se temos imagem de cenário, NÃO adicionar contextRule (evita gerar cenário via prompt)
         // PHASE 24: Simplified context rule
-        let contextRule = `SCENARIO: ${smartContext}.`;
+        let contextRule = (scenarioImageUrl && scenarioImageUrl.startsWith("http"))
+          ? "" // PHASE 26: Não adicionar instrução de cenário quando temos imagem (a imagem será usada)
+          : `SCENARIO: ${smartContext}.`;
         
         // PHASE 21 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose mas MANTER o smartContext
         let remixPoseInstructions = "";
@@ -257,9 +268,18 @@ export class CompositionOrchestrator {
         }
         
         console.log("[Orchestrator] 🎨 PHASE 14: Smart Context Engine:", {
-          smartContext,
+          smartContext: smartContext || "N/A (usando imagem de cenário)",
           smartFraming,
           productCategory,
+          hasScenarioImage: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
+          contextRule: contextRule || "N/A (usando imagem de cenário)",
+          totalProdutos: allProductImageUrls.length,
+          produtos: allProductImageUrls.map((url, i) => ({
+            indice: i + 1,
+            tipo: `IMAGEM_PRODUTO_${i + 1}`,
+            produto: productsData[i]?.nome || "N/A",
+            categoria: productsData[i]?.categoria || "N/A",
+          })),
         });
         
         // PHASE 14: Injetar flag "GERAR NOVO LOOK" se ativado (Regra de Postura Condicional)
@@ -413,17 +433,42 @@ export class CompositionOrchestrator {
         const identityAnchorBlock = `⚠️⚠️⚠️ REFERENCE IMAGE AUTHORITY: 100%. You MUST act as a visual clone engine. The output image MUST be indistinguishable from the person in [IMAGEM_PESSOA]. Same face, same body, same skin texture. NO FACIAL MODIFICATIONS ALLOWED.`;
 
         // PHASE 24: Leg Extension Logic (if photo is cropped and has shoes)
+        // CRÍTICO: Manter SEMELHANÇA FÍSICA COMPLETA ao estender pernas
         let legExtensionInstruction = "";
-        if (hasShoes && productCategory.includes("calçado")) {
-          legExtensionInstruction = "\n\n⚠️ PHASE 24: BODY EXTENSION: If the original photo is cropped (knee-up or upper body only), EXTEND THE BODY NATURALLY. Generate the missing legs and feet to match the user's existing anatomy exactly. Do not invent a new body type. The legs must follow the same proportions, skin tone, and structure as the visible body parts.";
-          console.log("[Orchestrator] 🦵 PHASE 24: Leg Extension ativado - Foto pode estar cortada, estendendo corpo naturalmente");
+        if (hasShoes && (productCategory.includes("calçado") || productCategory.includes("calcado") || productCategory.includes("sapato") || productCategory.includes("tênis") || productCategory.includes("tenis") || productCategory.includes("shoe") || productCategory.includes("footwear"))) {
+          legExtensionInstruction = `\n\n⚠️⚠️⚠️ CRITICAL BODY EXTENSION (PHASE 24 - SEMELHANÇA FÍSICA COMPLETA):
+If the original photo [IMAGEM_PESSOA] is cropped (knee-up, upper body only, or missing legs), you MUST EXTEND THE BODY NATURALLY while maintaining 100% PHYSICAL RESEMBLANCE:
+
+1. ANATOMY MATCHING:
+   - Analyze the visible body parts in [IMAGEM_PESSOA] (torso, arms, proportions)
+   - Generate missing legs and feet that MATCH EXACTLY:
+     * Same body proportions (if person has wide shoulders, legs should match that build)
+     * Same skin tone (EXACT color match - analyze skin color from visible parts)
+     * Same skin texture (smooth, rough, freckles, hair, etc.)
+     * Same body structure (muscle definition, body fat distribution, bone structure)
+
+2. PHYSICAL CONTINUITY:
+   - The extended legs must look like they belong to the SAME person
+   - No color mismatch between upper and lower body
+   - No proportion mismatch (legs too thin/thick compared to torso)
+   - Maintain natural body curves and contours
+
+3. REALISTIC INTEGRATION:
+   - Legs must connect naturally to the visible torso
+   - Feet must be properly proportioned to the body
+   - Maintain natural standing posture
+   - Keep the same lighting and shadow patterns
+
+4. QUALITY REQUIREMENTS:
+   - Skin texture must match (smoothness, pores, hair, etc.)
+   - Skin color must be IDENTICAL (no color grading differences)
+   - Body shape must be CONSISTENT (same build type throughout)
+   - Natural body imperfections must be maintained
+
+CRITICAL: The extended body parts must be INDISTINGUISHABLE from the original - it should look like the photo was never cropped.`;
+          console.log("[Orchestrator] 🦵 PHASE 24: Leg Extension ativado - Mantendo SEMELHANÇA FÍSICA COMPLETA ao estender pernas");
         }
 
-        // PHASE 26: Construir array de imagens: primeira é a pessoa, seguintes são os produtos, última é o cenário (se fornecido)
-        const scenarioImageUrl = params.options?.scenarioImageUrl;
-        const scenarioInstructions = params.options?.scenarioInstructions;
-        const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
-        
         // PHASE 26: Instruções para usar imagem do cenário como fundo (se fornecido)
         let scenarioBackgroundInstruction = "";
         if (scenarioImageUrl && scenarioInstructions) {
@@ -456,7 +501,21 @@ ${framingRule}
 
 ${posturaRule}
 
-PRODUCT INTEGRATION: Apply ALL products provided in the input images${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}${spatialProductInstructions}. You have ${allProductImageUrls.length} product image(s): ${allProductImageUrls.map((_, i) => `[IMAGEM_PRODUTO_${i + 1}]`).join(", ")}. Extract fabric pattern, texture, color, and style from EACH product image. Apply ALL products onto [IMAGEM_PESSOA]'s body simultaneously. Adapt clothing to user's natural curves. Fabric must drape naturally with realistic folds and shadows. Use ONLY body shape from [IMAGEM_PESSOA]. IGNORE mannequin's body shape.${legExtensionInstruction}
+PRODUCT INTEGRATION: Apply ALL ${allProductImageUrls.length} product(s) provided in the input images${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}${spatialProductInstructions}. 
+
+⚠️ CRITICAL: You MUST apply EVERY SINGLE product image provided:
+${allProductImageUrls.map((_, i) => `- [IMAGEM_PRODUTO_${i + 1}]: ${productsData[i]?.nome || `Product ${i + 1}`} (${productsData[i]?.categoria || "unknown category"})`).join("\n")}
+
+REQUIREMENTS:
+1. Extract fabric pattern, texture, color, and style from EACH product image individually
+2. Apply ALL products onto [IMAGEM_PESSOA]'s body SIMULTANEOUSLY - every product must be visible
+3. Each product must be placed on its correct body part (see spatial instructions above)
+4. Adapt clothing to user's natural curves
+5. Fabric must drape naturally with realistic folds and shadows
+6. Use ONLY body shape from [IMAGEM_PESSOA]
+7. IGNORE mannequin's body shape
+
+⚠️ VERIFICATION: After generation, verify that ALL ${allProductImageUrls.length} product(s) are visible in the final image. If any product is missing, this is a FAILURE.${legExtensionInstruction}
 
 ${contextRule}${remixPoseInstructions}
 
@@ -499,19 +558,28 @@ The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes t
           totalImagens: imageUrls.length,
           estrutura: {
             imagem1: "IMAGEM_PESSOA (pessoa)",
-            imagensSeguintes: allProductImageUrls.map((_, i) => `IMAGEM_PRODUTO_${i + 1} (produto ${i + 1})`),
-            ...(scenarioImageUrl && {
-              ultimaImagem: `IMAGEM_CENARIO (cenário de fundo)`,
+            imagensSeguintes: allProductImageUrls.map((_, i) => `IMAGEM_PRODUTO_${i + 1} (${productsData[i]?.nome || `produto ${i + 1}`})`),
+            ...(scenarioImageUrl && scenarioImageUrl.startsWith("http") && {
+              ultimaImagem: `IMAGEM_CENARIO (cenário de fundo - ${scenarioCategory || "N/A"})`,
             }),
           },
           promptLength: creativePrompt.length,
           produtosIncluidos: allProductImageUrls.length,
-          temCenario: !!scenarioImageUrl,
+          produtosDetalhes: allProductImageUrls.map((url, i) => ({
+            indice: i + 1,
+            nome: productsData[i]?.nome || "N/A",
+            categoria: productsData[i]?.categoria || "N/A",
+            url: url.substring(0, 60) + "...",
+          })),
+          temCenario: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
+          usandoImagemCenario: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
+          usandoPromptCenario: !!(smartContext && smartContext.length > 0),
           validacao: {
             temPessoa: !!params.personImageUrl,
             totalProdutos: allProductImageUrls.length,
-            temCenario: !!scenarioImageUrl,
+            temCenario: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
             todasImagensValidas: imageUrls.every(url => url && url.startsWith("http")),
+            todosProdutosTemImagem: allProductImageUrls.length === productsData.length,
           },
         });
 

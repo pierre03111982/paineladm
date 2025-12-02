@@ -178,6 +178,19 @@ export async function POST(request: NextRequest) {
       customerName = body.customerName || null;
       scenePrompts = body.scenePrompts || null;
       options = body.options || null;
+      
+      // PHASE 26: Receber dados do cenário (imagem e prompt)
+      const scenarioImageUrl = body.scenarioImageUrl || null;
+      const scenarioLightingPrompt = body.scenarioLightingPrompt || null;
+      const scenarioCategory = body.scenarioCategory || null;
+      const scenarioInstructions = body.scenarioInstructions || null;
+      
+      console.log("[API] PHASE 26: Dados do cenário recebidos:", {
+        hasScenarioImage: !!scenarioImageUrl,
+        hasLightingPrompt: !!scenarioLightingPrompt,
+        category: scenarioCategory || "N/A",
+        hasInstructions: !!scenarioInstructions,
+      });
     }
 
     // FIX MOBILE: Se personImageUrl for data URL (base64), fazer upload para obter URL HTTP
@@ -829,28 +842,46 @@ export async function POST(request: NextRequest) {
       // Detectar se é remix (para variação de cenário, mas sempre respeitando as regras)
       const isRemix = (scenePrompts && scenePrompts.length > 0) || options?.gerarNovoLook || false;
       
-      // PHASE 21 FIX: SEMPRE obter cenário inteligente com resolução de conflitos
-      // Isso garante que a Bikini Law e outras regras sejam aplicadas em TODAS as gerações
-      const smartScenario = getSmartScenario(productsData, isRemix);
-      const smartContext = smartScenario.context;
-      const forbiddenScenarios = smartScenario.forbidden;
+      // PHASE 26 FIX: Priorizar cenário do frontend (scenarioImageUrl) sobre getSmartScenario
+      // Se scenarioImageUrl foi fornecido, usar ele. Caso contrário, usar getSmartScenario como fallback
+      let smartContext = "";
+      let forbiddenScenarios: string[] = [];
       
-      // PHASE 21 FIX: Se houver scenePrompts, IGNORAR o cenário do scenePrompts e usar smartContext
-      // O scenePrompts pode conter instruções de pose, mas o cenário DEVE vir do smartContext
-      if (scenePrompts && scenePrompts.length > 0) {
-        console.log("[API] ⚠️ PHASE 21 FIX: scenePrompts fornecido, mas usando smartContext do getSmartScenario:", {
-          scenePromptsPreview: scenePrompts[0].substring(0, 150) + "...",
-          smartContext: smartContext,
-          forbiddenScenarios: forbiddenScenarios,
+      if (scenarioImageUrl && scenarioImageUrl.startsWith("http")) {
+        // PHASE 26: Frontend forneceu imagem de cenário - usar ela e NÃO gerar cenário via prompt
+        console.log("[API] 🎬 PHASE 26: Usando cenário do frontend (scenarioImageUrl fornecido):", {
+          hasImage: !!scenarioImageUrl,
+          category: scenarioCategory || "N/A",
+          lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
+        });
+        // Não usar smartContext quando temos imagem de cenário - deixar vazio para não gerar cenário via prompt
+        smartContext = ""; // Vazio = não adicionar instrução de cenário no prompt (a imagem será usada)
+        forbiddenScenarios = []; // Não precisa proibir cenários quando temos imagem específica
+      } else {
+        // PHASE 21 FIX: Fallback - obter cenário inteligente com resolução de conflitos
+        // Isso garante que a Bikini Law e outras regras sejam aplicadas quando não há imagem de cenário
+        const smartScenario = getSmartScenario(productsData, isRemix);
+        smartContext = smartScenario.context;
+        forbiddenScenarios = smartScenario.forbidden;
+        
+        console.log("[API] 📍 PHASE 15 V2 Smart Scenario aplicado (fallback - sem imagem de cenário):", {
+          context: smartContext,
+          forbidden: forbiddenScenarios,
+          isRemix,
+          totalProdutos: productsData.length,
         });
       }
       
-      console.log("[API] 📍 PHASE 15 V2 Smart Scenario aplicado:", {
-        context: smartContext,
-        forbidden: forbiddenScenarios,
-        isRemix,
-        totalProdutos: productsData.length,
-      });
+      // PHASE 21 FIX: Se houver scenePrompts, IGNORAR o cenário do scenePrompts e usar smartContext (ou imagem)
+      // O scenePrompts pode conter instruções de pose, mas o cenário DEVE vir do smartContext ou scenarioImageUrl
+      if (scenePrompts && scenePrompts.length > 0) {
+        console.log("[API] ⚠️ PHASE 21 FIX: scenePrompts fornecido:", {
+          scenePromptsPreview: scenePrompts[0].substring(0, 150) + "...",
+          usandoImagemCenario: !!scenarioImageUrl,
+          smartContext: smartContext || "N/A (usando imagem de cenário)",
+          forbiddenScenarios: forbiddenScenarios,
+        });
+      }
       
       // Step 2: Framing Detection
       // Coletar categorias para detecção de framing
@@ -941,6 +972,11 @@ export async function POST(request: NextRequest) {
           smartFraming: smartFraming, // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
           forbiddenScenarios: forbiddenScenarios, // PHASE 15: Cenários proibidos para negative prompt
           productsData: productsData, // PHASE 20: Dados completos dos produtos para lógica de "Complete the Look" e acessórios
+          // PHASE 26: Dados do cenário para usar como input visual
+          scenarioImageUrl: scenarioImageUrl || undefined,
+          scenarioLightingPrompt: scenarioLightingPrompt || undefined,
+          scenarioCategory: scenarioCategory || undefined,
+          scenarioInstructions: scenarioInstructions || undefined,
         },
       });
       
