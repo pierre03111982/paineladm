@@ -766,7 +766,9 @@ FINAL QUALITY CHECK:
       // - Proporção 9:16
       // - Mesma qualidade em todos os caminhos
       // ========================================
-      else if (lookType === "natural") {
+      // NOTA: Este bloco nunca será executado pois lookType é sempre "creative"
+      // Mantido apenas para compatibilidade de código
+      else {
         // REFINAMENTO VISUAL: Look Natural foi desabilitado - sempre usar Look Criativo
         throw new Error(`❌ Look Natural foi desabilitado. Sempre use Look Criativo (Gemini Flash Image) para garantir qualidade consistente. lookType foi forçado para "creative" mas ainda chegou aqui - verificar lógica.`);
         // VALIDAÇÃO CRÍTICA: Verificar se personImageUrl foi fornecida
