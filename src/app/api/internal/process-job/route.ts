@@ -363,15 +363,40 @@ export async function POST(request: NextRequest) {
         Object.assign(finalResult, ultraSimple);
       }
       
+      // PHASE 27: Tentar salvar com estrutura validada
+      // Se falhar, tentar com estrutura mínima absoluta
       try {
-        await jobsRef.doc(jobId).update({
+        const updateData: any = {
           status: "COMPLETED" as JobStatus,
           completedAt: FieldValue.serverTimestamp(),
-          result: finalResult,
-          apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
-            ? creativeResult.totalCost 
-            : 0,
+        };
+        
+        // Adicionar result apenas se for válido
+        if (finalResult && typeof finalResult === "object" && Object.keys(finalResult).length > 0) {
+          updateData.result = finalResult;
+        } else {
+          // Estrutura mínima absoluta
+          updateData.result = {
+            compositionId: String(creativeResult.compositionId || ""),
+            imageUrl: String(creativeResult.tryonImageUrl || ""),
+          };
+        }
+        
+        // Adicionar apiCost
+        const apiCostValue = typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
+          ? creativeResult.totalCost 
+          : 0;
+        if (apiCostValue > 0) {
+          updateData.apiCost = apiCostValue;
+        }
+        
+        console.log("[process-job] Tentando atualizar Job com:", {
+          hasResult: !!updateData.result,
+          resultKeys: updateData.result ? Object.keys(updateData.result) : [],
+          hasApiCost: !!updateData.apiCost,
         });
+        
+        await jobsRef.doc(jobId).update(updateData);
         console.log("[process-job] ✅ Job atualizado com sucesso no Firestore");
       } catch (firestoreError: any) {
         console.error("[process-job] ❌ Erro ao atualizar Job no Firestore:", firestoreError);
@@ -382,7 +407,26 @@ export async function POST(request: NextRequest) {
           resultType: typeof finalResult,
           resultKeys: finalResult ? Object.keys(finalResult) : [],
         });
-        throw firestoreError;
+        
+        // PHASE 27: Tentar salvar com estrutura absolutamente mínima como último recurso
+        try {
+          console.log("[process-job] Tentando salvar com estrutura mínima absoluta...");
+          await jobsRef.doc(jobId).update({
+            status: "COMPLETED" as JobStatus,
+            completedAt: FieldValue.serverTimestamp(),
+            result: {
+              compositionId: String(creativeResult.compositionId || jobId),
+              imageUrl: String(creativeResult.tryonImageUrl || ""),
+            },
+            apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
+              ? creativeResult.totalCost 
+              : 0,
+          });
+          console.log("[process-job] ✅ Job atualizado com estrutura mínima");
+        } catch (minimalError: any) {
+          console.error("[process-job] ❌ Erro mesmo com estrutura mínima:", minimalError);
+          throw firestoreError; // Lançar o erro original
+        }
       }
 
       console.log("[process-job] Job processado com sucesso:", {
