@@ -200,6 +200,7 @@ export class CompositionOrchestrator {
         const scenarioImageUrl = params.options?.scenarioImageUrl;
         const scenarioInstructions = params.options?.scenarioInstructions;
         const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
+        const scenarioCategory = params.options?.scenarioCategory;
         
         // PHASE 14: Prompt Builder v2.1 - Smart Context Engine
         // PHASE 26 FIX: Se scenarioImageUrl foi fornecido, NÃO usar smartContext no prompt (a imagem será usada)
