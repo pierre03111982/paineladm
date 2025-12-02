@@ -450,7 +450,84 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       console.error("[process-job] Erro ao processar Job:", error);
 
-      // Fazer rollback da reserva de crédito
+      // PHASE 27: Detectar se o erro é retryável (API do Gemini)
+      const errorMessage = error.message || String(error);
+      const isRetryable = 
+        errorMessage.includes("RESOURCE_EXHAUSTED") ||
+        errorMessage.includes("429") ||
+        errorMessage.includes("RATE_LIMIT") ||
+        errorMessage.includes("QUOTA_EXCEEDED") ||
+        errorMessage.includes("INTERNAL") ||
+        errorMessage.includes("UNAVAILABLE") ||
+        errorMessage.includes("DEADLINE_EXCEEDED") ||
+        errorMessage.includes("timeout") ||
+        error?.code === 429 ||
+        error?.code === 503 ||
+        error?.code === 500;
+
+      // Se é retryável e ainda há tentativas disponíveis
+      if (isRetryable && retryCount < maxRetries) {
+        const nextRetryCount = retryCount + 1;
+        const delaySeconds = Math.pow(2, nextRetryCount); // Exponential backoff: 2s, 4s, 8s
+        
+        console.warn(`[process-job] Erro retryável detectado. Agendando retry ${nextRetryCount}/${maxRetries} em ${delaySeconds}s...`, {
+          jobId,
+          error: errorMessage,
+          retryCount: nextRetryCount,
+        });
+
+        // Atualizar Job para PENDING com novo retryCount
+        await jobsRef.doc(jobId).update({
+          status: "PENDING" as JobStatus,
+          retryCount: nextRetryCount,
+          error: `Erro retryável: ${sanitizedError.substring(0, 200)}`,
+          errorDetails: `Tentativa ${nextRetryCount}/${maxRetries}. Próximo retry em ${delaySeconds}s.`,
+        });
+
+        // Agendar retry após delay (usando setTimeout ou chamando o trigger)
+        // Como estamos em um ambiente serverless, vamos marcar o Job como PENDING
+        // e deixar o cron/trigger processar novamente
+        setTimeout(async () => {
+          try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
+                             process.env.NEXT_PUBLIC_PAINELADM_URL || 
+                             "http://localhost:3000";
+            
+            await fetch(`${backendUrl}/api/internal/process-job`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-Internal-Request": "true",
+              },
+              body: JSON.stringify({ jobId }),
+            }).catch((retryError) => {
+              console.error(`[process-job] Erro ao disparar retry para Job ${jobId}:`, retryError);
+            });
+          } catch (retryError) {
+            console.error(`[process-job] Erro ao agendar retry para Job ${jobId}:`, retryError);
+          }
+        }, delaySeconds * 1000);
+
+        return NextResponse.json({
+          success: false,
+          jobId,
+          status: "PENDING",
+          message: `Erro retryável. Tentativa ${nextRetryCount}/${maxRetries}. Retry agendado em ${delaySeconds}s.`,
+          retryCount: nextRetryCount,
+          maxRetries,
+        }, { status: 200 }); // 200 porque o Job será reprocessado
+      }
+
+      // Erro não retryável ou tentativas esgotadas
+      console.error("[process-job] Erro fatal ou tentativas esgotadas:", {
+        jobId,
+        error: errorMessage,
+        retryCount,
+        maxRetries,
+        isRetryable,
+      });
+
+      // Fazer rollback da reserva de crédito apenas se não for retryável ou tentativas esgotadas
       try {
         await rollbackCredit(jobData.lojistaId, jobData.reservationId);
       } catch (rollbackError) {
@@ -469,6 +546,7 @@ export async function POST(request: NextRequest) {
         failedAt: FieldValue.serverTimestamp(),
         error: sanitizedError,
         errorDetails: sanitizedErrorDetails,
+        retryCount: retryCount + 1, // Incrementar para mostrar tentativas feitas
       });
 
       return NextResponse.json(
@@ -477,6 +555,8 @@ export async function POST(request: NextRequest) {
           jobId,
           status: "FAILED",
           error: error.message || "Erro ao processar Job",
+          retryCount: retryCount + 1,
+          maxRetries,
         },
         { status: 500 }
       );
