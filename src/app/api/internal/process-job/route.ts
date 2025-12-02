@@ -261,39 +261,107 @@ export async function POST(request: NextRequest) {
         sanitizedResultKeys: Object.keys(sanitizedResult),
       });
       
-      // PHASE 27: Validar estrutura final antes de salvar
-      // Garantir que não há objetos aninhados ou valores não serializáveis
-      const finalResult: any = {};
-      for (const [key, value] of Object.entries(sanitizedResult)) {
-        if (value === null || value === undefined) continue;
+      // PHASE 27: Função recursiva para garantir que o objeto seja completamente plano
+      const deepSanitize = (obj: any, depth = 0): any => {
+        // Limitar profundidade para evitar loops infinitos
+        if (depth > 3) return null;
         
-        // Validar tipo do valor
-        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-          finalResult[key] = value;
-        } else if (Array.isArray(value)) {
-          // Validar que o array contém apenas primitivos
-          const sanitizedArray = value
+        if (obj === null || obj === undefined) return null;
+        
+        // Primitivos: retornar diretamente
+        if (typeof obj === "string" || typeof obj === "number" || typeof obj === "boolean") {
+          return obj;
+        }
+        
+        // Arrays: sanitizar cada item
+        if (Array.isArray(obj)) {
+          const sanitized = obj
             .map((item: any) => {
               if (typeof item === "string") return item;
               if (typeof item === "number") return item;
               if (typeof item === "boolean") return item;
+              // Se for objeto, tentar extrair string
+              if (item && typeof item === "object") {
+                const str = String(item.imageUrl || item.url || item.toString || "");
+                return str.length > 0 ? str : null;
+              }
               return null;
             })
-            .filter((item: any) => item !== null);
+            .filter((item: any) => item !== null && item !== undefined);
           
-          if (sanitizedArray.length > 0) {
-            finalResult[key] = sanitizedArray;
-          }
+          return sanitized.length > 0 ? sanitized : null;
         }
-        // Ignorar objetos complexos
+        
+        // Objetos: converter para objeto plano (sem aninhamento)
+        if (typeof obj === "object") {
+          const flat: any = {};
+          for (const [key, value] of Object.entries(obj)) {
+            // Ignorar chaves que começam com _ ou são funções
+            if (key.startsWith("_") || typeof value === "function") continue;
+            
+            const sanitized = deepSanitize(value, depth + 1);
+            if (sanitized !== null && sanitized !== undefined) {
+              // Garantir que a chave seja string válida
+              const safeKey = String(key);
+              if (typeof sanitized === "string" || typeof sanitized === "number" || typeof sanitized === "boolean") {
+                flat[safeKey] = sanitized;
+              } else if (Array.isArray(sanitized) && sanitized.length > 0) {
+                flat[safeKey] = sanitized;
+              }
+            }
+          }
+          return Object.keys(flat).length > 0 ? flat : null;
+        }
+        
+        return null;
+      };
+      
+      // Aplicar sanitização profunda
+      const finalResult = deepSanitize(sanitizedResult);
+      
+      // Se após sanitização não houver nada válido, criar estrutura mínima
+      if (!finalResult || (typeof finalResult === "object" && Object.keys(finalResult).length === 0)) {
+        console.warn("[process-job] ⚠️ Result vazio após sanitização, criando estrutura mínima");
+        const minimalResult: any = {};
+        if (creativeResult.compositionId) minimalResult.compositionId = String(creativeResult.compositionId);
+        if (creativeResult.tryonImageUrl) minimalResult.imageUrl = String(creativeResult.tryonImageUrl);
+        Object.assign(finalResult || {}, minimalResult);
       }
       
       console.log("[process-job] Result final validado:", {
-        keys: Object.keys(finalResult),
-        hasCompositionId: !!finalResult.compositionId,
-        hasImageUrl: !!finalResult.imageUrl,
-        sceneImageUrlsType: Array.isArray(finalResult.sceneImageUrls) ? "array" : typeof finalResult.sceneImageUrls,
+        keys: finalResult ? Object.keys(finalResult) : [],
+        hasCompositionId: !!finalResult?.compositionId,
+        hasImageUrl: !!finalResult?.imageUrl,
+        sceneImageUrlsType: Array.isArray(finalResult?.sceneImageUrls) ? "array" : typeof finalResult?.sceneImageUrls,
+        finalResultJSON: JSON.stringify(finalResult).substring(0, 200),
       });
+      
+      // Validar que finalResult não contém objetos aninhados
+      const validateFlat = (obj: any, path = "root"): boolean => {
+        if (obj === null || obj === undefined) return true;
+        if (typeof obj !== "object") return true;
+        if (Array.isArray(obj)) {
+          return obj.every((item, idx) => validateFlat(item, `${path}[${idx}]`));
+        }
+        // Se chegou aqui, é um objeto - verificar se tem propriedades não primitivas
+        for (const [key, value] of Object.entries(obj)) {
+          if (value !== null && value !== undefined && typeof value === "object" && !Array.isArray(value)) {
+            console.error(`[process-job] ❌ Objeto aninhado encontrado em ${path}.${key}:`, typeof value);
+            return false;
+          }
+          if (!validateFlat(value, `${path}.${key}`)) return false;
+        }
+        return true;
+      };
+      
+      if (!validateFlat(finalResult)) {
+        console.error("[process-job] ❌ Result ainda contém objetos aninhados após sanitização!");
+        // Criar versão ultra-simplificada
+        const ultraSimple: any = {};
+        if (creativeResult.compositionId) ultraSimple.compositionId = String(creativeResult.compositionId);
+        if (creativeResult.tryonImageUrl) ultraSimple.imageUrl = String(creativeResult.tryonImageUrl);
+        Object.assign(finalResult, ultraSimple);
+      }
       
       try {
         await jobsRef.doc(jobId).update({
@@ -311,6 +379,8 @@ export async function POST(request: NextRequest) {
           message: firestoreError.message,
           code: firestoreError.code,
           resultStructure: JSON.stringify(finalResult, null, 2),
+          resultType: typeof finalResult,
+          resultKeys: finalResult ? Object.keys(finalResult) : [],
         });
         throw firestoreError;
       }
