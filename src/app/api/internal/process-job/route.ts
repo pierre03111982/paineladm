@@ -94,16 +94,89 @@ export async function POST(req: NextRequest) {
     // Executa IA
     const orchestrator = new CompositionOrchestrator();
     const jobDoc = await jobsRef.doc(jobId).get();
-    const params = jobDoc.data()?.params || {};
+    const jobData = jobDoc.data();
+    
+    if (!jobData) {
+      throw new Error("Job não encontrado ou sem dados");
+    }
 
-    console.log("[process-job] Chamando Orchestrator...");
+    // FIX: Construir params a partir dos campos do job (não de jobData.params)
+    // O job é criado com campos diretos: personImageUrl, productIds, options, etc.
+    if (!jobData.personImageUrl) {
+      throw new Error(`❌ personImageUrl inválida ou não fornecida: ${jobData.personImageUrl}`);
+    }
+
+    // Buscar produtos do Firestore
+    const produtosSnapshot = await db
+      .collection("lojas")
+      .doc(jobData.lojistaId)
+      .collection("produtos")
+      .get();
+
+    const productsData = produtosSnapshot.docs
+      .filter(doc => jobData.productIds?.includes(doc.id))
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Array<{
+        id: string;
+        nome?: string;
+        preco?: number;
+        productUrl?: string;
+        imagemUrl?: string;
+        categoria?: string;
+        [key: string]: any;
+      }>;
+
+    if (productsData.length === 0) {
+      throw new Error("Nenhum produto encontrado");
+    }
+
+    const primaryProduct = productsData[0];
+    const allProductImageUrls = productsData
+      .map(p => p.productUrl || p.imagemUrl)
+      .filter(Boolean);
+
+    // Buscar dados da loja
+    const lojaDoc = await db.collection("lojas").doc(jobData.lojistaId).get();
+    const lojaData = lojaDoc.exists ? lojaDoc.data() : null;
+
+    // Construir params para o orchestrator
+    const params = {
+      personImageUrl: jobData.personImageUrl,
+      productId: primaryProduct.id,
+      productImageUrl: allProductImageUrls[0] || "",
+      lojistaId: jobData.lojistaId,
+      customerId: jobData.customerId,
+      productName: productsData.map(p => p.nome).join(" + "),
+      productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
+        ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
+        : undefined,
+      storeName: lojaData?.nome || "Minha Loja",
+      logoUrl: lojaData?.logoUrl,
+      scenePrompts: jobData.scenePrompts,
+      options: {
+        ...jobData.options,
+        allProductImageUrls,
+        productsData,
+      },
+    };
+
+    console.log("[process-job] Chamando Orchestrator com params:", {
+      hasPersonImageUrl: !!params.personImageUrl,
+      personImageUrl: params.personImageUrl?.substring(0, 100) + "...",
+      productId: params.productId,
+      productImageUrl: params.productImageUrl?.substring(0, 100) + "...",
+      lojistaId: params.lojistaId,
+      allProductImageUrlsCount: allProductImageUrls.length,
+    });
+    
     const finalResult = await orchestrator.createComposition(params);
 
     // --- ESTRATÉGIA DE SEGURANÇA MÁXIMA ---
     // Extrai apenas a URL como string simples.
     let finalUrl = "";
-    const jobData = jobDoc.data();
-    const lojistaId = jobData?.lojistaId || "unknown";
+    const lojistaId = jobData.lojistaId || "unknown";
     
     if (finalResult.tryonImageUrl) {
       const imageUrl = String(finalResult.tryonImageUrl);
