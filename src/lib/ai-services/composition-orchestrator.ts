@@ -50,6 +50,11 @@ export interface CreateCompositionParams {
     smartFraming?: string; // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
     forbiddenScenarios?: string[]; // PHASE 15: Cenários proibidos para negative prompt
     productsData?: any[]; // PHASE 20: Dados completos dos produtos para lógica de "Complete the Look" e acessórios
+    // PHASE 26: Dados do cenário para usar como input visual
+    scenarioImageUrl?: string; // URL da imagem do cenário (será enviada como 3ª imagem para Gemini)
+    scenarioLightingPrompt?: string; // Prompt de iluminação do cenário
+    scenarioCategory?: string; // Categoria do cenário
+    scenarioInstructions?: string; // Instruções específicas para usar a imagem do cenário
   };
 }
 
@@ -414,9 +419,31 @@ export class CompositionOrchestrator {
           console.log("[Orchestrator] 🦵 PHASE 24: Leg Extension ativado - Foto pode estar cortada, estendendo corpo naturalmente");
         }
 
+        // PHASE 26: Instruções para usar imagem do cenário como fundo (se fornecido)
+        let scenarioBackgroundInstruction = "";
+        if (scenarioImageUrl && scenarioInstructions) {
+          scenarioBackgroundInstruction = `\n\n🎬 PHASE 26: CENÁRIO DE FUNDO FORNECIDO:
+${scenarioInstructions}
+- Use [IMAGEM_CENARIO] (última imagem) EXATAMENTE como está - NÃO gere ou crie um novo cenário
+- A imagem do cenário é perfeita - apenas use-a diretamente como fundo
+- Foque TODA a capacidade de processamento da IA em:
+  1. Manter identidade facial e características EXATAS da [IMAGEM_PESSOA]
+  2. Garantir que os produtos correspondam exatamente (cores, texturas, ajuste)
+  3. Compositar perfeitamente a pessoa e produtos sobre o cenário fornecido
+- O cenário já está pronto - apenas use-o como está`;
+        } else if (scenarioImageUrl) {
+          scenarioBackgroundInstruction = `\n\n🎬 PHASE 26: CENÁRIO DE FUNDO FORNECIDO:
+- Use [IMAGEM_CENARIO] (última imagem) EXATAMENTE como está - NÃO gere ou crie um novo cenário
+- A imagem do cenário é perfeita - apenas use-a diretamente como fundo
+- Foque TODA a capacidade de processamento da IA em manter identidade facial e produtos exatos
+${scenarioLightingPrompt ? `- Iluminação e contexto do cenário: ${scenarioLightingPrompt}` : ""}`;
+        }
+
         const creativePrompt = `${identityAnchorBlock}
 
 ⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
+
+${scenarioBackgroundInstruction}
 
 ${contextRule}${remixPoseInstructions}
 
@@ -424,7 +451,7 @@ ${framingRule}
 
 ${posturaRule}
 
-PRODUCT INTEGRATION: Apply up to 3 products${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}${spatialProductInstructions}. Extract fabric pattern, texture, color, and style from [IMAGEM_PRODUTO_X]. Apply onto [IMAGEM_PESSOA]'s body. Adapt clothing to user's natural curves. Fabric must drape naturally with realistic folds and shadows. Use ONLY body shape from [IMAGEM_PESSOA]. IGNORE mannequin's body shape.${legExtensionInstruction}
+PRODUCT INTEGRATION: Apply ALL products provided in the input images${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}${spatialProductInstructions}. You have ${allProductImageUrls.length} product image(s): ${allProductImageUrls.map((_, i) => `[IMAGEM_PRODUTO_${i + 1}]`).join(", ")}. Extract fabric pattern, texture, color, and style from EACH product image. Apply ALL products onto [IMAGEM_PESSOA]'s body simultaneously. Adapt clothing to user's natural curves. Fabric must drape naturally with realistic folds and shadows. Use ONLY body shape from [IMAGEM_PESSOA]. IGNORE mannequin's body shape.${legExtensionInstruction}
 
 ${contextRule}${remixPoseInstructions}
 
@@ -436,11 +463,27 @@ PHOTOGRAPHY: Professional fashion photography. Natural lighting. Realistic shado
 ${identityAnchorBlock}
 The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes the body shape (e.g., makes it look like a plastic mannequin), it is a FAILURE. Keep the human skin texture and imperfections. The person should look like they are WEARING the clothes, not like the clothes are replacing their body. The fabric must drape naturally over the user's actual body shape, following gravity and creating realistic folds and shadows.`;
 
-        // Construir array de imagens: primeira é a pessoa, seguintes são os produtos
+        // PHASE 26: Construir array de imagens: primeira é a pessoa, seguintes são os produtos, última é o cenário (se fornecido)
+        const scenarioImageUrl = params.options?.scenarioImageUrl;
+        const scenarioInstructions = params.options?.scenarioInstructions;
+        const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
+        
         const imageUrls = [
           params.personImageUrl, // Primeira imagem: IMAGEM_PESSOA
           ...allProductImageUrls, // Seguintes: IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, etc.
         ];
+        
+        // PHASE 26: Adicionar imagem do cenário como última imagem (se fornecido)
+        if (scenarioImageUrl && scenarioImageUrl.startsWith("http")) {
+          imageUrls.push(scenarioImageUrl); // Última imagem: IMAGEM_CENARIO
+          console.log("[Orchestrator] 🎬 PHASE 26: Imagem do cenário adicionada como input visual:", {
+            url: scenarioImageUrl.substring(0, 100) + "...",
+            indice: imageUrls.length,
+            tipo: "IMAGEM_CENARIO",
+          });
+        } else {
+          console.log("[Orchestrator] ⚠️ PHASE 26: Nenhuma imagem de cenário fornecida - Gemini criará cenário do zero");
+        }
 
         // Validar que temos pelo menos uma imagem de produto
         if (allProductImageUrls.length === 0) {
@@ -457,12 +500,17 @@ The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes t
           estrutura: {
             imagem1: "IMAGEM_PESSOA (pessoa)",
             imagensSeguintes: allProductImageUrls.map((_, i) => `IMAGEM_PRODUTO_${i + 1} (produto ${i + 1})`),
+            ...(scenarioImageUrl && {
+              ultimaImagem: `IMAGEM_CENARIO (cenário de fundo)`,
+            }),
           },
           promptLength: creativePrompt.length,
           produtosIncluidos: allProductImageUrls.length,
+          temCenario: !!scenarioImageUrl,
           validacao: {
             temPessoa: !!params.personImageUrl,
             totalProdutos: allProductImageUrls.length,
+            temCenario: !!scenarioImageUrl,
             todasImagensValidas: imageUrls.every(url => url && url.startsWith("http")),
           },
         });
