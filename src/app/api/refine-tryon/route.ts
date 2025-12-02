@@ -90,8 +90,37 @@ async function saveBase64ImageToStorage(
 
 export const dynamic = 'force-dynamic';
 
-// Prompt Mestre de Edição Incremental
-const REFINEMENT_PROMPT = `INSTRUÇÃO CRÍTICA ABSOLUTA: EDIÇÃO INCREMENTAL DE ACESSÓRIOS.
+// REFINAMENTO VISUAL: Prompt Mestre de Edição Incremental com preservação de identidade e realismo
+const REFINEMENT_PROMPT = `⚠️⚠️⚠️ IDENTITY LOCK: The input person's face, body shape, skin tone, and pose MUST BE PRESERVED EXACTLY.
+- Do NOT generate a new model.
+- Do NOT change ethnicity or age.
+- Imagine you are dressing THIS specific person.
+- If the face is visible in the input, the output face must match 100%.
+- Maintain exact facial features, bone structure, and body proportions.
+- Preserve all unique physical characteristics (scars, freckles, body shape, etc.).
+
+📸 PHOTOREALISM RULES:
+- LIGHTING MATCH: Analyze the light source in the IMAGEM_BASE. Apply exactly the same lighting direction, temperature, and intensity to the new products.
+- SHADOWS: Cast realistic soft shadows based on the scene's existing light. The person and new products must look grounded, not floating.
+- CLOTHING FIT: The new products must integrate naturally with the person's specific body shape. Create realistic fabric folds, tension, and texture. No 'sticker' effect.
+- DEPTH INTEGRATION: The new products must appear physically present in the scene, not pasted on top. Match depth of field and atmospheric perspective.
+- COLOR GRADING: Match color temperature and saturation between new products and existing scene for seamless integration.
+
+🔄 INPAINTING LOGIC: You must conceptually integrate the new products naturally into the existing look. Do NOT change the existing clothes or person.
+
+📐 OUTPUT FORMAT (9:16 VERTICAL - MANDATORY):
+- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
+- Maintain the exact same composition and framing from IMAGEM_BASE
+- NEVER generate horizontal or square images - ALWAYS 9:16 vertical
+- Preserve the exact background scenario from IMAGEM_BASE
+
+🚫 FORBIDDEN SCENARIOS:
+- NO night scenes, dark backgrounds, evening, sunset, dusk, or any nighttime setting
+- NO neon-lit streets, cyberpunk aesthetics, or artificial night lighting
+- ALWAYS use well-lit daytime environments with natural sunlight
+- If IMAGEM_BASE has night scene, convert it to daytime with natural lighting
+
+⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA: EDIÇÃO INCREMENTAL DE ACESSÓRIOS.
 META: Receber a IMAGEM_BASE (primeira imagem: contém a pessoa e o look completo) e adicionar de forma fotorrealista e natural o(s) PRODUTO(S)_NOVO(S) (imagens subsequentes).
 🎯 PRIORIZAÇÃO ABSOLUTA E INEGOCIÁVEL (P0): ESTABILIDADE MÁXIMA.
 
@@ -105,7 +134,7 @@ PRESERVAR IDENTIDADE: A pessoa na IMAGEM_BASE deve ser 100% IDÊNTICA.
 
 PRESERVAR LOOK: O vestuário, caimento e estampa na IMAGEM_BASE devem ser 100% IDÊNTICOS.
 
-FIDELIDADE DO PRODUTO NOVO: O(s) produto(s) novo(s) deve(m) ser integrados com realismo fotorrealista, correta iluminação e sombras.
+FIDELIDADE DO PRODUTO NOVO: O(s) produto(s) novo(s) deve(m) ser integrados com realismo fotorrealista, correta iluminação e sombras que correspondem EXATAMENTE à iluminação da IMAGEM_BASE.
 
 QUALIDADE: Fotografia profissional ultra-realista 8K.`;
 
@@ -175,10 +204,13 @@ export async function POST(request: NextRequest) {
     ];
 
     // Chamar Gemini Flash Image Service com o prompt de refinamento
+    // REFINAMENTO VISUAL: Forçar proporção 9:16 e melhorar realismo
     const geminiService = getGeminiFlashImageService();
     const geminiResult = await geminiService.generateImage({
       prompt: REFINEMENT_PROMPT,
       imageUrls: imageUrls,
+      aspectRatio: "9:16", // REFINAMENTO VISUAL: Sempre vertical
+      negativePrompt: "(night scene:2.0), (dark background:2.0), (evening:2.0), (sunset:2.0), (dusk:2.0), (nighttime:2.0), (neon lights:2.0), (cyberpunk:2.0), (artificial night lighting:2.0), (floating:2.0), (sticker effect:2.0), (bad shadows:2.0), (wrong lighting:2.0)",
     });
 
     if (!geminiResult.success || !geminiResult.data) {

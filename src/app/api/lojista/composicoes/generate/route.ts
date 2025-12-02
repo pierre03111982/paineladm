@@ -10,6 +10,7 @@ import { randomUUID } from "crypto";
 import { getCompositionOrchestrator } from "@/lib/ai-services/composition-orchestrator";
 import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
 import { logError } from "@/lib/logger";
+import { findScenarioByProductTags } from "@/lib/scenarioMatcher";
 
 const db = getAdminDb();
 const storage = (() => {
@@ -578,16 +579,34 @@ export async function POST(request: NextRequest) {
        * PHASE 20: Master Logic & Behavioral Refinement
        * Detecta o cenário apropriado baseado na categoria do produto
        * Implementa resolução de conflitos e integra os 60 cenários de alta qualidade
+       * 
+       * REFINAMENTO VISUAL: Usa APENAS o primeiro produto para determinar o cenário
        */
       const getSmartScenario = (products: any[], isRemix: boolean = false): { context: string; forbidden: string[] } => {
         // PHASE 24: Simplified fallback
         let context = "Background: Clean studio";
         let forbidden: string[] = [];
 
-        // Coletar todas as informações dos produtos
-        const categories = products.map(p => (p?.categoria || "").toLowerCase());
-        const names = products.map(p => (p?.nome || "").toLowerCase());
-        const allText = [...categories, ...names].join(" ");
+        // REFINAMENTO VISUAL: Usar APENAS o primeiro produto (índice 0) para determinar o cenário
+        // Ignorar categorias dos produtos secundários
+        if (products.length === 0) {
+          console.warn("[API] ⚠️ Nenhum produto fornecido para determinar cenário, usando fallback");
+          return { context, forbidden };
+        }
+
+        const firstProduct = products[0];
+        const firstProductCategory = (firstProduct?.categoria || "").toLowerCase();
+        const firstProductName = (firstProduct?.nome || "").toLowerCase();
+        const allText = `${firstProductCategory} ${firstProductName}`;
+
+        console.log("[API] 🎯 REFINAMENTO VISUAL: Usando APENAS o primeiro produto para cenário:", {
+          primeiroProduto: {
+            nome: firstProduct?.nome || "N/A",
+            categoria: firstProduct?.categoria || "N/A",
+          },
+          totalProdutos: products.length,
+          nota: "Produtos secundários são ignorados para escolha do cenário"
+        });
 
         // PHASE 20: 60 High-Quality Scenarios
         // PHASE 24: Simplified descriptions (50% reduction) to save token attention for Face
@@ -841,47 +860,121 @@ export async function POST(request: NextRequest) {
         return { context, forbidden };
       };
 
-      // PHASE 21 FIX: Smart Context Engine (usando getSmartScenario com resolução de conflitos)
-      // CRÍTICO: SEMPRE calcular smartContext usando getSmartScenario, independente de scenePrompts
-      // O getSmartScenario aplica a Bikini Law e outras regras de coerência corretamente
-      // Detectar se é remix (para variação de cenário, mas sempre respeitando as regras)
+      // MASTER PROMPT: UNIFICAÇÃO DE QUALIDADE VISUAL
+      // Detectar se é remix (lógica agressiva)
       const isRemix = (scenePrompts && scenePrompts.length > 0) || options?.gerarNovoLook || false;
       
-      // PHASE 28 FIX: Para REMIX, SEMPRE variar cenário (ignorar scenarioImageUrl se fornecido)
-      // Para geração normal, priorizar cenário do frontend se fornecido
+      // REGRA DO 1º PRODUTO: Usar APENAS o produto no índice 0 para buscar cenário
+      // Ignorar completamente os outros produtos para essa decisão
+      const firstProductOnly = productsData.length > 0 ? [productsData[0]] : [];
+      
+      // PHASE 26: Buscar cenário do Firestore baseado APENAS no primeiro produto
+      let scenarioFromFirestore: { imageUrl: string; lightingPrompt: string; category: string } | null = null;
+      
+      // LÓGICA REMIX AGRESSIVA: Se for Remix, forçar NOVO cenário aleatório da mesma categoria
+      if (isRemix && firstProductOnly.length > 0) {
+        try {
+          console.log("[API] 🎨 MASTER PROMPT: REMIX AGRESSIVO - Forçando NOVO cenário aleatório da mesma categoria...");
+          // Buscar cenário baseado no primeiro produto para identificar categoria
+          const baseScenario = await findScenarioByProductTags(firstProductOnly);
+          
+          if (baseScenario) {
+            // Buscar TODOS os cenários da mesma categoria
+            const { findScenarioByCategory } = await import("@/lib/scenarioMatcher");
+            const categoryScenarios = await findScenarioByCategory(baseScenario.category);
+            
+            if (categoryScenarios && categoryScenarios.length > 0) {
+              // Escolher aleatório (pode ser o mesmo ou diferente - importante é variar)
+              const randomScenario = categoryScenarios[Math.floor(Math.random() * categoryScenarios.length)];
+              scenarioFromFirestore = {
+                imageUrl: randomScenario.imageUrl,
+                lightingPrompt: randomScenario.lightingPrompt || baseScenario.lightingPrompt,
+                category: randomScenario.category,
+              };
+              console.log("[API] ✅ REMIX: Novo cenário aleatório selecionado:", {
+                category: scenarioFromFirestore.category,
+                totalOptions: categoryScenarios.length,
+                isDifferent: randomScenario.imageUrl !== baseScenario.imageUrl,
+              });
+            } else {
+              scenarioFromFirestore = baseScenario;
+            }
+          }
+        } catch (error: any) {
+          console.error("[API] ❌ Erro ao buscar cenário para Remix:", error);
+        }
+      } else if (!isRemix && firstProductOnly.length > 0) {
+        // GERAÇÃO NORMAL: Buscar cenário baseado no primeiro produto
+        try {
+          console.log("[API] 🎯 MASTER PROMPT: Buscando cenário baseado APENAS no primeiro produto (índice 0)...");
+          console.log("[API] 📦 Primeiro produto usado para cenário:", {
+            nome: firstProductOnly[0]?.nome || "N/A",
+            categoria: firstProductOnly[0]?.categoria || "N/A",
+            totalProdutos: productsData.length,
+            nota: "Produtos secundários são IGNORADOS para seleção de cenário",
+          });
+          
+          scenarioFromFirestore = await findScenarioByProductTags(firstProductOnly);
+          
+          if (scenarioFromFirestore) {
+            console.log("[API] ✅ Cenário encontrado baseado no primeiro produto:", {
+              category: scenarioFromFirestore.category,
+              hasImageUrl: !!scenarioFromFirestore.imageUrl,
+              imageUrl: scenarioFromFirestore.imageUrl.substring(0, 100) + "...",
+            });
+          } else {
+            console.log("[API] ⚠️ Nenhum cenário encontrado, usando prompt genérico");
+          }
+        } catch (error: any) {
+          console.error("[API] ❌ Erro ao buscar cenário do Firestore:", error);
+        }
+      }
+      
+      // MASTER PROMPT PIVOT: Aplicar cenário encontrado como TEXTO (não como imagem)
+      if (scenarioFromFirestore) {
+        // Passar apenas STRINGS (prompt/categoria), NÃO a URL da imagem
+        scenarioImageUrl = undefined; // SEMPRE undefined - forçar geração via prompt
+        scenarioLightingPrompt = scenarioFromFirestore.lightingPrompt;
+        scenarioCategory = scenarioFromFirestore.category;
+        scenarioInstructions = undefined; // Não usar instruções de imagem fixa
+        
+        console.log("[API] 🎯 MASTER PROMPT PIVOT: Cenário aplicado como TEXTO:", {
+          category: scenarioCategory,
+          lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
+          nota: "Cenário será GERADO via prompt, não usado como input visual",
+        });
+      }
+
+      // MASTER PROMPT PIVOT: Sempre usar smartContext (nunca usar scenarioImageUrl como imagem)
+      // Se temos categoria/prompt do Firestore, usar eles; senão, usar smartContext
       let smartContext = "";
       let forbiddenScenarios: string[] = [];
       
-      // PHASE 28: Se for remix, NÃO usar scenarioImageUrl (forçar novo cenário)
-      const shouldUseScenarioImage = scenarioImageUrl && scenarioImageUrl.startsWith("http") && !isRemix;
-      
-      if (shouldUseScenarioImage) {
-        // PHASE 26: Frontend forneceu imagem de cenário - usar ela e NÃO gerar cenário via prompt
-        console.log("[API] 🎬 PHASE 26: Usando cenário do frontend (scenarioImageUrl fornecido):", {
-          hasImage: !!scenarioImageUrl,
+      // Se temos categoria do Firestore, usar ela como contexto; senão, calcular smartContext
+      if (scenarioCategory || scenarioLightingPrompt) {
+        // Usar categoria/prompt do Firestore como contexto textual
+        smartContext = scenarioCategory 
+          ? `Professional ${scenarioCategory} environment`
+          : "Professional fashion photography environment";
+        console.log("[API] 🎯 MASTER PROMPT PIVOT: Usando categoria do Firestore como contexto textual:", {
           category: scenarioCategory || "N/A",
           lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
-          isRemix: false,
+          smartContext,
         });
-        // Não usar smartContext quando temos imagem de cenário - deixar vazio para não gerar cenário via prompt
-        smartContext = ""; // Vazio = não adicionar instrução de cenário no prompt (a imagem será usada)
-        forbiddenScenarios = []; // Não precisa proibir cenários quando temos imagem específica
       } else {
-        // PHASE 21 FIX: Obter cenário inteligente com resolução de conflitos
-        // PHASE 28 FIX: Em remix, isso vai variar o cenário baseado nos produtos
+        // Fallback: calcular smartContext baseado nos produtos
         const smartScenario = getSmartScenario(productsData, isRemix);
         smartContext = smartScenario.context;
         forbiddenScenarios = smartScenario.forbidden;
         
         if (isRemix) {
-          console.log("[API] 🎨 PHASE 28: REMIX - Gerando NOVO cenário (ignorando scenarioImageUrl se fornecido):", {
+          console.log("[API] 🎨 REMIX - Gerando NOVO cenário via prompt:", {
             context: smartContext,
             forbidden: forbiddenScenarios,
             totalProdutos: productsData.length,
-            note: "Cenário será variado para criar look diferente",
           });
         } else {
-          console.log("[API] 📍 PHASE 15 V2 Smart Scenario aplicado:", {
+          console.log("[API] 📍 Smart Scenario aplicado:", {
             context: smartContext,
             forbidden: forbiddenScenarios,
             isRemix: false,
@@ -979,24 +1072,26 @@ export async function POST(request: NextRequest) {
         // PHASE 28 FIX: Para remix, passar scenePrompts para variar pose
         // Para geração normal, não passar (preserva postura original)
         ...(isRemix && scenePrompts && scenePrompts.length > 0 ? { scenePrompts } : {}),
+        // MASTER PROMPT: Flag para Remix agressivo
         options: {
           quality: options?.quality || "high",
-          skipWatermark: options?.skipWatermark !== false, // Respeitar opção do frontend
+          skipWatermark: options?.skipWatermark !== false,
           productUrl: primaryProduct.productUrl || undefined,
-          lookType: options?.lookType || "creative", // PHASE 14: Respeitar lookType (creative para multi-produto)
-          allProductImageUrls: allProductImageUrls, // PHASE 14: TODAS as imagens de produtos (crítico para multi-produto)
-          productCategory: productCategoryForPrompt, // PHASE 14: Categoria determinada por Smart Framing (previne "cut legs")
-          gerarNovoLook: options?.gerarNovoLook || isRemix, // PHASE 14: Ativar flag se for remix ou se explicitamente solicitado
-          smartContext: smartContext, // PHASE 15: Contexto inteligente (Beach/Office/Studio)
-          smartFraming: smartFraming, // PHASE 14: Framing inteligente (Full Body/Portrait/Medium)
-          forbiddenScenarios: forbiddenScenarios, // PHASE 15: Cenários proibidos para negative prompt
-          productsData: productsData, // PHASE 20: Dados completos dos produtos para lógica de "Complete the Look" e acessórios
-          // PHASE 26: Dados do cenário para usar como input visual
-          // PHASE 28 FIX: Em remix, NÃO enviar scenarioImageUrl para forçar novo cenário
-          scenarioImageUrl: (isRemix ? undefined : scenarioImageUrl) || undefined,
-          scenarioLightingPrompt: (isRemix ? undefined : scenarioLightingPrompt) || undefined,
-          scenarioCategory: (isRemix ? undefined : scenarioCategory) || undefined,
-          scenarioInstructions: (isRemix ? undefined : scenarioInstructions) || undefined,
+          lookType: "creative", // SEMPRE creative (unificado)
+          allProductImageUrls: allProductImageUrls,
+          productCategory: productCategoryForPrompt,
+          gerarNovoLook: options?.gerarNovoLook || isRemix,
+          forceNewPose: isRemix, // MASTER PROMPT: Flag para Remix agressivo
+          smartContext: smartContext,
+          smartFraming: smartFraming,
+          forbiddenScenarios: forbiddenScenarios,
+          productsData: productsData,
+          // MASTER PROMPT PIVOT: Passar apenas STRINGS (categoria/prompt), NÃO URL de imagem
+          // scenarioImageUrl deve ser undefined para forçar geração via prompt
+          scenarioImageUrl: undefined, // SEMPRE undefined - forçar geração de fundo
+          scenarioLightingPrompt: scenarioLightingPrompt || undefined,
+          scenarioCategory: scenarioCategory || undefined,
+          scenarioInstructions: undefined, // Não usar instruções de imagem fixa
         },
       });
       

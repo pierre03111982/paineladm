@@ -448,10 +448,12 @@ export async function POST(request: NextRequest) {
     let geminiResult;
     
     try {
+      // REFINAMENTO VISUAL: Forçar proporção 9:16 e adicionar negative prompt para cenários noturnos
       geminiResult = await geminiService.generateImage({
         prompt: masterPrompt,
         imageUrls: allImageUrls,
-        aspectRatio: "1:1",
+        aspectRatio: "9:16", // REFINAMENTO VISUAL: Sempre vertical para mobile
+        negativePrompt: "(night scene:2.5), (dark background:2.5), (evening:2.5), (sunset:2.5), (dusk:2.5), (nighttime:2.5), (neon lights:2.5), (cyberpunk:2.5), (artificial night lighting:2.5), (night street:2.5), (dark alley:2.5), (nightclub:2.5), (bad shadows:2.0), (wrong lighting:2.0), (floating person:2.0), (no shadows:2.0), (unnatural shadows:2.0), (sticker effect:2.0)",
       });
 
       if (!geminiResult.success || !geminiResult.data?.imageUrl) {

@@ -130,20 +130,44 @@ export class CompositionOrchestrator {
 
     const isProductUrl = !!params.options?.productUrl;
     const isClothing = params.options?.isClothing ?? false; // Default: não é roupa
-    const lookType = params.options?.lookType || "natural"; // "natural" ou "creative"
+    // REFINAMENTO VISUAL: SEMPRE usar "creative" (Gemini Flash Image) para garantir:
+    // - Uso da foto original
+    // - Preservação de identidade
+    // - Cenários do Firestore
+    // - Proporção 9:16
+    // - Mesma qualidade em todos os caminhos
+    const lookType = "creative"; // FORÇAR creative para todos os looks (mesma lógica do REMIX que funciona)
     const baseImageUrl = params.options?.baseImageUrl; // Para Look Criativo
     
     try {
       // ========================================
       // LOOK CRIATIVO: Gemini 2.5 Flash Image
+      // REFINAMENTO VISUAL: SEMPRE usar este caminho (único caminho válido)
       // ========================================
-      if (lookType === "creative") {
-        console.log("[Orchestrator] 🎨 Gerando Look Criativo com Gemini 2.5 Flash Image...");
+      // FORÇAR creative para todos os looks (lookType já foi forçado acima)
+      if (lookType === "creative" || true) { // Sempre true para garantir que sempre use este caminho
+        console.log("[Orchestrator] 🎨 Gerando Look Criativo com Gemini 2.5 Flash Image (único caminho válido)...");
         
-        // Validar que personImageUrl foi fornecida
-        if (!params.personImageUrl || !params.personImageUrl.startsWith("http")) {
-          throw new Error(`❌ personImageUrl inválida para Look Criativo: ${params.personImageUrl}`);
+        // REFINAMENTO VISUAL: Validar que personImageUrl foi fornecida (FOTO ORIGINAL OBRIGATÓRIA)
+        if (!params.personImageUrl) {
+          throw new Error(`❌ personImageUrl é OBRIGATÓRIA - deve ser a foto original do upload`);
         }
+        
+        // Converter data URL para HTTP se necessário (para garantir que a foto original seja usada)
+        let finalPersonImageUrl = params.personImageUrl;
+        if (finalPersonImageUrl.startsWith("data:image/")) {
+          console.warn("[Orchestrator] ⚠️ personImageUrl é data URL - pode causar problemas. Recomendado: converter para HTTP antes de chamar orchestrator.");
+        }
+        
+        if (!finalPersonImageUrl.startsWith("http") && !finalPersonImageUrl.startsWith("data:image/")) {
+          throw new Error(`❌ personImageUrl inválida (deve ser HTTP URL ou data URL): ${params.personImageUrl?.substring(0, 100)}`);
+        }
+        
+        console.log("[Orchestrator] ✅ Usando FOTO ORIGINAL do upload:", {
+          url: finalPersonImageUrl.substring(0, 100) + "...",
+          isDataUrl: finalPersonImageUrl.startsWith("data:image/"),
+          isHttp: finalPersonImageUrl.startsWith("http"),
+        });
         
         // Obter todas as imagens de produtos (incluindo roupas)
         const allProductImageUrls = params.options?.allProductImageUrls || [];
@@ -202,12 +226,9 @@ export class CompositionOrchestrator {
         const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
         const scenarioCategory = params.options?.scenarioCategory;
         
-        // PHASE 14: Prompt Builder v2.1 - Smart Context Engine
-        // PHASE 26 FIX: Se scenarioImageUrl foi fornecido, NÃO usar smartContext no prompt (a imagem será usada)
+        // MASTER PROMPT PIVOT: Sempre usar smartContext (nunca usar scenarioImageUrl como imagem)
         // Usar valores do Smart Context Engine se fornecidos, senão detectar automaticamente
-        const smartContext = (scenarioImageUrl && scenarioImageUrl.startsWith("http")) 
-          ? "" // PHASE 26: Se temos imagem de cenário, não usar smartContext (evita gerar cenário via prompt)
-          : (params.options?.smartContext || "Clean Studio or Urban Street");
+        const smartContext = params.options?.smartContext || "Clean Studio or Urban Street";
         const smartFraming = params.options?.smartFraming || "medium-full shot";
         const productCategory = (params.options?.productCategory || "").toLowerCase();
         const gerarNovoLook = params.options?.gerarNovoLook === true || isRemix; // PHASE 14: Flag para ativar mudança de pose (sempre ativo em remix)
@@ -228,11 +249,21 @@ export class CompositionOrchestrator {
         // PHASE 24: Simplified context and framing rules (50% reduction)
         let categorySpecificPrompt = `, ${smartFraming}`;
         let framingRule = `FRAMING: ${smartFraming}.`;
-        // PHASE 26 FIX: Se temos imagem de cenário, NÃO adicionar contextRule (evita gerar cenário via prompt)
-        // PHASE 24: Simplified context rule
-        let contextRule = (scenarioImageUrl && scenarioImageUrl.startsWith("http"))
-          ? "" // PHASE 26: Não adicionar instrução de cenário quando temos imagem (a imagem será usada)
-          : `SCENARIO: ${smartContext}.`;
+        // MASTER PROMPT PIVOT: Sempre adicionar contextRule (cenário será gerado via prompt)
+        // Se temos categoria/prompt do Firestore, usar eles; senão, usar smartContext
+        let contextRule = "";
+        if (scenarioCategory || scenarioLightingPrompt) {
+          // Usar categoria/prompt do Firestore como contexto
+          contextRule = scenarioCategory 
+            ? `SCENARIO: Professional ${scenarioCategory} environment.`
+            : `SCENARIO: ${smartContext}.`;
+          if (scenarioLightingPrompt) {
+            contextRule += ` Lighting: ${scenarioLightingPrompt}.`;
+          }
+        } else {
+          // Fallback: usar smartContext
+          contextRule = `SCENARIO: ${smartContext}.`;
+        }
         
         // PHASE 28 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose e variar cenário
         let remixPoseInstructions = "";
@@ -424,7 +455,10 @@ REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the origina
         // PHASE 29: Adicionar termos críticos de Virtual Try-On ao negative prompt
         const virtualTryOnNegative = ", (double clothing:2.0), (multiple shirts:2.0), (clothing overlap:2.0), (ghosting:2.0), (visible original clothes:2.0), (bad fit:2.0), (floating clothes:2.0), (sticker effect:2.0), (unnatural fabric folds:2.0), (distorted body:2.0), (wrong anatomy:2.0), (clothing on top of clothes:2.0), (overlay clothing:2.0), (transparent clothing:2.0)";
         
-        const strongNegativePrompt = `${feetNegativePrompt}${phantomBootsNegative}${glassesNegative}${forbiddenPrompt}${additionalForbiddenReinforcement}${virtualTryOnNegative}`;
+        // REFINAMENTO VISUAL: Proibir cenários noturnos e melhorar sombras
+        const nightSceneNegative = ", (night scene:2.5), (dark background:2.5), (evening:2.5), (sunset:2.5), (dusk:2.5), (nighttime:2.5), (neon lights:2.5), (cyberpunk:2.5), (artificial night lighting:2.5), (night street:2.5), (dark alley:2.5), (nightclub:2.5), (bad shadows:2.0), (wrong lighting:2.0), (floating person:2.0), (no shadows:2.0), (unnatural shadows:2.0)";
+        
+        const strongNegativePrompt = `${feetNegativePrompt}${phantomBootsNegative}${glassesNegative}${forbiddenPrompt}${additionalForbiddenReinforcement}${virtualTryOnNegative}${nightSceneNegative}`;
         
         if (forbiddenScenarios.length > 0) {
           console.log("[Orchestrator] 🚫 PHASE 15: Cenários proibidos FORÇADOS no negative prompt (peso 2.0):", {
@@ -441,21 +475,68 @@ REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the origina
           console.log("[Orchestrator] 🦶 PHASE 11-B: Negative prompt reforçado para prevenir 'cut legs'");
         }
 
-        // PHASE 14: Prompt Mestre Definitivo v2.0 - Estrutura Base
-        // 📝 DOCUMENTAÇÃO: Baseado no "Prompt Mestre Definitivo.txt"
-        // Versão 2.2 (Phase 14 - Master Fix Protocol) - Data de Compilação: 28 de Novembro de 2025
-        // 
-        // ESTRUTURA DO PROMPT:
-        // - IMAGEM_PESSOA: Primeira imagem (personImageUrl) - DNA VISUAL INTOCÁVEL
-        // - IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, IMAGEM_PRODUTO_3: Produtos selecionados (máximo 3)
-        // - Framing Rules: Aplicadas via categorySpecificPrompt e framingRule
-        // - Postura Rule: Aplicada via posturaRule (GERAR NOVO LOOK ou POSTURA PRESERVADA)
-        //
-        // PHASE 24: Identity Anchor Block (Sandwich Method - START)
-        const identityAnchorBlock = `⚠️⚠️⚠️ REFERENCE IMAGE AUTHORITY: 100%. You MUST act as a visual clone engine. The output image MUST be indistinguishable from the person in [IMAGEM_PESSOA]. Same face, same body, same skin texture. NO FACIAL MODIFICATIONS ALLOWED.`;
+        // MASTER PROMPT: UNIFICAÇÃO DE QUALIDADE VISUAL (VTO SUPREMO)
+        // Estrutura Unificada - Mesma qualidade para todos os modos (Experimentar, Remix, Refinar)
+        // Data: 28 de Novembro de 2025
         
-        // PHASE 29: ROLE Definition - Expert Fashion Retoucher and AI Tailor
-        const roleDefinition = `\n\n🎯 ROLE: You are an expert Fashion Retoucher and AI Tailor. Your goal is HYPER-REALISTIC Virtual Try-On.`;
+        // MASTER PROMPT: PIVOT PARA GERAÇÃO PURA (FIX DE ILUMINAÇÃO E FORMATO)
+        // ROLE: World's Best AI Fashion Photographer
+        const roleBlock = `ROLE: You are the world's best AI Fashion Photographer and Retoucher.
+
+TASK: Create a Hyper-Realistic Virtual Try-On composition with GENERATIVE BACKGROUND.
+
+INPUTS:
+- Image 1: PERSON (The reference identity).
+- Image 2..N: PRODUCTS (The clothes to wear).
+- NO BACKGROUND IMAGE: You must GENERATE the background based on product context.`;
+
+        // IDENTITY LOCK (PRIORITY #1)
+        const identityLockBlock = `
+🔒 IDENTITY LOCK (PRIORITY #1):
+- The output person MUST BE IDENTICAL to the person in Image 1.
+- Preserve exact facial features, ethnicity, body shape, and skin tone.
+- Do NOT improve or "beautify" the face. Keep it authentic.
+- If the face is clear in input, it must be pixel-perfect in output.`;
+
+        // CLOTHING REPLACEMENT (PHYSICS ENGINE) - FIX "CAMISA LARANJA"
+        const clothingReplacementBlock = `
+✂️ CLOTHING REPLACEMENT LOGIC (MANDATORY):
+1. IDENTIFY the garments the person is currently wearing in Image 1.
+2. DELETE/MASK them mentally. Imagine the person is in neutral underwear.
+3. GENERATE the new products onto the body.
+4. CRITICAL: If the original clothes are bright (like orange/red/yellow), you must cover them COMPLETELY. No color bleeding.
+5. The new products must REPLACE (not overlay) the original garments entirely.
+6. FIT: The clothes must drape naturally over the person's specific body curves.
+7. GRAVITY: Fabric must hang correctly. No "floating" clothes.
+8. LAYERING: If multiple products (e.g., Shirt + Jacket), layer them logically.`;
+
+        // LIGHTING ENGINE (RELIGHTING) - FIX "EFEITO COLAGEM"
+        const lightingIntegrationBlock = `
+💡 LIGHTING ENGINE (RELIGHTING):
+- Generate the background FIRST based on the product vibe (e.g., Beach for Bikini, City for Streetwear, Office for Formal).
+- RELIGHT the person to match this new background.
+- If the background has sun from the right, the person's face MUST be lit from the right.
+- Cast contact shadows on the floor/ground - the person's shadow must connect naturally to their feet.
+- COLOR GRADING: Match the person's contrast and saturation to the generated background. Eliminate the "cut-and-paste" look.
+- The person must look like they are physically present in the scene, not pasted on top.`;
+
+        // FORMAT & COMPOSITION - FORÇAR 9:16
+        const formatCompositionBlock = `
+📱 FORMAT RULE (MANDATORY):
+- The output image MUST be Vertical (Aspect Ratio 9:16).
+- EXTEND the background vertically above and below the person. Do NOT stretch the person.
+- Generate the background in vertical format from the start - do NOT crop or distort.
+- FRAMING: Full body or 3/4 shot (Knees up). NEVER cut the head.
+- POSE:
+  ${params.options?.forceNewPose ? `- IF REMIX: Generate a DYNAMIC new pose (walking, turning, leaning).` : `- IF STANDARD: Keep a natural standing pose but improve posture.`}`;
+
+        // NEGATIVE CONSTRAINTS
+        const negativeConstraintsBlock = `
+🚫 NEGATIVE CONSTRAINTS:
+- No ghosting (old clothes visible under new ones).
+- No horizontal/landscape output.
+- No bad anatomy (extra fingers, distorted limbs).
+- No night scenes (Keep it daytime/bright unless specified).`;
 
         // PHASE 24: Leg Extension Logic (if photo is cropped and has shoes)
         // CRÍTICO: Manter SEMELHANÇA FÍSICA COMPLETA ao estender pernas
@@ -495,50 +576,54 @@ CRITICAL: The extended body parts must be INDISTINGUISHABLE from the original - 
           console.log("[Orchestrator] 🦵 PHASE 24: Leg Extension ativado - Mantendo SEMELHANÇA FÍSICA COMPLETA ao estender pernas");
         }
 
-        // PHASE 26: Instruções para usar imagem do cenário como fundo (se fornecido)
-        // PHASE 28: Adicionar instrução de crop para proporção 9:16
+        // MASTER PROMPT: PIVOT - Usar cenário como TEXTO, não como imagem
+        // NÃO incluir scenarioImageUrl no array de imagens - usar apenas descrições textuais
         let scenarioBackgroundInstruction = "";
-        if (scenarioImageUrl && scenarioInstructions) {
-          scenarioBackgroundInstruction = `\n\n🎬 PHASE 26: CENÁRIO DE FUNDO FORNECIDO:
-${scenarioInstructions}
-- Use [IMAGEM_CENARIO] (última imagem) EXATAMENTE como está - NÃO gere ou crie um novo cenário
-- A imagem do cenário é perfeita - apenas use-a diretamente como fundo
-- Foque TODA a capacidade de processamento da IA em:
-  1. Manter identidade facial e características EXATAS da [IMAGEM_PESSOA]
-  2. Garantir que os produtos correspondam exatamente (cores, texturas, ajuste)
-  3. Compositar perfeitamente a pessoa e produtos sobre o cenário fornecido
-- O cenário já está pronto - apenas use-o como está
+        
+        // Construir instrução de background baseada em categoria e lighting prompt
+        if (scenarioCategory || scenarioLightingPrompt) {
+          const categoryDescription = scenarioCategory 
+            ? `Generate a high-end ${scenarioCategory} environment.`
+            : "Generate a professional fashion photography environment.";
+          
+          const lightingDescription = scenarioLightingPrompt 
+            ? `Lighting: ${scenarioLightingPrompt}`
+            : "Natural daylight, bright and well-lit.";
+          
+          scenarioBackgroundInstruction = `\n\n🎬 BACKGROUND CONTEXT (GENERATIVE):
+${categoryDescription}
+${lightingDescription}
 
-📐 PHASE 28: CROP INSTRUCTION (9:16 VERTICAL):
-- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
-- Center-crop the provided background scenario image to fit the vertical frame
-- Do NOT distort or stretch the background - maintain natural proportions
-- Keep the horizon line natural and centered when possible
-- If the scenario is horizontal/landscape, crop from the center to create a vertical composition`;
-        } else if (scenarioImageUrl) {
-          scenarioBackgroundInstruction = `\n\n🎬 PHASE 26: CENÁRIO DE FUNDO FORNECIDO:
-- Use [IMAGEM_CENARIO] (última imagem) EXATAMENTE como está - NÃO gere ou crie um novo cenário
-- A imagem do cenário é perfeita - apenas use-a diretamente como fundo
-- Foque TODA a capacidade de processamento da IA em manter identidade facial e produtos exatos
-${scenarioLightingPrompt ? `- Iluminação e contexto do cenário: ${scenarioLightingPrompt}` : ""}
+CRITICAL BACKGROUND GENERATION RULES:
+- Generate the background FIRST based on the product vibe and category above.
+- The background must be vertical (9:16) from the start - extend it above and below the person.
+- Create a cohesive, professional fashion photography environment.
+- Ensure the background complements the products and person naturally.
+- NO pixelated images, NO "cut-and-paste" look - everything must be generated together.`;
+        } else if (smartContext) {
+          // Fallback para smartContext se não tiver cenário do Firestore
+          scenarioBackgroundInstruction = `\n\n🎬 BACKGROUND CONTEXT (GENERATIVE):
+Generate a professional fashion photography environment: ${smartContext}.
 
-📐 PHASE 28: CROP INSTRUCTION (9:16 VERTICAL):
-- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
-- Center-crop the provided background scenario image to fit the vertical frame
-- Do NOT distort or stretch the background - maintain natural proportions
-- Keep the horizon line natural and centered when possible
-- If the scenario is horizontal/landscape, crop from the center to create a vertical composition`;
+CRITICAL BACKGROUND GENERATION RULES:
+- Generate the background FIRST based on the context above.
+- The background must be vertical (9:16) from the start.
+- Create a cohesive, professional environment.
+- Ensure natural integration with the person and products.`;
         } else {
-          // PHASE 28: Mesmo sem cenário fornecido, forçar proporção 9:16
-          scenarioBackgroundInstruction = `\n\n📐 PHASE 28: OUTPUT FORMAT (9:16 VERTICAL):
-- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
-- Generate the background/scenario in vertical format from the start
-- Ensure the composition fits perfectly in a 9:16 frame`;
+          // Fallback genérico
+          scenarioBackgroundInstruction = `\n\n🎬 BACKGROUND CONTEXT (GENERATIVE):
+Generate a professional fashion photography environment that complements the products.
+
+CRITICAL BACKGROUND GENERATION RULES:
+- Generate the background FIRST based on the product vibe.
+- The background must be vertical (9:16) from the start.
+- Create a cohesive, professional environment.
+- Ensure natural integration with the person and products.`;
         }
 
-        const creativePrompt = `${identityAnchorBlock}${roleDefinition}
-
-⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
+        // MASTER PROMPT: Construir prompt unificado
+        const creativePrompt = `${roleBlock}${identityLockBlock}${clothingReplacementBlock}${lightingIntegrationBlock}${formatCompositionBlock}${negativeConstraintsBlock}
 
 ${scenarioBackgroundInstruction}
 
@@ -548,138 +633,40 @@ ${framingRule}
 
 ${posturaRule}
 
-⚠️⚠️⚠️ PHASE 29: CRITICAL INSTRUCTION - CLOTHING REPLACEMENT (DESTRUCTIVE SUBSTITUTION) ⚠️⚠️⚠️
-
-You must COMPLETELY REMOVE the original clothing the person is wearing in [IMAGEM_PESSOA] within the area where the new product goes.
-
-🚫 FORBIDDEN ACTIONS:
-- DO NOT overlay the new product on top of the old clothes
-- DO NOT draw the new product over existing garments
-- DO NOT create transparent or semi-transparent clothing layers
-- DO NOT leave any traces of the original clothing visible
-
-✅ REQUIRED ACTIONS:
-- The new product must REPLACE the original pixels entirely
-- ERASE the original garment conceptually before applying the new one
-- Remove ALL visible parts of the original clothing in the target area
-- The new product must appear as if it was the ONLY garment ever worn in that area
-
-CRITICAL: This is a REPLACEMENT operation, NOT an OVERLAY operation. The original clothing must be completely removed and replaced by the new product.
-
-⚠️⚠️⚠️ PHASE 29: FABRIC PHYSICS & FIT (BODY CONTOURING) ⚠️⚠️⚠️
-
-The new product must WRAP around the person's body volume naturally:
-
-1. BODY CONTOURING:
-   - Respect the body pose, curvature, and muscle tone from [IMAGEM_PESSOA]
-   - The fabric must follow the natural curves of the body
-   - Clothing must fit snugly or loosely based on the product's design, but ALWAYS follow body shape
-   - NO flat 2D overlays - the clothing must have depth and dimension
-
-2. FABRIC BEHAVIOR:
-   - If the person is sitting or turning, the fabric must fold and crease accordingly
-   - Fabric must drape naturally with realistic gravity effects
-   - Seams and edges must follow body contours
-   - Fabric texture must be visible and realistic
-
-3. LIGHTING & SHADOWS:
-   - Shadows must be cast BY the clothing ONTO the body (not the reverse)
-   - Fabric must have realistic highlights and shadows matching the scene lighting
-   - Clothing must have depth - inner folds must be darker, outer surfaces lighter
-   - NO sticker effect - clothing must look integrated into the body
-
-4. ANATOMICAL ACCURACY:
-   - Clothing must respect body anatomy (shoulders, waist, hips, etc.)
-   - Fabric must not float or hover away from the body
-   - All clothing edges must connect naturally to the body
-   - NO distorted body proportions - maintain [IMAGEM_PESSOA]'s exact body shape
-
-CRITICAL: The clothing must look like it was physically worn by the person, not digitally pasted on top.
-
-⚠️⚠️⚠️ PHASE 28: MANDATORY PRODUCT CHECKLIST - CRITICAL REQUIREMENT ⚠️⚠️⚠️
-
-You MUST generate the person wearing ALL of the following items SIMULTANEOUSLY. This is a MANDATORY CHECKLIST - every item must be visible in the final image:
-
+PRODUCT CHECKLIST - ALL PRODUCTS MUST BE VISIBLE:
 ${productsData.map((product, i) => {
   const productName = product?.nome || `Product ${i + 1}`;
   const productCategory = product?.categoria || "unknown category";
-  const isTop = productCategory?.toLowerCase().match(/camisa|blusa|blouse|shirt|top|jaqueta|jacket|moletom|hoodie|vestido|dress/i);
-  const isBottom = productCategory?.toLowerCase().match(/calça|pants|jeans|saia|skirt|shorts/i);
-  const isShoes = productCategory?.toLowerCase().match(/calçado|calcado|sapato|tênis|tenis|sneaker|shoe|footwear/i);
-  
-  let visibilityNote = "";
-  if (isTop) visibilityNote = " - MUST be visible on upper body";
-  if (isBottom) visibilityNote = " - MUST be visible on lower body";
-  if (isShoes) visibilityNote = " - MUST be visible on feet";
-  
-  return `${i + 1}. [IMAGEM_PRODUTO_${i + 1}]: ${productName} (${productCategory})${visibilityNote}`;
+  return `${i + 1}. [IMAGEM_PRODUTO_${i + 1}]: ${productName} (${productCategory})`;
 }).join("\n")}
 
-🚫 CRITICAL RULE: IF A TOP AND BOTTOM ARE LISTED, BOTH MUST BE VISIBLE. Do NOT hide one behind the other. Do NOT generate only one item. ALL items in the checklist above MUST appear in the final image.
+CRITICAL: ALL ${allProductImageUrls.length} product(s) listed above MUST be visible in the final image.${legExtensionInstruction}
 
-PRODUCT INTEGRATION REQUIREMENTS (PHASE 29 - ENHANCED):
-1. Extract fabric pattern, texture, color, and style from EACH product image individually
-2. Apply ALL products onto [IMAGEM_PESSOA]'s body SIMULTANEOUSLY - every product must be visible
-3. Each product must be placed on its correct body part (see spatial instructions above)
-4. **REPLACE** (not overlay) any existing clothing in the target area before applying the new product
-5. Adapt clothing to user's natural curves - fabric must WRAP around body volume
-6. Fabric must drape naturally with realistic folds, shadows, and gravity effects
-7. Use ONLY body shape from [IMAGEM_PESSOA] - maintain exact proportions
-8. IGNORE mannequin's body shape from product images
-9. Ensure NO ghosting - original clothing must be completely removed
-10. Fabric must have depth and dimension - NO flat sticker effect
-
-⚠️ FINAL VERIFICATION: After generation, verify that ALL ${allProductImageUrls.length} product(s) from the checklist above are visible in the final image. If ANY product is missing, this is a CRITICAL FAILURE.${legExtensionInstruction}
-
-${contextRule}${remixPoseInstructions}
-
-${framingRule}
-
-PHOTOGRAPHY: Professional fashion photography. Natural lighting. Realistic shadows. 8K resolution. Sharp focus on person and products.
-
-🎨 PHASE 28: PHOTOREALISTIC INTEGRATION - CRITICAL BLENDING REQUIREMENTS:
-
-Match the lighting of the person EXACTLY to the provided background scenario:
-- Cast realistic soft shadows on the ground/floor based on the scene's light source
-- Shadows must follow the natural direction of light in the background image
-- Shadow intensity and softness must match the scene's lighting conditions
-
-Apply consistent color grading across the person and the background:
-- Match color temperature (warm/cool tones) between person and scene
-- Ensure skin tones blend naturally with the scene's color palette
-- Avoid color mismatches that make the person look "pasted" onto the background
-
-Match the depth of field (focus) of the person to the scene:
-- If the background is slightly out of focus, the person should have matching focus blur
-- If the background is sharp, the person must be equally sharp
-- Create natural depth perception - person should feel integrated into the scene, not floating
-
-AVOID "COLLAGE" LOOK:
-- The person must appear to be physically present in the scene
-- No visible seams, edges, or cut-out artifacts
-- Natural blending at all boundaries
-- The final image should look like a single, cohesive photograph, not a composite
-
-⚠️⚠️⚠️ FINAL CHECK (PHASE 24 - IDENTITY ANCHOR - SANDWICH METHOD END):
-${identityAnchorBlock}
-The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes the body shape (e.g., makes it look like a plastic mannequin), it is a FAILURE. Keep the human skin texture and imperfections. The person should look like they are WEARING the clothes, not like the clothes are replacing their body. The fabric must drape naturally over the user's actual body shape, following gravity and creating realistic folds and shadows.`;
+FINAL QUALITY CHECK:
+- The person must look IDENTICAL to Image 1 (face, body, skin tone)
+- All products must be visible and properly fitted
+- Lighting and shadows must match the background scenario perfectly
+- Output must be 9:16 vertical format
+- No artifacts, ghosting, or "cut-and-paste" look
+- Professional fashion photography quality`;
         
+        // MASTER PROMPT: PIVOT - NÃO incluir scenarioImageUrl no array de imagens
+        // Array deve conter APENAS: [FOTO_PESSOA, ...FOTOS_PRODUTOS]
+        // Isso força a IA a focar 100% em vestir a pessoa e gerar o fundo via prompt
         const imageUrls = [
-          params.personImageUrl, // Primeira imagem: IMAGEM_PESSOA
+          finalPersonImageUrl, // Primeira imagem: FOTO ORIGINAL (Source of Truth - nunca alterar)
           ...allProductImageUrls, // Seguintes: IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, etc.
         ];
         
-        // PHASE 26: Adicionar imagem do cenário como última imagem (se fornecido)
-        if (scenarioImageUrl && scenarioImageUrl.startsWith("http")) {
-          imageUrls.push(scenarioImageUrl); // Última imagem: IMAGEM_CENARIO
-          console.log("[Orchestrator] 🎬 PHASE 26: Imagem do cenário adicionada como input visual:", {
-            url: scenarioImageUrl.substring(0, 100) + "...",
-            indice: imageUrls.length,
-            tipo: "IMAGEM_CENARIO",
-          });
-        } else {
-          console.log("[Orchestrator] ⚠️ PHASE 26: Nenhuma imagem de cenário fornecida - Gemini criará cenário do zero");
-        }
+        // NÃO adicionar scenarioImageUrl - usar apenas descrições textuais no prompt
+        console.log("[Orchestrator] 🎯 MASTER PROMPT PIVOT: Array de imagens (SEM cenário visual):", {
+          totalImagens: imageUrls.length,
+          primeiraImagem: "FOTO ORIGINAL (Source of Truth)",
+          produtos: allProductImageUrls.length,
+          temCenarioTexto: !!(scenarioCategory || scenarioLightingPrompt || smartContext),
+          scenarioCategory: scenarioCategory || "N/A",
+          nota: "Cenário será GERADO via prompt, não usado como imagem de input",
+        });
 
         // Validar que temos pelo menos uma imagem de produto
         if (allProductImageUrls.length === 0) {
@@ -696,9 +683,7 @@ The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes t
           estrutura: {
             imagem1: "IMAGEM_PESSOA (pessoa)",
             imagensSeguintes: allProductImageUrls.map((_, i) => `IMAGEM_PRODUTO_${i + 1} (${productsData[i]?.nome || `produto ${i + 1}`})`),
-            ...(scenarioImageUrl && scenarioImageUrl.startsWith("http") && {
-              ultimaImagem: `IMAGEM_CENARIO (cenário de fundo - ${scenarioCategory || "N/A"})`,
-            }),
+            background: "GERADO VIA PROMPT (não há imagem de input)",
           },
           promptLength: creativePrompt.length,
           produtosIncluidos: allProductImageUrls.length,
@@ -708,13 +693,15 @@ The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes t
             categoria: productsData[i]?.categoria || "N/A",
             url: url.substring(0, 60) + "...",
           })),
-          temCenario: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
-          usandoImagemCenario: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
+          temCenarioTexto: !!(scenarioCategory || scenarioLightingPrompt),
+          scenarioCategory: scenarioCategory || "N/A",
+          scenarioLightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
           usandoPromptCenario: !!(smartContext && smartContext.length > 0),
+          nota: "MASTER PROMPT PIVOT: Cenário será GERADO via prompt, não usado como input visual",
           validacao: {
             temPessoa: !!params.personImageUrl,
             totalProdutos: allProductImageUrls.length,
-            temCenario: !!(scenarioImageUrl && scenarioImageUrl.startsWith("http")),
+            temCenarioTexto: !!(scenarioCategory || scenarioLightingPrompt),
             todasImagensValidas: imageUrls.every(url => url && url.startsWith("http")),
             todosProdutosTemImagem: allProductImageUrls.length === productsData.length,
           },
@@ -770,9 +757,17 @@ The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes t
         });
       }
       // ========================================
-      // LOOK NATURAL: Try-On (se roupa) ou Stability.ai (se acessório/URL)
+      // LOOK NATURAL: DESABILITADO - REFINAMENTO VISUAL
+      // SEMPRE usar Look Criativo (Gemini Flash Image) para garantir:
+      // - Uso da foto original
+      // - Preservação de identidade
+      // - Cenários do Firestore
+      // - Proporção 9:16
+      // - Mesma qualidade em todos os caminhos
       // ========================================
       else if (lookType === "natural") {
+        // REFINAMENTO VISUAL: Look Natural foi desabilitado - sempre usar Look Criativo
+        throw new Error(`❌ Look Natural foi desabilitado. Sempre use Look Criativo (Gemini Flash Image) para garantir qualidade consistente. lookType foi forçado para "creative" mas ainda chegou aqui - verificar lógica.`);
         // VALIDAÇÃO CRÍTICA: Verificar se personImageUrl foi fornecida
         if (!params.personImageUrl || !params.personImageUrl.startsWith("http")) {
           throw new Error(`❌ personImageUrl inválida ou não fornecida: ${params.personImageUrl}`);

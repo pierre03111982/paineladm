@@ -18,7 +18,29 @@
  * - Integração fotorrealista de produtos (PRIORIDADE 2)
  * - Lógica modular de enquadramento/pose para o "Gerar Novo Look"
  */
-const MASTER_PROMPT_TEMPLATE = `⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL.
+const MASTER_PROMPT_TEMPLATE = `⚠️⚠️⚠️ IDENTITY LOCK: The input person's face, body shape, skin tone, and pose MUST BE PRESERVED EXACTLY.
+- Do NOT generate a new model.
+- Do NOT change ethnicity or age.
+- Imagine you are dressing THIS specific person.
+- If the face is visible in the input, the output face must match 100%.
+- Maintain exact facial features, bone structure, and body proportions.
+- Preserve all unique physical characteristics (scars, freckles, body shape, etc.).
+
+📸 PHOTOREALISM RULES:
+- LIGHTING MATCH: Analyze the light source in the background scenario. Apply exactly the same lighting direction, temperature, and intensity to the person and clothes.
+- SHADOWS: Cast realistic soft shadows on the floor/ground based on the scene's light. The person must look grounded, not floating.
+- CLOTHING FIT: The clothes must drape naturally over the person's specific body shape. Create realistic fabric folds, tension, and texture. No 'sticker' effect.
+
+📐 OUTPUT FORMAT (9:16 VERTICAL - MANDATORY):
+- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
+- NEVER generate horizontal or square images - ALWAYS 9:16 vertical
+
+🚫 FORBIDDEN SCENARIOS:
+- NO night scenes, dark backgrounds, evening, sunset, dusk, or any nighttime setting
+- NO neon-lit streets, cyberpunk aesthetics, or artificial night lighting
+- ALWAYS use well-lit daytime environments with natural sunlight
+
+⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL.
 
 META: Gerar uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA da pessoa da IMAGEM_PESSOA que é ABSOLUTAMENTE A MESMA PESSOA (100% IDÊNTICA, RECONHECÍVEL E ORIGINAL), integrando de forma IMPECÁVEL, FOTORREALISTA E NATURAL ATÉ O MÁXIMO DE 3 PRODUTOS. O resultado final DEVE parecer uma FOTO REAL, não gerada.
 
@@ -72,10 +94,17 @@ PRIORIDADE 2 - FIDELIDADE ABSOLUTA DOS PRODUTOS E INTEGRAÇÃO FÍSICA E NATURAL
 
 * Estilo: Fotografia de moda ou lifestyle.
 * Iluminação: Natural ou de estúdio, cinematográfica, REFLITANDO O CENÁRIO ADAPTADO E COM SOMBRAS/REFLEXOS FISICAMENTE CORRETOS.
+  - SEMPRE usar iluminação DIURNA com luz natural do sol
+  - NUNCA usar cenas noturnas, neon, ou iluminação artificial noturna
+  - Sombras devem ser realistas, conectadas aos pés da pessoa, seguindo a direção da luz
+  - A pessoa deve estar perfeitamente integrada ao cenário com iluminação consistente
 * Resolução: Ultra alta definição 8K.
 * Foco/Profundidade de Campo: Foco nítido na pessoa e no(s) produto(s), com um fundo suavemente desfocado (bokeh ÓPTICO E REALISTA).
 
-RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA onde a pessoa é 100% IDÊNTICA (P1), todos os produtos fornecidos são FIÉIS (P2) e a cena completa é COESA, FOTORREALISTA E TOTALMENTE LIVRE DE QUALQUER INDÍCIO DE GERAÇÃO POR INTELIGÊNCIA ARTIFICIAL.`;
+RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA onde a pessoa é 100% IDÊNTICA (P1), todos os produtos fornecidos são FIÉIS (P2) e a cena completa é COESA, FOTORREALISTA E TOTALMENTE LIVRE DE QUALQUER INDÍCIO DE GERAÇÃO POR INTELIGÊNCIA ARTIFICIAL.
+
+⚠️⚠️⚠️ FINAL CHECK - IDENTITY PRESERVATION:
+The face and body MUST MATCH the IMAGEM_PESSOA 100%. If the clothing changes the body shape or the person looks different, it is a FAILURE. Keep the human skin texture and imperfections. The person should look like they are WEARING the clothes, not like the clothes are replacing their body.`;
 
 /**
  * Retorna o prompt mestre VTO otimizado para Gemini 2.5 Flash Image

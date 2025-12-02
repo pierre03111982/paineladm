@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, getAdminStorage } from "@/lib/firebaseAdmin";
 import { CompositionOrchestrator } from "@/lib/ai-services/composition-orchestrator";
 import { FieldValue } from "firebase-admin/firestore";
+import { findScenarioByProductTags } from "@/lib/scenarioMatcher";
 
 export const dynamic = 'force-dynamic';
 export const runtime = "nodejs";
@@ -107,39 +108,90 @@ export async function POST(req: NextRequest) {
     }
 
     // Buscar produtos do Firestore
-    const produtosSnapshot = await db
-      .collection("lojas")
-      .doc(jobData.lojistaId)
-      .collection("produtos")
-      .get();
+      const produtosSnapshot = await db
+        .collection("lojas")
+        .doc(jobData.lojistaId)
+        .collection("produtos")
+        .get();
 
-    const productsData = produtosSnapshot.docs
+      const productsData = produtosSnapshot.docs
       .filter(doc => jobData.productIds?.includes(doc.id))
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Array<{
-        id: string;
-        nome?: string;
-        preco?: number;
-        productUrl?: string;
-        imagemUrl?: string;
-        categoria?: string;
-        [key: string]: any;
-      }>;
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Array<{
+          id: string;
+          nome?: string;
+          preco?: number;
+          productUrl?: string;
+          imagemUrl?: string;
+          categoria?: string;
+          [key: string]: any;
+        }>;
 
-    if (productsData.length === 0) {
-      throw new Error("Nenhum produto encontrado");
-    }
+      if (productsData.length === 0) {
+        throw new Error("Nenhum produto encontrado");
+      }
 
-    const primaryProduct = productsData[0];
-    const allProductImageUrls = productsData
-      .map(p => p.productUrl || p.imagemUrl)
-      .filter(Boolean);
+      const primaryProduct = productsData[0];
+      const allProductImageUrls = productsData
+        .map(p => p.productUrl || p.imagemUrl)
+        .filter(Boolean);
 
     // Buscar dados da loja
     const lojaDoc = await db.collection("lojas").doc(jobData.lojistaId).get();
     const lojaData = lojaDoc.exists ? lojaDoc.data() : null;
+
+    // MASTER PROMPT PIVOT: Buscar cenário do Firestore baseado em tags de produtos
+    // REFINAMENTO VISUAL: Usa APENAS o primeiro produto para matching
+    // IMPORTANTE: Passar apenas STRINGS (prompt/categoria), NÃO URL de imagem
+    let scenarioImageUrl: string | undefined = undefined; // SEMPRE undefined - forçar geração via prompt
+    let scenarioLightingPrompt: string | undefined = undefined;
+    let scenarioCategory: string | undefined = undefined;
+    let scenarioInstructions: string | undefined = undefined; // Não usar instruções de imagem fixa
+    
+    // Verificar se é remix (não buscar cenário novo se for remix)
+    const isRemix = jobData.scenePrompts && jobData.scenePrompts.length > 0;
+    
+    // Se o job já tem categoria/prompt, usar eles (vem do frontend ou de geração anterior)
+    if (jobData.options?.scenarioCategory || jobData.options?.scenarioLightingPrompt) {
+      scenarioLightingPrompt = jobData.options.scenarioLightingPrompt;
+      scenarioCategory = jobData.options.scenarioCategory;
+      // NÃO usar scenarioImageUrl - forçar geração via prompt
+      scenarioImageUrl = undefined;
+      scenarioInstructions = undefined;
+      console.log("[process-job] 🎯 MASTER PROMPT PIVOT: Usando cenário do job como TEXTO:", {
+        category: scenarioCategory || "N/A",
+        lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
+        nota: "Cenário será GERADO via prompt, não usado como input visual",
+      });
+    } else if (!isRemix && productsData.length > 0) {
+      // Buscar cenário do Firestore se não foi fornecido
+      try {
+        console.log("[process-job] 🎯 MASTER PROMPT PIVOT: Buscando cenário do Firestore baseado em tags de produtos...");
+        const scenarioFromFirestore = await findScenarioByProductTags(productsData);
+        
+        if (scenarioFromFirestore) {
+          console.log("[process-job] ✅ Cenário encontrado no Firestore:", {
+            category: scenarioFromFirestore.category,
+            lightingPrompt: scenarioFromFirestore.lightingPrompt?.substring(0, 50) || "N/A",
+          });
+          
+          // MASTER PROMPT PIVOT: Passar apenas STRINGS, NÃO URL de imagem
+          scenarioImageUrl = undefined; // SEMPRE undefined - forçar geração via prompt
+          scenarioLightingPrompt = scenarioFromFirestore.lightingPrompt;
+          scenarioCategory = scenarioFromFirestore.category;
+          scenarioInstructions = undefined; // Não usar instruções de imagem fixa
+        } else {
+          console.log("[process-job] ⚠️ Nenhum cenário encontrado no Firestore, usando prompt genérico");
+        }
+      } catch (error: any) {
+        console.error("[process-job] ❌ Erro ao buscar cenário do Firestore:", error);
+        // Continuar sem cenário do Firestore, usar prompt genérico
+      }
+    } else if (isRemix) {
+      console.log("[process-job] 🎨 REMIX detectado - NÃO buscando cenário do Firestore (forçar novo cenário)");
+    }
 
     // Construir params para o orchestrator
     const params = {
@@ -159,6 +211,12 @@ export async function POST(req: NextRequest) {
         ...jobData.options,
         allProductImageUrls,
         productsData,
+        // MASTER PROMPT PIVOT: Passar apenas STRINGS (categoria/prompt), NÃO URL de imagem
+        // scenarioImageUrl deve ser undefined para forçar geração de fundo
+        scenarioImageUrl: undefined, // SEMPRE undefined - forçar geração via prompt
+        ...(scenarioLightingPrompt && { scenarioLightingPrompt }),
+        ...(scenarioCategory && { scenarioCategory }),
+        scenarioInstructions: undefined, // Não usar instruções de imagem fixa
       },
     };
 
@@ -223,9 +281,9 @@ export async function POST(req: NextRequest) {
     };
     
     // Limpar undefined values
-    const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
-    
-    await jobsRef.doc(jobId).update(cleanUpdateData);
+        const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
+        
+        await jobsRef.doc(jobId).update(cleanUpdateData);
 
     return NextResponse.json({ success: true, jobId });
 
