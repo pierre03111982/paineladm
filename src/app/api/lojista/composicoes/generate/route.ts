@@ -79,10 +79,11 @@ export async function POST(request: NextRequest) {
   let scenePrompts: string[] | null = null;
   let options: any = null;
   // PHASE 26: Declarar variáveis de cenário fora do bloco if/else
-  let scenarioImageUrl: string | null = null;
-  let scenarioLightingPrompt: string | null = null;
-  let scenarioCategory: string | null = null;
-  let scenarioInstructions: string | null = null;
+  // MASTER PROMPT PIVOT: scenarioImageUrl sempre undefined (não usar como imagem)
+  let scenarioImageUrl: string | null | undefined = undefined;
+  let scenarioLightingPrompt: string | null | undefined = undefined;
+  let scenarioCategory: string | null | undefined = undefined;
+  let scenarioInstructions: string | null | undefined = undefined;
   
   try {
     // Verificar se é FormData ou JSON pelo content-type
