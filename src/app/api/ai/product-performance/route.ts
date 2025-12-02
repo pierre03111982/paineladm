@@ -141,9 +141,9 @@ export async function GET(request: NextRequest) {
 MÉTRICAS DO PRODUTO:
 - Taxa de Rejeição: ${complaintRate.toFixed(1)}% (${complaintRate > 20 ? "ALTA - PROBLEMA" : "Normal"})
 - Taxa de Conversão: ${conversionRate.toFixed(1)}% (${conversionRate < 10 ? "BAIXA - PROBLEMA" : "Normal"})
-- Total de Composições: ${totalComposicoes || 0}
-- Total de Likes: ${totalLikes || 0}
-- Total de Dislikes: ${totalDislikes || 0}
+- Total de Composições: ${qualityMetricsWithTotals.totalComposicoes || 0}
+- Total de Likes: ${qualityMetricsWithTotals.totalLikes || 0}
+- Total de Dislikes: ${qualityMetricsWithTotals.totalDislikes || 0}
 
 MOTIVOS DE REJEIÇÃO:
 ${Object.entries(dislikeReasons)
