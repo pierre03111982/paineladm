@@ -208,26 +208,65 @@ export async function POST(request: NextRequest) {
 
       // Atualizar Job com resultado
       // PHASE 27: Garantir que todos os valores sejam primitivos serializáveis pelo Firestore
-      const sanitizedResult: any = {
-        compositionId: String(creativeResult.compositionId || ""),
-        imageUrl: String(creativeResult.tryonImageUrl || ""),
-        sceneImageUrls: Array.isArray(creativeResult.sceneImageUrls) 
-          ? creativeResult.sceneImageUrls.map(url => String(url)).filter(Boolean)
-          : [],
-        totalCost: typeof creativeResult.totalCost === "number" ? creativeResult.totalCost : 0,
-        processingTime: typeof processingTime === "number" ? processingTime : 0,
-      };
+      // Firestore não aceita objetos aninhados complexos, apenas primitivos e arrays de primitivos
+      const sanitizedResult: any = {};
       
-      // Remover campos vazios ou inválidos
-      if (!sanitizedResult.compositionId) delete sanitizedResult.compositionId;
-      if (!sanitizedResult.imageUrl) delete sanitizedResult.imageUrl;
-      if (sanitizedResult.sceneImageUrls.length === 0) delete sanitizedResult.sceneImageUrls;
+      // Sanitizar compositionId
+      if (creativeResult.compositionId) {
+        sanitizedResult.compositionId = String(creativeResult.compositionId);
+      }
+      
+      // Sanitizar imageUrl
+      if (creativeResult.tryonImageUrl) {
+        sanitizedResult.imageUrl = String(creativeResult.tryonImageUrl);
+      }
+      
+      // Sanitizar sceneImageUrls - garantir que seja array de strings
+      if (Array.isArray(creativeResult.sceneImageUrls) && creativeResult.sceneImageUrls.length > 0) {
+        sanitizedResult.sceneImageUrls = creativeResult.sceneImageUrls
+          .map((url: any) => {
+            // Se for string, usar diretamente
+            if (typeof url === "string") return url;
+            // Se for objeto com propriedade imageUrl ou url, extrair
+            if (url && typeof url === "object") {
+              return String(url.imageUrl || url.url || "");
+            }
+            // Caso contrário, converter para string
+            return String(url || "");
+          })
+          .filter((url: string) => url && url.length > 0);
+        
+        // Se após sanitização o array estiver vazio, não incluir
+        if (sanitizedResult.sceneImageUrls.length === 0) {
+          delete sanitizedResult.sceneImageUrls;
+        }
+      }
+      
+      // Sanitizar totalCost
+      if (typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost)) {
+        sanitizedResult.totalCost = creativeResult.totalCost;
+      }
+      
+      // Sanitizar processingTime
+      if (typeof processingTime === "number" && !isNaN(processingTime)) {
+        sanitizedResult.processingTime = processingTime;
+      }
+      
+      console.log("[process-job] Result sanitizado antes de salvar:", {
+        hasCompositionId: !!sanitizedResult.compositionId,
+        hasImageUrl: !!sanitizedResult.imageUrl,
+        sceneImageUrlsCount: sanitizedResult.sceneImageUrls?.length || 0,
+        hasTotalCost: typeof sanitizedResult.totalCost === "number",
+        hasProcessingTime: typeof sanitizedResult.processingTime === "number",
+      });
       
       await jobsRef.doc(jobId).update({
         status: "COMPLETED" as JobStatus,
         completedAt: FieldValue.serverTimestamp(),
         result: sanitizedResult,
-        apiCost: typeof creativeResult.totalCost === "number" ? creativeResult.totalCost : 0,
+        apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
+          ? creativeResult.totalCost 
+          : 0,
       });
 
       console.log("[process-job] Job processado com sucesso:", {
@@ -259,11 +298,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Atualizar Job com erro
+      // PHASE 27: Sanitizar errorDetails para evitar problemas com Firestore
+      const sanitizedError = String(error.message || "Erro desconhecido");
+      const sanitizedErrorDetails = error.stack 
+        ? String(error.stack).substring(0, 1000) // Limitar tamanho do stack trace
+        : (typeof error === "string" ? error.substring(0, 1000) : JSON.stringify(error).substring(0, 1000));
+      
       await jobsRef.doc(jobId).update({
         status: "FAILED" as JobStatus,
         failedAt: FieldValue.serverTimestamp(),
-        error: error.message || "Erro desconhecido",
-        errorDetails: error.stack || error,
+        error: sanitizedError,
+        errorDetails: sanitizedErrorDetails,
       });
 
       return NextResponse.json(
