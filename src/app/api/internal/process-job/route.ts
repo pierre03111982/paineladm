@@ -3,6 +3,7 @@ import { db, getAdminStorage } from "@/lib/firebaseAdmin";
 import { CompositionOrchestrator } from "@/lib/ai-services/composition-orchestrator";
 import { FieldValue } from "firebase-admin/firestore";
 import { findScenarioByProductTags } from "@/lib/scenarioMatcher";
+import { rollbackCredit } from "@/lib/financials";
 
 export const dynamic = 'force-dynamic';
 export const runtime = "nodejs";
@@ -262,6 +263,19 @@ export async function POST(req: NextRequest) {
 
     console.log(`[process-job] Sucesso! URL gerada: ${finalUrl.substring(0, 100)}...`);
 
+    // Incrementar métrica de gerações de API (independente de visualização)
+    const lojistaId = jobData.lojistaId || "unknown";
+    const lojistaRef = db.collection("lojistas").doc(lojistaId);
+    
+    try {
+      await lojistaRef.update({
+        "metrics.api_generations_count": FieldValue.increment(1),
+      });
+      console.log("[process-job] ✅ Métrica api_generations_count incrementada");
+    } catch (metricError) {
+      console.warn("[process-job] ⚠️ Erro ao incrementar métrica (não crítico):", metricError);
+    }
+
     // Salva no Firestore usando estrutura PLANA (na raiz).
     // Isso evita o erro "invalid nested entity" 100% das vezes.
     // FIX: Usar JSON.parse/stringify para remover undefined
@@ -290,17 +304,32 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
     console.error("[process-job] ERRO FATAL:", error);
     
-    // Tenta salvar o erro no Job para o frontend não ficar travado
+    // Tenta salvar o erro no Job e fazer rollback do crédito
     try {
         const b = await req.clone().json().catch(()=>({}));
         if(b.jobId) {
+            const jobDoc = await db.collection("generation_jobs").doc(b.jobId).get();
+            const jobData = jobDoc.data();
+            
+            // Atualizar status do Job
             await db.collection("generation_jobs").doc(b.jobId).update({
                 status: "FAILED",
                 error: String(error.message).substring(0, 200),
                 failedAt: new Date().toISOString()
             });
+            
+            // Fazer rollback do crédito reservado
+            if (jobData?.reservationId && jobData?.lojistaId) {
+                console.log("[process-job] 🔄 Fazendo rollback do crédito reservado:", {
+                    reservationId: jobData.reservationId,
+                    lojistaId: jobData.lojistaId,
+                });
+                await rollbackCredit(jobData.lojistaId, jobData.reservationId);
+            }
         }
-    } catch(e) {}
+    } catch(e) {
+        console.error("[process-job] Erro ao fazer rollback:", e);
+    }
     
     return NextResponse.json({ error: String(error.message) }, { status: 500 });
   }

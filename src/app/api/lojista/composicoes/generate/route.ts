@@ -11,6 +11,8 @@ import { getCompositionOrchestrator } from "@/lib/ai-services/composition-orches
 import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
 import { logError } from "@/lib/logger";
 import { findScenarioByProductTags } from "@/lib/scenarioMatcher";
+import { reserveCredit, rollbackCredit } from "@/lib/financials";
+import { FieldValue } from "firebase-admin/firestore";
 
 const db = getAdminDb();
 const storage = (() => {
@@ -1056,168 +1058,121 @@ export async function POST(request: NextRequest) {
         totalImagensProdutos: allProductImageUrls.length,
       });
       
-      // PHASE 14 FIX: Usar TODAS as imagens de produtos (não apenas a primeira)
-      // O orquestrador já está preparado para receber allProductImageUrls
-      const creativeResult = await orchestrator.createComposition({
-        personImageUrl, // PHASE 14: Sempre a foto ORIGINAL (Source of Truth)
-        productId: primaryProduct.id, // ID do produto principal (para compatibilidade)
-        productImageUrl: finalProductImageUrl, // URL do produto principal (para compatibilidade)
-        lojistaId,
-        customerId: customerId || undefined,
-        productName: productsData.map(p => p.nome).join(" + "), // PHASE 14: Nome combinado de todos os produtos
-        productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
-          ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
-          : undefined,
-        storeName: lojaData?.nome || "Minha Loja",
-        logoUrl: lojaData?.logoUrl,
-        // PHASE 28 FIX: Para remix, passar scenePrompts para variar pose
-        // Para geração normal, não passar (preserva postura original)
-        ...(isRemix && scenePrompts && scenePrompts.length > 0 ? { scenePrompts } : {}),
-        // MASTER PROMPT: Flag para Remix agressivo
-        options: {
-          quality: options?.quality || "high",
-          skipWatermark: options?.skipWatermark !== false,
-          productUrl: primaryProduct.productUrl || undefined,
-          lookType: "creative", // SEMPRE creative (unificado)
-          allProductImageUrls: allProductImageUrls,
-          productCategory: productCategoryForPrompt,
-          gerarNovoLook: options?.gerarNovoLook || isRemix,
-          forceNewPose: isRemix, // MASTER PROMPT: Flag para Remix agressivo
-          smartContext: smartContext,
-          smartFraming: smartFraming,
-          forbiddenScenarios: forbiddenScenarios,
-          productsData: productsData,
-          // MASTER PROMPT PIVOT: Passar apenas STRINGS (categoria/prompt), NÃO URL de imagem
-          // scenarioImageUrl deve ser undefined para forçar geração via prompt
-          scenarioImageUrl: undefined, // SEMPRE undefined - forçar geração de fundo
-          scenarioLightingPrompt: scenarioLightingPrompt || undefined,
-          scenarioCategory: scenarioCategory || undefined,
-          scenarioInstructions: undefined, // Não usar instruções de imagem fixa
-        },
-      });
+      // ========================================
+      // FILA ASSÍNCRONA: Reservar crédito e criar Job
+      // ========================================
       
-      if (isRemix || options?.gerarNovoLook) {
-        console.log("[API] 🎨 PHASE 14: Flag 'GERAR NOVO LOOK' ativada - Permitindo mudança de pose");
-      }
-
-      // Adicionar resultado do Look Criativo
-      allResults.push({ creative: creativeResult });
-
-      // Upload das imagens e criar looks
-      const uploadTimestamp = Date.now();
+      // 1. Reservar crédito ANTES de criar o job
+      console.log("[API] 💳 Reservando crédito para geração assíncrona...");
+      let reservationResult: Awaited<ReturnType<typeof reserveCredit>>;
+      let reservationId: string | undefined;
       
-      async function uploadImageIfNeeded(
-        dataUrl: string,
-        type: string,
-        index = 0
-      ): Promise<string> {
-        if (!bucket || !dataUrl?.startsWith("data:")) {
-          return dataUrl;
-        }
-
-        try {
-          const match = /^data:(.+?);base64,(.+)$/.exec(dataUrl);
-          if (!match) {
-            throw new Error("Formato base64 inválido");
-          }
-          const contentType = match[1];
-          const base64Data = match[2];
-          const buffer = Buffer.from(base64Data, "base64");
-          const extension =
-            contentType?.split("/")[1]?.split(";")[0] || "png";
-
-          const filePath = `lojas/${lojistaId}/composicoes/${uploadTimestamp}/${type}-${index}-${randomUUID()}.${extension}`;
-          const token = randomUUID();
-
-          const file = bucket.file(filePath);
-          await file.save(buffer, {
-            metadata: {
-              contentType,
-              metadata: {
-                firebaseStorageDownloadTokens: token,
-              },
+      reservationResult = await reserveCredit(lojistaId);
+      
+      if (!reservationResult.success) {
+        return applyCors(
+          request,
+          NextResponse.json(
+            {
+              error: reservationResult.message || "Erro ao reservar crédito",
+              status: reservationResult.status || 402,
             },
-            resumable: false,
-          });
-
-          await file.makePublic();
-          const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
-            filePath
-          )}?alt=media&token=${token}`;
-          return publicUrl;
-        } catch (error) {
-          console.error("[API] Falha ao subir imagem para Storage:", error);
-          return dataUrl;
-        }
+            { status: reservationResult.status || 402 }
+          )
+        );
       }
-
-      // Look Criativo - usar a imagem gerada pelo Gemini 2.5 Flash
-      let creativeImageUrl = "";
       
-      if (creativeResult.tryonImageUrl) {
-        console.log("[API] 📸 Processando imagem gerada pelo Gemini:", {
-          tipo: creativeResult.tryonImageUrl.startsWith("data:") ? "data URL (base64)" : "URL HTTP",
-          tamanho: creativeResult.tryonImageUrl.length,
-          preview: creativeResult.tryonImageUrl.substring(0, 100) + "...",
-        });
-        
-        try {
-          creativeImageUrl = await uploadImageIfNeeded(creativeResult.tryonImageUrl, "creative-gemini", 0);
-          
-          // PHASE 13: Validar que a URL final é válida
-          if (!creativeImageUrl || creativeImageUrl.trim() === "") {
-            console.error("[API] ❌ ERRO: creativeImageUrl está vazia após uploadImageIfNeeded");
-            throw new Error("URL da imagem gerada está vazia");
-          }
-          
-          if (!creativeImageUrl.startsWith("http://") && !creativeImageUrl.startsWith("https://") && !creativeImageUrl.startsWith("data:")) {
-            console.error("[API] ❌ ERRO: creativeImageUrl não é uma URL válida:", creativeImageUrl);
-            throw new Error(`URL da imagem inválida: ${creativeImageUrl.substring(0, 100)}`);
-          }
-          
-          console.log("[API] ✅ Imagem processada com sucesso:", {
-            url: creativeImageUrl.substring(0, 100) + "...",
-            tipo: creativeImageUrl.startsWith("data:") ? "data URL" : "URL HTTP",
-            valida: true,
-          });
-        } catch (uploadError) {
-          console.error("[API] ❌ ERRO ao processar imagem gerada:", uploadError);
-          // Se falhar, tentar usar a URL original (pode ser uma URL HTTP válida)
-          if (creativeResult.tryonImageUrl.startsWith("http://") || creativeResult.tryonImageUrl.startsWith("https://")) {
-            creativeImageUrl = creativeResult.tryonImageUrl;
-            console.log("[API] ⚠️ Usando URL original (HTTP) como fallback:", creativeImageUrl.substring(0, 100) + "...");
-          } else {
-            throw new Error(`Falha ao processar imagem: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`);
-          }
-        }
-      } else {
-        console.error("[API] ❌ ERRO: creativeResult.tryonImageUrl está vazio ou undefined");
-      }
-
-      // PHASE 13: Validar novamente antes de adicionar ao array
-      if (!creativeImageUrl || creativeImageUrl.trim() === "") {
-        throw new Error("Não foi possível obter URL válida da imagem gerada");
-      }
-
-      allLooks.push({
-        id: `look-criativo-${Date.now()}`,
-        titulo: "Look Criativo IA",
-        descricao: `Versão criativa gerada por IA usando ${primaryProduct.nome} e ${allProductImageUrls.length > 1 ? `${allProductImageUrls.length - 1} outro(s) produto(s)` : 'produtos selecionados'}. O produto foi combinado com um cenário personalizado para destacar seu estilo.`,
-        imagemUrl: creativeImageUrl, // PHASE 13: URL validada
-        produtoNome: primaryProduct.nome,
-        produtoPreco: primaryProduct.preco,
-        watermarkText: "Valor sujeito a alteração. Imagem com marca d'água.",
-        desativado: false, // PHASE 13: Sempre ativado se chegou até aqui (URL validada)
-        compositionId: creativeResult.compositionId || `comp_${Date.now()}`,
+      reservationId = reservationResult.reservationId;
+      console.log("[API] ✅ Crédito reservado:", { reservationId, remainingBalance: reservationResult.remainingBalance });
+      
+      // 2. Criar Job no Firestore com status PENDING
+      const jobId = randomUUID();
+      const jobsRef = db.collection("generation_jobs");
+      
+      const jobData = {
+        id: jobId,
+        lojistaId,
+        customerId: customerId || null,
+        status: "PENDING",
+        reservationId,
+        createdAt: FieldValue.serverTimestamp(),
+        params: {
+          personImageUrl,
+          productId: primaryProduct.id,
+          productImageUrl: finalProductImageUrl,
+          productName: productsData.map(p => p.nome).join(" + "),
+          productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
+            ? `R$ ${productsData.reduce((sum, p) => sum + (p.preco || 0), 0).toFixed(2)}`
+            : undefined,
+          storeName: lojaData?.nome || "Minha Loja",
+          logoUrl: lojaData?.logoUrl,
+          scenePrompts: isRemix && scenePrompts && scenePrompts.length > 0 ? scenePrompts : undefined,
+          options: {
+            quality: options?.quality || "high",
+            skipWatermark: options?.skipWatermark !== false,
+            productUrl: primaryProduct.productUrl || undefined,
+            lookType: "creative",
+            allProductImageUrls: allProductImageUrls,
+            productCategory: productCategoryForPrompt,
+            gerarNovoLook: options?.gerarNovoLook || isRemix,
+            forceNewPose: isRemix,
+            smartContext: smartContext,
+            smartFraming: smartFraming,
+            forbiddenScenarios: forbiddenScenarios,
+            productsData: productsData,
+            scenarioImageUrl: undefined,
+            scenarioLightingPrompt: scenarioLightingPrompt || undefined,
+            scenarioCategory: scenarioCategory || undefined,
+            scenarioInstructions: undefined,
+          },
+        },
+      };
+      
+      await jobsRef.doc(jobId).set(jobData);
+      console.log("[API] ✅ Job criado no Firestore:", { jobId, status: "PENDING" });
+      
+      // 3. Disparar processamento em background (não bloqueante)
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
+                         process.env.NEXT_PUBLIC_PAINELADM_URL || 
+                         "http://localhost:3000";
+      
+      // Disparar processamento em background (não aguardar resposta)
+      fetch(`${backendUrl}/api/internal/process-job`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Request": "true",
+        },
+        body: JSON.stringify({ jobId }),
+      }).catch((error) => {
+        console.error("[API] ⚠️ Erro ao disparar processamento em background (não crítico):", error);
+        // Não falhar a requisição se o disparo falhar - o cron job vai processar depois
       });
-
-      console.log("[API] ✅ Look Criativo gerado e validado com sucesso:", {
-        imagemUrl: creativeImageUrl.substring(0, 100) + "...",
-        totalLooks: allLooks.length,
-        compositionId: allLooks[allLooks.length - 1].compositionId,
-      });
-
+      
+      // 4. Retornar jobId imediatamente
+      return applyCors(
+        request,
+        NextResponse.json({
+          success: true,
+          jobId,
+          status: "PENDING",
+          message: "Geração iniciada. Use o jobId para consultar o status.",
+        })
+      );
+      
+      // Código síncrono antigo foi removido - agora processamento é assíncrono via Jobs
+      // O job será processado em background pelo endpoint /api/internal/process-job
+      
     } catch (error) {
+      // Se houver erro ao criar job, fazer rollback do crédito (se foi reservado)
+      if (reservationId && lojistaId) {
+        try {
+          await rollbackCredit(lojistaId, reservationId);
+          console.log("[API] 🔄 Rollback de crédito realizado devido a erro");
+        } catch (rollbackError) {
+          console.error("[API] ⚠️ Erro ao fazer rollback de crédito:", rollbackError);
+        }
+      }
       console.error(`[API] Erro ao gerar composição:`, error);
       
       // PHASE 12: Logar erro crítico no Firestore

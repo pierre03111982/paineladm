@@ -788,7 +788,12 @@ FINAL QUALITY CHECK:
           if (!status.steps) {
             status.steps = {};
           }
-          status.steps.tryon = {
+          // TypeScript assertion: após verificação, steps está garantido
+          if (!status.steps) {
+            status.steps = {};
+          }
+          const steps = status.steps;
+          steps.tryon = {
             status: "processing",
             startedAt: new Date(),
             provider: "vertex-tryon",
@@ -819,8 +824,10 @@ FINAL QUALITY CHECK:
           tryonImageUrl = tryonResult.data.imageUrl;
           totalCost += tryonResult.cost || 0;
 
-          status.steps.tryon.status = "completed";
-          status.steps.tryon.completedAt = new Date();
+          if (status.steps?.tryon) {
+            status.steps.tryon.status = "completed";
+            status.steps.tryon.completedAt = new Date();
+          }
 
           await logAPICost({
             lojistaId: params.lojistaId,
