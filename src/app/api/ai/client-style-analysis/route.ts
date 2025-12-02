@@ -57,10 +57,19 @@ export async function GET(request: NextRequest) {
       .limit(50)
       .get();
 
-    const actions = actionsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const actions = actionsSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp, // Preservar timestamp do Firestore
+      };
+    }) as Array<{
+      id: string;
+      type?: string;
+      timestamp?: any; // Firestore Timestamp ou Date
+      [key: string]: any;
+    }>;
 
     // Buscar produtos curtidos
     const likedProducts: any[] = [];
@@ -100,7 +109,19 @@ export async function GET(request: NextRequest) {
 
     // Calcular dias sem acesso
     const lastAction = actions[0];
-    const lastActionDate = lastAction?.timestamp?.toDate?.() || new Date(lastAction?.timestamp || Date.now());
+    let lastActionDate = new Date();
+    if (lastAction?.timestamp) {
+      // Firestore Timestamp tem método toDate()
+      if (typeof lastAction.timestamp.toDate === "function") {
+        lastActionDate = lastAction.timestamp.toDate();
+      } else if (lastAction.timestamp instanceof Date) {
+        lastActionDate = lastAction.timestamp;
+      } else if (typeof lastAction.timestamp === "number") {
+        lastActionDate = new Date(lastAction.timestamp);
+      } else if (typeof lastAction.timestamp === "string") {
+        lastActionDate = new Date(lastAction.timestamp);
+      }
+    }
     const now = new Date();
     const diffMs = now.getTime() - lastActionDate.getTime();
     const daysSinceLastAccess = Math.floor(diffMs / (1000 * 60 * 60 * 24));
