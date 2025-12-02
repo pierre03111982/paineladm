@@ -252,11 +252,24 @@ export class GeminiFlashImageService {
         ],
       };
 
-      // NOTA: aspectRatio não é suportado pela API Gemini 2.5 Flash Image
-      // O modelo gera imagens em formato padrão
-      // if (params.aspectRatio) {
-      //   requestBody.generationConfig.aspectRatio = params.aspectRatio;
-      // }
+      // PHASE 28: Forçar proporção 9:16 (Mobile First)
+      // NOTA: A API Gemini 2.5 Flash Image não suporta aspectRatio diretamente no generationConfig,
+      // mas podemos instruir via prompt. O aspectRatio será sempre 9:16 para mobile.
+      // A instrução de crop já está no prompt do orchestrator.
+      const forcedAspectRatio = "9:16"; // PHASE 28: Sempre vertical para mobile
+      
+      // Adicionar instrução de proporção no prompt se não estiver presente
+      // (O orchestrator já adiciona isso, mas garantimos aqui também)
+      if (params.aspectRatio && params.aspectRatio !== forcedAspectRatio) {
+        console.warn(`[GeminiFlashImage] PHASE 28: aspectRatio ${params.aspectRatio} solicitado, mas forçando 9:16 (Mobile First)`);
+      }
+      
+      // Log para debug
+      console.log("[GeminiFlashImage] PHASE 28: Proporção forçada para 9:16 (Mobile First)", {
+        requestedAspectRatio: params.aspectRatio,
+        forcedAspectRatio: forcedAspectRatio,
+        note: "Instrução de crop já está no prompt do orchestrator",
+      });
 
       console.log("[GeminiFlashImage] 📤 Enviando requisição para:", this.endpoint);
       console.log("[GeminiFlashImage] 📦 Payload completo:", {

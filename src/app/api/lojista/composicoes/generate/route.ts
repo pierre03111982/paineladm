@@ -847,34 +847,47 @@ export async function POST(request: NextRequest) {
       // Detectar se é remix (para variação de cenário, mas sempre respeitando as regras)
       const isRemix = (scenePrompts && scenePrompts.length > 0) || options?.gerarNovoLook || false;
       
-      // PHASE 26 FIX: Priorizar cenário do frontend (scenarioImageUrl) sobre getSmartScenario
-      // Se scenarioImageUrl foi fornecido, usar ele. Caso contrário, usar getSmartScenario como fallback
+      // PHASE 28 FIX: Para REMIX, SEMPRE variar cenário (ignorar scenarioImageUrl se fornecido)
+      // Para geração normal, priorizar cenário do frontend se fornecido
       let smartContext = "";
       let forbiddenScenarios: string[] = [];
       
-      if (scenarioImageUrl && scenarioImageUrl.startsWith("http")) {
+      // PHASE 28: Se for remix, NÃO usar scenarioImageUrl (forçar novo cenário)
+      const shouldUseScenarioImage = scenarioImageUrl && scenarioImageUrl.startsWith("http") && !isRemix;
+      
+      if (shouldUseScenarioImage) {
         // PHASE 26: Frontend forneceu imagem de cenário - usar ela e NÃO gerar cenário via prompt
         console.log("[API] 🎬 PHASE 26: Usando cenário do frontend (scenarioImageUrl fornecido):", {
           hasImage: !!scenarioImageUrl,
           category: scenarioCategory || "N/A",
           lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
+          isRemix: false,
         });
         // Não usar smartContext quando temos imagem de cenário - deixar vazio para não gerar cenário via prompt
         smartContext = ""; // Vazio = não adicionar instrução de cenário no prompt (a imagem será usada)
         forbiddenScenarios = []; // Não precisa proibir cenários quando temos imagem específica
       } else {
-        // PHASE 21 FIX: Fallback - obter cenário inteligente com resolução de conflitos
-        // Isso garante que a Bikini Law e outras regras sejam aplicadas quando não há imagem de cenário
+        // PHASE 21 FIX: Obter cenário inteligente com resolução de conflitos
+        // PHASE 28 FIX: Em remix, isso vai variar o cenário baseado nos produtos
         const smartScenario = getSmartScenario(productsData, isRemix);
         smartContext = smartScenario.context;
         forbiddenScenarios = smartScenario.forbidden;
         
-        console.log("[API] 📍 PHASE 15 V2 Smart Scenario aplicado (fallback - sem imagem de cenário):", {
-          context: smartContext,
-          forbidden: forbiddenScenarios,
-          isRemix,
-          totalProdutos: productsData.length,
-        });
+        if (isRemix) {
+          console.log("[API] 🎨 PHASE 28: REMIX - Gerando NOVO cenário (ignorando scenarioImageUrl se fornecido):", {
+            context: smartContext,
+            forbidden: forbiddenScenarios,
+            totalProdutos: productsData.length,
+            note: "Cenário será variado para criar look diferente",
+          });
+        } else {
+          console.log("[API] 📍 PHASE 15 V2 Smart Scenario aplicado:", {
+            context: smartContext,
+            forbidden: forbiddenScenarios,
+            isRemix: false,
+            totalProdutos: productsData.length,
+          });
+        }
       }
       
       // PHASE 21 FIX: Se houver scenePrompts, IGNORAR o cenário do scenePrompts e usar smartContext (ou imagem)
@@ -963,8 +976,9 @@ export async function POST(request: NextRequest) {
           : undefined,
         storeName: lojaData?.nome || "Minha Loja",
         logoUrl: lojaData?.logoUrl,
-        // PHASE 21 FIX: NÃO passar scenePrompts - backend sempre usa getSmartScenario para determinar cenário
-        // scenePrompts: scenePrompts || [], // REMOVIDO - backend sempre usa getSmartScenario
+        // PHASE 28 FIX: Para remix, passar scenePrompts para variar pose
+        // Para geração normal, não passar (preserva postura original)
+        ...(isRemix && scenePrompts && scenePrompts.length > 0 ? { scenePrompts } : {}),
         options: {
           quality: options?.quality || "high",
           skipWatermark: options?.skipWatermark !== false, // Respeitar opção do frontend
@@ -978,10 +992,11 @@ export async function POST(request: NextRequest) {
           forbiddenScenarios: forbiddenScenarios, // PHASE 15: Cenários proibidos para negative prompt
           productsData: productsData, // PHASE 20: Dados completos dos produtos para lógica de "Complete the Look" e acessórios
           // PHASE 26: Dados do cenário para usar como input visual
-          scenarioImageUrl: scenarioImageUrl || undefined,
-          scenarioLightingPrompt: scenarioLightingPrompt || undefined,
-          scenarioCategory: scenarioCategory || undefined,
-          scenarioInstructions: scenarioInstructions || undefined,
+          // PHASE 28 FIX: Em remix, NÃO enviar scenarioImageUrl para forçar novo cenário
+          scenarioImageUrl: (isRemix ? undefined : scenarioImageUrl) || undefined,
+          scenarioLightingPrompt: (isRemix ? undefined : scenarioLightingPrompt) || undefined,
+          scenarioCategory: (isRemix ? undefined : scenarioCategory) || undefined,
+          scenarioInstructions: (isRemix ? undefined : scenarioInstructions) || undefined,
         },
       });
       

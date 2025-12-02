@@ -234,19 +234,26 @@ export class CompositionOrchestrator {
           ? "" // PHASE 26: Não adicionar instrução de cenário quando temos imagem (a imagem será usada)
           : `SCENARIO: ${smartContext}.`;
         
-        // PHASE 21 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose mas MANTER o smartContext
+        // PHASE 28 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose e variar cenário
         let remixPoseInstructions = "";
         if (isRemix && params.scenePrompts && params.scenePrompts.length > 0) {
           const remixPromptText = params.scenePrompts[0];
-          // PHASE 21 FIX: Extrair apenas instruções de pose do remixPrompt, mas MANTER o smartContext
-          // PHASE 24: Simplified remix instructions
-          remixPoseInstructions = `\n\nREMIX: ${remixPromptText}`;
-          framingRule = `REMIX: Dramatic scene and pose change. New location, new pose.`;
-          console.log("[Orchestrator] 🎨 PHASE 21 FIX: REMIX DETECTADO - Usando smartContext do backend + instruções de pose do remix:", {
+          // PHASE 28: Incluir todo o remixPrompt que contém instruções de pose e variação
+          remixPoseInstructions = `\n\n🎨 PHASE 28: REMIX GENERATION - DRAMATIC VARIATION REQUIRED:
+${remixPromptText}
+
+⚠️ CRITICAL REMIX REQUIREMENTS:
+- The scene MUST be DRAMATICALLY DIFFERENT from any previous generation
+- The pose MUST be DIFFERENT from the original photo
+- The location/background MUST be different (new scenario via smartContext)
+- Maintain exact facial identity but CHANGE pose and scene`;
+          framingRule = `REMIX: Dramatic scene and pose change. New location, new pose. Different from original.`;
+          console.log("[Orchestrator] 🎨 PHASE 28: REMIX DETECTADO - Variando cenário e pose:", {
             isRemix: true,
             smartContext: smartContext,
             remixPromptLength: remixPromptText.length,
             remixPromptPreview: remixPromptText.substring(0, 200) + "...",
+            note: "Cenário será variado via smartContext, pose será variada via remixPrompt",
           });
         } else {
           console.log("[Orchestrator] 📸 Modo Normal (não é remix):", {
@@ -285,8 +292,19 @@ export class CompositionOrchestrator {
         
         // PHASE 14: Injetar flag "GERAR NOVO LOOK" se ativado (Regra de Postura Condicional)
         // PHASE 21 FIX: Adicionar regra para evitar fotos de costas (máximo um pouco de lado)
+        // PHASE 28 FIX: Regra de postura melhorada para remix
         const posturaRule = gerarNovoLook 
-          ? "⚠️ GERAR NOVO LOOK: ATIVADO. A IA PODE MUDAR A POSE DA PESSOA COMPLETAMENTE (postura e ângulo corporal) mantendo a P1 (proporções físicas inalteradas) e a P2 (visibilidade dos produtos). A nova pose DEVE ser natural, fotorrealista e otimizar a exibição de todos os produtos selecionados. IMPORTANTE: A pessoa DEVE estar em pé (standing), caminhando (walking) ou apoiada em parede (leaning against wall). NUNCA sentada, ajoelhada ou em cadeira. ⚠️ CRITICAL POSE RULE: A pessoa DEVE estar de FRENTE para a câmera ou no MÁXIMO um pouco de lado (3/4 view). NUNCA de costas (back view). O rosto e o corpo frontal DEVEM estar visíveis."
+          ? `⚠️ GERAR NOVO LOOK / REMIX: ATIVADO. A IA DEVE MUDAR A POSE DA PESSOA para criar uma composição DIFERENTE da original.
+
+⚠️ CRITICAL POSE RULES FOR REMIX:
+1. A pose DEVE ser DIFERENTE da foto original - criar variação visual
+2. A pessoa DEVE estar de FRENTE para a câmera ou no MÁXIMO um pouco de lado (3/4 view)
+3. NUNCA de costas (back view) - o rosto e o corpo frontal DEVEM estar visíveis
+4. NUNCA sentada, ajoelhada ou em cadeira - sempre em pé, caminhando ou apoiada
+5. Poses permitidas: standing, walking, leaning against wall, hands on hips, arms crossed, etc.
+6. Mantenha a identidade facial e corporal, mas VARIE a pose e o cenário
+
+REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the original photo while maintaining facial identity.`
           : "POSTURA PRESERVADA (Padrão): A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios. IMPORTANTE: A pessoa DEVE estar em pé (standing), caminhando (walking) ou apoiada em parede (leaning against wall). NUNCA sentada, ajoelhada ou em cadeira. ⚠️ CRITICAL POSE RULE: A pessoa DEVE estar de FRENTE para a câmera ou no MÁXIMO um pouco de lado (3/4 view). NUNCA de costas (back view). O rosto e o corpo frontal DEVEM estar visíveis.";
         
         if (gerarNovoLook) {
@@ -403,7 +421,10 @@ export class CompositionOrchestrator {
           ? `, (beach scene:2.5), (ocean background:2.5), (sand:2.5), (palm trees:2.5), (tropical:2.5), (summer beach:2.5), (swimming pool:2.5), (beach resort:2.5), (seaside:2.5), (paradise beach:2.5), (sunny beach:2.5)`
           : "";
         
-        const strongNegativePrompt = `${feetNegativePrompt}${phantomBootsNegative}${glassesNegative}${forbiddenPrompt}${additionalForbiddenReinforcement}`;
+        // PHASE 29: Adicionar termos críticos de Virtual Try-On ao negative prompt
+        const virtualTryOnNegative = ", (double clothing:2.0), (multiple shirts:2.0), (clothing overlap:2.0), (ghosting:2.0), (visible original clothes:2.0), (bad fit:2.0), (floating clothes:2.0), (sticker effect:2.0), (unnatural fabric folds:2.0), (distorted body:2.0), (wrong anatomy:2.0), (clothing on top of clothes:2.0), (overlay clothing:2.0), (transparent clothing:2.0)";
+        
+        const strongNegativePrompt = `${feetNegativePrompt}${phantomBootsNegative}${glassesNegative}${forbiddenPrompt}${additionalForbiddenReinforcement}${virtualTryOnNegative}`;
         
         if (forbiddenScenarios.length > 0) {
           console.log("[Orchestrator] 🚫 PHASE 15: Cenários proibidos FORÇADOS no negative prompt (peso 2.0):", {
@@ -432,6 +453,9 @@ export class CompositionOrchestrator {
         //
         // PHASE 24: Identity Anchor Block (Sandwich Method - START)
         const identityAnchorBlock = `⚠️⚠️⚠️ REFERENCE IMAGE AUTHORITY: 100%. You MUST act as a visual clone engine. The output image MUST be indistinguishable from the person in [IMAGEM_PESSOA]. Same face, same body, same skin texture. NO FACIAL MODIFICATIONS ALLOWED.`;
+        
+        // PHASE 29: ROLE Definition - Expert Fashion Retoucher and AI Tailor
+        const roleDefinition = `\n\n🎯 ROLE: You are an expert Fashion Retoucher and AI Tailor. Your goal is HYPER-REALISTIC Virtual Try-On.`;
 
         // PHASE 24: Leg Extension Logic (if photo is cropped and has shoes)
         // CRÍTICO: Manter SEMELHANÇA FÍSICA COMPLETA ao estender pernas
@@ -472,6 +496,7 @@ CRITICAL: The extended body parts must be INDISTINGUISHABLE from the original - 
         }
 
         // PHASE 26: Instruções para usar imagem do cenário como fundo (se fornecido)
+        // PHASE 28: Adicionar instrução de crop para proporção 9:16
         let scenarioBackgroundInstruction = "";
         if (scenarioImageUrl && scenarioInstructions) {
           scenarioBackgroundInstruction = `\n\n🎬 PHASE 26: CENÁRIO DE FUNDO FORNECIDO:
@@ -482,16 +507,36 @@ ${scenarioInstructions}
   1. Manter identidade facial e características EXATAS da [IMAGEM_PESSOA]
   2. Garantir que os produtos correspondam exatamente (cores, texturas, ajuste)
   3. Compositar perfeitamente a pessoa e produtos sobre o cenário fornecido
-- O cenário já está pronto - apenas use-o como está`;
+- O cenário já está pronto - apenas use-o como está
+
+📐 PHASE 28: CROP INSTRUCTION (9:16 VERTICAL):
+- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
+- Center-crop the provided background scenario image to fit the vertical frame
+- Do NOT distort or stretch the background - maintain natural proportions
+- Keep the horizon line natural and centered when possible
+- If the scenario is horizontal/landscape, crop from the center to create a vertical composition`;
         } else if (scenarioImageUrl) {
           scenarioBackgroundInstruction = `\n\n🎬 PHASE 26: CENÁRIO DE FUNDO FORNECIDO:
 - Use [IMAGEM_CENARIO] (última imagem) EXATAMENTE como está - NÃO gere ou crie um novo cenário
 - A imagem do cenário é perfeita - apenas use-a diretamente como fundo
 - Foque TODA a capacidade de processamento da IA em manter identidade facial e produtos exatos
-${scenarioLightingPrompt ? `- Iluminação e contexto do cenário: ${scenarioLightingPrompt}` : ""}`;
+${scenarioLightingPrompt ? `- Iluminação e contexto do cenário: ${scenarioLightingPrompt}` : ""}
+
+📐 PHASE 28: CROP INSTRUCTION (9:16 VERTICAL):
+- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
+- Center-crop the provided background scenario image to fit the vertical frame
+- Do NOT distort or stretch the background - maintain natural proportions
+- Keep the horizon line natural and centered when possible
+- If the scenario is horizontal/landscape, crop from the center to create a vertical composition`;
+        } else {
+          // PHASE 28: Mesmo sem cenário fornecido, forçar proporção 9:16
+          scenarioBackgroundInstruction = `\n\n📐 PHASE 28: OUTPUT FORMAT (9:16 VERTICAL):
+- The output MUST be vertical (9:16 aspect ratio) - MOBILE FIRST format
+- Generate the background/scenario in vertical format from the start
+- Ensure the composition fits perfectly in a 9:16 frame`;
         }
 
-        const creativePrompt = `${identityAnchorBlock}
+        const creativePrompt = `${identityAnchorBlock}${roleDefinition}
 
 ⚠️ INSTRUÇÃO CRÍTICA ABSOLUTA E IMPLACÁVEL: COMPOSIÇÃO "VIRTUAL TRY-ON" COM FIDELIDADE EXTREMA E REALISMO FOTOGRÁFICO INALTERÁVEL${categorySpecificPrompt}.
 
@@ -503,27 +548,117 @@ ${framingRule}
 
 ${posturaRule}
 
-PRODUCT INTEGRATION: Apply ALL ${allProductImageUrls.length} product(s) provided in the input images${completeTheLookPrompt}${accessoryPrompt}${beachFootwearPrompt}${spatialProductInstructions}. 
+⚠️⚠️⚠️ PHASE 29: CRITICAL INSTRUCTION - CLOTHING REPLACEMENT (DESTRUCTIVE SUBSTITUTION) ⚠️⚠️⚠️
 
-⚠️ CRITICAL: You MUST apply EVERY SINGLE product image provided:
-${allProductImageUrls.map((_, i) => `- [IMAGEM_PRODUTO_${i + 1}]: ${productsData[i]?.nome || `Product ${i + 1}`} (${productsData[i]?.categoria || "unknown category"})`).join("\n")}
+You must COMPLETELY REMOVE the original clothing the person is wearing in [IMAGEM_PESSOA] within the area where the new product goes.
 
-REQUIREMENTS:
+🚫 FORBIDDEN ACTIONS:
+- DO NOT overlay the new product on top of the old clothes
+- DO NOT draw the new product over existing garments
+- DO NOT create transparent or semi-transparent clothing layers
+- DO NOT leave any traces of the original clothing visible
+
+✅ REQUIRED ACTIONS:
+- The new product must REPLACE the original pixels entirely
+- ERASE the original garment conceptually before applying the new one
+- Remove ALL visible parts of the original clothing in the target area
+- The new product must appear as if it was the ONLY garment ever worn in that area
+
+CRITICAL: This is a REPLACEMENT operation, NOT an OVERLAY operation. The original clothing must be completely removed and replaced by the new product.
+
+⚠️⚠️⚠️ PHASE 29: FABRIC PHYSICS & FIT (BODY CONTOURING) ⚠️⚠️⚠️
+
+The new product must WRAP around the person's body volume naturally:
+
+1. BODY CONTOURING:
+   - Respect the body pose, curvature, and muscle tone from [IMAGEM_PESSOA]
+   - The fabric must follow the natural curves of the body
+   - Clothing must fit snugly or loosely based on the product's design, but ALWAYS follow body shape
+   - NO flat 2D overlays - the clothing must have depth and dimension
+
+2. FABRIC BEHAVIOR:
+   - If the person is sitting or turning, the fabric must fold and crease accordingly
+   - Fabric must drape naturally with realistic gravity effects
+   - Seams and edges must follow body contours
+   - Fabric texture must be visible and realistic
+
+3. LIGHTING & SHADOWS:
+   - Shadows must be cast BY the clothing ONTO the body (not the reverse)
+   - Fabric must have realistic highlights and shadows matching the scene lighting
+   - Clothing must have depth - inner folds must be darker, outer surfaces lighter
+   - NO sticker effect - clothing must look integrated into the body
+
+4. ANATOMICAL ACCURACY:
+   - Clothing must respect body anatomy (shoulders, waist, hips, etc.)
+   - Fabric must not float or hover away from the body
+   - All clothing edges must connect naturally to the body
+   - NO distorted body proportions - maintain [IMAGEM_PESSOA]'s exact body shape
+
+CRITICAL: The clothing must look like it was physically worn by the person, not digitally pasted on top.
+
+⚠️⚠️⚠️ PHASE 28: MANDATORY PRODUCT CHECKLIST - CRITICAL REQUIREMENT ⚠️⚠️⚠️
+
+You MUST generate the person wearing ALL of the following items SIMULTANEOUSLY. This is a MANDATORY CHECKLIST - every item must be visible in the final image:
+
+${productsData.map((product, i) => {
+  const productName = product?.nome || `Product ${i + 1}`;
+  const productCategory = product?.categoria || "unknown category";
+  const isTop = productCategory?.toLowerCase().match(/camisa|blusa|blouse|shirt|top|jaqueta|jacket|moletom|hoodie|vestido|dress/i);
+  const isBottom = productCategory?.toLowerCase().match(/calça|pants|jeans|saia|skirt|shorts/i);
+  const isShoes = productCategory?.toLowerCase().match(/calçado|calcado|sapato|tênis|tenis|sneaker|shoe|footwear/i);
+  
+  let visibilityNote = "";
+  if (isTop) visibilityNote = " - MUST be visible on upper body";
+  if (isBottom) visibilityNote = " - MUST be visible on lower body";
+  if (isShoes) visibilityNote = " - MUST be visible on feet";
+  
+  return `${i + 1}. [IMAGEM_PRODUTO_${i + 1}]: ${productName} (${productCategory})${visibilityNote}`;
+}).join("\n")}
+
+🚫 CRITICAL RULE: IF A TOP AND BOTTOM ARE LISTED, BOTH MUST BE VISIBLE. Do NOT hide one behind the other. Do NOT generate only one item. ALL items in the checklist above MUST appear in the final image.
+
+PRODUCT INTEGRATION REQUIREMENTS (PHASE 29 - ENHANCED):
 1. Extract fabric pattern, texture, color, and style from EACH product image individually
 2. Apply ALL products onto [IMAGEM_PESSOA]'s body SIMULTANEOUSLY - every product must be visible
 3. Each product must be placed on its correct body part (see spatial instructions above)
-4. Adapt clothing to user's natural curves
-5. Fabric must drape naturally with realistic folds and shadows
-6. Use ONLY body shape from [IMAGEM_PESSOA]
-7. IGNORE mannequin's body shape
+4. **REPLACE** (not overlay) any existing clothing in the target area before applying the new product
+5. Adapt clothing to user's natural curves - fabric must WRAP around body volume
+6. Fabric must drape naturally with realistic folds, shadows, and gravity effects
+7. Use ONLY body shape from [IMAGEM_PESSOA] - maintain exact proportions
+8. IGNORE mannequin's body shape from product images
+9. Ensure NO ghosting - original clothing must be completely removed
+10. Fabric must have depth and dimension - NO flat sticker effect
 
-⚠️ VERIFICATION: After generation, verify that ALL ${allProductImageUrls.length} product(s) are visible in the final image. If any product is missing, this is a FAILURE.${legExtensionInstruction}
+⚠️ FINAL VERIFICATION: After generation, verify that ALL ${allProductImageUrls.length} product(s) from the checklist above are visible in the final image. If ANY product is missing, this is a CRITICAL FAILURE.${legExtensionInstruction}
 
 ${contextRule}${remixPoseInstructions}
 
 ${framingRule}
 
 PHOTOGRAPHY: Professional fashion photography. Natural lighting. Realistic shadows. 8K resolution. Sharp focus on person and products.
+
+🎨 PHASE 28: PHOTOREALISTIC INTEGRATION - CRITICAL BLENDING REQUIREMENTS:
+
+Match the lighting of the person EXACTLY to the provided background scenario:
+- Cast realistic soft shadows on the ground/floor based on the scene's light source
+- Shadows must follow the natural direction of light in the background image
+- Shadow intensity and softness must match the scene's lighting conditions
+
+Apply consistent color grading across the person and the background:
+- Match color temperature (warm/cool tones) between person and scene
+- Ensure skin tones blend naturally with the scene's color palette
+- Avoid color mismatches that make the person look "pasted" onto the background
+
+Match the depth of field (focus) of the person to the scene:
+- If the background is slightly out of focus, the person should have matching focus blur
+- If the background is sharp, the person must be equally sharp
+- Create natural depth perception - person should feel integrated into the scene, not floating
+
+AVOID "COLLAGE" LOOK:
+- The person must appear to be physically present in the scene
+- No visible seams, edges, or cut-out artifacts
+- Natural blending at all boundaries
+- The final image should look like a single, cohesive photograph, not a composite
 
 ⚠️⚠️⚠️ FINAL CHECK (PHASE 24 - IDENTITY ANCHOR - SANDWICH METHOD END):
 ${identityAnchorBlock}
@@ -594,12 +729,13 @@ The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes t
           promptLength: creativePrompt.length,
         });
         
+        // PHASE 28: Forçar proporção 9:16 (Mobile First)
         const geminiResult = await this.geminiFlashImageService.generateImage({
           prompt: creativePrompt,
           imageUrls: imageUrls,
           negativePrompt: strongNegativePrompt, // PHASE 11: Negative prompt para reduzir erros
           temperature: temperature, // PHASE 14 FIX: Temperatura aumentada para remix
-          // aspectRatio não é suportado pela API Gemini 2.5 Flash Image
+          aspectRatio: "9:16", // PHASE 28: Sempre vertical para mobile (instrução também está no prompt)
         });
         
         console.log("[Orchestrator] Resultado do Look Criativo (Gemini):", {
