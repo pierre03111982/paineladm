@@ -476,11 +476,14 @@ export async function POST(request: NextRequest) {
           retryCount: nextRetryCount,
         });
 
+        // Sanitizar mensagem de erro para salvar
+        const sanitizedErrorMsg = String(errorMessage || "Erro retryável").substring(0, 200);
+
         // Atualizar Job para PENDING com novo retryCount
         await jobsRef.doc(jobId).update({
           status: "PENDING" as JobStatus,
           retryCount: nextRetryCount,
-          error: `Erro retryável: ${sanitizedError.substring(0, 200)}`,
+          error: `Erro retryável: ${sanitizedErrorMsg}`,
           errorDetails: `Tentativa ${nextRetryCount}/${maxRetries}. Próximo retry em ${delaySeconds}s.`,
         });
 
