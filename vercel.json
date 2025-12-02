@@ -3,6 +3,12 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/triggers/process-pending-jobs",
+      "schedule": "*/1 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(lojista)/:path*",
