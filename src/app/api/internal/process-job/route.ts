@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebaseAdmin";
+import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
 import { getCompositionOrchestrator } from "@/lib/ai-services/composition-orchestrator";
 import { rollbackCredit } from "@/lib/financials";
 import { FieldValue } from "firebase-admin/firestore";
@@ -49,6 +49,72 @@ const db = getAdminDb();
 
 export const dynamic = 'force-dynamic';
 export const runtime = "nodejs";
+
+/**
+ * Faz upload de base64 data URL para Firebase Storage e retorna URL pública
+ * Se não for base64 ou for URL HTTP/HTTPS, retorna como está
+ */
+async function uploadBase64ToStorage(
+  imageUrl: string,
+  lojistaId: string,
+  jobId: string
+): Promise<string> {
+  // Se não for base64 data URL, retornar como está
+  if (!imageUrl.startsWith("data:image/")) {
+    return imageUrl;
+  }
+
+  // Se for base64 mas pequeno (< 100KB), pode salvar direto
+  // Mas para evitar problemas, vamos fazer upload de qualquer base64
+  try {
+    const storage = getAdminStorage();
+    const bucket = storage.bucket();
+    
+    // Extrair mime type e dados base64
+    const matches = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (!matches) {
+      console.warn("[process-job] Formato base64 inválido, retornando como está");
+      return imageUrl;
+    }
+
+    const mimeType = matches[1] || "png";
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, "base64");
+    
+    // Criar nome do arquivo único
+    const timestamp = Date.now();
+    const fileName = `generations/${lojistaId}/${jobId}-${timestamp}.${mimeType}`;
+    const file = bucket.file(fileName);
+    
+    // Fazer upload
+    await file.save(buffer, {
+      metadata: {
+        contentType: `image/${mimeType}`,
+        metadata: {
+          jobId,
+          lojistaId,
+          uploadedAt: new Date().toISOString(),
+        },
+      },
+    });
+    
+    // Tornar público e obter URL
+    await file.makePublic();
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    
+    console.log("[process-job] ✅ Base64 convertido para Storage URL:", {
+      originalLength: imageUrl.length,
+      fileName,
+      publicUrl: publicUrl.substring(0, 100) + "...",
+    });
+    
+    return publicUrl;
+  } catch (error: any) {
+    console.error("[process-job] ❌ Erro ao fazer upload para Storage:", error);
+    // Se falhar, tentar retornar como está (pode causar erro depois, mas melhor que quebrar aqui)
+    return imageUrl;
+  }
+}
 
 export async function POST(request: NextRequest) {
   // Verificar se é requisição interna
@@ -216,25 +282,53 @@ export async function POST(request: NextRequest) {
         sanitizedResult.compositionId = String(creativeResult.compositionId);
       }
       
-      // Sanitizar imageUrl
+      // Sanitizar imageUrl - FIX: Converter base64 para Storage URL se necessário
       if (creativeResult.tryonImageUrl) {
-        sanitizedResult.imageUrl = String(creativeResult.tryonImageUrl);
+        const imageUrl = String(creativeResult.tryonImageUrl);
+        // Se for base64 data URL, fazer upload para Storage
+        if (imageUrl.startsWith("data:image/")) {
+          console.log("[process-job] 🔄 Detectado base64, fazendo upload para Storage...");
+          sanitizedResult.imageUrl = await uploadBase64ToStorage(
+            imageUrl,
+            jobData.lojistaId,
+            jobId
+          );
+        } else {
+          sanitizedResult.imageUrl = imageUrl;
+        }
       }
       
       // Sanitizar sceneImageUrls - garantir que seja array de strings
+      // FIX: Converter base64 para Storage URL se necessário
       if (Array.isArray(creativeResult.sceneImageUrls) && creativeResult.sceneImageUrls.length > 0) {
-        sanitizedResult.sceneImageUrls = creativeResult.sceneImageUrls
-          .map((url: any) => {
+        // Primeiro, processar todas as URLs (incluindo uploads de base64)
+        const processedUrls = await Promise.all(
+          creativeResult.sceneImageUrls.map(async (url: any) => {
+            let imageUrl: string;
             // Se for string, usar diretamente
-            if (typeof url === "string") return url;
-            // Se for objeto com propriedade imageUrl ou url, extrair
-            if (url && typeof url === "object") {
-              return String(url.imageUrl || url.url || "");
+            if (typeof url === "string") {
+              imageUrl = url;
+            } else if (url && typeof url === "object") {
+              // Se for objeto com propriedade imageUrl ou url, extrair
+              imageUrl = String(url.imageUrl || url.url || "");
+            } else {
+              // Caso contrário, converter para string
+              imageUrl = String(url || "");
             }
-            // Caso contrário, converter para string
-            return String(url || "");
+            
+            // Se for base64, fazer upload para Storage
+            if (imageUrl && imageUrl.startsWith("data:image/")) {
+              return await uploadBase64ToStorage(imageUrl, jobData.lojistaId, jobId);
+            }
+            
+            return imageUrl;
           })
-          .filter((url: string) => url && url.length > 0);
+        );
+        
+        // Filtrar URLs vazias após processamento
+        sanitizedResult.sceneImageUrls = processedUrls.filter(
+          (url: string) => url && url.length > 0
+        );
         
         // Se após sanitização o array estiver vazio, não incluir
         if (sanitizedResult.sceneImageUrls.length === 0) {
@@ -393,10 +487,19 @@ export async function POST(request: NextRequest) {
             updateData.result = manualClean;
           }
         } else {
-          // Estrutura mínima absoluta
+          // Estrutura mínima absoluta - FIX: Converter base64 se necessário
+          let minimalImageUrl = String(creativeResult.tryonImageUrl || "");
+          if (minimalImageUrl.startsWith("data:image/")) {
+            console.log("[process-job] 🔄 Estrutura mínima: convertendo base64 para Storage...");
+            minimalImageUrl = await uploadBase64ToStorage(
+              minimalImageUrl,
+              jobData.lojistaId,
+              jobId
+            );
+          }
           updateData.result = {
             compositionId: String(creativeResult.compositionId || ""),
-            imageUrl: String(creativeResult.tryonImageUrl || ""),
+            imageUrl: minimalImageUrl,
           };
         }
         
@@ -432,12 +535,22 @@ export async function POST(request: NextRequest) {
         // PHASE 27: Tentar salvar com estrutura absolutamente mínima como último recurso
         try {
           console.log("[process-job] Tentando salvar com estrutura mínima absoluta...");
+          // FIX: Converter base64 para Storage URL antes de salvar
+          let minimalImageUrl = String(creativeResult.tryonImageUrl || "");
+          if (minimalImageUrl.startsWith("data:image/")) {
+            console.log("[process-job] 🔄 Estrutura mínima (fallback): convertendo base64 para Storage...");
+            minimalImageUrl = await uploadBase64ToStorage(
+              minimalImageUrl,
+              jobData.lojistaId,
+              jobId
+            );
+          }
           const minimalData = {
             status: "COMPLETED" as JobStatus,
             completedAt: FieldValue.serverTimestamp(),
             result: {
               compositionId: String(creativeResult.compositionId || jobId),
-              imageUrl: String(creativeResult.tryonImageUrl || ""),
+              imageUrl: minimalImageUrl,
             },
             apiCost: typeof creativeResult.totalCost === "number" && !isNaN(creativeResult.totalCost) 
               ? creativeResult.totalCost 
