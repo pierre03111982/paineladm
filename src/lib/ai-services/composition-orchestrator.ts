@@ -419,6 +419,11 @@ export class CompositionOrchestrator {
           console.log("[Orchestrator] 🦵 PHASE 24: Leg Extension ativado - Foto pode estar cortada, estendendo corpo naturalmente");
         }
 
+        // PHASE 26: Construir array de imagens: primeira é a pessoa, seguintes são os produtos, última é o cenário (se fornecido)
+        const scenarioImageUrl = params.options?.scenarioImageUrl;
+        const scenarioInstructions = params.options?.scenarioInstructions;
+        const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
+        
         // PHASE 26: Instruções para usar imagem do cenário como fundo (se fornecido)
         let scenarioBackgroundInstruction = "";
         if (scenarioImageUrl && scenarioInstructions) {
@@ -462,11 +467,6 @@ PHOTOGRAPHY: Professional fashion photography. Natural lighting. Realistic shado
 ⚠️⚠️⚠️ FINAL CHECK (PHASE 24 - IDENTITY ANCHOR - SANDWICH METHOD END):
 ${identityAnchorBlock}
 The face and body MUST MATCH the [IMAGEM_PESSOA] 100%. If the clothing changes the body shape (e.g., makes it look like a plastic mannequin), it is a FAILURE. Keep the human skin texture and imperfections. The person should look like they are WEARING the clothes, not like the clothes are replacing their body. The fabric must drape naturally over the user's actual body shape, following gravity and creating realistic folds and shadows.`;
-
-        // PHASE 26: Construir array de imagens: primeira é a pessoa, seguintes são os produtos, última é o cenário (se fornecido)
-        const scenarioImageUrl = params.options?.scenarioImageUrl;
-        const scenarioInstructions = params.options?.scenarioInstructions;
-        const scenarioLightingPrompt = params.options?.scenarioLightingPrompt;
         
         const imageUrls = [
           params.personImageUrl, // Primeira imagem: IMAGEM_PESSOA
