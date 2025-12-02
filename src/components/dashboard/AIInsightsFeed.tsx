@@ -183,8 +183,63 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
     );
   }
 
+  // Se não houver insights, exibir botão para gerar análise
   if (unreadInsights.length === 0) {
-    return null; // Não exibir se não houver insights
+    const handleGenerateAnalysis = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch("/api/ai/analyze-daily", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lojistaId }),
+        });
+
+        if (response.ok) {
+          // Recarregar insights após gerar
+          await fetchInsights();
+        } else {
+          setError("Não foi possível gerar análise. Tente novamente.");
+        }
+      } catch (err) {
+        console.error("[AIInsightsFeed] Erro ao gerar análise:", err);
+        setError("Erro ao gerar análise. Tente novamente.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-purple-400" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Cérebro da Loja
+          </h2>
+        </div>
+        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md">
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Ainda não há insights disponíveis. Gere uma análise da sua loja para receber recomendações personalizadas.
+          </p>
+          <button
+            onClick={handleGenerateAnalysis}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Gerando análise...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Gerar Análise da Loja
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

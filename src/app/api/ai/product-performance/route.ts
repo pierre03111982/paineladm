@@ -59,11 +59,15 @@ export async function GET(request: NextRequest) {
       (comp: any) => comp.products?.some((p: any) => p.id === productId)
     );
     
-    const totalComposicoes = composicoesComProduto.length;
-    const totalLikes = composicoesComProduto.filter((c: any) => c.liked).length;
-    const totalDislikes = composicoesComProduto.filter((c: any) => c.liked === false).length;
-    const complaintRate = qualityMetrics.complaintRate;
-    const conversionRate = qualityMetrics.conversionRate;
+    // Adicionar totais ao qualityMetrics
+    const qualityMetricsWithTotals = {
+      ...qualityMetrics,
+      totalComposicoes: composicoesComProduto.length,
+      totalLikes: composicoesComProduto.filter((c: any) => c.liked).length,
+      totalDislikes: composicoesComProduto.filter((c: any) => c.liked === false).length,
+    };
+    const complaintRate = qualityMetricsWithTotals.complaintRate;
+    const conversionRate = qualityMetricsWithTotals.conversionRate;
 
     // Só analisar se houver problema
     if (complaintRate <= 20 && conversionRate >= 10) {
@@ -124,9 +128,9 @@ export async function GET(request: NextRequest) {
       metricas: {
         complaintRate: Math.round(complaintRate * 10) / 10,
         conversionRate: Math.round(conversionRate * 10) / 10,
-        totalComposicoes,
-        totalLikes,
-        totalDislikes,
+        totalComposicoes: qualityMetricsWithTotals.totalComposicoes,
+        totalLikes: qualityMetricsWithTotals.totalLikes,
+        totalDislikes: qualityMetricsWithTotals.totalDislikes,
       },
       motivosRejeicao: dislikeReasons,
     };
@@ -137,9 +141,9 @@ export async function GET(request: NextRequest) {
 MÉTRICAS DO PRODUTO:
 - Taxa de Rejeição: ${complaintRate.toFixed(1)}% (${complaintRate > 20 ? "ALTA - PROBLEMA" : "Normal"})
 - Taxa de Conversão: ${conversionRate.toFixed(1)}% (${conversionRate < 10 ? "BAIXA - PROBLEMA" : "Normal"})
-- Total de Composições: ${qualityMetrics.totalComposicoes || 0}
-- Total de Likes: ${qualityMetrics.totalLikes || 0}
-- Total de Dislikes: ${qualityMetrics.totalDislikes || 0}
+- Total de Composições: ${totalComposicoes || 0}
+- Total de Likes: ${totalLikes || 0}
+- Total de Dislikes: ${totalDislikes || 0}
 
 MOTIVOS DE REJEIÇÃO:
 ${Object.entries(dislikeReasons)

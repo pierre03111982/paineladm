@@ -96,7 +96,10 @@ CONTEXT DATA:
 ${contextData.recentInsights.length > 0 ? `- Recent Sales Insights: ${JSON.stringify(contextData.recentInsights, null, 2)}` : "- Recent Sales Insights: Nenhum insight disponível ainda"}
 
 GUIDELINES:
-1. SALES MODE: If the user asks about performance or sales, analyze the 'Recent Sales Insights'. Summarize opportunities and suggest actions.
+1. SALES MODE: If the user asks about performance, sales, or "Como vender mais?", analyze the 'Recent Sales Insights'. 
+   - Focus on insights of type 'opportunity' first
+   - Summarize the top opportunities and suggest specific actions
+   - If there are no insights, suggest generating an analysis first
 
 2. ONBOARDING MODE: If 'Display Connected' is false and user asks "what next?" or "o que faço agora?", guide them to connect the display. If 'Sales Configured' is false, suggest configuring sales.
 
