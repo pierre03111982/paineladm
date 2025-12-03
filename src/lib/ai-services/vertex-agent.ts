@@ -4,6 +4,7 @@
  */
 
 import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleAuth } from "google-auth-library";
 
 export class VertexAgent {
   private vertexAi: VertexAI;
@@ -22,9 +23,32 @@ export class VertexAgent {
       throw new Error("FATAL: Project ID vazio.");
     }
 
+    // 2. CONFIGURAR AUTENTICAÇÃO
+    // Em produção (Vercel), usa Service Account Key
+    // Em desenvolvimento local, usa Application Default Credentials (gcloud auth)
+    let googleAuthOptions: any = {};
+
+    if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
+      try {
+        // Service Account Key em formato JSON string (Vercel)
+        const serviceAccount = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
+        googleAuthOptions = {
+          credentials: serviceAccount,
+        };
+        console.log(`[VertexAgent] 🔐 Usando Service Account Key (produção)`);
+      } catch (error) {
+        console.error(`[VertexAgent] ⚠️ Erro ao parsear GCP_SERVICE_ACCOUNT_KEY:`, error);
+        // Continuar sem credenciais explícitas (tentará ADC)
+      }
+    } else {
+      console.log(`[VertexAgent] 🔐 Usando Application Default Credentials (desenvolvimento local)`);
+      console.log(`[VertexAgent] 💡 Dica: Execute 'gcloud auth application-default login' se necessário`);
+    }
+
     this.vertexAi = new VertexAI({
       project: this.project,
       location: this.location,
+      googleAuthOptions,
     });
 
     console.log(`[VertexAgent] ✅ Vertex AI inicializado com sucesso`);
