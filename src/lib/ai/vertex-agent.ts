@@ -27,29 +27,27 @@ export class VertexAgent {
     // Configurar autenticação para Vertex AI
     // No Vercel, usa GCP_SERVICE_ACCOUNT_KEY (JSON string)
     // Localmente, usa Application Default Credentials (gcloud auth)
-    let auth: GoogleAuth | undefined = undefined;
-    
     if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
       try {
         const serviceAccountKey = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
-        // Criar GoogleAuth com Service Account
-        auth = new GoogleAuth({
+        // Criar GoogleAuth com Service Account e configurar como credencial padrão
+        const auth = new GoogleAuth({
           credentials: serviceAccountKey,
           projectId: this.projectId,
         });
+        // Configurar como credencial padrão para o SDK usar
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = JSON.stringify(serviceAccountKey);
         console.log("[VertexAgent] ✅ Usando Service Account do GCP_SERVICE_ACCOUNT_KEY");
-      } catch (error) {
-        console.warn("[VertexAgent] ⚠️ Erro ao parsear GCP_SERVICE_ACCOUNT_KEY, usando ADC:", error);
+      } catch (error: any) {
+        console.warn("[VertexAgent] ⚠️ Erro ao parsear GCP_SERVICE_ACCOUNT_KEY, usando ADC:", error?.message);
       }
     }
 
     // Inicializar Vertex AI
-    // Se auth foi configurado, usa Service Account
-    // Caso contrário, usa Application Default Credentials (ADC)
+    // O SDK automaticamente detecta GOOGLE_APPLICATION_CREDENTIALS ou usa ADC
     this.vertexAI = new VertexAI({
       project: this.projectId,
       location: this.location,
-      googleAuthOptions: auth ? { credentials: JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY!) } : undefined,
     });
 
     // Configurar modelo Gemini 1.5 Pro
