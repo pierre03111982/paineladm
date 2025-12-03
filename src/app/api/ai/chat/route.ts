@@ -127,7 +127,7 @@ USER MESSAGE: ${message}
 Responda de forma útil e acionável, usando botões de navegação quando apropriado.`;
 
     // ESTRATÉGIA HÍBRIDA: Tentar Vertex AI primeiro, fallback para API direta
-    let responseText: string;
+    let responseText: string | null = null;
     let usedVertexAI = false;
 
     // TENTATIVA 1: Vertex AI (usando Service Account do Firebase)
@@ -283,6 +283,11 @@ Responda de forma útil e acionável, usando botões de navegação quando aprop
         responseLength: responseText.length,
         preview: responseText.substring(0, 100),
       });
+    }
+
+    // Validar que temos uma resposta
+    if (!responseText) {
+      throw new Error("Nenhuma resposta foi gerada. Tanto Vertex AI quanto API direta falharam.");
     }
 
     return NextResponse.json({
