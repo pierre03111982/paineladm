@@ -13,9 +13,15 @@ export class VertexAgent {
 
   constructor() {
     // 1. FORÇANDO O ID CORRETO (Baseado na prova visual do console)
-    // Se a variável de ambiente falhar, usa o ID que sabemos que tem a API ativa.
-    this.project = process.env.GOOGLE_CLOUD_PROJECT_ID || "paineladmexperimenteai";
+    // SEMPRE usar paineladmexperimenteai (projeto com API Vertex AI ativa)
+    // Ignorar GOOGLE_CLOUD_PROJECT_ID se apontar para outro projeto
+    const envProject = process.env.GOOGLE_CLOUD_PROJECT_ID;
+    this.project = "paineladmexperimenteai"; // SEMPRE usar este projeto
     this.location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+
+    if (envProject && envProject !== "paineladmexperimenteai") {
+      console.warn(`[VertexAgent] ⚠️ GOOGLE_CLOUD_PROJECT_ID=${envProject} ignorado. Usando 'paineladmexperimenteai' (projeto com API ativa)`);
+    }
 
     console.log(`[VertexAgent] 🟢 Inicializando Ana no projeto: ${this.project}`);
 
