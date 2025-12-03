@@ -20,6 +20,15 @@ GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 GCP_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 ```
 
+### Gemini API (Chatbot Ana)
+```env
+# API Key direta do Gemini (para chatbot Ana)
+# Obtenha em: https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your_gemini_api_key_here
+# OU (alternativa)
+GOOGLE_API_KEY=your_gemini_api_key_here
+```
+
 ### CORS e Segurança
 ```env
 # Domínios permitidos para CORS (separados por vírgula)
@@ -44,6 +53,9 @@ FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 
 # Google Cloud
 GOOGLE_CLOUD_PROJECT_ID=your_project_id
+
+# Gemini API (Chatbot Ana)
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ## ✅ Checklist de Verificação
@@ -55,6 +67,7 @@ GOOGLE_CLOUD_PROJECT_ID=your_project_id
 - [ ] `ALLOWED_ORIGINS` inclui todos os domínios de produção
 - [ ] Chaves do Firebase são válidas
 - [ ] Credenciais do Google Cloud estão configuradas
+- [ ] `GEMINI_API_KEY` ou `GOOGLE_API_KEY` está configurada (para chatbot Ana)
 - [ ] `NODE_ENV=production` está definido
 
 ### Verificação Local
@@ -77,6 +90,7 @@ GOOGLE_CLOUD_PROJECT_ID=your_project_id
 **NUNCA** commitar no Git:
 - `FIREBASE_PRIVATE_KEY`
 - `GOOGLE_APPLICATION_CREDENTIALS`
+- `GEMINI_API_KEY` / `GOOGLE_API_KEY`
 - Qualquer chave de API ou token
 
 **SEMPRE** usar:
