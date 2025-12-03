@@ -3,7 +3,7 @@
  * Usa Gemini 1.5 Pro para consultar dados reais do Firestore e dar respostas inteligentes
  */
 
-import { GoogleGenerativeAI, FunctionDeclarationSchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getTopSellingProducts, getLowPerformingProducts, getCustomerInsights, getStoreStats } from "./tools/store-tools";
 
 const genAI = new GoogleGenerativeAI(
@@ -86,14 +86,14 @@ LINGUAGEM:
         name: "getTopSellingProducts",
         description: "Busca os produtos mais vendidos/curtidos da loja. Use quando o usuário perguntar sobre produtos que vendem bem, top produtos, ou quiser saber quais produtos são mais aprovados pelos clientes.",
         parameters: {
-          type: FunctionDeclarationSchemaType.OBJECT,
+          type: "object",
           properties: {
             lojistaId: {
-              type: FunctionDeclarationSchemaType.STRING,
+              type: "string",
               description: "ID do lojista",
             },
             limit: {
-              type: FunctionDeclarationSchemaType.NUMBER,
+              type: "number",
               description: "Número máximo de produtos a retornar (padrão: 5)",
             },
           },
@@ -104,14 +104,14 @@ LINGUAGEM:
         name: "getLowPerformingProducts",
         description: "Busca produtos com baixa performance (muitos dislikes/rejeições). Use quando o usuário perguntar sobre produtos que não vendem, produtos com problemas, ou quiser identificar produtos que precisam de atenção.",
         parameters: {
-          type: FunctionDeclarationSchemaType.OBJECT,
+          type: "object",
           properties: {
             lojistaId: {
-              type: FunctionDeclarationSchemaType.STRING,
+              type: "string",
               description: "ID do lojista",
             },
             limit: {
-              type: FunctionDeclarationSchemaType.NUMBER,
+              type: "number",
               description: "Número máximo de produtos a retornar (padrão: 5)",
             },
           },
@@ -122,14 +122,14 @@ LINGUAGEM:
         name: "getCustomerInsights",
         description: "Busca insights recentes gerados pela IA sobre a loja (oportunidades, riscos, tendências). Use quando o usuário perguntar sobre insights, oportunidades de venda, ou quiser saber o que a IA identificou sobre o negócio.",
         parameters: {
-          type: FunctionDeclarationSchemaType.OBJECT,
+          type: "object",
           properties: {
             lojistaId: {
-              type: FunctionDeclarationSchemaType.STRING,
+              type: "string",
               description: "ID do lojista",
             },
             limit: {
-              type: FunctionDeclarationSchemaType.NUMBER,
+              type: "number",
               description: "Número máximo de insights a retornar (padrão: 5)",
             },
           },
@@ -140,10 +140,10 @@ LINGUAGEM:
         name: "getStoreStats",
         description: "Busca estatísticas gerais da loja (total de produtos, composições, taxa de aprovação). Use quando o usuário perguntar sobre estatísticas, métricas gerais, ou quiser um resumo do desempenho da loja.",
         parameters: {
-          type: FunctionDeclarationSchemaType.OBJECT,
+          type: "object",
           properties: {
             lojistaId: {
-              type: FunctionDeclarationSchemaType.STRING,
+              type: "string",
               description: "ID do lojista",
             },
           },
