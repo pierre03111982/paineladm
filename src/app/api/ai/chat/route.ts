@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { getVertexAgent } from "@/lib/ai-services/vertex-agent";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { getAllInsights } from "@/lib/firestore/insights";
 
 export const dynamic = 'force-dynamic';
 
@@ -58,24 +59,9 @@ export async function POST(request: NextRequest) {
     const salesConfigured = !!(lojaData?.salesConfig);
 
     // 2. Dados de Vendas (Últimos 3 insights)
-    // Busca simples sem ordenação para evitar erro de índice
     let recentInsights: any[] = [];
     try {
-      const insightsRef = db.collection(`lojas/${lojistaId}/insights`);
-      const insightsSnap = await insightsRef
-        .limit(5)
-        .get();
-      
-      recentInsights = insightsSnap.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: data.type,
-          title: data.title,
-          message: data.message,
-          priority: data.priority,
-        };
-      }).slice(0, 3); // Limitar a 3 após buscar
+      recentInsights = await getAllInsights(lojistaId, 3);
     } catch (error) {
       console.warn("[AI/Chat] Erro ao buscar insights:", error);
       // Continuar sem insights se houver erro
@@ -97,19 +83,48 @@ export async function POST(request: NextRequest) {
       })),
     };
 
-    // Construir string de contexto para o VertexAgent
-    const contextString = `Loja: ${contextData.store.name}
-Produtos cadastrados: ${contextData.store.produtosCount}
-Display conectado: ${contextData.store.displayConnected ? "Sim" : "Não"}
-Sales configurado: ${contextData.store.salesConfigured ? "Sim" : "Não"}
-${recentInsights.length > 0 ? `Insights recentes: ${recentInsights.map(i => i.title).join(", ")}` : "Nenhum insight disponível"}`;
+    // System Prompt atualizado
+    const systemPrompt = `ROLE: You are "Ana", the Intelligent Manager of Experimenta AI.
+
+CAPABILITIES: Technical Support, Sales Consultant, and Onboarding Guide.
+
+CONTEXT DATA:
+- Store Name: ${contextData.store.name}
+- Products: ${contextData.store.produtosCount} produtos cadastrados
+- Display Connected: ${contextData.store.displayConnected ? "Sim" : "Não"}
+- Sales Configured: ${contextData.store.salesConfigured ? "Sim" : "Não"}
+${contextData.recentInsights.length > 0 ? `- Recent Sales Insights: ${JSON.stringify(contextData.recentInsights, null, 2)}` : "- Recent Sales Insights: Nenhum insight disponível ainda"}
+
+GUIDELINES:
+1. SALES MODE: If the user asks about performance, sales, or "Como vender mais?", analyze the 'Recent Sales Insights'. 
+   - Focus on insights of type 'opportunity' first
+   - Summarize the top opportunities and suggest specific actions
+   - If there are no insights, suggest generating an analysis first
+
+2. ONBOARDING MODE: If 'Display Connected' is false and user asks "what next?" or "o que faço agora?", guide them to connect the display. If 'Sales Configured' is false, suggest configuring sales.
+
+3. NAVIGATION ACTIONS: If you suggest a feature, provide a link in this format: [[Button Label]](/url-path).
+   - Link for Products: /produtos
+   - Link for Display: /display
+   - Link for Settings: /configuracoes
+   - Link for Clients: /clientes
+   - Link for Dashboard: /dashboard
+   - Link for Sales Config: /configuracoes (scroll to sales section)
+
+4. PRODUCT GUIDANCE: If produtosCount is 0, suggest adding products first.
+
+5. TONE: Professional, encouraging, and data-driven. Keep answers short (max 3 sentences unless asked for detail).
+
+6. LANGUAGE: Respond in Portuguese (pt-BR) unless the user writes in English.
+
+IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato [[Label do Botão]](/caminho) para criar botões clicáveis.`;
 
     // USAR AGENTE ANA COM VERTEX AI
     console.log("[AI/Chat] 🤖 Usando Agente Ana com Vertex AI...");
 
     try {
       const vertexAgent = getVertexAgent();
-      const responseText = await vertexAgent.sendMessage(message, contextString);
+      const responseText = await vertexAgent.generateResponse(message, lojistaId, contextData);
 
       console.log("[AI/Chat] ✅ Resposta do Agente Ana recebida:", {
         responseLength: responseText.length,
@@ -156,3 +171,4 @@ ${recentInsights.length > 0 ? `Insights recentes: ${recentInsights.map(i => i.ti
     );
   }
 }
+

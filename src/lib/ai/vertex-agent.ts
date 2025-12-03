@@ -12,6 +12,7 @@ import { ANA_TOOLS, type AnaToolName } from "./ana-tools";
  */
 export class VertexAgent {
   private vertexAI: VertexAI;
+  private model: any;
   private projectId: string;
   private location: string;
 
@@ -103,13 +104,26 @@ export class VertexAgent {
       throw new Error(`Erro ao inicializar Vertex AI: ${error?.message}`);
     }
 
-    // Não inicializar modelo aqui - será feito dinamicamente com fallback
-    // Isso permite tentar PRO primeiro e fazer fallback para FLASH se necessário
+    // Configurar modelo Gemini 1.5 Flash (gemini-1.5-pro não está disponível)
+    // Flash é mais rápido e está disponível no Vertex AI
+    this.model = this.vertexAI.preview.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        topP: 0.95,
+        topK: 40,
+      },
+      systemInstruction: this.getPersona(),
+      tools: [{
+        functionDeclarations: this.getFunctionDeclarations(),
+      }],
+    });
 
     console.log("[VertexAgent] ✅ Agente Ana inicializado com Vertex AI", {
       project: this.projectId,
       location: this.location,
-      strategy: "PRO → FLASH (fallback automático)",
+      model: "gemini-1.5-flash",
     });
   }
 
@@ -232,90 +246,7 @@ LINGUAGEM:
   }
 
   /**
-   * Obtém o modelo com fallback automático PRO → FLASH
-   */
-  private getModel(usePro: boolean = true): any {
-    // Usar versões estáveis dos modelos
-    const modelName = usePro ? "gemini-1.5-pro" : "gemini-1.5-flash";
-    
-    return this.vertexAI.preview.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-        topP: 0.95,
-        topK: 40,
-      },
-      systemInstruction: this.getPersona(),
-      tools: [{
-        functionDeclarations: this.getFunctionDeclarations(),
-      }],
-    });
-  }
-
-  /**
-   * Executa uma conversa com chat (helper interno)
-   */
-  private async executeChatWithModel(model: any, userMessage: string, lojistaId: string, contextPrompt: string): Promise<string> {
-    const chat = model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: `Olá Ana! Sou o lojista ${lojistaId}.${contextPrompt}` }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Olá! Sou a Ana, sua Consultora de Sucesso do Cliente. Estou aqui para ajudar você a vender mais usando dados reais da sua loja! 🚀\n\nComo posso ajudar você hoje? Posso analisar seus produtos, identificar oportunidades de venda, ou qualquer outra coisa relacionada ao seu negócio." }],
-        },
-      ],
-    });
-
-    const result = await chat.sendMessage(userMessage);
-    const response = result.response;
-
-    // Verificar se a IA quer chamar alguma função
-    const functionCalls = response.functionCalls();
-
-    if (functionCalls && functionCalls.length > 0) {
-      console.log(`[VertexAgent] 🔧 IA solicitou ${functionCalls.length} função(ões):`, 
-        functionCalls.map((c: any) => c.name).join(", "));
-
-      // Executar todas as funções solicitadas
-      const functionResults = await Promise.all(
-        functionCalls.map(async (call: any) => {
-          const functionName = call.name;
-          const args = call.args || {};
-          
-          // Garantir que lojistaId está nos args
-          if (!args.lojistaId) {
-            args.lojistaId = lojistaId;
-          }
-
-          const result = await this.executeFunction(functionName, args, lojistaId);
-          
-          return {
-            functionResponse: {
-              name: functionName,
-              response: result,
-            },
-          };
-        })
-      );
-
-      console.log("[VertexAgent] ✅ Funções executadas, enviando resultados para IA...");
-
-      // Enviar resultados das funções de volta para a IA
-      const finalResult = await chat.sendMessage(functionResults);
-      return finalResult.response.text();
-    }
-
-    // Se não houve function calls, retornar resposta direta
-    return response.text();
-  }
-
-  /**
    * Chat com Function Calling - Orquestra a conversa e executa funções quando necessário
-   * Implementa fallback automático PRO → FLASH
    */
   async chat(userMessage: string, lojistaId: string, contextData?: any): Promise<string> {
     console.log("[VertexAgent] 💬 Iniciando chat...", {
@@ -324,51 +255,78 @@ LINGUAGEM:
       hasContext: !!contextData,
     });
     
-    // Construir contexto inicial
-    const contextPrompt = contextData 
-      ? `\n\nCONTEXTO DA LOJA:
+    try {
+      // Construir contexto inicial
+      const contextPrompt = contextData 
+        ? `\n\nCONTEXTO DA LOJA:
 - Nome: ${contextData.store?.name || "Sua loja"}
 - Produtos cadastrados: ${contextData.store?.produtosCount || 0}
 - Display conectado: ${contextData.store?.displayConnected ? "Sim" : "Não"}
 - Sales configurado: ${contextData.store?.salesConfigured ? "Sim" : "Não"}
 `
-      : "";
+        : "";
 
-    // TENTATIVA 1: Usar Gemini 1.5 PRO (melhor raciocínio/empatia)
-    try {
-      console.log("[VertexAgent] 🎯 Tentando Gemini 1.5 PRO-002...");
-      const model = this.getModel(true);
-      const response = await this.executeChatWithModel(model, userMessage, lojistaId, contextPrompt);
-      console.log("[VertexAgent] ✅ Resposta do PRO recebida com sucesso");
-      return response;
-      
-    } catch (proError: any) {
-      // Log discreto do erro do PRO
-      console.warn("[VertexAgent] ⚠️ Falha no PRO, ativando fallback FLASH:", {
-        error: proError?.message,
-        code: proError?.code,
-        status: proError?.status,
+      // Iniciar chat
+      const chat = this.model.startChat({
+        history: [
+          {
+            role: "user",
+            parts: [{ text: `Olá Ana! Sou o lojista ${lojistaId}.${contextPrompt}` }],
+          },
+          {
+            role: "model",
+            parts: [{ text: "Olá! Sou a Ana, sua Consultora de Sucesso do Cliente. Estou aqui para ajudar você a vender mais usando dados reais da sua loja! 🚀\n\nComo posso ajudar você hoje? Posso analisar seus produtos, identificar oportunidades de venda, ou qualquer outra coisa relacionada ao seu negócio." }],
+          },
+        ],
       });
 
-      // TENTATIVA 2: Fallback para Gemini 1.5 FLASH (velocidade/economia)
-      try {
-        console.log("[VertexAgent] ⚡ Tentando Gemini 1.5 FLASH-002 (fallback)...");
-        const model = this.getModel(false);
-        const response = await this.executeChatWithModel(model, userMessage, lojistaId, contextPrompt);
-        console.log("[VertexAgent] ✅ Resposta do FLASH recebida com sucesso (fallback)");
-        return response;
-        
-      } catch (flashError: any) {
-        // Erro fatal em ambos os modelos
-        console.error("[VertexAgent] ❌ Erro fatal em ambos os modelos (PRO e FLASH):", {
-          proError: proError?.message,
-          flashError: flashError?.message,
-          proCode: proError?.code,
-          flashCode: flashError?.code,
-        });
-        
-        throw new Error("Não consegui conectar com a Ana no momento. Tente novamente em alguns instantes.");
+      // Enviar mensagem do usuário
+      const result = await chat.sendMessage(userMessage);
+      const response = result.response;
+
+      // Verificar se a IA quer chamar alguma função
+      const functionCalls = response.functionCalls();
+
+      if (functionCalls && functionCalls.length > 0) {
+        console.log(`[VertexAgent] 🔧 IA solicitou ${functionCalls.length} função(ões):`, 
+          functionCalls.map((c: any) => c.name).join(", "));
+
+        // Executar todas as funções solicitadas
+        const functionResults = await Promise.all(
+          functionCalls.map(async (call: any) => {
+            const functionName = call.name;
+            const args = call.args || {};
+            console.log(`[VertexAgent] 📊 Executando ${functionName} com args:`, args);
+            
+            // Garantir que lojistaId está nos args
+            if (!args.lojistaId) {
+              args.lojistaId = lojistaId;
+            }
+
+            const result = await this.executeFunction(functionName, args, lojistaId);
+            
+            return {
+              functionResponse: {
+                name: functionName,
+                response: result,
+              },
+            };
+          })
+        );
+
+        console.log("[VertexAgent] ✅ Funções executadas, enviando resultados para IA...");
+
+        // Enviar resultados das funções de volta para a IA
+        const finalResult = await chat.sendMessage(functionResults);
+        return finalResult.response.text();
       }
+
+      // Se não houve function calls, retornar resposta direta
+      console.log("[VertexAgent] 💬 Resposta direta (sem function calls)");
+      return response.text();
+    } catch (error: any) {
+      console.error("[VertexAgent] ❌ Erro no chat:", error);
+      throw new Error(`Erro ao processar mensagem: ${error.message || "Erro desconhecido"}`);
     }
   }
 }

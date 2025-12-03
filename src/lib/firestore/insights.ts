@@ -64,12 +64,12 @@ export async function getUnreadInsights(
       .doc(lojistaId)
       .collection("insights");
 
-    // Query simplificada sem orderBy para evitar erro de índice
-    // Ordenação será feita em memória após buscar os dados
     const snapshot = await insightsRef
       .where("isRead", "==", false)
       .where("expiresAt", ">", new Date()) // Apenas insights não expirados
-      .limit(limit * 2) // Buscar mais para garantir que temos dados suficientes após ordenação
+      .orderBy("expiresAt", "asc")
+      .orderBy("createdAt", "desc")
+      .limit(limit)
       .get();
 
     const insights: InsightDoc[] = [];
@@ -126,15 +126,7 @@ export async function getAllInsights(
       } as InsightDoc);
     });
 
-    // Ordenar em memória: primeiro por expiresAt (asc), depois por createdAt (desc)
-    insights.sort((a, b) => {
-      const expiresDiff = a.expiresAt.getTime() - b.expiresAt.getTime();
-      if (expiresDiff !== 0) return expiresDiff;
-      return b.createdAt.getTime() - a.createdAt.getTime();
-    });
-
-    // Retornar apenas o limite solicitado
-    return insights.slice(0, limit);
+    return insights;
   } catch (error) {
     console.error("[Insights] ❌ Erro ao buscar todos os insights:", error);
     throw error;

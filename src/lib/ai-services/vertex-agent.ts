@@ -1,96 +1,296 @@
 /**
  * Agente Ana - Serviço de IA usando Vertex AI SDK
- * Versão simplificada e robusta
+ * Usa Gemini 1.5 Pro como principal, com fallback para Flash
  */
 
 import { VertexAI } from "@google-cloud/vertexai";
-import { GoogleAuth } from "google-auth-library";
+import { ANA_TOOLS, type AnaToolName } from "../ai/ana-tools";
 
+/**
+ * Serviço do Agente Ana usando Vertex AI
+ * Prioriza inteligência humana (PRO), com fallback para velocidade (FLASH)
+ */
 export class VertexAgent {
-  private vertexAi: VertexAI;
+  private vertexAI: VertexAI;
   private project: string;
   private location: string;
 
   constructor() {
-    // 1. FORÇANDO O ID CORRETO (Baseado na prova visual do console)
-    // SEMPRE usar paineladmexperimenteai (projeto com API Vertex AI ativa)
-    // Ignorar GOOGLE_CLOUD_PROJECT_ID se apontar para outro projeto
-    const envProject = process.env.GOOGLE_CLOUD_PROJECT_ID;
-    this.project = "paineladmexperimenteai"; // SEMPRE usar este projeto
+    this.project = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "";
     this.location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
 
-    if (envProject && envProject !== "paineladmexperimenteai") {
-      console.warn(`[VertexAgent] ⚠️ GOOGLE_CLOUD_PROJECT_ID=${envProject} ignorado. Usando 'paineladmexperimenteai' (projeto com API ativa)`);
-    }
-
-    console.log(`[VertexAgent] 🟢 Inicializando Ana no projeto: ${this.project}`);
-
     if (!this.project) {
-      throw new Error("FATAL: Project ID vazio.");
+      throw new Error("GOOGLE_CLOUD_PROJECT_ID ou FIREBASE_PROJECT_ID não configurado. Configure a variável de ambiente.");
     }
 
-    // 2. CONFIGURAR AUTENTICAÇÃO
-    // Em produção (Vercel), usa Service Account Key
-    // Em desenvolvimento local, usa Application Default Credentials (gcloud auth)
-    const vertexAIOptions: any = {
+    // Inicializar Vertex AI usando Application Default Credentials (ADC)
+    // Isso usa automaticamente as credenciais do gcloud auth (local) ou Service Account (Vercel)
+    this.vertexAI = new VertexAI({
       project: this.project,
       location: this.location,
-    };
+    });
 
-    if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
-      try {
-        // Service Account Key em formato JSON string (Vercel)
-        const serviceAccount = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
-        vertexAIOptions.googleAuthOptions = {
-          credentials: serviceAccount,
-        };
-        console.log(`[VertexAgent] 🔐 Usando Service Account Key (produção)`);
-      } catch (error) {
-        console.error(`[VertexAgent] ⚠️ Erro ao parsear GCP_SERVICE_ACCOUNT_KEY:`, error);
-        // Continuar sem credenciais explícitas (tentará ADC)
-      }
-    } else {
-      // Não passar googleAuthOptions quando usar ADC
-      // O SDK do Vertex AI detecta automaticamente as credenciais do ADC
-      console.log(`[VertexAgent] 🔐 Usando Application Default Credentials (desenvolvimento local)`);
-      console.log(`[VertexAgent] 💡 Dica: Execute 'gcloud auth application-default login' se necessário`);
-    }
-
-    this.vertexAi = new VertexAI(vertexAIOptions);
-
-    console.log(`[VertexAgent] ✅ Vertex AI inicializado com sucesso`);
+    console.log("[VertexAgent] ✅ Vertex AI inicializado", {
+      project: this.project,
+      location: this.location,
+    });
   }
 
-  async sendMessage(userMessage: string, context: string): Promise<string> {
-    const systemPrompt = `VOCÊ É A ANA, GERENTE DO SISTEMA.\nCONTEXTO:\n${context}\n\nResponda de forma curta, humana e prestativa.`;
+  /**
+   * Persona da Ana - Personalidade empática e consultiva
+   */
+  private getPersona(): string {
+    return `Você é a Ana, gerente de sucesso do 'Experimenta AI'.
+
+Seu tom é humano, empático, entusiasta e profissional.
+
+Você NUNCA inventa dados. Se não souber, pergunte ou diga que vai verificar.
+
+Seu objetivo é ajudar o lojista a vender mais, analisando o contexto fornecido.
+
+FORMATO DE RESPOSTAS:
+- Seja direta e acionável (máximo 3-4 frases, a menos que peçam detalhes).
+- Use botões de navegação quando sugerir ações: [[Nome do Botão]](/caminho)
+- Sempre que mencionar dados (produtos, insights, estatísticas), use as ferramentas disponíveis para buscar informações atualizadas.
+
+LINGUAGEM:
+- Responda em Português (pt-BR) a menos que o usuário escreva em inglês.
+- Use tom profissional mas amigável, como uma consultora de vendas experiente.`;
+  }
+
+  /**
+   * Define as funções que a IA pode chamar (Function Calling)
+   */
+  private getFunctionDeclarations(): any[] {
+    return [
+      {
+        name: "getStoreVitalStats",
+        description: "Busca estatísticas vitais da loja (total de produtos, composições, taxa de aprovação, vendas). Use quando o usuário perguntar sobre estatísticas gerais, desempenho da loja, ou quiser um resumo do negócio.",
+        parameters: {
+          type: "object",
+          properties: {
+            lojistaId: {
+              type: "string",
+              description: "ID do lojista",
+            },
+          },
+          required: ["lojistaId"],
+        },
+      },
+      {
+        name: "getTopOpportunities",
+        description: "Busca oportunidades de venda ou crescimento identificadas pela IA (insights do tipo 'opportunity'). Use quando o usuário perguntar sobre oportunidades, insights de vendas, ou quiser saber o que a IA identificou como potencial de crescimento.",
+        parameters: {
+          type: "object",
+          properties: {
+            lojistaId: {
+              type: "string",
+              description: "ID do lojista",
+            },
+            limit: {
+              type: "number",
+              description: "Número máximo de oportunidades a retornar (padrão: 5)",
+            },
+          },
+          required: ["lojistaId"],
+        },
+      },
+      {
+        name: "getProductPerformance",
+        description: "Busca produtos com baixa performance (alto índice de rejeição/dislikes). Use quando o usuário perguntar sobre produtos que não vendem, produtos com problemas, ou quiser identificar produtos que precisam de atenção (preço, qualidade, etc).",
+        parameters: {
+          type: "object",
+          properties: {
+            lojistaId: {
+              type: "string",
+              description: "ID do lojista",
+            },
+            limit: {
+              type: "number",
+              description: "Número máximo de produtos a retornar (padrão: 5)",
+            },
+          },
+          required: ["lojistaId"],
+        },
+      },
+    ];
+  }
+
+  /**
+   * Executa uma função baseada no nome
+   */
+  private async executeFunction(functionName: string, args: any, lojistaId: string): Promise<any> {
+    console.log(`[VertexAgent] 🔧 Executando função: ${functionName}`, { args });
 
     try {
-      console.log(`[VertexAgent] Enviando mensagem para Gemini Flash...`);
+      if (!(functionName in ANA_TOOLS)) {
+        throw new Error(`Função desconhecida: ${functionName}`);
+      }
 
-      const model = this.vertexAi.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: systemPrompt,
+      const tool = ANA_TOOLS[functionName as AnaToolName];
+      const result = await tool(lojistaId, args.limit);
+
+      console.log(`[VertexAgent] ✅ Função ${functionName} executada com sucesso`);
+      return result;
+    } catch (error: any) {
+      console.error(`[VertexAgent] ❌ Erro ao executar função ${functionName}:`, error);
+      return {
+        error: error.message || "Erro ao executar função",
+        resumo: `Erro ao buscar dados: ${error.message || "Erro desconhecido"}`,
+      };
+    }
+  }
+
+  /**
+   * Tenta gerar resposta com um modelo específico
+   */
+  private async tryModel(
+    modelName: string,
+    userMessage: string,
+    lojistaId: string,
+    contextData?: any
+  ): Promise<string> {
+    const contextPrompt = contextData
+      ? `\n\nCONTEXTO DA LOJA:
+- Nome: ${contextData.store?.name || "Sua loja"}
+- Produtos cadastrados: ${contextData.store?.produtosCount || 0}
+- Display conectado: ${contextData.store?.displayConnected ? "Sim" : "Não"}
+- Sales configurado: ${contextData.store?.salesConfigured ? "Sim" : "Não"}
+`
+      : "";
+
+    const model = this.vertexAI.preview.getGenerativeModel({
+      model: modelName,
+      systemInstruction: this.getPersona(),
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+        topP: 0.95,
+        topK: 40,
+      },
+      tools: [{
+        functionDeclarations: this.getFunctionDeclarations(),
+      }],
+    });
+
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: `Olá Ana! Sou o lojista ${lojistaId}.${contextPrompt}` }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "Olá! Sou a Ana, sua Gerente de Sucesso do Cliente. Estou aqui para ajudar você a vender mais usando dados reais da sua loja! 🚀\n\nComo posso ajudar você hoje? Posso analisar seus produtos, identificar oportunidades de venda, ou qualquer outra coisa relacionada ao seu negócio." }],
+        },
+      ],
+    });
+
+    const result = await chat.sendMessage(userMessage);
+    const response = result.response;
+
+    // Verificar se a IA quer chamar alguma função
+    let functionCalls: any[] = [];
+    try {
+      if (response.functionCalls && typeof response.functionCalls === 'function') {
+        const calls = response.functionCalls();
+        if (calls && Array.isArray(calls) && calls.length > 0) {
+          functionCalls = calls;
+        }
+      }
+    } catch (e: any) {
+      // Se não houver function calls, continuar normalmente
+      console.log("[VertexAgent] ℹ️ Nenhuma função chamada pela IA ou Function Calling não disponível:", e?.message);
+    }
+
+    if (functionCalls && functionCalls.length > 0) {
+      console.log(`[VertexAgent] 🔧 IA solicitou ${functionCalls.length} função(ões):`, 
+        functionCalls.map((c: any) => c.name).join(", "));
+
+      const functionResults = await Promise.all(
+        functionCalls.map(async (call: any) => {
+          const functionName = call.name;
+          const args = call.args || {};
+          if (!args.lojistaId) {
+            args.lojistaId = lojistaId;
+          }
+
+          const result = await this.executeFunction(functionName, args, lojistaId);
+          
+          return {
+            functionResponse: {
+              name: functionName,
+              response: result,
+            },
+          };
+        })
+      );
+
+      const finalResult = await chat.sendMessage(functionResults);
+      const finalResponse = finalResult.response;
+      
+      // Extrair texto da resposta
+      if (finalResponse.candidates && finalResponse.candidates[0]?.content?.parts) {
+        const textPart = finalResponse.candidates[0].content.parts.find((p: any) => p.text);
+        return textPart?.text || "";
+      }
+      
+      return "";
+    }
+
+    // Extrair texto da resposta direta
+    if (response.candidates && response.candidates[0]?.content?.parts) {
+      const textPart = response.candidates[0].content.parts.find((p: any) => p.text);
+      return textPart?.text || "";
+    }
+    
+    return "";
+  }
+
+  /**
+   * Gera resposta com fallback automático (PRO → FLASH)
+   */
+  async generateResponse(userMessage: string, lojistaId: string, contextData?: any): Promise<string> {
+    console.log("[VertexAgent] 💬 Iniciando geração de resposta...", {
+      messageLength: userMessage.length,
+      lojistaId,
+      hasContext: !!contextData,
+    });
+
+    // TENTATIVA 1: Gemini 1.5 Pro (Melhor raciocínio/Empatia)
+    try {
+      console.log("[VertexAgent] 🎯 Tentando Gemini 1.5 PRO-002...");
+      const response = await this.tryModel("gemini-1.5-pro-002", userMessage, lojistaId, contextData);
+      console.log("[VertexAgent] ✅ Resposta gerada com PRO-002");
+      return response;
+    } catch (proError: any) {
+      console.warn("[VertexAgent] ⚠️ Falha no PRO-002, ativando fallback FLASH-002:", {
+        error: proError?.message,
+        code: proError?.code,
+        status: proError?.status,
       });
 
-      const result = await model.generateContent(userMessage);
-      const response = await result.response;
-      const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      return text || "Ana está pensando, mas não respondeu.";
-    } catch (error: any) {
-      console.error("[VertexAgent] 🔴 Erro de Conexão:", error);
-
-      // Diagnóstico detalhado para o usuário
-      if (error.message?.includes("404")) {
-        return `ERRO 404: O código tentou acessar o projeto '${this.project}', mas não encontrou o modelo. Confirme se sua credencial local (gcloud auth) tem acesso a este projeto.`;
+      // TENTATIVA 2: Gemini 1.5 Flash (Fallback - Velocidade/Economia)
+      try {
+        console.log("[VertexAgent] ⚡ Tentando Gemini 1.5 FLASH-002 (fallback)...");
+        const response = await this.tryModel("gemini-1.5-flash-002", userMessage, lojistaId, contextData);
+        console.log("[VertexAgent] ✅ Resposta gerada com FLASH-002 (fallback)");
+        return response;
+      } catch (flashError: any) {
+        console.error("[VertexAgent] ❌ Erro fatal em ambos os modelos:", {
+          proError: proError?.message,
+          flashError: flashError?.message,
+        });
+        throw new Error("Não consegui conectar com a Ana no momento. Tente novamente em alguns instantes.");
       }
-
-      if (error.message?.includes("403") || error.message?.includes("Permission")) {
-        return `ERRO DE PERMISSÃO: Sua conta logada no terminal não tem permissão 'Vertex AI User' no projeto '${this.project}'.`;
-      }
-
-      return `Erro técnico na Ana: ${error.message}`;
     }
+  }
+
+  /**
+   * Método de compatibilidade (mantém interface antiga)
+   */
+  async chat(userMessage: string, lojistaId: string, contextData?: any): Promise<string> {
+    return this.generateResponse(userMessage, lojistaId, contextData);
   }
 }
 
