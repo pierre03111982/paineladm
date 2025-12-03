@@ -135,6 +135,9 @@ export async function POST(req: NextRequest) {
       }
 
       const primaryProduct = productsData[0];
+      
+      // IMPORTANTE: TODOS os produtos serão aplicados na composição
+      // allProductImageUrls contém TODAS as imagens de produtos para aplicar na pessoa
       const allProductImageUrls = productsData
         .map(p => p.productUrl || p.imagemUrl)
         .filter(Boolean);
@@ -144,7 +147,9 @@ export async function POST(req: NextRequest) {
     const lojaData = lojaDoc.exists ? lojaDoc.data() : null;
 
     // MASTER PROMPT PIVOT: Buscar cenário do Firestore baseado em tags de produtos
-    // REFINAMENTO VISUAL: Usa APENAS o primeiro produto para matching
+    // REGRA IMPORTANTE: 
+    // - Para APLICAR na composição: TODOS os produtos (allProductImageUrls)
+    // - Para BUSCAR o cenário: APENAS o primeiro produto (firstProductOnly)
     // IMPORTANTE: Passar apenas STRINGS (prompt/categoria), NÃO URL de imagem
     let scenarioImageUrl: string | undefined = undefined; // SEMPRE undefined - forçar geração via prompt
     let scenarioLightingPrompt: string | undefined = undefined;
@@ -153,11 +158,13 @@ export async function POST(req: NextRequest) {
     
     // Verificar se é remix (MASTER PROMPT: Detecção correta de remix)
     // Remix pode ser detectado por: scenePrompts OU gerarNovoLook OU forceNewPose
+    // No REMIX: Aplicar TODOS os produtos + Gerar NOVO cenário + Mudar pose
     const isRemix = (jobData.scenePrompts && jobData.scenePrompts.length > 0) || 
                     jobData.options?.gerarNovoLook === true || 
                     jobData.options?.forceNewPose === true;
     
-    // REGRA DO 1º PRODUTO: Usar APENAS o produto no índice 0 para buscar cenário
+    // REGRA DO 1º PRODUTO: Usar APENAS o produto no índice 0 para BUSCAR o cenário
+    // NOTA: Todos os produtos serão aplicados na composição, mas o cenário é baseado no 1º produto
     const firstProductOnly = productsData.length > 0 ? [productsData[0]] : [];
     
     // Se o job já tem categoria/prompt, usar eles (vem do frontend ou de geração anterior)
@@ -173,9 +180,22 @@ export async function POST(req: NextRequest) {
         nota: "Cenário será GERADO via prompt, não usado como input visual",
       });
     } else if (isRemix && firstProductOnly.length > 0) {
-      // LÓGICA REMIX AGRESSIVA: Se for Remix, forçar NOVO cenário aleatório da mesma categoria
+      // LÓGICA REMIX AGRESSIVA: 
+      // 1. Aplicar TODOS os produtos na composição (allProductImageUrls)
+      // 2. Gerar NOVO cenário aleatório (baseado no 1º produto para categoria)
+      // 3. Mudar a pose da pessoa (forceNewPose será passado para o orchestrator)
       try {
-        console.log("[process-job] 🎨 MASTER PROMPT: REMIX AGRESSIVO - Forçando NOVO cenário aleatório da mesma categoria...");
+        console.log("[process-job] 🎨 MASTER PROMPT: REMIX AGRESSIVO");
+        console.log("[process-job] 📦 Produtos a aplicar na composição:", {
+          totalProdutos: productsData.length,
+          produtos: productsData.map(p => p.nome || "N/A"),
+          nota: "TODOS os produtos serão aplicados na pessoa",
+        });
+        console.log("[process-job] 🎯 Buscando NOVO cenário baseado no 1º produto:", {
+          primeiroProduto: firstProductOnly[0]?.nome || "N/A",
+          categoria: firstProductOnly[0]?.categoria || "N/A",
+          nota: "Cenário será baseado no 1º produto, mas TODOS os produtos serão aplicados",
+        });
         // Buscar cenário baseado no primeiro produto para identificar categoria
         const baseScenario = await findScenarioByProductTags(firstProductOnly);
         
@@ -258,15 +278,18 @@ export async function POST(req: NextRequest) {
         scenePrompts: jobData.scenePrompts,
         options: {
           ...jobData.options,
-          allProductImageUrls,
-          productsData,
-        // MASTER PROMPT PIVOT: Passar apenas STRINGS (categoria/prompt), NÃO URL de imagem
-        // scenarioImageUrl deve ser undefined para forçar geração de fundo
-        scenarioImageUrl: undefined, // SEMPRE undefined - forçar geração via prompt
-        ...(scenarioLightingPrompt && { scenarioLightingPrompt }),
-        ...(scenarioCategory && { scenarioCategory }),
-        scenarioInstructions: undefined, // Não usar instruções de imagem fixa
-      },
+          // IMPORTANTE: TODOS os produtos serão aplicados na composição
+          allProductImageUrls, // Array com TODAS as imagens de produtos
+          productsData, // Array com TODOS os dados dos produtos
+          // MASTER PROMPT PIVOT: Passar apenas STRINGS (categoria/prompt), NÃO URL de imagem
+          // scenarioImageUrl deve ser undefined para forçar geração de fundo
+          scenarioImageUrl: undefined, // SEMPRE undefined - forçar geração via prompt
+          ...(scenarioLightingPrompt && { scenarioLightingPrompt }),
+          ...(scenarioCategory && { scenarioCategory }),
+          scenarioInstructions: undefined, // Não usar instruções de imagem fixa
+          // REMIX: Forçar nova pose se for remix
+          ...(isRemix && { forceNewPose: true }),
+        },
     };
 
     console.log("[process-job] Chamando Orchestrator com params:", {
