@@ -371,8 +371,6 @@ export async function POST(req: NextRequest) {
         processingTime: finalResult.processingTime,
       });
       
-      // Continuar com o processamento do resultado
-      return await processFinalResult(finalResult, jobData, jobId, orchestrator);
     } catch (orchestratorError: any) {
       console.error("[process-job] ❌ Erro no Orchestrator:", orchestratorError);
       console.error("[process-job] Stack trace:", orchestratorError?.stack);
@@ -385,8 +383,57 @@ export async function POST(req: NextRequest) {
       throw orchestratorError;
     }
 
+    // --- ESTRATÉGIA DE SEGURANÇA MÁXIMA ---
+    // Extrai apenas a URL como string simples.
+    let finalUrl = "";
+    const lojistaId = jobData.lojistaId || "unknown";
+    
+    // VALIDAÇÃO CRÍTICA: Verificar se tryonImageUrl foi retornado
+    if (!finalResult.tryonImageUrl) {
+      const errorMsg = "Nenhum Look foi gerado - tryonImageUrl não foi retornado pelo orchestrator";
+      console.error(`[process-job] ❌ ${errorMsg}`);
+      console.error("[process-job] Resultado do orchestrator:", {
+        hasTryonImageUrl: !!finalResult.tryonImageUrl,
+        hasSceneImageUrls: Array.isArray(finalResult.sceneImageUrls) && finalResult.sceneImageUrls.length > 0,
+        compositionId: finalResult.compositionId,
+        status: finalResult.status,
+        finalResultKeys: Object.keys(finalResult),
+      });
+      throw new Error(errorMsg);
+    }
+    
+    const imageUrl = String(finalResult.tryonImageUrl);
+    // FIX: Se for base64, fazer upload para Storage
+    if (imageUrl.startsWith("data:image/")) {
+      console.log("[process-job] 🔄 Detectado base64, fazendo upload para Storage...");
+      finalUrl = await uploadBase64ToStorage(imageUrl, lojistaId, jobId);
+    } else {
+      finalUrl = imageUrl;
+    }
+
+    // Validação final: garantir que temos uma URL válida
+    if (!finalUrl || finalUrl.trim() === "") {
+      const errorMsg = "Nenhum Look foi gerado - URL final está vazia após processamento";
+      console.error(`[process-job] ❌ ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+
+    // Processar sceneImageUrls também se houver
+    let processedSceneUrls: string[] = [];
+    if (Array.isArray(finalResult.sceneImageUrls) && finalResult.sceneImageUrls.length > 0) {
+      processedSceneUrls = await Promise.all(
+        finalResult.sceneImageUrls.map(async (url: string) => {
+          if (url && url.startsWith("data:image/")) {
+            return await uploadBase64ToStorage(url, lojistaId, jobId);
+          }
+          return url;
+        })
+      );
+    }
+
+    console.log(`[process-job] ✅ Sucesso! URL gerada: ${finalUrl.substring(0, 100)}...`);
+
     // Incrementar métrica de gerações de API (independente de visualização)
-    // lojistaId já foi declarado acima (linha 238)
     const lojistaRef = db.collection("lojistas").doc(lojistaId);
     
     try {
