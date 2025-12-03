@@ -222,26 +222,31 @@ LINGUAGEM:
       const response = result.response;
 
       // Verificar se a IA quer chamar alguma função
-      // O SDK retorna functionCalls() como método
+      // O SDK retorna functionCalls() como método (pode retornar undefined se não houver)
       let functionCalls: any[] = [];
       try {
-        const calls = response.functionCalls();
-        if (calls && Array.isArray(calls)) {
-          functionCalls = calls;
+        // Verificar se o método functionCalls existe e retorna algo
+        if (response.functionCalls && typeof response.functionCalls === 'function') {
+          const calls = response.functionCalls();
+          if (calls && Array.isArray(calls) && calls.length > 0) {
+            functionCalls = calls;
+          }
         }
-      } catch (e) {
-        // Se não houver function calls, continuar normalmente
-        console.log("[GeminiAgent] Nenhuma função chamada pela IA");
+      } catch (e: any) {
+        // Se não houver function calls ou método não disponível, continuar normalmente
+        console.log("[GeminiAgent] ℹ️ Nenhuma função chamada pela IA ou Function Calling não disponível:", e?.message);
       }
 
       if (functionCalls && functionCalls.length > 0) {
-        console.log(`[GeminiAgent] 🔧 IA solicitou ${functionCalls.length} função(ões)`);
+        console.log(`[GeminiAgent] 🔧 IA solicitou ${functionCalls.length} função(ões):`, 
+          functionCalls.map((c: any) => c.name).join(", "));
 
         // Executar todas as funções solicitadas
         const functionResults = await Promise.all(
           functionCalls.map(async (call: any) => {
             const functionName = call.name;
             const args = call.args || {};
+            console.log(`[GeminiAgent] 📊 Executando ${functionName} com args:`, args);
             const result = await this.executeFunction(functionName, args, lojistaId);
             
             return {
@@ -253,12 +258,15 @@ LINGUAGEM:
           })
         );
 
+        console.log("[GeminiAgent] ✅ Funções executadas, enviando resultados para IA...");
+
         // Enviar resultados das funções de volta para a IA
         const finalResult = await chat.sendMessage(functionResults);
         return finalResult.response.text();
       }
 
       // Se não houve function calls, retornar resposta direta
+      console.log("[GeminiAgent] 💬 Resposta direta (sem function calls)");
       return response.text();
     } catch (error: any) {
       console.error("[GeminiAgent] ❌ Erro no chat:", error);

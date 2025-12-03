@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
-import { getGeminiAgentService } from "@/lib/ai-services/gemini-agent";
+import { getVertexAgent } from "@/lib/ai/vertex-agent";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAllInsights } from "@/lib/firestore/insights";
 
@@ -119,12 +119,12 @@ GUIDELINES:
 
 IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato [[Label do Botão]](/caminho) para criar botões clicáveis.`;
 
-    // USAR AGENTE ANA COM FUNCTION CALLING
-    console.log("[AI/Chat] 🤖 Usando Agente Ana com Function Calling...");
+    // USAR AGENTE ANA COM VERTEX AI
+    console.log("[AI/Chat] 🤖 Usando Agente Ana com Vertex AI...");
 
     try {
-      const agentService = getGeminiAgentService();
-      const responseText = await agentService.chatWithTools(message, lojistaId, contextData);
+      const vertexAgent = getVertexAgent();
+      const responseText = await vertexAgent.chat(message, lojistaId, contextData);
 
       console.log("[AI/Chat] ✅ Resposta do Agente Ana recebida:", {
         responseLength: responseText.length,
@@ -134,7 +134,7 @@ IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato 
       return NextResponse.json({
         success: true,
         response: responseText,
-        provider: "gemini-agent",
+        provider: "vertex-ai",
         context: {
           produtosCount,
           displayConnected,
@@ -143,27 +143,39 @@ IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato 
         },
       });
     } catch (agentError: any) {
-      console.error("[AI/Chat] ❌ Erro no Agente Ana:", {
+      console.error("[AI/Chat] ❌ Erro no Agente Ana (Vertex AI):", {
         error: agentError?.message,
         stack: agentError?.stack?.substring(0, 500),
       });
 
-      // Fallback para implementação anterior se o agente falhar
-      console.log("[AI/Chat] 🔄 Tentando fallback para implementação anterior...");
+      // Fallback para API direta do Gemini se Vertex AI falhar
+      console.log("[AI/Chat] 🔄 Tentando fallback para API direta do Gemini...");
       
-      // Construir prompt completo para fallback
-      const fullPrompt = `${systemPrompt}
-
-USER MESSAGE: ${message}
-
-Responda de forma útil e acionável, usando botões de navegação quando apropriado.`;
-
-      // TENTATIVA: API Direta do Gemini (Fallback)
       const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
       if (!apiKey) {
-        throw new Error("API Key do Gemini não encontrada. Configure GEMINI_API_KEY ou GOOGLE_API_KEY nas variáveis de ambiente.");
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Vertex AI falhou e API Key do Gemini não está configurada. Configure GEMINI_API_KEY ou GOOGLE_API_KEY nas variáveis de ambiente.",
+            details: agentError?.message,
+          },
+          { status: 500 }
+        );
       }
+
+      // Construir prompt simples para fallback
+      const fallbackPrompt = `Você é Ana, a Consultora de Sucesso do Cliente do 'Experimenta AI'.
+
+CONTEXTO DA LOJA:
+- Nome: ${contextData.store.name}
+- Produtos: ${contextData.store.produtosCount}
+- Display: ${contextData.store.displayConnected ? "Conectado" : "Não conectado"}
+- Sales: ${contextData.store.salesConfigured ? "Configurado" : "Não configurado"}
+
+Responda de forma útil e acionável.
+
+MENSAGEM DO USUÁRIO: ${message}`;
 
       const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
       
@@ -175,7 +187,7 @@ Responda de forma útil e acionável, usando botões de navegação quando aprop
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: fullPrompt }],
+              parts: [{ text: fallbackPrompt }],
             },
           ],
           generationConfig: {
