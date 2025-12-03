@@ -245,66 +245,71 @@ export class CompositionOrchestrator {
         const hasBeach = allText.match(/biqu|bikini|maiô|maio|sunga|praia|beachwear|saída de praia|swimwear|moda praia|banho|nado|piscina|swim|beach/i);
         const isBeachContext = smartContext.toLowerCase().includes("beach") || smartContext.toLowerCase().includes("pool") || smartContext.toLowerCase().includes("ocean") || smartContext.toLowerCase().includes("waterfall") || smartContext.toLowerCase().includes("cachoeira");
         
+        // PHASE 31: Detectar se são apenas acessórios (para permitir close-up)
+        const hasOnlyAccessories = productsData.length > 0 && 
+          !hasTop && !hasBottom && !hasShoes && 
+          (hasGlasses || allText.match(/relógio|relogio|watch|joia|jewelry|joias|cosmético|cosmetico/i));
+        
         // PHASE 21 FIX: Sempre usar smartContext do backend (aplica Bikini Law e outras regras)
         // Mesmo em remix, o smartContext já foi calculado corretamente pelo backend usando getSmartScenario
-        // PHASE 24: Simplified context and framing rules (50% reduction)
-        let categorySpecificPrompt = `, ${smartFraming}`;
-        let framingRule = `FRAMING: ${smartFraming}.`;
+        // PHASE 31: QUALIDADE REMIX PARA TODOS OS MODOS
+        // Forçar Full Body Shot para evitar cortes (exceto para apenas acessórios)
+        // Usar as mesmas configurações do Remix para garantir qualidade consistente
+        let finalFraming = smartFraming;
+        
+        // Se não for apenas acessórios, SEMPRE forçar Full Body Shot para evitar cortes
+        if (!hasOnlyAccessories && !smartFraming.includes("Full body")) {
+          finalFraming = "Full body shot, feet fully visible, standing on floor";
+          console.log("[Orchestrator] 🎯 PHASE 31: Forçando Full Body Shot para evitar cortes:", {
+            originalFraming: smartFraming,
+            newFraming: finalFraming,
+            reason: "Garantir corpo completo visível (qualidade Remix)",
+          });
+        }
+        
+        let categorySpecificPrompt = `, ${finalFraming}`;
+        let framingRule = `FRAMING: ${finalFraming}.`;
+        
         // MASTER PROMPT PIVOT: Sempre adicionar contextRule (cenário será gerado via prompt)
-        // Se temos categoria/prompt do Firestore, usar eles; senão, usar smartContext
-        let contextRule = "";
+        // IMPORTANTE: O bloco PRO PHOTOGRAPHY STANDARDS tem prioridade sobre instruções genéricas de cenário
+        let contextRule = `SCENARIO: ${smartContext}.`;
         if (scenarioCategory || scenarioLightingPrompt) {
-          // Usar categoria/prompt do Firestore como contexto
           contextRule = scenarioCategory 
             ? `SCENARIO: Professional ${scenarioCategory} environment.`
             : `SCENARIO: ${smartContext}.`;
           if (scenarioLightingPrompt) {
             contextRule += ` Lighting: ${scenarioLightingPrompt}.`;
           }
-        } else {
-          // Fallback: usar smartContext
-          contextRule = `SCENARIO: ${smartContext}.`;
         }
+        // Adicionar nota de que PRO PHOTOGRAPHY STANDARDS tem prioridade
+        contextRule += `\n\n⚠️ NOTE: The PRO PHOTOGRAPHY STANDARDS block (above) defines the lighting and optical settings. This scenario description provides context only.`;
         
-        // PHASE 28 FIX: Se for remix e tiver scenePrompts, adicionar instruções de pose e variar cenário
-        let remixPoseInstructions = "";
-        if (isRemix && params.scenePrompts && params.scenePrompts.length > 0) {
+        // PHASE 31: Aplicar instruções de pose do Remix para TODOS os modos
+        let poseInstructions = "";
+        if (params.scenePrompts && params.scenePrompts.length > 0) {
+          // Se tiver scenePrompts (Remix), usar as instruções específicas
           const remixPromptText = params.scenePrompts[0];
-          // PHASE 28: Incluir todo o remixPrompt que contém instruções de pose e variação
-          remixPoseInstructions = `\n\n🎨 PHASE 28: REMIX GENERATION - DRAMATIC VARIATION REQUIRED:
+          poseInstructions = `\n\n🎨 QUALIDADE REMIX - DRAMATIC VARIATION:
 ${remixPromptText}
 
-⚠️ CRITICAL REMIX REQUIREMENTS:
+⚠️ CRITICAL REQUIREMENTS:
 - The scene MUST be DRAMATICALLY DIFFERENT from any previous generation
 - The pose MUST be DIFFERENT from the original photo
-- The location/background MUST be different (new scenario via smartContext)
 - Maintain exact facial identity but CHANGE pose and scene`;
           framingRule = `REMIX: Dramatic scene and pose change. New location, new pose. Different from original.`;
-          console.log("[Orchestrator] 🎨 PHASE 28: REMIX DETECTADO - Variando cenário e pose:", {
-            isRemix: true,
-            smartContext: smartContext,
-            remixPromptLength: remixPromptText.length,
-            remixPromptPreview: remixPromptText.substring(0, 200) + "...",
-            note: "Cenário será variado via smartContext, pose será variada via remixPrompt",
-          });
-        } else {
-          console.log("[Orchestrator] 📸 Modo Normal (não é remix):", {
-            hasScenePrompts: !!params.scenePrompts,
-            scenePromptsLength: params.scenePrompts?.length || 0,
-            smartContext: smartContext,
-          });
         }
         
-        // Adicionar detalhes específicos baseados no framing
-        if (smartFraming.includes("Full body") || smartFraming.includes("feet")) {
-          categorySpecificPrompt += ", wide angle, camera low angle, feet fully visible, standing on floor, showing complete shoes, ground visible";
-          console.log("[Orchestrator] 🦶 PHASE 14: Smart Framing = FULL BODY SHOT");
-        } else if (smartFraming.includes("close-up") || smartFraming.includes("portrait")) {
+        // Adicionar detalhes específicos baseados no framing FINAL
+        if (finalFraming.includes("Full body") || finalFraming.includes("feet")) {
+          categorySpecificPrompt += ", wide angle, camera low angle, feet fully visible, standing on floor, showing complete shoes, ground visible, full body visible from head to feet";
+          console.log("[Orchestrator] 🦶 PHASE 31: Framing = FULL BODY SHOT (qualidade Remix)");
+        } else if (finalFraming.includes("close-up") || finalFraming.includes("portrait")) {
           categorySpecificPrompt += ", focus on face and neck, high detail accessory, shallow depth of field";
-          console.log("[Orchestrator] 👓 PHASE 14: Smart Framing = CLOSE-UP PORTRAIT");
+          console.log("[Orchestrator] 👓 PHASE 31: Framing = CLOSE-UP PORTRAIT");
         } else {
-          categorySpecificPrompt += ", detailed fabric texture, professional fashion photography, perfect fit";
-          console.log("[Orchestrator] 👕 PHASE 14: Smart Framing = MEDIUM-FULL SHOT");
+          // Para medium-full, também garantir corpo completo
+          categorySpecificPrompt += ", detailed fabric texture, professional fashion photography, perfect fit, full body visible from head to knees at minimum";
+          console.log("[Orchestrator] 👕 PHASE 31: Framing = MEDIUM-FULL SHOT (com corpo completo)");
         }
         
         console.log("[Orchestrator] 🎨 PHASE 14: Smart Context Engine:", {
@@ -322,26 +327,39 @@ ${remixPromptText}
           })),
         });
         
-        // PHASE 14: Injetar flag "GERAR NOVO LOOK" se ativado (Regra de Postura Condicional)
-        // PHASE 21 FIX: Adicionar regra para evitar fotos de costas (máximo um pouco de lado)
-        // PHASE 28 FIX: Regra de postura melhorada para remix
-        const posturaRule = gerarNovoLook 
-          ? `⚠️ GERAR NOVO LOOK / REMIX: ATIVADO. A IA DEVE MUDAR A POSE DA PESSOA para criar uma composição DIFERENTE da original.
+        // PHASE 31: QUALIDADE REMIX - Aplicar mesmas regras de postura para TODOS os modos
+        // Isso garante que o corpo completo seja sempre visível e evita cortes
+        const posturaRule = `⚠️⚠️⚠️ CRITICAL POSE & FRAMING RULES (QUALIDADE REMIX - APLICADO A TODOS OS MODOS):
 
-⚠️ CRITICAL POSE RULES FOR REMIX:
-1. A pose DEVE ser DIFERENTE da foto original - criar variação visual
-2. A pessoa DEVE estar de FRENTE para a câmera ou no MÁXIMO um pouco de lado (3/4 view)
-3. NUNCA de costas (back view) - o rosto e o corpo frontal DEVEM estar visíveis
-4. NUNCA sentada, ajoelhada ou em cadeira - sempre em pé, caminhando ou apoiada
-5. Poses permitidas: standing, walking, leaning against wall, hands on hips, arms crossed, etc.
-6. Mantenha a identidade facial e corporal, mas VARIE a pose e o cenário
+1. FULL BODY VISIBILITY (CRITICAL):
+   - The person's COMPLETE BODY must be visible from HEAD to FEET (or at minimum HEAD to KNEES)
+   - NEVER crop, cut, or hide any part of the person's body
+   - Always include space above the person's head (at least 10% of image height)
+   - The person's face must be fully visible and centered in the upper portion of the image
+   - If showing full body, ensure head is at the top with adequate space above
 
-REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the original photo while maintaining facial identity.`
-          : "POSTURA PRESERVADA (Padrão): A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios. IMPORTANTE: A pessoa DEVE estar em pé (standing), caminhando (walking) ou apoiada em parede (leaning against wall). NUNCA sentada, ajoelhada ou em cadeira. ⚠️ CRITICAL POSE RULE: A pessoa DEVE estar de FRENTE para a câmera ou no MÁXIMO um pouco de lado (3/4 view). NUNCA de costas (back view). O rosto e o corpo frontal DEVEM estar visíveis.";
+2. POSE REQUIREMENTS:
+   - The person MUST be facing the camera or at MOST slightly to the side (3/4 view)
+   - NEVER from behind (back view) - the face and frontal body MUST be visible
+   - NEVER sitting, kneeling, or on a chair - always standing, walking, or leaning against wall
+   - Allowed poses: standing, walking confidently, leaning against wall, hands on hips, arms crossed, etc.
+   - Maintain natural body posture and positioning
+
+3. FRAMING REQUIREMENTS:
+   - Full body shot: Show complete person from head to feet
+   - Medium-full shot: Show person from head to knees at minimum
+   - Close-up portrait: Only for accessories (glasses, jewelry) - show head and neck
+   - Always ensure adequate space around the person (no tight cropping)
+
+4. IDENTITY PRESERVATION:
+   - Maintain exact facial identity and body shape
+   - Keep natural body proportions and curves
+   - Preserve skin tone and texture exactly
+   - No AI "beautification" or generic model replacement
+
+CRITICAL: These rules apply to ALL generation modes (experimentar, refino, trocar produto, remix) to ensure consistent high-quality results.`;
         
-        if (gerarNovoLook) {
-          console.log("[Orchestrator] 🎨 PHASE 14: Flag 'GERAR NOVO LOOK' ATIVADA - Permitindo mudança de pose");
-        }
+        console.log("[Orchestrator] 🎯 PHASE 31: Regras de postura e framing (qualidade Remix) aplicadas a TODOS os modos");
         
         // PHASE 20: "Complete the Look" (Auto-Jeans) - Se tem Top mas não tem Bottom, adicionar jeans
         let completeTheLookPrompt = "";
@@ -404,9 +422,9 @@ REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the origina
           console.log("[Orchestrator] 👓 PHASE 20: Óculos detectado - Forçando no rosto");
         }
 
+        // MASTER PROMPT: Negative Prompt Reforçado - Prevenção Crítica de Pessoas Sem Cabeça
         // PHASE 11-B: Strong Negative Prompt para reduzir erros de anatomia e cortes
-        // Conforme especificação: (feet cut off:1.5), (head cut off:1.5)
-        // PHASE 11-B: Reforçar negative prompt quando há calçados para prevenir "cut legs"
+        // MASTER PROMPT: Reforço máximo para prevenir decapitação (peso 3.0 nos termos críticos)
         // PHASE 16: Adicionar instruções sobre sombras no negative prompt
         // PHASE 20: Banir poses sentadas e mannequin body
         // PHASE 21: Reforçar termos mannequin no negative prompt
@@ -414,15 +432,19 @@ REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the origina
         // PHASE 22: Adicionar banimento de alterações na aparência facial e corporal
         // PHASE 23: Reforçar termos anti-manequim com peso 2.0
         // PHASE 24: Adicionar termos para forçar realismo bruto (sem filtros)
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:2.5), (headless:2.5), (no head:2.5), (missing head:2.5), (cropped head:2.5), (head cropped:2.5), (face cut off:2.5), (face missing:2.5), (headless person:2.5), (person without head:2.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:2.0), (person without shadow:2.0), (floating person:1.6), (unrealistic lighting:2.0), (flat lighting:2.0), (no depth:1.4), (harsh shadows:1.5), (unnatural shadows:1.5), (wrong shadow direction:1.5), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5), (product not visible:1.5), (product missing:1.5), (product not applied:1.5)";
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:3.0), (headless:3.0), (no head:3.0), (missing head:3.0), (cropped head:3.0), (head cropped:3.0), (face cut off:3.0), (face missing:3.0), (headless person:3.0), (person without head:3.0), (decapitated:3.0), (head removed:3.0), (head obscured:3.0), (head hidden:3.0), (face obscured:3.0), (face hidden:3.0), (partial head:2.5), (head partially visible:2.5), (head out of frame:2.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:2.0), (person without shadow:2.0), (floating person:1.6), (unrealistic lighting:2.0), (flat lighting:2.0), (no depth:1.4), (harsh shadows:1.5), (unnatural shadows:1.5), (wrong shadow direction:1.5), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5), (product not visible:1.5), (product missing:1.5), (product not applied:1.5)";
+        
+        // PHASE 31: QUALIDADE REMIX - Reforçar negative prompt para evitar TODOS os tipos de cortes
+        // Aplicar para TODOS os modos (não apenas calçados)
+        const bodyCutNegative = "(body cut off:2.5), (torso cut off:2.5), (legs cut off:2.5), (arms cut off:2.5), (cropped body:2.5), (cropped torso:2.5), (cropped legs:2.5), (partial body:2.5), (body partially visible:2.5), (body out of frame:2.5), (tight crop:2.0), (close crop:2.0)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
                                    productCategory.includes("sapato") || productCategory.includes("tênis") || 
                                    productCategory.includes("tenis") || productCategory.includes("shoe") || 
                                    productCategory.includes("footwear")
-          ? `${baseNegativePrompt}, (feet cut off:1.8), (cropped legs:1.6), (legs cut off:1.6), close up portrait, portrait shot, upper body only`
-          : `${baseNegativePrompt}, (feet cut off:1.5)`;
+          ? `${baseNegativePrompt}, ${bodyCutNegative}, (feet cut off:2.0), (cropped legs:2.0), (legs cut off:2.0), close up portrait, portrait shot, upper body only`
+          : `${baseNegativePrompt}, ${bodyCutNegative}, (feet cut off:1.8), (cropped legs:1.8), (legs cut off:1.8)`;
         
         // PHASE 20: Phantom Boots Fix - Se contexto é Beach e não tem sapatos, banir boots/sneakers
         let phantomBootsNegative = "";
@@ -476,11 +498,10 @@ REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the origina
           console.log("[Orchestrator] 🦶 PHASE 11-B: Negative prompt reforçado para prevenir 'cut legs'");
         }
 
-        // MASTER PROMPT: UNIFICAÇÃO DE QUALIDADE VISUAL (VTO SUPREMO)
-        // Estrutura Unificada - Mesma qualidade para todos os modos (Experimentar, Remix, Refinar)
+        // MASTER PROMPT: CORREÇÃO VISUAL CRÍTICA (ANATOMIA & REALISMO)
         // Data: 28 de Novembro de 2025
+        // 5 BLOCOS DE SEGURANÇA OBRIGATÓRIOS (ORDEM CRÍTICA)
         
-        // MASTER PROMPT: PIVOT PARA GERAÇÃO PURA (FIX DE ILUMINAÇÃO E FORMATO)
         // ROLE: World's Best AI Fashion Photographer
         const roleBlock = `ROLE: You are the world's best AI Fashion Photographer and Retoucher.
 
@@ -491,66 +512,179 @@ INPUTS:
 - Image 2..N: PRODUCTS (The clothes to wear).
 - NO BACKGROUND IMAGE: You must GENERATE the background based on product context.`;
 
-        // IDENTITY LOCK (PRIORITY #1) - REFORÇADO PARA EVITAR CABEÇA CORTADA
-        const identityLockBlock = `
-🔒 IDENTITY LOCK (PRIORITY #1 - CRITICAL):
-- The output person MUST BE IDENTICAL to the person in Image 1.
-- Preserve exact facial features, ethnicity, body shape, and skin tone.
-- Do NOT improve or "beautify" the face. Keep it authentic.
-- If the face is clear in input, it must be pixel-perfect in output.
-- CRITICAL: The person's HEAD and FACE must ALWAYS be fully visible and complete in the output.
+        // 1. BLOCO DE INTEGRIDADE ANATÔMICA (Anti-Decapitação) - PRIORIDADE MÁXIMA
+        const anatomicalSafetyBlock = `
+⚠️ ANATOMICAL SAFETY RULES (CRITICAL - HIGHEST PRIORITY):
+
+- PROTECT THE HEAD: You must NEVER crop, remove, or obscure the person's head. The face must remain visible and unchanged.
+- FRAMING: Ensure the composition includes the full head and body down to the knees/feet.
+- If the clothing is a 'Top/Shirt', applied ONLY from the neck down. DO NOT touch the neck or face pixels.
+- The person's COMPLETE HEAD must ALWAYS be fully visible from top of hair to chin.
 - NEVER crop, cut, or hide the person's head, face, or hair.
-- The person's entire head from top of hair to chin must be visible.
+- Always include space above the person's head (at least 10% of image height).
+- The person's face must be fully visible and centered in the upper portion of the image.
 - If the original photo shows the person's head, the output MUST show the complete head.`;
 
-        // CLOTHING REPLACEMENT (PHYSICS ENGINE) - FIX "CAMISA LARANJA"
-        const clothingReplacementBlock = `
-✂️ CLOTHING REPLACEMENT LOGIC (MANDATORY):
-1. IDENTIFY the garments the person is currently wearing in Image 1.
-2. DELETE/MASK them mentally. Imagine the person is in neutral underwear.
-3. GENERATE the new products onto the body.
-4. CRITICAL: If the original clothes are bright (like orange/red/yellow), you must cover them COMPLETELY. No color bleeding.
-5. The new products must REPLACE (not overlay) the original garments entirely.
-6. FIT: The clothes must drape naturally over the person's specific body curves.
-7. GRAVITY: Fabric must hang correctly. No "floating" clothes.
-8. LAYERING: If multiple products (e.g., Shirt + Jacket), layer them logically.`;
+        // 2. BLOCO DE IDENTIDADE (Clonagem Visual) - PRIORIDADE #1
+        // MASTER PROMPT: TRAVAS DE SEGURANÇA - Identity Shield reforçado
+        const identityLockBlock = `
+🔒 IDENTITY LOCK (PRIORITY #1):
 
-        // LIGHTING ENGINE (RELIGHTING) - FIX "EFEITO COLAGEM" - REFORÇADO
+- The output person must be a PIXEL-PERFECT clone of the input person in [Image 1].
+- Maintain exact: Ethnicity, Age, Body Shape (Weight/Musculature), Skin Texture, and Facial Features.
+- Do not 'beautify' or change the person into a generic model.
+- Preserve exact facial features, body shape, and skin tone.
+- If the face is clear in input, it must be pixel-perfect in output.
+- Keep it authentic - no AI "beautification" or generic model replacement.
+
+👤 FACE PRESERVATION PROTOCOL (NON-NEGOTIABLE):
+- You must treat the face area from [Image 1] as a 'Sacred Zone'.
+- PRESERVE MICRO-DETAILS: Moles, scars, asymmetry, exact eye shape, nose width, and lip volume.
+- NO BEAUTIFICATION: Do not apply 'beauty filters' or make the person look like a generic model. Keep them real.
+- IF THE POSE CHANGES: The head angle may adjust slightly to look natural, BUT the features must remain 100% recognizable as the input person.
+- The face must be IDENTICAL in every micro-detail - no smoothing, no idealization, no generic model replacement.`;
+
+        // 3. BLOCO DE FIDELIDADE DO PRODUTO (Texture & Logo Lock) - NOVO
+        // MASTER PROMPT: TRAVAS DE SEGURANÇA - Product Texture Lock reforçado
+        const productFidelityBlock = `
+🛡️ PRODUCT FIDELITY (CRITICAL):
+
+- VISUAL CLONING: The clothing worn by the person MUST match the Product Image inputs 100%.
+- TEXTURE & PATTERNS: Preserve exact fabric texture (denim, silk, cotton), prints, and patterns. Do not simplify or alter them.
+- LOGOS & DETAILS: If the product has a logo, text, or buttons, they MUST be visible and unchanged. Do not hallucinate new logos or remove existing ones.
+- COLOR ACCURACY: Maintain the exact hue/saturation of the product photo. Do not apply strong filters that change the clothing color.
+- The new products must REPLACE (not overlay) the original garments entirely.
+- CRITICAL: If the original clothes are bright (like orange/red/yellow), you must cover them COMPLETELY. No color bleeding.
+
+🧶 PRODUCT TEXTURE LOCK (NON-NEGOTIABLE):
+- The clothes from [Image 2..N] are NOT generic references. They are EXACT products.
+- LOGOS & PRINTS: If there is text, a logo, or a pattern on the shirt/pants, it must be VISIBLE and LEGIBLE. Do not hallucinate new text or remove existing text/logos.
+- MATERIAL PHYSICS: If the product looks like heavy denim, render heavy denim wrinkles. If it looks like silk, render silk drapes. Do not change the fabric weight or texture.
+- PATTERN FIDELITY: If the product has stripes, polka dots, or any pattern, preserve it EXACTLY. Do not simplify or alter patterns.
+- COLOR MATCHING: The color of the clothing must match the product image EXACTLY - no color shifts, no filters, no artistic interpretation.`;
+
+        // 4. BLOCO DE FÍSICA E CAIMENTO (Naturalidade)
+        const clothingPhysicsBlock = `
+👕 CLOTHING PHYSICS:
+
+- GRAVITY & TENSION: The clothes must pull and fold according to the person's pose (e.g., tension at shoulders, folds at the waist).
+- VOLUME: The clothes must wrap AROUND the 3D volume of the body. Avoid the 'flat sticker' look.
+- TUCK/UNTUCK: If it's a shirt + pants, create a natural waistline interaction (tucked in or hanging naturally).
+- FIT: The clothes must drape naturally over the person's specific body curves.
+- GRAVITY: Fabric must hang correctly. No "floating" clothes.
+- LAYERING: If multiple products (e.g., Shirt + Jacket), layer them logically.
+- IDENTIFY the garments the person is currently wearing in Image 1.
+- DELETE/MASK them mentally. Imagine the person is in neutral underwear.
+- GENERATE the new products onto the body.
+
+⚙️ BODY MORPHING PROTECTION (NON-NEGOTIABLE):
+physics_engine: {
+  'body_volume': 'MATCH_INPUT',     // Do not make the person thinner or more muscular than input
+  'skin_tone': 'EXACT_MATCH',       // Do not change lighting so much that skin color changes
+  'height_ratio': 'PRESERVE',       // Keep leg/torso proportions identical to input
+  'body_shape': 'LOCK',             // Maintain exact body shape (weight distribution, muscle definition)
+  'proportions': 'FIXED'            // Do not alter head-to-body ratio or limb lengths
+}
+- CRITICAL: Even if the pose changes slightly, the body dimensions and proportions must remain EXACTLY as in [Image 1].
+- NO IDEALIZATION: Do not make the person taller, thinner, or more "model-like". Keep their authentic body shape.
+- SKIN TONE PRESERVATION: The skin color must match the input EXACTLY - no color shifts from lighting changes.`;
+
+        // 6. BLOCO DE FOTOGRAFIA PROFISSIONAL (LIGHTING & LENS ENGINE) - PRIORIDADE MÁXIMA
+        // Este bloco tem PRIORIDADE sobre quaisquer instruções de cenário genéricas
+        // Detectar se é cenário indoor ou outdoor
+        const isIndoorContext = smartContext.toLowerCase().includes("office") || 
+                                smartContext.toLowerCase().includes("bedroom") || 
+                                smartContext.toLowerCase().includes("apartment") || 
+                                smartContext.toLowerCase().includes("studio") || 
+                                smartContext.toLowerCase().includes("lobby") || 
+                                smartContext.toLowerCase().includes("restaurant") || 
+                                smartContext.toLowerCase().includes("library") || 
+                                smartContext.toLowerCase().includes("conference") || 
+                                smartContext.toLowerCase().includes("gallery") ||
+                                smartContext.toLowerCase().includes("bathroom") ||
+                                smartContext.toLowerCase().includes("indoor");
+        
         const lightingIntegrationBlock = `
-💡 LIGHTING ENGINE (RELIGHTING - CRITICAL FOR REALISM):
-- Generate the background FIRST based on the product vibe (e.g., Beach for Bikini, City for Streetwear, Office for Formal).
-- RELIGHT the person to match this new background EXACTLY.
-- If the background has sun from the right, the person's face MUST be lit from the right with natural highlights.
-- If the background has soft indoor lighting, the person must have soft, even lighting on their face and body.
-- Cast REALISTIC contact shadows on the floor/ground - the person's shadow must:
-  * Connect naturally to their feet (no floating)
-  * Match the light direction from the background
-  * Have soft edges (not harsh black lines)
-  * Show proper shadow length based on light angle
-- COLOR GRADING: Match the person's contrast, saturation, and color temperature to the generated background.
-- Eliminate the "cut-and-paste" look by:
-  * Matching ambient light color (warm/cool)
-  * Matching light intensity (bright/dim)
-  * Creating natural light falloff on the person's body
-  * Ensuring shadows match the scene's light source
-- The person must look like they are physically present in the scene, not pasted on top.
-- The lighting on the person's FACE must be natural and match the background lighting perfectly.`;
+📸 PRO PHOTOGRAPHY STANDARDS (MANDATORY - HIGHEST PRIORITY):
 
-        // FORMAT & COMPOSITION - FORÇAR 9:16 - REFORÇADO PARA EVITAR CABEÇA CORTADA
+⚠️⚠️⚠️ THIS BLOCK HAS PRIORITY OVER ANY GENERIC SCENARIO INSTRUCTIONS ⚠️⚠️⚠️
+
+${isIndoorContext ? `
+1. TIME OF DAY (INDOOR - SOFT WINDOW LIGHT):
+- For INDOOR scenarios (Office, Bedroom, Studio, etc.), you MUST simulate soft, natural window light coming from the side.
+- Light Source: Large window or soft daylight from one side (left or right).
+- Color Temperature: Natural daylight (approx. 5500K-6500K), slightly warm.
+- NO harsh artificial lighting. NO fluorescent lights. NO direct overhead lights.
+- Soft, diffused light that wraps around the subject naturally.
+` : `
+1. TIME OF DAY (THE GOLDEN HOUR RULE):
+- For ALL outdoor/external scenarios (Beach, City, Nature, Street, etc.), you MUST simulate the lighting of 'Golden Hour' (approx. 5:00 PM or 7:00 AM).
+- Sun Position: Low angle sun, roughly 45 degrees relative to the subject.
+- Color Temperature: Warm, golden tones (approx. 3500K-4500K). NO harsh white noon light. NO blue overcast light.
+- The entire scene must have this warm, cinematic golden hour atmosphere.
+`}
+
+2. ADVANCED LIGHTING TECHNIQUE (RIM LIGHTING):
+- Apply a subtle RIM LIGHT (Backlight) on the subject's hair and shoulders to separate them from the background.
+- This creates depth and makes the person "pop" from the background.
+- Key Light: Soft, diffused sunlight (outdoor) or window light (indoor) hitting the face gently.
+- Use a 'virtual reflector' logic to fill shadows naturally - no harsh dark shadows on the face.
+- Shadows: ${isIndoorContext ? 'Soft, subtle shadows on the ground from window light.' : 'Long, soft shadows on the ground, consistent with the low sun angle (45 degrees).'}
+- The rim light should create a beautiful edge glow on the subject's outline.
+
+3. OPTICAL PHYSICS (THE 85MM LOOK):
+- Simulate a Professional Portrait Lens (85mm at f/1.8 aperture).
+- Depth of Field: The subject MUST be razor-sharp and in perfect focus.
+- The background MUST have a creamy, optical BOKEH (blur) - smooth, dreamy background blur.
+- Distance compression: The background should appear closer and compressed, typical of telephoto fashion lenses.
+- This creates that professional fashion photography look with subject separation.
+
+4. SCENE COMPOSITION:
+- Clean Backgrounds: Avoid visual clutter behind the head. Use leading lines (roads, paths, architecture, furniture) to draw focus to the outfit.
+- Color Harmony: Apply a subtle 'Teal and Orange' or 'Warm Cinema' color grading to unify the subject and environment.
+- The color grading should enhance the golden hour warmth (outdoor) or natural window light (indoor).
+- Background elements should complement, not compete with, the subject.
+
+5. SHADOW INTEGRATION:
+- CAST SHADOWS: The person MUST cast a realistic shadow on the floor/ground matching the light direction.
+- Shadow Quality: ${isIndoorContext ? 'Soft, subtle shadows from window light.' : 'Long, soft shadows consistent with 45-degree sun angle.'}
+- Shadows must connect naturally to the person's feet (no floating).
+- Shadow edges must be soft (not harsh black lines).
+- Shadow direction must match the light source exactly.
+
+6. COLOR GRADING & ATMOSPHERE:
+- ${isIndoorContext ? 'Natural daylight color temperature with slight warmth from window light.' : 'Warm, golden color temperature (3500K-4500K) throughout the entire scene.'}
+- Eliminate the "cut-and-paste" look by matching ambient light color and intensity.
+- The person must look like they are physically present in the scene, not pasted on top.
+- The lighting on the person's FACE must be natural, flattering, and match the scene's light source perfectly.
+
+CRITICAL: These photography standards MUST be applied to ALL images, regardless of scenario type. This creates consistent, professional fashion photography quality.`;
+
+        // PHASE 31: FORMAT & COMPOSITION - QUALIDADE REMIX PARA TODOS OS MODOS
+        // REFORÇADO PARA EVITAR CORTES NO CORPO
         const formatCompositionBlock = `
-📱 FORMAT RULE (MANDATORY - CRITICAL):
+📱 FORMAT RULE (MANDATORY - CRITICAL - QUALIDADE REMIX):
 - The output image MUST be Vertical (Aspect Ratio 9:16).
 - EXTEND the background vertically above and below the person. Do NOT stretch the person.
 - Generate the background in vertical format from the start - do NOT crop or distort.
-- FRAMING: Full body or 3/4 shot (Knees up). 
-- CRITICAL FRAMING RULES:
-  * The person's COMPLETE HEAD must be visible from top of hair to chin
-  * NEVER crop, cut, or hide the person's head, face, or hair
-  * Always include space above the person's head (at least 10% of image height)
-  * The person's face must be fully visible and centered in the upper portion of the image
-  * If showing full body, ensure head is at the top with adequate space above
-- POSE:
-  ${params.options?.forceNewPose ? `- IF REMIX: Generate a DYNAMIC new pose (walking, turning, leaning) BUT ALWAYS keep the head fully visible and facing forward or slightly to the side.` : `- IF STANDARD: Keep a natural standing pose but improve posture. ALWAYS ensure the head is fully visible.`}`;
+
+⚠️⚠️⚠️ CRITICAL FRAMING RULES (QUALIDADE REMIX - APLICADO A TODOS OS MODOS):
+- FULL BODY VISIBILITY: The person's COMPLETE BODY must be visible from HEAD to FEET (or at minimum HEAD to KNEES)
+- NEVER crop, cut, or hide ANY part of the person's body (head, torso, legs, feet)
+- The person's COMPLETE HEAD must be visible from top of hair to chin
+- Always include space above the person's head (at least 10% of image height)
+- The person's face must be fully visible and centered in the upper portion of the image
+- If showing full body, ensure head is at the top with adequate space above
+- If showing medium-full, ensure head to knees are visible at minimum
+- NEVER crop legs, feet, or any body parts
+- The person must be positioned in the center of the frame with adequate space around
+
+- POSE (QUALIDADE REMIX):
+  - The person MUST be facing the camera or at MOST slightly to the side (3/4 view)
+  - NEVER from behind (back view) - the face and frontal body MUST be visible
+  - NEVER sitting, kneeling, or on a chair - always standing, walking, or leaning against wall
+  - Natural standing pose with good posture
+  - Maintain natural body positioning and proportions`;
 
         // NEGATIVE CONSTRAINTS
         const negativeConstraintsBlock = `
@@ -616,40 +750,54 @@ CRITICAL: The extended body parts must be INDISTINGUISHABLE from the original - 
 ${categoryDescription}
 ${lightingDescription}
 
+⚠️ IMPORTANT: The PRO PHOTOGRAPHY STANDARDS block (above) has PRIORITY over these generic background instructions.
+Apply the Golden Hour Rule (outdoor) or Soft Window Light (indoor) as specified in the PRO PHOTOGRAPHY STANDARDS block.
+
 CRITICAL BACKGROUND GENERATION RULES:
 - Generate the background FIRST based on the product vibe and category above.
 - The background must be vertical (9:16) from the start - extend it above and below the person.
 - Create a cohesive, professional fashion photography environment.
 - Ensure the background complements the products and person naturally.
-- NO pixelated images, NO "cut-and-paste" look - everything must be generated together.`;
+- NO pixelated images, NO "cut-and-paste" look - everything must be generated together.
+- Apply the lighting rules from PRO PHOTOGRAPHY STANDARDS (Golden Hour for outdoor, Window Light for indoor).`;
         } else if (smartContext) {
           // Fallback para smartContext se não tiver cenário do Firestore
           scenarioBackgroundInstruction = `\n\n🎬 BACKGROUND CONTEXT (GENERATIVE):
 Generate a professional fashion photography environment: ${smartContext}.
 
+⚠️ IMPORTANT: The PRO PHOTOGRAPHY STANDARDS block (above) has PRIORITY over these generic background instructions.
+Apply the Golden Hour Rule (outdoor) or Soft Window Light (indoor) as specified in the PRO PHOTOGRAPHY STANDARDS block.
+
 CRITICAL BACKGROUND GENERATION RULES:
 - Generate the background FIRST based on the context above.
 - The background must be vertical (9:16) from the start.
 - Create a cohesive, professional environment.
-- Ensure natural integration with the person and products.`;
+- Ensure natural integration with the person and products.
+- Apply the lighting rules from PRO PHOTOGRAPHY STANDARDS (Golden Hour for outdoor, Window Light for indoor).`;
         } else {
           // Fallback genérico
           scenarioBackgroundInstruction = `\n\n🎬 BACKGROUND CONTEXT (GENERATIVE):
 Generate a professional fashion photography environment that complements the products.
 
+⚠️ IMPORTANT: The PRO PHOTOGRAPHY STANDARDS block (above) has PRIORITY over these generic background instructions.
+Apply the Golden Hour Rule (outdoor) or Soft Window Light (indoor) as specified in the PRO PHOTOGRAPHY STANDARDS block.
+
 CRITICAL BACKGROUND GENERATION RULES:
 - Generate the background FIRST based on the product vibe.
 - The background must be vertical (9:16) from the start.
 - Create a cohesive, professional environment.
-- Ensure natural integration with the person and products.`;
+- Ensure natural integration with the person and products.
+- Apply the lighting rules from PRO PHOTOGRAPHY STANDARDS (Golden Hour for outdoor, Window Light for indoor).`;
         }
 
-        // MASTER PROMPT: Construir prompt unificado
-        const creativePrompt = `${roleBlock}${identityLockBlock}${clothingReplacementBlock}${lightingIntegrationBlock}${formatCompositionBlock}${negativeConstraintsBlock}
+        // PHASE 31: MASTER PROMPT - Construir prompt unificado com QUALIDADE REMIX para TODOS os modos
+        // ORDEM CRÍTICA: 1. Anatomical Safety, 2. Identity Lock, 3. Product Fidelity, 4. Clothing Physics, 5. Pro Photography Standards (Lighting & Lens), 6. Format & Composition
+        // O bloco PRO PHOTOGRAPHY STANDARDS tem PRIORIDADE sobre instruções genéricas de cenário
+        const creativePrompt = `${roleBlock}${anatomicalSafetyBlock}${identityLockBlock}${productFidelityBlock}${clothingPhysicsBlock}${lightingIntegrationBlock}${formatCompositionBlock}${negativeConstraintsBlock}
 
 ${scenarioBackgroundInstruction}
 
-${contextRule}${remixPoseInstructions}
+${contextRule}${poseInstructions}
 
 ${framingRule}
 
@@ -676,7 +824,17 @@ FINAL QUALITY CHECK (CRITICAL):
 - Output must be 9:16 vertical format
 - No artifacts, ghosting, or "cut-and-paste" look
 - Professional fashion photography quality
-- The person must look like they are physically present in the scene, not pasted`;
+- The person must look like they are physically present in the scene, not pasted
+
+${gerarNovoLook ? `
+⚠️⚠️⚠️ FORCE REALISM PROTOCOL (ACTIVATED - gerarNovoLook: true):
+- Regardless of input pose, adjust the subject's stance slightly to look natural in the environment.
+- RELIGHT the subject completely to match the background atmosphere - recalculate all lighting from scratch.
+- NO 'cutout' effect - the person must be fully integrated into the scene with proper lighting, shadows, and depth.
+- Allow micro-adjustments in pose (slight arm position, natural weight distribution) so the clothing drapes better.
+- BUT MAINTAIN: Exact face, exact body proportions, exact skin tone - only lighting and subtle pose adjustments are allowed.
+- The goal is natural integration while preserving 100% identity and product fidelity.
+` : ''}`;
         
         // MASTER PROMPT: PIVOT - NÃO incluir scenarioImageUrl no array de imagens
         // Array deve conter APENAS: [FOTO_PESSOA, ...FOTOS_PRODUTOS]
@@ -687,12 +845,18 @@ FINAL QUALITY CHECK (CRITICAL):
         ];
         
         // NÃO adicionar scenarioImageUrl - usar apenas descrições textuais no prompt
+        // MASTER PROMPT: GARANTIR que cenário fixo NÃO está sendo usado
+        if (scenarioImageUrl) {
+          console.warn("[Orchestrator] ⚠️ MASTER PROMPT: scenarioImageUrl foi fornecido mas NÃO será usado no array de imagens. Cenário será GERADO via prompt.");
+        }
         console.log("[Orchestrator] 🎯 MASTER PROMPT PIVOT: Array de imagens (SEM cenário visual):", {
           totalImagens: imageUrls.length,
           primeiraImagem: "FOTO ORIGINAL (Source of Truth)",
           produtos: allProductImageUrls.length,
           temCenarioTexto: !!(scenarioCategory || scenarioLightingPrompt || smartContext),
           scenarioCategory: scenarioCategory || "N/A",
+          scenarioImageUrlFornecido: !!scenarioImageUrl,
+          scenarioImageUrlUsado: false, // SEMPRE false - nunca usar cenário fixo
           nota: "Cenário será GERADO via prompt, não usado como imagem de input",
         });
 
@@ -701,9 +865,9 @@ FINAL QUALITY CHECK (CRITICAL):
           throw new Error("❌ Nenhuma imagem de produto fornecida para Look Criativo");
         }
 
-        // Validar que temos a imagem da pessoa
-        if (!params.personImageUrl || !params.personImageUrl.startsWith("http")) {
-          throw new Error("❌ Imagem da pessoa inválida ou não fornecida");
+        // Validar que temos a imagem da pessoa (aceita HTTP URL ou data URL)
+        if (!params.personImageUrl || (!params.personImageUrl.startsWith("http") && !params.personImageUrl.startsWith("data:image/"))) {
+          throw new Error(`❌ Imagem da pessoa inválida ou não fornecida (deve ser HTTP URL ou data URL): ${params.personImageUrl?.substring(0, 100) || "N/A"}`);
         }
 
         console.log("[Orchestrator] 🚀 Chamando Gemini Flash Image com:", {
@@ -735,21 +899,53 @@ FINAL QUALITY CHECK (CRITICAL):
           },
         });
 
-        // PHASE 14 FIX: Aumentar temperatura para remix (mais variação)
-        const temperature = isRemix ? 0.75 : 0.4; // Remix: 0.75 (mais variação), Normal: 0.4 (mais consistência)
+        // PHASE 30: Usar temperatura alta (0.75) para TODOS os modos - mesma qualidade do Remix
+        // Isso garante que experimentar, refino e trocar produto tenham a mesma qualidade visual
+        const temperature = 0.75; // SEMPRE 0.75 para todos os modos (mesma qualidade do Remix)
         
-        console.log("[Orchestrator] 🎨 PHASE 14 FIX: Configuração de geração:", {
+        console.log("[Orchestrator] 🎨 PHASE 30: Configuração de geração (QUALIDADE REMIX PARA TODOS):", {
           isRemix,
-          temperature,
+          temperature: 0.75, // SEMPRE 0.75 para todos os modos
           promptLength: creativePrompt.length,
+          apiUsada: "Gemini 2.5 Flash Image (gemini-2.5-flash-image)",
+          modelo: "gemini-2.5-flash-image",
+          endpoint: "Vertex AI generateContent",
+          note: "Temperatura 0.75 aplicada a TODOS os modos (experimentar, refino, trocar produto, remix)",
+        });
+        
+        // VALIDAÇÃO: Confirmar que está usando a API correta do Gemini
+        if (!this.geminiFlashImageService.isConfigured()) {
+          console.error("[Orchestrator] ❌ ERRO CRÍTICO: Gemini Flash Image Service não está configurado!");
+          console.error("[Orchestrator] Verifique GOOGLE_CLOUD_PROJECT_ID e GOOGLE_CLOUD_LOCATION");
+          throw new Error("Gemini Flash Image Service não está configurado. Verifique as variáveis de ambiente.");
+        }
+        
+        console.log("[Orchestrator] ✅ Gemini Flash Image Service configurado corretamente:", {
+          isConfigured: this.geminiFlashImageService.isConfigured(),
+          api: "Gemini 2.5 Flash Image",
+          modelo: "gemini-2.5-flash-image",
+          isRemix,
+          temperature: 0.75, // PHASE 30: Sempre 0.75 para todos os modos
+          note: "Qualidade Remix aplicada a todos os modos",
         });
         
         // PHASE 28: Forçar proporção 9:16 (Mobile First)
+        // PHASE 30: Temperatura 0.75 para TODOS os modos (mesma qualidade do Remix)
+        console.log("[Orchestrator] 🚀 Chamando Gemini 2.5 Flash Image API:", {
+          isRemix,
+          temperature: 0.75, // PHASE 30: Sempre 0.75 para todos os modos
+          totalImagens: imageUrls.length,
+          aspectRatio: "9:16",
+          api: "Gemini 2.5 Flash Image",
+          modelo: "gemini-2.5-flash-image",
+          note: "Qualidade Remix (0.75) aplicada a todos os modos",
+        });
+        
         const geminiResult = await this.geminiFlashImageService.generateImage({
           prompt: creativePrompt,
           imageUrls: imageUrls,
           negativePrompt: strongNegativePrompt, // PHASE 11: Negative prompt para reduzir erros
-          temperature: temperature, // PHASE 14 FIX: Temperatura aumentada para remix
+          temperature: 0.75, // PHASE 30: SEMPRE 0.75 para todos os modos (mesma qualidade do Remix)
           aspectRatio: "9:16", // PHASE 28: Sempre vertical para mobile (instrução também está no prompt)
         });
         
