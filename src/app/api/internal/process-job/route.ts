@@ -283,7 +283,7 @@ export async function POST(req: NextRequest) {
           console.log("[process-job] ✅ Cenário encontrado baseado no primeiro produto:", {
             category: scenarioFromFirestore.category,
             hasImageUrl: !!scenarioFromFirestore.imageUrl,
-            imageUrl: scenarioFromFirestore.imageUrl.substring(0, 100) + "...",
+            imageUrl: scenarioFromFirestore.imageUrl?.substring(0, 100) + "..." || "N/A",
           });
           
           // MASTER PROMPT PIVOT: Passar apenas STRINGS, NÃO URL de imagem
