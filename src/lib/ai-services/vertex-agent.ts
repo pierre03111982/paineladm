@@ -190,17 +190,19 @@ LINGUAGEM:
     const response = result.response;
 
     // Verificar se a IA quer chamar alguma função
+    // O Vertex AI SDK retorna functionCalls em response.candidates[0].content.parts
     let functionCalls: any[] = [];
     try {
-      if (response.functionCalls && typeof response.functionCalls === 'function') {
-        const calls = response.functionCalls();
-        if (calls && Array.isArray(calls) && calls.length > 0) {
-          functionCalls = calls;
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        const parts = response.candidates[0].content.parts;
+        const functionCallParts = parts.filter((p: any) => p.functionCall);
+        if (functionCallParts.length > 0) {
+          functionCalls = functionCallParts.map((p: any) => p.functionCall);
         }
       }
     } catch (e: any) {
       // Se não houver function calls, continuar normalmente
-      console.log("[VertexAgent] ℹ️ Nenhuma função chamada pela IA ou Function Calling não disponível:", e?.message);
+      console.log("[VertexAgent] ℹ️ Nenhuma função chamada pela IA:", e?.message);
     }
 
     if (functionCalls && functionCalls.length > 0) {
