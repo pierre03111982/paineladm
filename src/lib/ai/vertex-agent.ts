@@ -40,9 +40,7 @@ export class VertexAgent {
         topP: 0.95,
         topK: 40,
       },
-      systemInstruction: {
-        parts: [{ text: this.getPersona() }],
-      },
+      systemInstruction: this.getPersona(),
       tools: [{
         functionDeclarations: this.getFunctionDeclarations(),
       }],
