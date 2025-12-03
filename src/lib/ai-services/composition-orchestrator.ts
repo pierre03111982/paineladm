@@ -414,7 +414,7 @@ REMIX REQUIREMENT: This is a REMIX - the pose MUST be different from the origina
         // PHASE 22: Adicionar banimento de alterações na aparência facial e corporal
         // PHASE 23: Reforçar termos anti-manequim com peso 2.0
         // PHASE 24: Adicionar termos para forçar realismo bruto (sem filtros)
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:1.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:1.8), (person without shadow:1.8), (floating person:1.6), (unrealistic lighting:1.5), (flat lighting:1.5), (no depth:1.4), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5)";
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:2.5), (headless:2.5), (no head:2.5), (missing head:2.5), (cropped head:2.5), (head cropped:2.5), (face cut off:2.5), (face missing:2.5), (headless person:2.5), (person without head:2.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:2.0), (person without shadow:2.0), (floating person:1.6), (unrealistic lighting:2.0), (flat lighting:2.0), (no depth:1.4), (harsh shadows:1.5), (unnatural shadows:1.5), (wrong shadow direction:1.5), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5), (product not visible:1.5), (product missing:1.5), (product not applied:1.5)";
         
         // PHASE 11-B: Se detectar calçados, reforçar negative prompt para pés
         const feetNegativePrompt = productCategory.includes("calçado") || productCategory.includes("calcado") || 
@@ -491,13 +491,17 @@ INPUTS:
 - Image 2..N: PRODUCTS (The clothes to wear).
 - NO BACKGROUND IMAGE: You must GENERATE the background based on product context.`;
 
-        // IDENTITY LOCK (PRIORITY #1)
+        // IDENTITY LOCK (PRIORITY #1) - REFORÇADO PARA EVITAR CABEÇA CORTADA
         const identityLockBlock = `
-🔒 IDENTITY LOCK (PRIORITY #1):
+🔒 IDENTITY LOCK (PRIORITY #1 - CRITICAL):
 - The output person MUST BE IDENTICAL to the person in Image 1.
 - Preserve exact facial features, ethnicity, body shape, and skin tone.
 - Do NOT improve or "beautify" the face. Keep it authentic.
-- If the face is clear in input, it must be pixel-perfect in output.`;
+- If the face is clear in input, it must be pixel-perfect in output.
+- CRITICAL: The person's HEAD and FACE must ALWAYS be fully visible and complete in the output.
+- NEVER crop, cut, or hide the person's head, face, or hair.
+- The person's entire head from top of hair to chin must be visible.
+- If the original photo shows the person's head, the output MUST show the complete head.`;
 
         // CLOTHING REPLACEMENT (PHYSICS ENGINE) - FIX "CAMISA LARANJA"
         const clothingReplacementBlock = `
@@ -511,25 +515,42 @@ INPUTS:
 7. GRAVITY: Fabric must hang correctly. No "floating" clothes.
 8. LAYERING: If multiple products (e.g., Shirt + Jacket), layer them logically.`;
 
-        // LIGHTING ENGINE (RELIGHTING) - FIX "EFEITO COLAGEM"
+        // LIGHTING ENGINE (RELIGHTING) - FIX "EFEITO COLAGEM" - REFORÇADO
         const lightingIntegrationBlock = `
-💡 LIGHTING ENGINE (RELIGHTING):
+💡 LIGHTING ENGINE (RELIGHTING - CRITICAL FOR REALISM):
 - Generate the background FIRST based on the product vibe (e.g., Beach for Bikini, City for Streetwear, Office for Formal).
-- RELIGHT the person to match this new background.
-- If the background has sun from the right, the person's face MUST be lit from the right.
-- Cast contact shadows on the floor/ground - the person's shadow must connect naturally to their feet.
-- COLOR GRADING: Match the person's contrast and saturation to the generated background. Eliminate the "cut-and-paste" look.
-- The person must look like they are physically present in the scene, not pasted on top.`;
+- RELIGHT the person to match this new background EXACTLY.
+- If the background has sun from the right, the person's face MUST be lit from the right with natural highlights.
+- If the background has soft indoor lighting, the person must have soft, even lighting on their face and body.
+- Cast REALISTIC contact shadows on the floor/ground - the person's shadow must:
+  * Connect naturally to their feet (no floating)
+  * Match the light direction from the background
+  * Have soft edges (not harsh black lines)
+  * Show proper shadow length based on light angle
+- COLOR GRADING: Match the person's contrast, saturation, and color temperature to the generated background.
+- Eliminate the "cut-and-paste" look by:
+  * Matching ambient light color (warm/cool)
+  * Matching light intensity (bright/dim)
+  * Creating natural light falloff on the person's body
+  * Ensuring shadows match the scene's light source
+- The person must look like they are physically present in the scene, not pasted on top.
+- The lighting on the person's FACE must be natural and match the background lighting perfectly.`;
 
-        // FORMAT & COMPOSITION - FORÇAR 9:16
+        // FORMAT & COMPOSITION - FORÇAR 9:16 - REFORÇADO PARA EVITAR CABEÇA CORTADA
         const formatCompositionBlock = `
-📱 FORMAT RULE (MANDATORY):
+📱 FORMAT RULE (MANDATORY - CRITICAL):
 - The output image MUST be Vertical (Aspect Ratio 9:16).
 - EXTEND the background vertically above and below the person. Do NOT stretch the person.
 - Generate the background in vertical format from the start - do NOT crop or distort.
-- FRAMING: Full body or 3/4 shot (Knees up). NEVER cut the head.
+- FRAMING: Full body or 3/4 shot (Knees up). 
+- CRITICAL FRAMING RULES:
+  * The person's COMPLETE HEAD must be visible from top of hair to chin
+  * NEVER crop, cut, or hide the person's head, face, or hair
+  * Always include space above the person's head (at least 10% of image height)
+  * The person's face must be fully visible and centered in the upper portion of the image
+  * If showing full body, ensure head is at the top with adequate space above
 - POSE:
-  ${params.options?.forceNewPose ? `- IF REMIX: Generate a DYNAMIC new pose (walking, turning, leaning).` : `- IF STANDARD: Keep a natural standing pose but improve posture.`}`;
+  ${params.options?.forceNewPose ? `- IF REMIX: Generate a DYNAMIC new pose (walking, turning, leaning) BUT ALWAYS keep the head fully visible and facing forward or slightly to the side.` : `- IF STANDARD: Keep a natural standing pose but improve posture. ALWAYS ensure the head is fully visible.`}`;
 
         // NEGATIVE CONSTRAINTS
         const negativeConstraintsBlock = `
@@ -643,13 +664,19 @@ ${productsData.map((product, i) => {
 
 CRITICAL: ALL ${allProductImageUrls.length} product(s) listed above MUST be visible in the final image.${legExtensionInstruction}
 
-FINAL QUALITY CHECK:
+FINAL QUALITY CHECK (CRITICAL):
 - The person must look IDENTICAL to Image 1 (face, body, skin tone)
-- All products must be visible and properly fitted
-- Lighting and shadows must match the background scenario perfectly
+- The person's COMPLETE HEAD and FACE must be fully visible (never cropped or cut)
+- All products must be visible and properly fitted on the person
+- Lighting and shadows must match the background scenario perfectly:
+  * Natural light direction matching the scene
+  * Realistic contact shadows on the ground
+  * Proper light falloff on the person's body
+  * Face must be well-lit and natural
 - Output must be 9:16 vertical format
 - No artifacts, ghosting, or "cut-and-paste" look
-- Professional fashion photography quality`;
+- Professional fashion photography quality
+- The person must look like they are physically present in the scene, not pasted`;
         
         // MASTER PROMPT: PIVOT - NÃO incluir scenarioImageUrl no array de imagens
         // Array deve conter APENAS: [FOTO_PESSOA, ...FOTOS_PRODUTOS]

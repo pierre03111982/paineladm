@@ -358,8 +358,9 @@ export async function POST(req: NextRequest) {
       lookType: params.options?.lookType || "creative",
     });
     
+    let finalResult: any;
     try {
-      const finalResult = await orchestrator.createComposition(params);
+      finalResult = await orchestrator.createComposition(params);
       
       console.log("[process-job] ✅ Orchestrator retornou resultado:", {
         hasTryonImageUrl: !!finalResult.tryonImageUrl,
