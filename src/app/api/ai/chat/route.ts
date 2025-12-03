@@ -119,23 +119,53 @@ GUIDELINES:
 
 IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato [[Label do Botão]](/caminho) para criar botões clicáveis.`;
 
-    // Chamar Gemini diretamente (não usar generateInsight que retorna JSON estruturado)
-    const accessToken = await (async () => {
-      try {
-        const { getAdminApp } = await import("@/lib/firebaseAdmin");
-        const adminApp = getAdminApp();
-        if (!adminApp) throw new Error("Firebase Admin não inicializado");
-        const client = await adminApp.options.credential?.getAccessToken();
-        if (!client || !client.access_token) throw new Error("Token não disponível");
-        return client.access_token;
-      } catch (error) {
-        console.error("[AI/Chat] Erro ao obter token:", error);
-        throw new Error("Falha na autenticação");
-      }
-    })();
-
+    // Validar configuração do projeto
     const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || "";
     const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+
+    if (!projectId) {
+      console.error("[AI/Chat] ❌ GOOGLE_CLOUD_PROJECT_ID não configurado");
+      throw new Error("Configuração do Google Cloud não encontrada. Verifique GOOGLE_CLOUD_PROJECT_ID.");
+    }
+
+    // Obter token de acesso via Firebase Admin
+    let accessToken: string;
+    try {
+      // Usar getAdminApp diretamente do firebaseAdmin
+      const { getAdminApp } = await import("@/lib/firebaseAdmin");
+      const adminApp = getAdminApp();
+      
+      if (!adminApp) {
+        console.error("[AI/Chat] ❌ Firebase Admin não inicializado");
+        throw new Error("Firebase Admin não inicializado. Verifique as variáveis de ambiente FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY.");
+      }
+
+      const credential = adminApp.options.credential;
+      if (!credential) {
+        console.error("[AI/Chat] ❌ Credencial do Firebase Admin não encontrada");
+        throw new Error("Credencial do Firebase Admin não encontrada. Verifique a configuração do Firebase.");
+      }
+
+      console.log("[AI/Chat] 🔑 Solicitando token de acesso...");
+      const tokenResult = await credential.getAccessToken();
+      
+      if (!tokenResult || !tokenResult.access_token) {
+        console.error("[AI/Chat] ❌ Token de acesso não disponível");
+        throw new Error("Token de acesso não disponível. Verifique as permissões do Service Account.");
+      }
+
+      accessToken = tokenResult.access_token;
+      console.log("[AI/Chat] ✅ Token de acesso obtido com sucesso");
+    } catch (tokenError: any) {
+      console.error("[AI/Chat] ❌ Erro ao obter token:", {
+        error: tokenError?.message,
+        errorName: tokenError?.name,
+        stack: tokenError?.stack?.substring(0, 500),
+      });
+      throw new Error(`Falha na autenticação: ${tokenError?.message || "Erro desconhecido"}`);
+    }
+
+    // Construir endpoint
     const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/gemini-1.5-flash:generateContent`;
 
     // Construir prompt completo
@@ -145,38 +175,79 @@ USER MESSAGE: ${message}
 
 Responda de forma útil e acionável, usando botões de navegação quando apropriado.`;
 
-    // Fazer requisição direta ao Gemini
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: fullPrompt }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-        },
-      }),
+    console.log("[AI/Chat] 📤 Enviando requisição para Gemini:", {
+      endpoint,
+      projectId,
+      location,
+      promptLength: fullPrompt.length,
+      hasAccessToken: !!accessToken,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error: ${response.status}`);
+    // Fazer requisição direta ao Gemini
+    let response: Response;
+    let responseData: any;
+    
+    try {
+      response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: fullPrompt }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[AI/Chat] ❌ Erro na API Gemini:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText.substring(0, 500),
+        });
+        throw new Error(`Gemini API error: ${response.status} - ${errorText.substring(0, 200)}`);
+      }
+
+      responseData = await response.json();
+      console.log("[AI/Chat] ✅ Resposta da API recebida");
+    } catch (fetchError: any) {
+      console.error("[AI/Chat] ❌ Erro na requisição ao Gemini:", {
+        error: fetchError?.message,
+        stack: fetchError?.stack?.substring(0, 500),
+      });
+      throw new Error(`Erro ao chamar Gemini API: ${fetchError?.message || "Erro desconhecido"}`);
     }
 
-    const responseData = await response.json();
+    // Extrair texto da resposta
     const candidate = responseData.candidates?.[0];
-    if (!candidate || !candidate.content?.parts?.[0]?.text) {
+    if (!candidate) {
+      console.error("[AI/Chat] ❌ Resposta da API não contém candidates:", {
+        responseData: JSON.stringify(responseData).substring(0, 500),
+      });
+      throw new Error("Resposta da API não contém candidates");
+    }
+
+    if (!candidate.content?.parts?.[0]?.text) {
+      console.error("[AI/Chat] ❌ Resposta da API não contém texto:", {
+        candidate: JSON.stringify(candidate).substring(0, 500),
+      });
       throw new Error("Resposta da API não contém texto válido");
     }
 
     const responseText = candidate.content.parts[0].text;
+    console.log("[AI/Chat] ✅ Resposta extraída com sucesso:", {
+      responseLength: responseText.length,
+      preview: responseText.substring(0, 100),
+    });
 
     return NextResponse.json({
       success: true,
