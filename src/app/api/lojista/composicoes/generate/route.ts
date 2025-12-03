@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 import { getCompositionOrchestrator } from "@/lib/ai-services/composition-orchestrator";
 import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
 import { logError } from "@/lib/logger";
-import { findScenarioByProductTags } from "@/lib/scenarioMatcher";
+// REMOVIDO: findScenarioByProductTags - sempre usar getSmartScenario
 import { reserveCredit, rollbackCredit } from "@/lib/financials";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -168,7 +168,22 @@ export async function POST(request: NextRequest) {
       // PHASE 13: Source of Truth - Sempre priorizar original_photo_url
       // Se original_photo_url for fornecido, usar ele. Caso contrário, usar personImageUrl.
       // IMPORTANTE: Ignorar qualquer "previous_image" ou imagem gerada anteriormente
-      const originalPhotoUrl = body.original_photo_url || body.personImageUrl;
+      let originalPhotoUrl = body.original_photo_url || body.personImageUrl;
+      
+      // FIX: Rejeitar blob: URLs - devem ser convertidas no frontend antes de enviar
+      if (originalPhotoUrl && originalPhotoUrl.startsWith("blob:")) {
+        console.error("[API] ❌ blob: URL recebida - o frontend deve converter antes de enviar:", originalPhotoUrl.substring(0, 100));
+        return applyCors(
+          request,
+          NextResponse.json(
+            {
+              error: "Foto inválida",
+              details: "blob: URLs não podem ser processadas. Por favor, faça upload novamente da foto.",
+            },
+            { status: 400 }
+          )
+        );
+      }
       
       // PHASE 13: Validar que não estamos usando uma imagem gerada anteriormente
       // Se a URL contiver indicadores de imagem gerada (ex: "composicoes/", "generated-"), logar aviso
@@ -871,123 +886,36 @@ export async function POST(request: NextRequest) {
       // Detectar se é remix (lógica agressiva)
       const isRemix = (scenePrompts && scenePrompts.length > 0) || options?.gerarNovoLook || false;
       
-      // REGRA DO 1º PRODUTO: Usar APENAS o produto no índice 0 para buscar cenário
-      // Ignorar completamente os outros produtos para essa decisão
-      const firstProductOnly = productsData.length > 0 ? [productsData[0]] : [];
-      
-      // PHASE 26: Buscar cenário do Firestore baseado APENAS no primeiro produto
-      let scenarioFromFirestore: { imageUrl: string; lightingPrompt: string; category: string } | null = null;
-      
-      // LÓGICA REMIX AGRESSIVA: Se for Remix, forçar NOVO cenário aleatório da mesma categoria
-      if (isRemix && firstProductOnly.length > 0) {
-        try {
-          console.log("[API] 🎨 MASTER PROMPT: REMIX AGRESSIVO - Forçando NOVO cenário aleatório da mesma categoria...");
-          // Buscar cenário baseado no primeiro produto para identificar categoria
-          const baseScenario = await findScenarioByProductTags(firstProductOnly);
-          
-          if (baseScenario) {
-            // Buscar TODOS os cenários da mesma categoria
-            const { findScenarioByCategory } = await import("@/lib/scenarioMatcher");
-            const categoryScenarios = await findScenarioByCategory(baseScenario.category);
-            
-            if (categoryScenarios && categoryScenarios.length > 0) {
-              // Escolher aleatório (pode ser o mesmo ou diferente - importante é variar)
-              const randomScenario = categoryScenarios[Math.floor(Math.random() * categoryScenarios.length)];
-              scenarioFromFirestore = {
-                imageUrl: randomScenario.imageUrl,
-                lightingPrompt: randomScenario.lightingPrompt || baseScenario.lightingPrompt,
-                category: randomScenario.category,
-              };
-              console.log("[API] ✅ REMIX: Novo cenário aleatório selecionado:", {
-                category: scenarioFromFirestore.category,
-                totalOptions: categoryScenarios.length,
-                isDifferent: randomScenario.imageUrl !== baseScenario.imageUrl,
-              });
-            } else {
-              scenarioFromFirestore = baseScenario;
-            }
-          }
-        } catch (error: any) {
-          console.error("[API] ❌ Erro ao buscar cenário para Remix:", error);
-        }
-      } else if (!isRemix && firstProductOnly.length > 0) {
-        // GERAÇÃO NORMAL: Buscar cenário baseado no primeiro produto
-        try {
-          console.log("[API] 🎯 MASTER PROMPT: Buscando cenário baseado APENAS no primeiro produto (índice 0)...");
-          console.log("[API] 📦 Primeiro produto usado para cenário:", {
-            nome: firstProductOnly[0]?.nome || "N/A",
-            categoria: firstProductOnly[0]?.categoria || "N/A",
-            totalProdutos: productsData.length,
-            nota: "Produtos secundários são IGNORADOS para seleção de cenário",
-          });
-          
-          scenarioFromFirestore = await findScenarioByProductTags(firstProductOnly);
-          
-          if (scenarioFromFirestore) {
-            console.log("[API] ✅ Cenário encontrado baseado no primeiro produto:", {
-              category: scenarioFromFirestore.category,
-              hasImageUrl: !!scenarioFromFirestore.imageUrl,
-              imageUrl: scenarioFromFirestore.imageUrl.substring(0, 100) + "...",
-            });
-          } else {
-            console.log("[API] ⚠️ Nenhum cenário encontrado, usando prompt genérico");
-          }
-        } catch (error: any) {
-          console.error("[API] ❌ Erro ao buscar cenário do Firestore:", error);
-        }
-      }
-      
-      // MASTER PROMPT PIVOT: Aplicar cenário encontrado como TEXTO (não como imagem)
-      if (scenarioFromFirestore) {
-        // Passar apenas STRINGS (prompt/categoria), NÃO a URL da imagem
-        scenarioImageUrl = undefined; // SEMPRE undefined - forçar geração via prompt
-        scenarioLightingPrompt = scenarioFromFirestore.lightingPrompt;
-        scenarioCategory = scenarioFromFirestore.category;
-        scenarioInstructions = undefined; // Não usar instruções de imagem fixa
-        
-        console.log("[API] 🎯 MASTER PROMPT PIVOT: Cenário aplicado como TEXTO:", {
-          category: scenarioCategory,
-          lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
-          nota: "Cenário será GERADO via prompt, não usado como input visual",
-        });
-      }
+      // IMPORTANTE: NÃO buscar cenário do Firestore
+      // SEMPRE usar getSmartScenario que aplica todas as regras (Bikini Law, Gym Integrity, etc.)
+      // Isso garante consistência e aplicação correta das regras de cenário
 
-      // MASTER PROMPT PIVOT: Sempre usar smartContext (nunca usar scenarioImageUrl como imagem)
-      // Se temos categoria/prompt do Firestore, usar eles; senão, usar smartContext
+      // IMPORTANTE: SEMPRE usar getSmartScenario (ignorar qualquer cenário do frontend)
+      // Isso garante que todas as regras (Bikini Law, Gym Integrity, etc.) sejam aplicadas
+      // Frontend não deve buscar cenário - backend sempre determina via getSmartScenario
       let smartContext = "";
       let forbiddenScenarios: string[] = [];
       
-      // Se temos categoria do Firestore, usar ela como contexto; senão, calcular smartContext
-      if (scenarioCategory || scenarioLightingPrompt) {
-        // Usar categoria/prompt do Firestore como contexto textual
-        smartContext = scenarioCategory 
-          ? `Professional ${scenarioCategory} environment`
-          : "Professional fashion photography environment";
-        console.log("[API] 🎯 MASTER PROMPT PIVOT: Usando categoria do Firestore como contexto textual:", {
-          category: scenarioCategory || "N/A",
-          lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
-          smartContext,
+      // SEMPRE calcular smartContext usando getSmartScenario
+      const smartScenario = getSmartScenario(productsData, isRemix);
+      smartContext = smartScenario.context;
+      forbiddenScenarios = smartScenario.forbidden;
+      
+      if (isRemix) {
+        console.log("[API] 🎨 REMIX - Gerando NOVO cenário via getSmartScenario:", {
+          context: smartContext,
+          forbidden: forbiddenScenarios,
+          totalProdutos: productsData.length,
+          note: "Cenário determinado pelo backend usando getSmartScenario (ignorando qualquer cenário do frontend)",
         });
       } else {
-        // Fallback: calcular smartContext baseado nos produtos
-        const smartScenario = getSmartScenario(productsData, isRemix);
-        smartContext = smartScenario.context;
-        forbiddenScenarios = smartScenario.forbidden;
-        
-        if (isRemix) {
-          console.log("[API] 🎨 REMIX - Gerando NOVO cenário via prompt:", {
-            context: smartContext,
-            forbidden: forbiddenScenarios,
-            totalProdutos: productsData.length,
-          });
-        } else {
-          console.log("[API] 📍 Smart Scenario aplicado:", {
-            context: smartContext,
-            forbidden: forbiddenScenarios,
-            isRemix: false,
-            totalProdutos: productsData.length,
-          });
-        }
+        console.log("[API] 📍 Smart Scenario aplicado (getSmartScenario):", {
+          context: smartContext,
+          forbidden: forbiddenScenarios,
+          isRemix: false,
+          totalProdutos: productsData.length,
+          note: "Cenário determinado pelo backend usando getSmartScenario",
+        });
       }
       
       // PHASE 21 FIX: Se houver scenePrompts, IGNORAR o cenário do scenePrompts e usar smartContext (ou imagem)
@@ -1019,23 +947,24 @@ export async function POST(request: NextRequest) {
           cat.includes("jewelry")
         ) && !hasShoes;
       
-      // PHASE 14: Determinar categoria para o prompt (priorizar calçados > roupas > acessórios)
-      // CRÍTICO: Se tem calçado, SEMPRE forçar "Calçados" para garantir full body
+      // PHASE 31: QUALIDADE REMIX - Determinar categoria e framing
+      // SEMPRE forçar Full Body Shot para evitar cortes (exceto para apenas acessórios)
       let productCategoryForPrompt = primaryProduct?.categoria || "";
-      let smartFraming = "medium-full shot"; // Default
+      let smartFraming = "Full body shot, feet fully visible, standing on floor"; // PHASE 31: Default Full Body (qualidade Remix)
       
       if (hasShoes) {
         productCategoryForPrompt = "Calçados";
         smartFraming = "Full body shot, feet fully visible, standing on floor";
-        console.log("[API] 🦶 PHASE 14 Smart Framing: CALÇADOS detectado - FORÇANDO full body shot");
+        console.log("[API] 🦶 PHASE 31: Smart Framing: CALÇADOS detectado - Full body shot (qualidade Remix)");
       } else if (hasOnlyAccessories) {
         productCategoryForPrompt = "Acessórios/Óculos/Joias";
         smartFraming = "close-up portrait, focus on face and neck";
-        console.log("[API] 👓 PHASE 14 Smart Framing: ACESSÓRIOS detectado - Forçando portrait shot");
+        console.log("[API] 👓 PHASE 31: Smart Framing: APENAS ACESSÓRIOS detectado - Portrait shot");
       } else {
         productCategoryForPrompt = "Roupas";
-        smartFraming = "medium-full shot, detailed fabric texture";
-        console.log("[API] 👕 PHASE 14 Smart Framing: ROUPAS detectado - Usando shot médio");
+        // PHASE 31: Para roupas, SEMPRE usar Full Body Shot (qualidade Remix) para evitar cortes
+        smartFraming = "Full body shot, feet fully visible, standing on floor";
+        console.log("[API] 👕 PHASE 31: Smart Framing: ROUPAS detectado - FORÇANDO Full Body Shot (qualidade Remix para evitar cortes)");
       }
       
       console.log("[API] 📊 PHASE 14 Smart Context Engine:", {

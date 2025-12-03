@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
-import { getGeminiTextService } from "@/lib/ai-services/gemini-text";
+import { getGeminiAgentService } from "@/lib/ai-services/gemini-agent";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAllInsights } from "@/lib/firestore/insights";
 
@@ -119,121 +119,54 @@ GUIDELINES:
 
 IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato [[Label do Botão]](/caminho) para criar botões clicáveis.`;
 
-    // Construir prompt completo
-    const fullPrompt = `${systemPrompt}
+    // USAR AGENTE ANA COM FUNCTION CALLING
+    console.log("[AI/Chat] 🤖 Usando Agente Ana com Function Calling...");
+
+    try {
+      const agentService = getGeminiAgentService();
+      const responseText = await agentService.chatWithTools(message, lojistaId, contextData);
+
+      console.log("[AI/Chat] ✅ Resposta do Agente Ana recebida:", {
+        responseLength: responseText.length,
+        preview: responseText.substring(0, 100),
+      });
+
+      return NextResponse.json({
+        success: true,
+        response: responseText,
+        provider: "gemini-agent",
+        context: {
+          produtosCount,
+          displayConnected,
+          salesConfigured,
+          insightsCount: recentInsights.length,
+        },
+      });
+    } catch (agentError: any) {
+      console.error("[AI/Chat] ❌ Erro no Agente Ana:", {
+        error: agentError?.message,
+        stack: agentError?.stack?.substring(0, 500),
+      });
+
+      // Fallback para implementação anterior se o agente falhar
+      console.log("[AI/Chat] 🔄 Tentando fallback para implementação anterior...");
+      
+      // Construir prompt completo para fallback
+      const fullPrompt = `${systemPrompt}
 
 USER MESSAGE: ${message}
 
 Responda de forma útil e acionável, usando botões de navegação quando apropriado.`;
 
-    // ESTRATÉGIA HÍBRIDA: Tentar Vertex AI primeiro, fallback para API direta
-    let responseText: string | null = null;
-    let usedVertexAI = false;
-
-    // TENTATIVA 1: Vertex AI (usando Service Account do Firebase)
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || "";
-    const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
-
-    if (projectId) {
-      try {
-        console.log("[AI/Chat] 🔄 Tentando Vertex AI primeiro...");
-        
-        // Obter token de acesso via Firebase Admin
-        const { getAdminApp } = await import("@/lib/firebaseAdmin");
-        const adminApp = getAdminApp();
-        
-        if (adminApp) {
-          const credential = adminApp.options.credential;
-          if (credential) {
-            const tokenResult = await credential.getAccessToken();
-            if (tokenResult?.access_token) {
-              const accessToken = tokenResult.access_token;
-              const vertexEndpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/gemini-1.5-flash:generateContent`;
-
-              console.log("[AI/Chat] 📤 Enviando requisição para Vertex AI:", {
-                endpoint: vertexEndpoint,
-                projectId,
-                location,
-                model: "gemini-1.5-flash",
-              });
-
-              const vertexResponse = await fetch(vertexEndpoint, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${accessToken}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  contents: [
-                    {
-                      parts: [{ text: fullPrompt }],
-                    },
-                  ],
-                  generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 1024,
-                  },
-                }),
-              });
-
-              if (vertexResponse.ok) {
-                const vertexData = await vertexResponse.json();
-                const candidate = vertexData.candidates?.[0];
-                
-                if (candidate?.content?.parts?.[0]?.text) {
-                  const text = candidate.content.parts[0].text;
-                  responseText = text;
-                  usedVertexAI = true;
-                  console.log("[AI/Chat] ✅ Vertex AI funcionou! Resposta recebida:", {
-                    responseLength: text.length,
-                    preview: text.substring(0, 100),
-                  });
-                } else {
-                  throw new Error("Vertex AI retornou resposta sem texto");
-                }
-              } else {
-                const errorText = await vertexResponse.text();
-                console.warn("[AI/Chat] ⚠️ Vertex AI retornou erro, tentando fallback:", {
-                  status: vertexResponse.status,
-                  error: errorText.substring(0, 200),
-                });
-                throw new Error(`Vertex AI error: ${vertexResponse.status}`);
-              }
-            } else {
-              throw new Error("Token de acesso não disponível");
-            }
-          } else {
-            throw new Error("Credencial do Firebase Admin não encontrada");
-          }
-        } else {
-          throw new Error("Firebase Admin não inicializado");
-        }
-      } catch (vertexError: any) {
-        console.warn("[AI/Chat] ⚠️ Vertex AI falhou, usando fallback para API direta:", {
-          error: vertexError?.message,
-        });
-        // Continuar para fallback
-      }
-    }
-
-    // TENTATIVA 2: API Direta do Gemini (Fallback)
-    if (!usedVertexAI) {
-      console.log("[AI/Chat] 🔄 Usando API direta do Gemini (fallback)...");
-      
+      // TENTATIVA: API Direta do Gemini (Fallback)
       const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
       if (!apiKey) {
-        console.error("[AI/Chat] ❌ GEMINI_API_KEY ou GOOGLE_API_KEY não configurado");
         throw new Error("API Key do Gemini não encontrada. Configure GEMINI_API_KEY ou GOOGLE_API_KEY nas variáveis de ambiente.");
       }
 
       const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
       
-      console.log("[AI/Chat] 📤 Enviando requisição para API direta:", {
-        model: "gemini-1.5-flash",
-        promptLength: fullPrompt.length,
-      });
-
       const directResponse = await fetch(`${geminiApiUrl}?key=${apiKey}`, {
         method: "POST",
         headers: {
@@ -254,55 +187,30 @@ Responda de forma útil e acionável, usando botões de navegação quando aprop
 
       if (!directResponse.ok) {
         const errorText = await directResponse.text();
-        console.error("[AI/Chat] ❌ Erro na API direta do Gemini:", {
-          status: directResponse.status,
-          statusText: directResponse.statusText,
-          error: errorText.substring(0, 500),
-        });
         throw new Error(`Gemini API error: ${directResponse.status} - ${errorText.substring(0, 200)}`);
       }
 
       const directData = await directResponse.json();
       const candidate = directData.candidates?.[0];
       
-      if (!candidate) {
-        console.error("[AI/Chat] ❌ Resposta da API direta não contém candidates:", {
-          responseData: JSON.stringify(directData).substring(0, 500),
-        });
-        throw new Error("Resposta da API não contém candidates");
-      }
-
-      if (!candidate.content?.parts?.[0]?.text) {
-        console.error("[AI/Chat] ❌ Resposta da API direta não contém texto:", {
-          candidate: JSON.stringify(candidate).substring(0, 500),
-        });
+      if (!candidate?.content?.parts?.[0]?.text) {
         throw new Error("Resposta da API não contém texto válido");
       }
 
-      const text = candidate.content.parts[0].text;
-      responseText = text;
-      console.log("[AI/Chat] ✅ API direta funcionou! Resposta recebida:", {
-        responseLength: text.length,
-        preview: text.substring(0, 100),
+      const responseText = candidate.content.parts[0].text;
+
+      return NextResponse.json({
+        success: true,
+        response: responseText,
+        provider: "api-direct-fallback",
+        context: {
+          produtosCount,
+          displayConnected,
+          salesConfigured,
+          insightsCount: recentInsights.length,
+        },
       });
     }
-
-    // Validar que temos uma resposta
-    if (!responseText) {
-      throw new Error("Nenhuma resposta foi gerada. Tanto Vertex AI quanto API direta falharam.");
-    }
-
-    return NextResponse.json({
-      success: true,
-      response: responseText,
-      provider: usedVertexAI ? "vertex-ai" : "api-direct",
-      context: {
-        produtosCount,
-        displayConnected,
-        salesConfigured,
-        insightsCount: recentInsights.length,
-      },
-    });
   } catch (error) {
     console.error("[API/AI/Chat] Erro:", error);
     return NextResponse.json(

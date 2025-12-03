@@ -17,6 +17,7 @@
     "force-rebuild": "npx tsx scripts/force-rebuild.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/uuid": "^10.0.0",
     "axios": "^1.13.2",
