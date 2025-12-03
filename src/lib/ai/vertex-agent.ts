@@ -12,7 +12,6 @@ import { ANA_TOOLS, type AnaToolName } from "./ana-tools";
  */
 export class VertexAgent {
   private vertexAI: VertexAI;
-  private model: any;
   private projectId: string;
   private location: string;
 
@@ -104,21 +103,8 @@ export class VertexAgent {
       throw new Error(`Erro ao inicializar Vertex AI: ${error?.message}`);
     }
 
-    // Configurar modelo Gemini 1.5 Flash (gemini-1.5-pro não está disponível)
-    // Flash é mais rápido e está disponível no Vertex AI
-    this.model = this.vertexAI.preview.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-        topP: 0.95,
-        topK: 40,
-      },
-      systemInstruction: this.getPersona(),
-      tools: [{
-        functionDeclarations: this.getFunctionDeclarations(),
-      }],
-    });
+    // Não inicializar modelo aqui - será feito dinamicamente com fallback
+    // Isso permite tentar PRO primeiro e fazer fallback para FLASH se necessário
 
     console.log("[VertexAgent] ✅ Agente Ana inicializado com Vertex AI", {
       project: this.projectId,
