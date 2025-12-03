@@ -150,6 +150,8 @@ LINGUAGEM:
     lojistaId: string,
     contextData?: any
   ): Promise<string> {
+    console.log(`[VertexAgent] 🔄 Tentando modelo: ${modelName}`);
+    
     const contextPrompt = contextData
       ? `\n\nCONTEXTO DA LOJA:
 - Nome: ${contextData.store?.name || "Sua loja"}
@@ -159,94 +161,121 @@ LINGUAGEM:
 `
       : "";
 
-    const model = this.vertexAI.preview.getGenerativeModel({
-      model: modelName,
-      systemInstruction: this.getPersona(),
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-        topP: 0.95,
-        topK: 40,
-      },
-      tools: [{
-        functionDeclarations: this.getFunctionDeclarations(),
-      }],
-    });
-
-    const chat = model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: `Olá Ana! Sou o lojista ${lojistaId}.${contextPrompt}` }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Olá! Sou a Ana, sua Gerente de Sucesso do Cliente. Estou aqui para ajudar você a vender mais usando dados reais da sua loja! 🚀\n\nComo posso ajudar você hoje? Posso analisar seus produtos, identificar oportunidades de venda, ou qualquer outra coisa relacionada ao seu negócio." }],
-        },
-      ],
-    });
-
-    const result = await chat.sendMessage(userMessage);
-    const response = result.response;
-
-    // Verificar se a IA quer chamar alguma função
-    // O Vertex AI SDK retorna functionCalls em response.candidates[0].content.parts
-    let functionCalls: any[] = [];
     try {
-      if (response.candidates && response.candidates[0]?.content?.parts) {
-        const parts = response.candidates[0].content.parts;
-        const functionCallParts = parts.filter((p: any) => p.functionCall);
-        if (functionCallParts.length > 0) {
-          functionCalls = functionCallParts.map((p: any) => p.functionCall);
-        }
-      }
-    } catch (e: any) {
-      // Se não houver function calls, continuar normalmente
-      console.log("[VertexAgent] ℹ️ Nenhuma função chamada pela IA:", e?.message);
-    }
+      const model = this.vertexAI.preview.getGenerativeModel({
+        model: modelName,
+        systemInstruction: this.getPersona(),
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+          topP: 0.95,
+          topK: 40,
+        },
+        tools: [{
+          functionDeclarations: this.getFunctionDeclarations(),
+        }],
+      });
 
-    if (functionCalls && functionCalls.length > 0) {
-      console.log(`[VertexAgent] 🔧 IA solicitou ${functionCalls.length} função(ões):`, 
-        functionCalls.map((c: any) => c.name).join(", "));
+      console.log(`[VertexAgent] ✅ Modelo ${modelName} instanciado com sucesso`);
 
-      const functionResults = await Promise.all(
-        functionCalls.map(async (call: any) => {
-          const functionName = call.name;
-          const args = call.args || {};
-          if (!args.lojistaId) {
-            args.lojistaId = lojistaId;
+      const chat = model.startChat({
+        history: [
+          {
+            role: "user",
+            parts: [{ text: `Olá Ana! Sou o lojista ${lojistaId}.${contextPrompt}` }],
+          },
+          {
+            role: "model",
+            parts: [{ text: "Olá! Sou a Ana, sua Gerente de Sucesso do Cliente. Estou aqui para ajudar você a vender mais usando dados reais da sua loja! 🚀\n\nComo posso ajudar você hoje? Posso analisar seus produtos, identificar oportunidades de venda, ou qualquer outra coisa relacionada ao seu negócio." }],
+          },
+        ],
+      });
+
+      console.log(`[VertexAgent] 📤 Enviando mensagem para ${modelName}...`);
+      const result = await chat.sendMessage(userMessage);
+      const response = result.response;
+      
+      console.log(`[VertexAgent] 📥 Resposta recebida de ${modelName}`, {
+        hasCandidates: !!response.candidates,
+        candidatesLength: response.candidates?.length || 0,
+      });
+
+      // Verificar se a IA quer chamar alguma função
+      // O Vertex AI SDK retorna functionCalls em response.candidates[0].content.parts
+      let functionCalls: any[] = [];
+      try {
+        if (response.candidates && response.candidates[0]?.content?.parts) {
+          const parts = response.candidates[0].content.parts;
+          const functionCallParts = parts.filter((p: any) => p.functionCall);
+          if (functionCallParts.length > 0) {
+            functionCalls = functionCallParts.map((p: any) => p.functionCall);
+            console.log(`[VertexAgent] 🔧 Function calls detectados: ${functionCalls.length}`);
           }
+        }
+      } catch (e: any) {
+        // Se não houver function calls, continuar normalmente
+        console.log("[VertexAgent] ℹ️ Nenhuma função chamada pela IA:", e?.message);
+      }
 
-          const result = await this.executeFunction(functionName, args, lojistaId);
-          
-          return {
-            functionResponse: {
-              name: functionName,
-              response: result,
-            },
-          };
-        })
-      );
+      if (functionCalls && functionCalls.length > 0) {
+        console.log(`[VertexAgent] 🔧 IA solicitou ${functionCalls.length} função(ões):`, 
+          functionCalls.map((c: any) => c.name).join(", "));
 
-      const finalResult = await chat.sendMessage(functionResults);
-      const finalResponse = finalResult.response;
-      
-      // Extrair texto da resposta
-      if (finalResponse.candidates && finalResponse.candidates[0]?.content?.parts) {
-        const textPart = finalResponse.candidates[0].content.parts.find((p: any) => p.text);
-        return textPart?.text || "";
+        const functionResults = await Promise.all(
+          functionCalls.map(async (call: any) => {
+            const functionName = call.name;
+            const args = call.args || {};
+            if (!args.lojistaId) {
+              args.lojistaId = lojistaId;
+            }
+
+            const result = await this.executeFunction(functionName, args, lojistaId);
+            
+            return {
+              functionResponse: {
+                name: functionName,
+                response: result,
+              },
+            };
+          })
+        );
+
+        console.log(`[VertexAgent] 📤 Enviando resultados das funções para ${modelName}...`);
+        const finalResult = await chat.sendMessage(functionResults);
+        const finalResponse = finalResult.response;
+        
+        // Extrair texto da resposta
+        if (finalResponse.candidates && finalResponse.candidates[0]?.content?.parts) {
+          const textPart = finalResponse.candidates[0].content.parts.find((p: any) => p.text);
+          const text = textPart?.text || "";
+          console.log(`[VertexAgent] ✅ Texto extraído (com function calls): ${text.length} caracteres`);
+          return text;
+        }
+        
+        console.warn(`[VertexAgent] ⚠️ Resposta final não contém texto válido`);
+        return "";
+      }
+
+      // Extrair texto da resposta direta
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        const textPart = response.candidates[0].content.parts.find((p: any) => p.text);
+        const text = textPart?.text || "";
+        console.log(`[VertexAgent] ✅ Texto extraído (resposta direta): ${text.length} caracteres`);
+        return text;
       }
       
+      console.warn(`[VertexAgent] ⚠️ Resposta não contém candidates ou parts válidos`);
+      console.log(`[VertexAgent] 🔍 Estrutura da resposta:`, JSON.stringify(response, null, 2).substring(0, 500));
       return "";
+    } catch (modelError: any) {
+      console.error(`[VertexAgent] ❌ Erro ao usar modelo ${modelName}:`, {
+        error: modelError?.message,
+        code: modelError?.code,
+        status: modelError?.status,
+        stack: modelError?.stack?.substring(0, 500),
+      });
+      throw modelError;
     }
-
-    // Extrair texto da resposta direta
-    if (response.candidates && response.candidates[0]?.content?.parts) {
-      const textPart = response.candidates[0].content.parts.find((p: any) => p.text);
-      return textPart?.text || "";
-    }
-    
-    return "";
   }
 
   /**
