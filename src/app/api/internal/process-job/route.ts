@@ -142,6 +142,35 @@ export async function POST(req: NextRequest) {
         .map(p => p.productUrl || p.imagemUrl)
         .filter(Boolean);
 
+      // VALIDAÇÃO CRÍTICA: Garantir que temos pelo menos uma imagem de produto
+      if (allProductImageUrls.length === 0) {
+        const errorMsg = "Nenhuma imagem de produto válida encontrada para geração";
+        console.error(`[process-job] ❌ ${errorMsg}`);
+        console.error("[process-job] Produtos analisados:", {
+          totalProdutos: productsData.length,
+          produtos: productsData.map(p => ({
+            id: p.id,
+            nome: p.nome,
+            hasProductUrl: !!p.productUrl,
+            hasImagemUrl: !!p.imagemUrl,
+            productUrl: p.productUrl?.substring(0, 50) || "N/A",
+            imagemUrl: p.imagemUrl?.substring(0, 50) || "N/A",
+          })),
+        });
+        throw new Error(errorMsg);
+      }
+      
+      console.log("[process-job] ✅ Imagens de produtos coletadas:", {
+        totalProdutos: productsData.length,
+        imagensValidas: allProductImageUrls.length,
+        produtos: productsData.map(p => p.nome || "N/A"),
+        imagens: allProductImageUrls.map((url, i) => ({
+          indice: i + 1,
+          tipo: `IMAGEM_PRODUTO_${i + 1}`,
+          url: url.substring(0, 80) + "...",
+        })),
+      });
+
     // Buscar dados da loja
     const lojaDoc = await db.collection("lojas").doc(jobData.lojistaId).get();
     const lojaData = lojaDoc.exists ? lojaDoc.data() : null;
@@ -162,6 +191,15 @@ export async function POST(req: NextRequest) {
     const isRemix = (jobData.scenePrompts && jobData.scenePrompts.length > 0) || 
                     jobData.options?.gerarNovoLook === true || 
                     jobData.options?.forceNewPose === true;
+    
+    console.log("[process-job] 🔍 Detecção de Remix:", {
+      isRemix,
+      hasScenePrompts: !!(jobData.scenePrompts && jobData.scenePrompts.length > 0),
+      scenePromptsCount: jobData.scenePrompts?.length || 0,
+      gerarNovoLook: jobData.options?.gerarNovoLook,
+      forceNewPose: jobData.options?.forceNewPose,
+      totalProdutos: productsData.length,
+    });
     
     // REGRA DO 1º PRODUTO: Usar APENAS o produto no índice 0 para BUSCAR o cenário
     // NOTA: Todos os produtos serão aplicados na composição, mas o cenário é baseado no 1º produto
@@ -292,65 +330,60 @@ export async function POST(req: NextRequest) {
         },
     };
 
-    console.log("[process-job] Chamando Orchestrator com params:", {
+    console.log("[process-job] 🚀 Chamando Orchestrator com params:", {
       hasPersonImageUrl: !!params.personImageUrl,
       personImageUrl: params.personImageUrl?.substring(0, 100) + "...",
       productId: params.productId,
       productImageUrl: params.productImageUrl?.substring(0, 100) + "...",
       lojistaId: params.lojistaId,
       allProductImageUrlsCount: allProductImageUrls.length,
+      allProductImageUrls: allProductImageUrls.map((url, i) => ({
+        indice: i + 1,
+        tipo: `IMAGEM_PRODUTO_${i + 1}`,
+        url: url.substring(0, 80) + "...",
+      })),
+      productsDataCount: productsData.length,
+      productsData: productsData.map(p => ({
+        id: p.id,
+        nome: p.nome,
+        categoria: p.categoria,
+      })),
+      isRemix,
+      forceNewPose: params.options?.forceNewPose,
+      gerarNovoLook: params.options?.gerarNovoLook,
+      hasScenePrompts: !!(params.scenePrompts && params.scenePrompts.length > 0),
+      scenePrompts: params.scenePrompts,
+      scenarioCategory: params.options?.scenarioCategory,
+      scenarioLightingPrompt: params.options?.scenarioLightingPrompt?.substring(0, 50) || "N/A",
+      lookType: params.options?.lookType || "creative",
     });
     
-    const finalResult = await orchestrator.createComposition(params);
-
-    // --- ESTRATÉGIA DE SEGURANÇA MÁXIMA ---
-    // Extrai apenas a URL como string simples.
-    let finalUrl = "";
-    const lojistaId = jobData.lojistaId || "unknown";
-    
-    // VALIDAÇÃO CRÍTICA: Verificar se tryonImageUrl foi retornado
-    if (!finalResult.tryonImageUrl) {
-      const errorMsg = "Nenhum Look foi gerado - tryonImageUrl não foi retornado pelo orchestrator";
-      console.error(`[process-job] ❌ ${errorMsg}`);
-      console.error("[process-job] Resultado do orchestrator:", {
+    try {
+      const finalResult = await orchestrator.createComposition(params);
+      
+      console.log("[process-job] ✅ Orchestrator retornou resultado:", {
         hasTryonImageUrl: !!finalResult.tryonImageUrl,
-        hasSceneImageUrls: Array.isArray(finalResult.sceneImageUrls) && finalResult.sceneImageUrls.length > 0,
+        tryonImageUrlLength: finalResult.tryonImageUrl?.length || 0,
+        tryonImageUrlPreview: finalResult.tryonImageUrl?.substring(0, 100) || "N/A",
         compositionId: finalResult.compositionId,
-        status: finalResult.status,
+        sceneImageUrlsCount: finalResult.sceneImageUrls?.length || 0,
+        totalCost: finalResult.totalCost,
+        processingTime: finalResult.processingTime,
       });
-      throw new Error(errorMsg);
+      
+      // Continuar com o processamento do resultado
+      return await processFinalResult(finalResult, jobData, jobId, orchestrator);
+    } catch (orchestratorError: any) {
+      console.error("[process-job] ❌ Erro no Orchestrator:", orchestratorError);
+      console.error("[process-job] Stack trace:", orchestratorError?.stack);
+      console.error("[process-job] Parâmetros que causaram o erro:", {
+        hasPersonImageUrl: !!params.personImageUrl,
+        allProductImageUrlsCount: allProductImageUrls.length,
+        isRemix,
+        lookType: params.options?.lookType,
+      });
+      throw orchestratorError;
     }
-    
-    const imageUrl = String(finalResult.tryonImageUrl);
-    // FIX: Se for base64, fazer upload para Storage
-    if (imageUrl.startsWith("data:image/")) {
-      console.log("[process-job] 🔄 Detectado base64, fazendo upload para Storage...");
-      finalUrl = await uploadBase64ToStorage(imageUrl, lojistaId, jobId);
-    } else {
-      finalUrl = imageUrl;
-    }
-
-    // Validação final: garantir que temos uma URL válida
-    if (!finalUrl || finalUrl.trim() === "") {
-      const errorMsg = "Nenhum Look foi gerado - URL final está vazia após processamento";
-      console.error(`[process-job] ❌ ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-
-    // Processar sceneImageUrls também se houver
-    let processedSceneUrls: string[] = [];
-    if (Array.isArray(finalResult.sceneImageUrls) && finalResult.sceneImageUrls.length > 0) {
-      processedSceneUrls = await Promise.all(
-        finalResult.sceneImageUrls.map(async (url: string) => {
-          if (url && url.startsWith("data:image/")) {
-            return await uploadBase64ToStorage(url, lojistaId, jobId);
-          }
-          return url;
-        })
-      );
-    }
-
-    console.log(`[process-job] ✅ Sucesso! URL gerada: ${finalUrl.substring(0, 100)}...`);
 
     // Incrementar métrica de gerações de API (independente de visualização)
     // lojistaId já foi declarado acima (linha 238)
