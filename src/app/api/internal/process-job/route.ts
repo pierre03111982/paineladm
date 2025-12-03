@@ -151,8 +151,14 @@ export async function POST(req: NextRequest) {
     let scenarioCategory: string | undefined = undefined;
     let scenarioInstructions: string | undefined = undefined; // Não usar instruções de imagem fixa
     
-    // Verificar se é remix (não buscar cenário novo se for remix)
-    const isRemix = jobData.scenePrompts && jobData.scenePrompts.length > 0;
+    // Verificar se é remix (MASTER PROMPT: Detecção correta de remix)
+    // Remix pode ser detectado por: scenePrompts OU gerarNovoLook OU forceNewPose
+    const isRemix = (jobData.scenePrompts && jobData.scenePrompts.length > 0) || 
+                    jobData.options?.gerarNovoLook === true || 
+                    jobData.options?.forceNewPose === true;
+    
+    // REGRA DO 1º PRODUTO: Usar APENAS o produto no índice 0 para buscar cenário
+    const firstProductOnly = productsData.length > 0 ? [productsData[0]] : [];
     
     // Se o job já tem categoria/prompt, usar eles (vem do frontend ou de geração anterior)
     if (jobData.options?.scenarioCategory || jobData.options?.scenarioLightingPrompt) {
@@ -166,16 +172,60 @@ export async function POST(req: NextRequest) {
         lightingPrompt: scenarioLightingPrompt?.substring(0, 50) || "N/A",
         nota: "Cenário será GERADO via prompt, não usado como input visual",
       });
-    } else if (!isRemix && productsData.length > 0) {
-      // Buscar cenário do Firestore se não foi fornecido
+    } else if (isRemix && firstProductOnly.length > 0) {
+      // LÓGICA REMIX AGRESSIVA: Se for Remix, forçar NOVO cenário aleatório da mesma categoria
       try {
-        console.log("[process-job] 🎯 MASTER PROMPT PIVOT: Buscando cenário do Firestore baseado em tags de produtos...");
-        const scenarioFromFirestore = await findScenarioByProductTags(productsData);
+        console.log("[process-job] 🎨 MASTER PROMPT: REMIX AGRESSIVO - Forçando NOVO cenário aleatório da mesma categoria...");
+        // Buscar cenário baseado no primeiro produto para identificar categoria
+        const baseScenario = await findScenarioByProductTags(firstProductOnly);
+        
+        if (baseScenario) {
+          // Buscar TODOS os cenários da mesma categoria
+          const { findScenarioByCategory } = await import("@/lib/scenarioMatcher");
+          const categoryScenarios = await findScenarioByCategory(baseScenario.category);
+          
+          if (categoryScenarios && categoryScenarios.length > 0) {
+            // Escolher aleatório (pode ser o mesmo ou diferente - importante é variar)
+            const randomScenario = categoryScenarios[Math.floor(Math.random() * categoryScenarios.length)];
+            // MASTER PROMPT PIVOT: Passar apenas STRINGS, NÃO URL de imagem
+            scenarioImageUrl = undefined; // SEMPRE undefined - forçar geração via prompt
+            scenarioLightingPrompt = randomScenario.lightingPrompt || baseScenario.lightingPrompt;
+            scenarioCategory = randomScenario.category;
+            scenarioInstructions = undefined; // Não usar instruções de imagem fixa
+            console.log("[process-job] ✅ REMIX: Novo cenário aleatório selecionado:", {
+              category: scenarioCategory,
+              totalOptions: categoryScenarios.length,
+              isDifferent: randomScenario.imageUrl !== baseScenario.imageUrl,
+            });
+          } else {
+            // MASTER PROMPT PIVOT: Passar apenas STRINGS, NÃO URL de imagem
+            scenarioImageUrl = undefined; // SEMPRE undefined - forçar geração via prompt
+            scenarioLightingPrompt = baseScenario.lightingPrompt;
+            scenarioCategory = baseScenario.category;
+            scenarioInstructions = undefined; // Não usar instruções de imagem fixa
+          }
+        }
+      } catch (error: any) {
+        console.error("[process-job] ❌ Erro ao buscar cenário para Remix:", error);
+      }
+    } else if (!isRemix && firstProductOnly.length > 0) {
+      // GERAÇÃO NORMAL: Buscar cenário baseado no primeiro produto
+      try {
+        console.log("[process-job] 🎯 MASTER PROMPT: Buscando cenário baseado APENAS no primeiro produto (índice 0)...");
+        console.log("[process-job] 📦 Primeiro produto usado para cenário:", {
+          nome: firstProductOnly[0]?.nome || "N/A",
+          categoria: firstProductOnly[0]?.categoria || "N/A",
+          totalProdutos: productsData.length,
+          nota: "Produtos secundários são IGNORADOS para seleção de cenário",
+        });
+        
+        const scenarioFromFirestore = await findScenarioByProductTags(firstProductOnly);
         
         if (scenarioFromFirestore) {
-          console.log("[process-job] ✅ Cenário encontrado no Firestore:", {
+          console.log("[process-job] ✅ Cenário encontrado baseado no primeiro produto:", {
             category: scenarioFromFirestore.category,
-            lightingPrompt: scenarioFromFirestore.lightingPrompt?.substring(0, 50) || "N/A",
+            hasImageUrl: !!scenarioFromFirestore.imageUrl,
+            imageUrl: scenarioFromFirestore.imageUrl.substring(0, 100) + "...",
           });
           
           // MASTER PROMPT PIVOT: Passar apenas STRINGS, NÃO URL de imagem
@@ -184,14 +234,12 @@ export async function POST(req: NextRequest) {
           scenarioCategory = scenarioFromFirestore.category;
           scenarioInstructions = undefined; // Não usar instruções de imagem fixa
         } else {
-          console.log("[process-job] ⚠️ Nenhum cenário encontrado no Firestore, usando prompt genérico");
+          console.log("[process-job] ⚠️ Nenhum cenário encontrado, usando prompt genérico");
         }
       } catch (error: any) {
         console.error("[process-job] ❌ Erro ao buscar cenário do Firestore:", error);
         // Continuar sem cenário do Firestore, usar prompt genérico
       }
-    } else if (isRemix) {
-      console.log("[process-job] 🎨 REMIX detectado - NÃO buscando cenário do Firestore (forçar novo cenário)");
     }
 
     // Construir params para o orchestrator

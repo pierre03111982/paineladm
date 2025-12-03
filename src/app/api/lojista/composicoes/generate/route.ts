@@ -191,17 +191,18 @@ export async function POST(request: NextRequest) {
       scenePrompts = body.scenePrompts || null;
       options = body.options || null;
       
-      // PHASE 26: Receber dados do cenário (imagem e prompt)
-      scenarioImageUrl = body.scenarioImageUrl || null;
+      // PHASE 26: Receber dados do cenário (APENAS prompt/categoria, NÃO imagem)
+      // MASTER PROMPT PIVOT: scenarioImageUrl sempre undefined - não usar como imagem
+      scenarioImageUrl = undefined; // SEMPRE undefined - forçar geração via prompt
       scenarioLightingPrompt = body.scenarioLightingPrompt || null;
       scenarioCategory = body.scenarioCategory || null;
-      scenarioInstructions = body.scenarioInstructions || null;
+      scenarioInstructions = undefined; // Não usar instruções de imagem fixa
       
-      console.log("[API] PHASE 26: Dados do cenário recebidos:", {
-        hasScenarioImage: !!scenarioImageUrl,
+      console.log("[API] PHASE 26: Dados do cenário recebidos (TEXTO APENAS):", {
+        hasScenarioImage: false, // Sempre false - não usar imagem
         hasLightingPrompt: !!scenarioLightingPrompt,
         category: scenarioCategory || "N/A",
-        hasInstructions: !!scenarioInstructions,
+        nota: "Cenário será GERADO via prompt, não usado como input visual",
       });
     }
 
