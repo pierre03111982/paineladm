@@ -1133,9 +1133,19 @@ export async function POST(request: NextRequest) {
       console.log("[API] ✅ Job criado no Firestore:", { jobId, status: "PENDING" });
       
       // 3. Disparar processamento em background (não bloqueante)
+      // IMPORTANTE: Usar URL absoluta baseada no request para garantir que funcione em qualquer ambiente
+      const requestUrl = new URL(request.url);
+      const protocol = requestUrl.protocol;
+      const host = requestUrl.host;
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
                          process.env.NEXT_PUBLIC_PAINELADM_URL || 
-                         "http://localhost:3000";
+                         `${protocol}//${host}`;
+      
+      console.log("[API] 🚀 Disparando processamento em background:", {
+        backendUrl,
+        jobId,
+        endpoint: `${backendUrl}/api/internal/process-job`,
+      });
       
       // Disparar processamento em background (não aguardar resposta)
       fetch(`${backendUrl}/api/internal/process-job`, {
@@ -1145,8 +1155,25 @@ export async function POST(request: NextRequest) {
           "X-Internal-Request": "true",
         },
         body: JSON.stringify({ jobId }),
-      }).catch((error) => {
-        console.error("[API] ⚠️ Erro ao disparar processamento em background (não crítico):", error);
+      })
+      .then((response) => {
+        if (!response.ok) {
+          console.error("[API] ⚠️ Process-job retornou erro:", {
+            status: response.status,
+            statusText: response.statusText,
+            jobId,
+          });
+        } else {
+          console.log("[API] ✅ Process-job iniciado com sucesso:", { jobId });
+        }
+      })
+      .catch((error) => {
+        console.error("[API] ⚠️ Erro ao disparar processamento em background:", {
+          error: error.message,
+          jobId,
+          backendUrl,
+          nota: "O cron job vai processar este job depois se o disparo falhar",
+        });
         // Não falhar a requisição se o disparo falhar - o cron job vai processar depois
       });
       
