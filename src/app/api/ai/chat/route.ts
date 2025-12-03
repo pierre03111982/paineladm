@@ -148,80 +148,16 @@ IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato 
         stack: agentError?.stack?.substring(0, 500),
       });
 
-      // Fallback para API direta do Gemini se Vertex AI falhar
-      console.log("[AI/Chat] 🔄 Tentando fallback para API direta do Gemini...");
-      
-      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-
-      if (!apiKey) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Vertex AI falhou e API Key do Gemini não está configurada. Configure GEMINI_API_KEY ou GOOGLE_API_KEY nas variáveis de ambiente.",
-            details: agentError?.message,
-          },
-          { status: 500 }
-        );
-      }
-
-      // Construir prompt simples para fallback
-      const fallbackPrompt = `Você é Ana, a Consultora de Sucesso do Cliente do 'Experimenta AI'.
-
-CONTEXTO DA LOJA:
-- Nome: ${contextData.store.name}
-- Produtos: ${contextData.store.produtosCount}
-- Display: ${contextData.store.displayConnected ? "Conectado" : "Não conectado"}
-- Sales: ${contextData.store.salesConfigured ? "Configurado" : "Não configurado"}
-
-Responda de forma útil e acionável.
-
-MENSAGEM DO USUÁRIO: ${message}`;
-
-      const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-      
-      const directResponse = await fetch(`${geminiApiUrl}?key=${apiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Retornar erro sem fallback - apenas Vertex AI
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Erro ao processar mensagem com Vertex AI",
+          details: agentError?.message || "Erro desconhecido",
+          provider: "vertex-ai",
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: fallbackPrompt }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
-        }),
-      });
-
-      if (!directResponse.ok) {
-        const errorText = await directResponse.text();
-        throw new Error(`Gemini API error: ${directResponse.status} - ${errorText.substring(0, 200)}`);
-      }
-
-      const directData = await directResponse.json();
-      const candidate = directData.candidates?.[0];
-      
-      if (!candidate?.content?.parts?.[0]?.text) {
-        throw new Error("Resposta da API não contém texto válido");
-      }
-
-      const responseText = candidate.content.parts[0].text;
-
-      return NextResponse.json({
-        success: true,
-        response: responseText,
-        provider: "api-direct-fallback",
-        context: {
-          produtosCount,
-          displayConnected,
-          salesConfigured,
-          insightsCount: recentInsights.length,
-        },
-      });
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error("[API/AI/Chat] Erro:", error);
