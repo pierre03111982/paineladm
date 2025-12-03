@@ -32,13 +32,16 @@ export class VertexAgent {
     // 2. CONFIGURAR AUTENTICAÇÃO
     // Em produção (Vercel), usa Service Account Key
     // Em desenvolvimento local, usa Application Default Credentials (gcloud auth)
-    let googleAuthOptions: any = {};
+    const vertexAIOptions: any = {
+      project: this.project,
+      location: this.location,
+    };
 
     if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
       try {
         // Service Account Key em formato JSON string (Vercel)
         const serviceAccount = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
-        googleAuthOptions = {
+        vertexAIOptions.googleAuthOptions = {
           credentials: serviceAccount,
         };
         console.log(`[VertexAgent] 🔐 Usando Service Account Key (produção)`);
@@ -47,15 +50,13 @@ export class VertexAgent {
         // Continuar sem credenciais explícitas (tentará ADC)
       }
     } else {
+      // Não passar googleAuthOptions quando usar ADC
+      // O SDK do Vertex AI detecta automaticamente as credenciais do ADC
       console.log(`[VertexAgent] 🔐 Usando Application Default Credentials (desenvolvimento local)`);
       console.log(`[VertexAgent] 💡 Dica: Execute 'gcloud auth application-default login' se necessário`);
     }
 
-    this.vertexAi = new VertexAI({
-      project: this.project,
-      location: this.location,
-      googleAuthOptions,
-    });
+    this.vertexAi = new VertexAI(vertexAIOptions);
 
     console.log(`[VertexAgent] ✅ Vertex AI inicializado com sucesso`);
   }
