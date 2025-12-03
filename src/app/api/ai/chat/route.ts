@@ -59,9 +59,24 @@ export async function POST(request: NextRequest) {
     const salesConfigured = !!(lojaData?.salesConfig);
 
     // 2. Dados de Vendas (Últimos 3 insights)
+    // Busca simples sem ordenação para evitar erro de índice
     let recentInsights: any[] = [];
     try {
-      recentInsights = await getAllInsights(lojistaId, 3);
+      const insightsRef = db.collection(`lojas/${lojistaId}/insights`);
+      const insightsSnap = await insightsRef
+        .limit(5)
+        .get();
+      
+      recentInsights = insightsSnap.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          type: data.type,
+          title: data.title,
+          message: data.message,
+          priority: data.priority,
+        };
+      }).slice(0, 3); // Limitar a 3 após buscar
     } catch (error) {
       console.warn("[AI/Chat] Erro ao buscar insights:", error);
       // Continuar sem insights se houver erro

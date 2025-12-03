@@ -235,7 +235,8 @@ LINGUAGEM:
    * Obtém o modelo com fallback automático PRO → FLASH
    */
   private getModel(usePro: boolean = true): any {
-    const modelName = usePro ? "gemini-1.5-pro-002" : "gemini-1.5-flash-002";
+    // Usar versões estáveis dos modelos
+    const modelName = usePro ? "gemini-1.5-pro" : "gemini-1.5-flash";
     
     return this.vertexAI.preview.getGenerativeModel({
       model: modelName,
