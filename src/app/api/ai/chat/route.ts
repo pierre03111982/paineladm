@@ -119,54 +119,14 @@ GUIDELINES:
 
 IMPORTANTE: Sempre que sugerir uma ação que requer navegação, use o formato [[Label do Botão]](/caminho) para criar botões clicáveis.`;
 
-    // Validar configuração do projeto
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || "";
-    const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+    // Usar API direta do Gemini (GoogleGenerativeAI) em vez de Vertex AI
+    // Isso evita problemas de acesso ao modelo no Vertex AI
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-    if (!projectId) {
-      console.error("[AI/Chat] ❌ GOOGLE_CLOUD_PROJECT_ID não configurado");
-      throw new Error("Configuração do Google Cloud não encontrada. Verifique GOOGLE_CLOUD_PROJECT_ID.");
+    if (!apiKey) {
+      console.error("[AI/Chat] ❌ GEMINI_API_KEY ou GOOGLE_API_KEY não configurado");
+      throw new Error("API Key do Gemini não encontrada. Configure GEMINI_API_KEY ou GOOGLE_API_KEY nas variáveis de ambiente.");
     }
-
-    // Obter token de acesso via Firebase Admin
-    let accessToken: string;
-    try {
-      // Usar getAdminApp diretamente do firebaseAdmin
-      const { getAdminApp } = await import("@/lib/firebaseAdmin");
-      const adminApp = getAdminApp();
-      
-      if (!adminApp) {
-        console.error("[AI/Chat] ❌ Firebase Admin não inicializado");
-        throw new Error("Firebase Admin não inicializado. Verifique as variáveis de ambiente FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY.");
-      }
-
-      const credential = adminApp.options.credential;
-      if (!credential) {
-        console.error("[AI/Chat] ❌ Credencial do Firebase Admin não encontrada");
-        throw new Error("Credencial do Firebase Admin não encontrada. Verifique a configuração do Firebase.");
-      }
-
-      console.log("[AI/Chat] 🔑 Solicitando token de acesso...");
-      const tokenResult = await credential.getAccessToken();
-      
-      if (!tokenResult || !tokenResult.access_token) {
-        console.error("[AI/Chat] ❌ Token de acesso não disponível");
-        throw new Error("Token de acesso não disponível. Verifique as permissões do Service Account.");
-      }
-
-      accessToken = tokenResult.access_token;
-      console.log("[AI/Chat] ✅ Token de acesso obtido com sucesso");
-    } catch (tokenError: any) {
-      console.error("[AI/Chat] ❌ Erro ao obter token:", {
-        error: tokenError?.message,
-        errorName: tokenError?.name,
-        stack: tokenError?.stack?.substring(0, 500),
-      });
-      throw new Error(`Falha na autenticação: ${tokenError?.message || "Erro desconhecido"}`);
-    }
-
-    // Construir endpoint
-    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/gemini-1.5-flash:generateContent`;
 
     // Construir prompt completo
     const fullPrompt = `${systemPrompt}
@@ -175,23 +135,22 @@ USER MESSAGE: ${message}
 
 Responda de forma útil e acionável, usando botões de navegação quando apropriado.`;
 
-    console.log("[AI/Chat] 📤 Enviando requisição para Gemini:", {
-      endpoint,
-      projectId,
-      location,
+    console.log("[AI/Chat] 📤 Enviando requisição para Gemini (API Direta):", {
+      model: "gemini-1.5-flash",
       promptLength: fullPrompt.length,
-      hasAccessToken: !!accessToken,
+      hasApiKey: !!apiKey,
     });
 
-    // Fazer requisição direta ao Gemini
+    // Usar API direta do Gemini via fetch (não requer Vertex AI)
+    const geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    
     let response: Response;
     let responseData: any;
     
     try {
-      response = await fetch(endpoint, {
+      response = await fetch(`${geminiApiUrl}?key=${apiKey}`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
