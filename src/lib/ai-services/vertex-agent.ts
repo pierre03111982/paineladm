@@ -36,7 +36,7 @@ export class VertexAgent {
     try {
       console.log(`[VertexAgent] Enviando mensagem para Gemini Flash...`);
 
-      const model = this.vertexAi.preview.getGenerativeModel({
+      const model = this.vertexAi.getGenerativeModel({
         model: "gemini-1.5-flash",
         systemInstruction: systemPrompt,
       });
