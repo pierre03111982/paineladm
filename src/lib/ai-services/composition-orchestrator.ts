@@ -338,12 +338,15 @@ ${remixPromptText}
    - The person's face must be fully visible and centered in the upper portion of the image
    - If showing full body, ensure head is at the top with adequate space above
 
-2. POSE REQUIREMENTS:
+🕴️ POSE DIRECTIVE (ELEGANTE E ESTÁTICA):
+   - Generate a STYLISH, STATIC, and CONFIDENT pose.
+   - **NO WALKING or RUNNING.** The person should be standing firmly or leaning slightly.
+   - Posture: Straight back, relaxed shoulders, 'High Fashion Editorial' vibe.
+   - Hands: Natural placement (in pockets, folded, or relaxing at sides). Avoid awkward floating hands.
    - The person MUST be facing the camera or at MOST slightly to the side (3/4 view)
    - NEVER from behind (back view) - the face and frontal body MUST be visible
-   - NEVER sitting, kneeling, or on a chair - always standing, walking, or leaning against wall
-   - Allowed poses: standing, walking confidently, leaning against wall, hands on hips, arms crossed, etc.
-   - Maintain natural body posture and positioning
+   - NEVER sitting, kneeling, or on a chair - always standing elegantly or leaning against wall
+   - Maintain natural body posture and positioning with elegant, confident stance
 
 3. FRAMING REQUIREMENTS:
    - Full body shot: Show complete person from head to feet
@@ -432,7 +435,8 @@ CRITICAL: These rules apply to ALL generation modes (experimentar, refino, troca
         // PHASE 22: Adicionar banimento de alterações na aparência facial e corporal
         // PHASE 23: Reforçar termos anti-manequim com peso 2.0
         // PHASE 24: Adicionar termos para forçar realismo bruto (sem filtros)
-        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:3.0), (headless:3.0), (no head:3.0), (missing head:3.0), (cropped head:3.0), (head cropped:3.0), (face cut off:3.0), (face missing:3.0), (headless person:3.0), (person without head:3.0), (decapitated:3.0), (head removed:3.0), (head obscured:3.0), (head hidden:3.0), (face obscured:3.0), (face hidden:3.0), (partial head:2.5), (head partially visible:2.5), (head out of frame:2.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:2.0), (person without shadow:2.0), (floating person:1.6), (unrealistic lighting:2.0), (flat lighting:2.0), (no depth:1.4), (harsh shadows:1.5), (unnatural shadows:1.5), (wrong shadow direction:1.5), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5), (product not visible:1.5), (product missing:1.5), (product not applied:1.5)";
+        // MASTER PROMPT: REFINAMENTO DE ESTILO - Adicionar termos para proibir poses de movimento
+        const baseNegativePrompt = "(deformed, distorted, disfigured:1.3), poorly drawn, bad anatomy, wrong anatomy, extra limb, missing limb, floating limbs, (mutated hands and fingers:1.4), disconnected limbs, mutation, mutated, ugly, blurry, amputation, (head cut off:3.0), (headless:3.0), (no head:3.0), (missing head:3.0), (cropped head:3.0), (head cropped:3.0), (face cut off:3.0), (face missing:3.0), (headless person:3.0), (person without head:3.0), (decapitated:3.0), (head removed:3.0), (head obscured:3.0), (head hidden:3.0), (face obscured:3.0), (face hidden:3.0), (partial head:2.5), (head partially visible:2.5), (head out of frame:2.5), text, watermark, bad composition, duplicate, (original clothes visible:1.6), (two layers of clothing:1.6), (multiple outfits:1.6), (old outfit:1.4), (no shadows:2.0), (person without shadow:2.0), (floating person:1.6), (unrealistic lighting:2.0), (flat lighting:2.0), (no depth:1.4), (harsh shadows:1.5), (unnatural shadows:1.5), (wrong shadow direction:1.5), (sitting:1.5), (seated:1.5), (chair:1.5), (bench:1.5), (kneeling:1.5), (walking:2.0), (running:2.0), (dynamic movement:2.0), (person walking:2.0), (person running:2.0), (mid-stride:2.0), (in motion:2.0), (artificial walking:2.0), (awkward movement:2.0), (mannequin body:2.0), (plastic skin:2.0), (rigid clothing:1.8), (stiff pose:1.8), (neck stand:2.0), (ghost mannequin:2.0), (artificial pose:1.6), (artificial body shape:1.6), (wrong proportions:1.5), (mismatched body:1.5), (back view:1.8), (person facing away:1.8), (back turned:1.8), (rear view:1.8), (different face:2.0), (different person:2.0), (face changed:2.0), (altered facial features:2.0), (different eye color:2.0), (different nose shape:2.0), (different mouth shape:2.0), (different face shape:2.0), (different skin tone:2.0), (different body shape:2.0), (different body proportions:2.0), (altered body:2.0), (face swap:2.0), (different person's face:2.0), (face replacement:2.0), (cgi face:1.5), (filter:1.5), (smooth skin:1.5), (instagram face:1.5), (product not visible:1.5), (product missing:1.5), (product not applied:1.5)";
         
         // PHASE 31: QUALIDADE REMIX - Reforçar negative prompt para evitar TODOS os tipos de cortes
         // Aplicar para TODOS os modos (não apenas calçados)
@@ -658,6 +662,13 @@ ${isIndoorContext ? `
 - The person must look like they are physically present in the scene, not pasted on top.
 - The lighting on the person's FACE must be natural, flattering, and match the scene's light source perfectly.
 
+💡 ATMOSPHERE & LIGHTING (REFORÇADO):
+- LIGHT SOURCE: Soft, natural sunlight (Golden Hour or Mid-Morning) for outdoor scenarios.
+- TEMPERATURE: Slightly WARM tone (creates healthy skin and inviting vibe).
+- INTEGRATION: The light on the person MUST match the background direction exactly.
+- AVOID: Cold/Blue industrial light or harsh noon shadows.
+- For indoor scenarios: Soft window light with natural daylight temperature, slightly warm.
+
 CRITICAL: These photography standards MUST be applied to ALL images, regardless of scenario type. This creates consistent, professional fashion photography quality.`;
 
         // PHASE 31: FORMAT & COMPOSITION - QUALIDADE REMIX PARA TODOS OS MODOS
@@ -679,11 +690,14 @@ CRITICAL: These photography standards MUST be applied to ALL images, regardless 
 - NEVER crop legs, feet, or any body parts
 - The person must be positioned in the center of the frame with adequate space around
 
-- POSE (QUALIDADE REMIX):
+- POSE (QUALIDADE REMIX - ELEGANTE E ESTÁTICA):
   - The person MUST be facing the camera or at MOST slightly to the side (3/4 view)
   - NEVER from behind (back view) - the face and frontal body MUST be visible
-  - NEVER sitting, kneeling, or on a chair - always standing, walking, or leaning against wall
-  - Natural standing pose with good posture
+  - **NO WALKING or RUNNING** - always standing elegantly or leaning slightly against wall
+  - NEVER sitting, kneeling, or on a chair
+  - STYLISH, STATIC, and CONFIDENT pose with straight back and relaxed shoulders
+  - Hands: Natural placement (in pockets, folded, or relaxing at sides)
+  - High Fashion Editorial vibe with elegant, confident stance
   - Maintain natural body positioning and proportions`;
 
         // NEGATIVE CONSTRAINTS
@@ -811,6 +825,55 @@ ${productsData.map((product, i) => {
 }).join("\n")}
 
 CRITICAL: ALL ${allProductImageUrls.length} product(s) listed above MUST be visible in the final image.${legExtensionInstruction}
+
+👗 OUTFIT COMPLETION LOGIC (AUTO-STYLING - FASHION INTELLIGENCE):
+${(() => {
+  // Detectar o que foi fornecido
+  const onlyTop = hasTop && !hasBottom && !hasShoes;
+  const onlyBottom = hasBottom && !hasTop && !hasShoes;
+  const onlyShoes = hasShoes && !hasTop && !hasBottom;
+  const hasSwimwear = hasBeach;
+  
+  let completionInstructions = "";
+  
+  if (onlyTop) {
+    completionInstructions = `
+- IF only a TOP is provided: You MUST generate a matching BOTTOM and SHOES that fit the style.
+  - E.g., Floral Shirt -> Chino shorts or Linen pants (Beach vibe) OR Jeans (City vibe).
+  - NEVER leave the person in underwear or the original bottom if it clashes.
+  - Choose complementary colors and styles that create a complete, coherent outfit.
+  - The bottom and shoes should match the formality and style of the top.`;
+  } else if (onlyBottom) {
+    completionInstructions = `
+- IF only a BOTTOM is provided: Generate a matching neutral T-shirt or Shirt.
+  - Choose a top that complements the style and color of the bottom.
+  - Create a complete, coherent outfit that looks intentional and stylish.
+  - Avoid clashing colors or styles.`;
+  } else if (onlyShoes) {
+    completionInstructions = `
+- IF only SHOES are provided: Generate appropriate matching TOP and BOTTOM.
+  - Match the formality level: Sneakers -> Casual outfit, Dress shoes -> Formal outfit.
+  - Create a complete, coherent outfit that showcases the shoes properly.`;
+  }
+  
+  if (hasSwimwear) {
+    completionInstructions += `
+- IF SWIMWEAR (Bikini/Trunks) is provided:
+  - If the input photo is NOT at a beach, DO NOT keep the original street clothes (jeans/jacket).
+  - REPLACE the rest of the outfit with bare skin (appropriate for beach) or beach accessories (Sarong/Cover-up).
+  - The goal is a complete, coherent beach outfit, not a mix-match of street clothes and swimwear.
+  - Ensure the person looks naturally dressed for a beach/pool environment.`;
+  }
+  
+  if (!completionInstructions) {
+    completionInstructions = `
+- If multiple products are provided, ensure they create a complete, coherent outfit.
+- All pieces should complement each other in style, color, and formality level.
+- The goal is a complete, intentional look, not a random mix of items.`;
+  }
+  
+  return completionInstructions;
+})()}
 
 FINAL QUALITY CHECK (CRITICAL):
 - The person must look IDENTICAL to Image 1 (face, body, skin tone)
