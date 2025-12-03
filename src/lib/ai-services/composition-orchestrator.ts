@@ -737,7 +737,22 @@ FINAL QUALITY CHECK:
           throw new Error(geminiResult.error || "Falha ao gerar Look Criativo com Gemini Flash Image");
         }
 
+        // VALIDAÇÃO: Garantir que imageUrl foi retornado
+        if (!geminiResult.data.imageUrl || geminiResult.data.imageUrl.trim() === "") {
+          console.error("[Orchestrator] ❌ Gemini retornou sucesso mas sem imageUrl:", {
+            success: geminiResult.success,
+            hasData: !!geminiResult.data,
+            dataKeys: geminiResult.data ? Object.keys(geminiResult.data) : [],
+            error: geminiResult.error,
+          });
+          throw new Error("Gemini Flash Image retornou sucesso mas sem imageUrl. Verifique os logs para mais detalhes.");
+        }
+
         tryonImageUrl = geminiResult.data.imageUrl;
+        console.log("[Orchestrator] ✅ Imagem gerada pelo Gemini:", {
+          imageUrl: tryonImageUrl.substring(0, 100) + "...",
+          imageUrlLength: tryonImageUrl.length,
+        });
         totalCost += geminiResult.cost || 0;
 
         if (status.steps?.stabilityCreative) {
@@ -984,12 +999,29 @@ FINAL QUALITY CHECK:
       // ========================================
       const processingTime = Date.now() - startTime;
 
+      // VALIDAÇÃO CRÍTICA: Garantir que tryonImageUrl foi gerado
+      if (!tryonImageUrl || tryonImageUrl.trim() === "") {
+        const errorMsg = "Nenhum Look foi gerado - tryonImageUrl está vazio após processamento";
+        console.error(`[Orchestrator] ❌ ${errorMsg}`);
+        console.error("[Orchestrator] Estado do processamento:", {
+          compositionId,
+          hasTryonImageUrl: !!tryonImageUrl,
+          tryonImageUrlLength: tryonImageUrl?.length || 0,
+          sceneImageUrlsCount: sceneImageUrls.length,
+          totalCost,
+          processingTime,
+          status: status.status,
+        });
+        throw new Error(errorMsg);
+      }
+
       status.status = "completed";
       status.completedAt = new Date();
       status.totalCost = totalCost;
 
-      console.log("[Orchestrator] Composição concluída", {
+      console.log("[Orchestrator] ✅ Composição concluída com sucesso", {
         compositionId,
+        tryonImageUrl: tryonImageUrl.substring(0, 100) + "...",
         totalCost,
         processingTime,
       });
