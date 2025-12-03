@@ -23,8 +23,23 @@ export class VertexAgent {
       throw new Error("GOOGLE_CLOUD_PROJECT_ID não configurado. Configure a variável de ambiente.");
     }
 
+    // Configurar autenticação para Vertex AI
+    // No Vercel, usa GCP_SERVICE_ACCOUNT_KEY (JSON string)
+    // Localmente, usa Application Default Credentials (gcloud auth)
+    if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
+      try {
+        const serviceAccountKey = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
+        // Configurar GOOGLE_APPLICATION_CREDENTIALS para o SDK usar
+        process.env.GOOGLE_APPLICATION_CREDENTIALS = JSON.stringify(serviceAccountKey);
+        console.log("[VertexAgent] ✅ Usando Service Account do GCP_SERVICE_ACCOUNT_KEY");
+      } catch (error) {
+        console.warn("[VertexAgent] ⚠️ Erro ao parsear GCP_SERVICE_ACCOUNT_KEY, usando ADC:", error);
+      }
+    }
+
     // Inicializar Vertex AI usando Application Default Credentials (ADC)
-    // Isso usa automaticamente as credenciais do gcloud auth
+    // No Vercel, isso usará a Service Account configurada acima
+    // Localmente, usa automaticamente as credenciais do gcloud auth
     this.vertexAI = new VertexAI({
       project: this.projectId,
       location: this.location,
