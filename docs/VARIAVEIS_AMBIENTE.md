@@ -118,9 +118,52 @@ node -e "console.log('Firebase Project:', process.env.FIREBASE_PROJECT_ID); cons
 
 Se retornar `undefined`, as variáveis não estão configuradas.
 
+## 🔑 Como Obter a Gemini API Key
 
+### Passo a Passo
 
+1. **Acesse o Google AI Studio:**
+   - URL: https://aistudio.google.com/app/apikey
+   - Faça login com sua conta Google
 
+2. **Criar Nova API Key:**
+   - Clique em "Create API Key" ou "Criar chave de API"
+   - Selecione o projeto Google Cloud (ou crie um novo)
+   - A API key será gerada automaticamente
+
+3. **Copiar a API Key:**
+   - Copie a chave gerada (formato: `AIza...`)
+   - ⚠️ **IMPORTANTE:** Guarde a chave com segurança, ela não será exibida novamente
+
+4. **Adicionar nas Variáveis de Ambiente:**
+   - **Local:** Adicione no arquivo `.env.local`:
+     ```env
+     GEMINI_API_KEY=AIzaSyC...
+     ```
+   - **Vercel:** Adicione em Settings > Environment Variables:
+     - Key: `GEMINI_API_KEY`
+     - Value: `AIzaSyC...`
+     - Marque para Production, Preview e Development
+
+5. **Reiniciar/Redepleyar:**
+   - **Local:** Reinicie o servidor (`npm run dev`)
+   - **Vercel:** Faça um novo deploy após adicionar a variável
+
+### Verificação
+
+Após configurar, teste o chatbot "Ana" no painel do lojista. Se funcionar, a API key está correta.
+
+### Troubleshooting
+
+- **Erro 401 (Unauthorized):** API key inválida ou expirada
+- **Erro 403 (Forbidden):** API key não tem permissões ou projeto não tem acesso ao Gemini
+- **Erro 404 (Not Found):** Modelo não encontrado (verifique se está usando `gemini-1.5-flash`)
+
+### Limites e Custos
+
+- A API key tem limites de uso (quota)
+- Consulte: https://ai.google.dev/pricing
+- Modelo `gemini-1.5-flash` é gratuito até certo limite
 
 
 
