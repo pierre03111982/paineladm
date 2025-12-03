@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         imagens: allProductImageUrls.map((url, i) => ({
           indice: i + 1,
           tipo: `IMAGEM_PRODUTO_${i + 1}`,
-          url: url.substring(0, 80) + "...",
+          url: url ? url.substring(0, 80) + "..." : "N/A",
         })),
       });
 
@@ -340,7 +340,7 @@ export async function POST(req: NextRequest) {
       allProductImageUrls: allProductImageUrls.map((url, i) => ({
         indice: i + 1,
         tipo: `IMAGEM_PRODUTO_${i + 1}`,
-        url: url.substring(0, 80) + "...",
+        url: url ? url.substring(0, 80) + "..." : "N/A",
       })),
       productsDataCount: productsData.length,
       productsData: productsData.map(p => ({
