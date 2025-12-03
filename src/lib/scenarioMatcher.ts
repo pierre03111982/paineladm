@@ -125,8 +125,8 @@ export function extractProductKeywords(product: any): string[] {
     // Palavras comuns de produtos
     const productWords = nomeLower
       .split(/[\s,\-\.]+/)
-      .filter(word => word.length > 2) // Ignorar palavras muito curtas
-      .map(word => word.trim());
+      .filter((word: string) => word.length > 2) // Ignorar palavras muito curtas
+      .map((word: string) => word.trim());
     keywords.push(...productWords);
   }
   
@@ -137,8 +137,8 @@ export function extractProductKeywords(product: any): string[] {
     // Também adicionar palavras individuais da categoria
     const categoriaWords = categoriaLower
       .split(/[\s,\-\.]+/)
-      .filter(word => word.length > 2)
-      .map(word => word.trim());
+      .filter((word: string) => word.length > 2)
+      .map((word: string) => word.trim());
     keywords.push(...categoriaWords);
   }
   
@@ -147,8 +147,8 @@ export function extractProductKeywords(product: any): string[] {
     const descLower = (product.obs || product.descricao || "").toLowerCase();
     const descWords = descLower
       .split(/[\s,\-\.]+/)
-      .filter(word => word.length > 3) // Descrição pode ter palavras mais longas
-      .map(word => word.trim());
+      .filter((word: string) => word.length > 3) // Descrição pode ter palavras mais longas
+      .map((word: string) => word.trim());
     keywords.push(...descWords);
   }
   

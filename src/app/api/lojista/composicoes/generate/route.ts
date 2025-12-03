@@ -86,6 +86,9 @@ export async function POST(request: NextRequest) {
   let scenarioLightingPrompt: string | null | undefined = undefined;
   let scenarioCategory: string | null | undefined = undefined;
   let scenarioInstructions: string | null | undefined = undefined;
+  // Variáveis de reserva de crédito (para rollback em caso de erro)
+  let reservationResult: Awaited<ReturnType<typeof reserveCredit>> | undefined;
+  let reservationId: string | undefined;
   
   try {
     // Verificar se é FormData ou JSON pelo content-type
@@ -1064,9 +1067,6 @@ export async function POST(request: NextRequest) {
       
       // 1. Reservar crédito ANTES de criar o job
       console.log("[API] 💳 Reservando crédito para geração assíncrona...");
-      let reservationResult: Awaited<ReturnType<typeof reserveCredit>>;
-      let reservationId: string | undefined;
-      
       reservationResult = await reserveCredit(lojistaId);
       
       if (!reservationResult.success) {
@@ -1165,6 +1165,7 @@ export async function POST(request: NextRequest) {
       
     } catch (error) {
       // Se houver erro ao criar job, fazer rollback do crédito (se foi reservado)
+      // reservationId e lojistaId estão no escopo da função POST, acessíveis aqui
       if (reservationId && lojistaId) {
         try {
           await rollbackCredit(lojistaId, reservationId);
@@ -1180,7 +1181,7 @@ export async function POST(request: NextRequest) {
         "AI Generation API",
         error instanceof Error ? error : new Error(String(error)),
         {
-          storeId: lojistaId,
+          storeId: lojistaId || "unknown",
           errorType: "AIGenerationError",
           customerId: customerId || null,
           productIds: productIds,
@@ -1318,9 +1319,9 @@ export async function POST(request: NextRequest) {
       try {
         const clienteDoc = await db
           .collection("lojas")
-          .doc(lojistaId)
+          .doc(lojistaId || "")
           .collection("clientes")
-          .doc(customerId)
+          .doc(customerId || "")
           .get();
         
         if (clienteDoc.exists) {
@@ -1373,9 +1374,9 @@ export async function POST(request: NextRequest) {
 
       await db
         .collection("lojas")
-        .doc(lojistaId)
+        .doc(lojistaId || "")
         .collection("composicoes")
-        .doc(composicaoId)
+        .doc(composicaoId || "")
         .set(composicaoData);
 
       console.log("[API] Composição salva no Firestore:", composicaoId);
@@ -1386,7 +1387,7 @@ export async function POST(request: NextRequest) {
         try {
           const { updateClienteComposicoesStats } = await import("@/lib/firestore/server");
           // Atualizar estatísticas imediatamente após gerar composição
-          await updateClienteComposicoesStats(lojistaId, customerId);
+          await updateClienteComposicoesStats(lojistaId || "", customerId || "");
         } catch (updateError) {
           console.error("[API] Erro ao atualizar estatísticas:", updateError);
           // Não falhar a requisição se a atualização falhar

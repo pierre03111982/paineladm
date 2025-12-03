@@ -740,8 +740,10 @@ FINAL QUALITY CHECK:
         tryonImageUrl = geminiResult.data.imageUrl;
         totalCost += geminiResult.cost || 0;
 
-        status.steps.stabilityCreative.status = "completed";
-        status.steps.stabilityCreative.completedAt = new Date();
+        if (status.steps?.stabilityCreative) {
+          status.steps.stabilityCreative.status = "completed";
+          status.steps.stabilityCreative.completedAt = new Date();
+        }
 
         await logAPICost({
           lojistaId: params.lojistaId,
@@ -788,11 +790,8 @@ FINAL QUALITY CHECK:
           if (!status.steps) {
             status.steps = {};
           }
-          // TypeScript assertion: após verificação, steps está garantido
-          if (!status.steps) {
-            status.steps = {};
-          }
-          const steps = status.steps;
+          // TypeScript: após verificação, steps está garantido
+          const steps = status.steps!;
           steps.tryon = {
             status: "processing",
             startedAt: new Date(),
@@ -821,12 +820,22 @@ FINAL QUALITY CHECK:
             );
           }
 
-          tryonImageUrl = tryonResult.data.imageUrl;
+          const tryonData = tryonResult.data;
+          if (tryonData?.imageUrl) {
+            // TypeScript: tryonData está garantido dentro do if
+            tryonImageUrl = tryonData!.imageUrl;
+          } else if (tryonData) {
+            // Se tryonData existe mas não tem imageUrl, usar fallback
+            console.warn("[Orchestrator] tryonData sem imageUrl");
+          }
           totalCost += tryonResult.cost || 0;
 
-          if (status.steps?.tryon) {
-            status.steps.tryon.status = "completed";
-            status.steps.tryon.completedAt = new Date();
+          // Atualizar status usando a variável local steps
+          if (steps?.tryon) {
+            // TypeScript: dentro do if, steps.tryon está garantido
+            const tryonStep = steps.tryon!;
+            tryonStep.status = "completed";
+            tryonStep.completedAt = new Date();
           }
 
           await logAPICost({
@@ -856,7 +865,9 @@ FINAL QUALITY CHECK:
           console.log("[Orchestrator] productImageUrl:", params.productImageUrl ? params.productImageUrl.substring(0, 100) + "..." : "❌ NÃO FORNECIDA");
           
           if (!status.steps) status.steps = {};
-          status.steps.stability = {
+          // Garantir que steps não é undefined após verificação
+          const stepsForStability = status.steps!;
+          stepsForStability.stability = {
             status: "processing",
             startedAt: new Date(),
             provider: "stability-ai",
@@ -864,15 +875,20 @@ FINAL QUALITY CHECK:
 
           const basePrompt = `A person wearing the exact product from the reference image. The product should be applied naturally and realistically, maintaining all physical characteristics of the person (face, body, posture) and all characteristics of the product (color, style, shape, details). Professional photography, high quality, natural lighting.`;
 
+          const options = params.options;
+          const productImageUrlForStability = (isProductUrl && options?.productUrl) 
+            ? (options!.productUrl || "") 
+            : (params.productImageUrl || "");
+          
           console.log("[Orchestrator] Chamando StabilityAI generateComposition com:", {
             personImageUrl: params.personImageUrl.substring(0, 80) + "...",
-            productImageUrl: (isProductUrl && params.options?.productUrl ? params.options.productUrl : params.productImageUrl)?.substring(0, 80) + "...",
+            productImageUrl: productImageUrlForStability.substring(0, 80) + "...",
             prompt: basePrompt.substring(0, 100) + "...",
           });
 
           const stabilityResult = await this.stabilityService.generateComposition({
             personImageUrl: params.personImageUrl,
-            productImageUrl: isProductUrl && params.options?.productUrl ? params.options.productUrl : params.productImageUrl,
+            productImageUrl: productImageUrlForStability || "",
             prompt: basePrompt,
             negativePrompt: "distorted, blurry, low quality, artifacts, deformed, ugly",
             width: 1024,
@@ -885,11 +901,19 @@ FINAL QUALITY CHECK:
             throw new Error(stabilityResult.error || "Falha ao gerar Look Natural com Stability.ai");
           }
 
-          tryonImageUrl = stabilityResult.data.imageUrl;
+          const stabilityData = stabilityResult.data;
+          if (stabilityData?.imageUrl) {
+            tryonImageUrl = stabilityData!.imageUrl;
+          }
           totalCost += stabilityResult.cost || 0;
 
-          status.steps.stability.status = "completed";
-          status.steps.stability.completedAt = new Date();
+          // Atualizar status usando a variável local stepsForStability
+          if (stepsForStability?.stability) {
+            // TypeScript: dentro do if, stepsForStability.stability está garantido
+            const stabilityStep = stepsForStability.stability!;
+            stabilityStep.status = "completed";
+            stabilityStep.completedAt = new Date();
+          }
 
           await logAPICost({
             lojistaId: params.lojistaId,
@@ -902,7 +926,7 @@ FINAL QUALITY CHECK:
 
           console.log("[Orchestrator] Look Natural (Stability.ai) concluído", {
             cost: stabilityResult.cost,
-            time: stabilityResult.data.processingTime,
+            time: stabilityResult.data?.processingTime,
           });
         }
       }
