@@ -181,11 +181,12 @@ Responda de forma útil e acionável, usando botões de navegação quando aprop
                 const candidate = vertexData.candidates?.[0];
                 
                 if (candidate?.content?.parts?.[0]?.text) {
-                  responseText = candidate.content.parts[0].text;
+                  const text = candidate.content.parts[0].text;
+                  responseText = text;
                   usedVertexAI = true;
                   console.log("[AI/Chat] ✅ Vertex AI funcionou! Resposta recebida:", {
-                    responseLength: responseText.length,
-                    preview: responseText.substring(0, 100),
+                    responseLength: text.length,
+                    preview: text.substring(0, 100),
                   });
                 } else {
                   throw new Error("Vertex AI retornou resposta sem texto");
@@ -278,10 +279,11 @@ Responda de forma útil e acionável, usando botões de navegação quando aprop
         throw new Error("Resposta da API não contém texto válido");
       }
 
-      responseText = candidate.content.parts[0].text;
+      const text = candidate.content.parts[0].text;
+      responseText = text;
       console.log("[AI/Chat] ✅ API direta funcionou! Resposta recebida:", {
-        responseLength: responseText.length,
-        preview: responseText.substring(0, 100),
+        responseLength: text.length,
+        preview: text.substring(0, 100),
       });
     }
 
