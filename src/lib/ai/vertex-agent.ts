@@ -20,6 +20,13 @@ export class VertexAgent {
     this.projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || "";
     this.location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
 
+    console.log("[VertexAgent] 🔧 Inicializando...", {
+      projectId: this.projectId,
+      location: this.location,
+      hasGcpKey: !!process.env.GCP_SERVICE_ACCOUNT_KEY,
+      gcpKeyLength: process.env.GCP_SERVICE_ACCOUNT_KEY?.length || 0,
+    });
+
     if (!this.projectId) {
       throw new Error("GOOGLE_CLOUD_PROJECT_ID não configurado. Configure a variável de ambiente.");
     }
@@ -31,32 +38,71 @@ export class VertexAgent {
     
     if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
       try {
-        credentials = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
-        console.log("[VertexAgent] ✅ Service Account detectada do GCP_SERVICE_ACCOUNT_KEY");
+        const gcpKeyStr = process.env.GCP_SERVICE_ACCOUNT_KEY;
+        console.log("[VertexAgent] 📝 Parseando GCP_SERVICE_ACCOUNT_KEY...", {
+          length: gcpKeyStr.length,
+          startsWith: gcpKeyStr.substring(0, 50),
+        });
+        
+        credentials = JSON.parse(gcpKeyStr);
+        
+        // Validar campos essenciais
+        if (!credentials.type || credentials.type !== "service_account") {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não é uma Service Account válida (type !== 'service_account')");
+        }
+        if (!credentials.project_id) {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não contém project_id");
+        }
+        if (!credentials.private_key) {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não contém private_key");
+        }
+        if (!credentials.client_email) {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não contém client_email");
+        }
+        
+        console.log("[VertexAgent] ✅ Service Account válida detectada", {
+          projectId: credentials.project_id,
+          clientEmail: credentials.client_email,
+          hasPrivateKey: !!credentials.private_key,
+        });
       } catch (error: any) {
-        console.error("[VertexAgent] ❌ Erro ao parsear GCP_SERVICE_ACCOUNT_KEY:", error?.message);
-        throw new Error(`Erro ao parsear GCP_SERVICE_ACCOUNT_KEY: ${error?.message}`);
+        console.error("[VertexAgent] ❌ Erro ao parsear/validar GCP_SERVICE_ACCOUNT_KEY:", {
+          error: error?.message,
+          stack: error?.stack?.substring(0, 500),
+        });
+        throw new Error(`Erro ao processar GCP_SERVICE_ACCOUNT_KEY: ${error?.message}`);
       }
+    } else {
+      console.log("[VertexAgent] ⚠️ GCP_SERVICE_ACCOUNT_KEY não encontrada, tentando ADC");
     }
 
     // Inicializar Vertex AI com credenciais explícitas se disponíveis
     // Caso contrário, usa Application Default Credentials (ADC)
-    const vertexAIOptions: any = {
-      project: this.projectId,
-      location: this.location,
-    };
-
-    // Se temos credenciais, passar explicitamente
-    if (credentials) {
-      vertexAIOptions.googleAuthOptions = {
-        credentials: credentials,
+    try {
+      const vertexAIOptions: any = {
+        project: this.projectId,
+        location: this.location,
       };
-      console.log("[VertexAgent] 🔐 Usando autenticação com Service Account explícita");
-    } else {
-      console.log("[VertexAgent] 🔐 Usando Application Default Credentials (ADC)");
-    }
 
-    this.vertexAI = new VertexAI(vertexAIOptions);
+      // Se temos credenciais, passar explicitamente
+      if (credentials) {
+        vertexAIOptions.googleAuthOptions = {
+          credentials: credentials,
+        };
+        console.log("[VertexAgent] 🔐 Configurando Vertex AI com Service Account explícita");
+      } else {
+        console.log("[VertexAgent] 🔐 Configurando Vertex AI com Application Default Credentials (ADC)");
+      }
+
+      this.vertexAI = new VertexAI(vertexAIOptions);
+      console.log("[VertexAgent] ✅ Vertex AI inicializado com sucesso");
+    } catch (error: any) {
+      console.error("[VertexAgent] ❌ Erro ao inicializar Vertex AI:", {
+        error: error?.message,
+        stack: error?.stack?.substring(0, 500),
+      });
+      throw new Error(`Erro ao inicializar Vertex AI: ${error?.message}`);
+    }
 
     // Configurar modelo Gemini 1.5 Pro
     // Usar versão estável mais recente
@@ -203,6 +249,12 @@ LINGUAGEM:
    * Chat com Function Calling - Orquestra a conversa e executa funções quando necessário
    */
   async chat(userMessage: string, lojistaId: string, contextData?: any): Promise<string> {
+    console.log("[VertexAgent] 💬 Iniciando chat...", {
+      messageLength: userMessage.length,
+      lojistaId,
+      hasContext: !!contextData,
+    });
+    
     try {
       // Construir contexto inicial
       const contextPrompt = contextData 
