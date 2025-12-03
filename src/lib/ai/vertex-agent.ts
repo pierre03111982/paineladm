@@ -104,10 +104,10 @@ export class VertexAgent {
       throw new Error(`Erro ao inicializar Vertex AI: ${error?.message}`);
     }
 
-    // Configurar modelo Gemini 1.5 Pro
-    // Usar versão estável mais recente
+    // Configurar modelo Gemini 1.5 Flash (gemini-1.5-pro não está disponível)
+    // Flash é mais rápido e está disponível no Vertex AI
     this.model = this.vertexAI.preview.getGenerativeModel({
-      model: "gemini-1.5-pro",
+      model: "gemini-1.5-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
@@ -123,7 +123,7 @@ export class VertexAgent {
     console.log("[VertexAgent] ✅ Agente Ana inicializado com Vertex AI", {
       project: this.projectId,
       location: this.location,
-      model: "gemini-1.5-pro",
+      model: "gemini-1.5-flash",
     });
   }
 
