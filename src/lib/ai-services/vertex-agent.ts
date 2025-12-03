@@ -4,6 +4,7 @@
  */
 
 import { VertexAI } from "@google-cloud/vertexai";
+import { GoogleAuth } from "google-auth-library";
 import { ANA_TOOLS, type AnaToolName } from "../ai/ana-tools";
 
 /**
@@ -19,21 +20,96 @@ export class VertexAgent {
     this.project = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "";
     this.location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
 
+    console.log("[VertexAgent] 🔧 Inicializando...", {
+      project: this.project,
+      location: this.location,
+      hasGcpKey: !!process.env.GCP_SERVICE_ACCOUNT_KEY,
+      gcpKeyLength: process.env.GCP_SERVICE_ACCOUNT_KEY?.length || 0,
+    });
+
     if (!this.project) {
       throw new Error("GOOGLE_CLOUD_PROJECT_ID ou FIREBASE_PROJECT_ID não configurado. Configure a variável de ambiente.");
     }
 
-    // Inicializar Vertex AI usando Application Default Credentials (ADC)
-    // Isso usa automaticamente as credenciais do gcloud auth (local) ou Service Account (Vercel)
-    this.vertexAI = new VertexAI({
-      project: this.project,
-      location: this.location,
-    });
+    // Configurar autenticação para Vertex AI
+    // No Vercel, usa GCP_SERVICE_ACCOUNT_KEY (JSON string)
+    // Localmente, usa Application Default Credentials (gcloud auth) ou GCP_SERVICE_ACCOUNT_KEY
+    let credentials: any = undefined;
+    
+    if (process.env.GCP_SERVICE_ACCOUNT_KEY) {
+      try {
+        const gcpKeyStr = process.env.GCP_SERVICE_ACCOUNT_KEY;
+        console.log("[VertexAgent] 📝 Parseando GCP_SERVICE_ACCOUNT_KEY...", {
+          length: gcpKeyStr.length,
+          startsWith: gcpKeyStr.substring(0, 50),
+        });
+        
+        credentials = JSON.parse(gcpKeyStr);
+        
+        // Validar campos essenciais
+        if (!credentials.type || credentials.type !== "service_account") {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não é uma Service Account válida (type !== 'service_account')");
+        }
+        if (!credentials.project_id) {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não contém project_id");
+        }
+        if (!credentials.private_key) {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não contém private_key");
+        }
+        if (!credentials.client_email) {
+          throw new Error("GCP_SERVICE_ACCOUNT_KEY não contém client_email");
+        }
+        
+        console.log("[VertexAgent] ✅ Service Account válida detectada", {
+          projectId: credentials.project_id,
+          clientEmail: credentials.client_email,
+          hasPrivateKey: !!credentials.private_key,
+        });
+      } catch (error: any) {
+        console.error("[VertexAgent] ❌ Erro ao parsear/validar GCP_SERVICE_ACCOUNT_KEY:", {
+          error: error?.message,
+          stack: error?.stack?.substring(0, 500),
+        });
+        throw new Error(`Erro ao processar GCP_SERVICE_ACCOUNT_KEY: ${error?.message}`);
+      }
+    } else {
+      console.log("[VertexAgent] ⚠️ GCP_SERVICE_ACCOUNT_KEY não encontrada, tentando ADC");
+    }
 
-    console.log("[VertexAgent] ✅ Vertex AI inicializado", {
-      project: this.project,
-      location: this.location,
-    });
+    // Inicializar Vertex AI com credenciais explícitas se disponíveis
+    // Caso contrário, usa Application Default Credentials (ADC)
+    try {
+      const vertexAIOptions: any = {
+        project: this.project,
+        location: this.location,
+      };
+
+      // Se temos credenciais, passar explicitamente via GoogleAuth
+      if (credentials) {
+        const auth = new GoogleAuth({
+          credentials: credentials,
+          projectId: this.project,
+        });
+        
+        // Configurar como credencial padrão
+        vertexAIOptions.googleAuthOptions = {
+          auth: auth,
+        };
+        
+        console.log("[VertexAgent] 🔐 Configurando Vertex AI com Service Account explícita");
+      } else {
+        console.log("[VertexAgent] 🔐 Configurando Vertex AI com Application Default Credentials (ADC)");
+      }
+
+      this.vertexAI = new VertexAI(vertexAIOptions);
+      console.log("[VertexAgent] ✅ Vertex AI inicializado com sucesso");
+    } catch (error: any) {
+      console.error("[VertexAgent] ❌ Erro ao inicializar Vertex AI:", {
+        error: error?.message,
+        stack: error?.stack?.substring(0, 500),
+      });
+      throw new Error(`Erro ao inicializar Vertex AI: ${error?.message}`);
+    }
   }
 
   /**
