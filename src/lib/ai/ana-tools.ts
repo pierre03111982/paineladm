@@ -27,17 +27,41 @@ export async function getStoreVitalStats(lojistaId: string): Promise<{
   totalDislikes: number;
   taxaAprovacao: number;
   composicoesComCheckout: number;
+  valorTotalEstoque: number;
+  produtosComPreco: number;
+  produtosSemPreco: number;
   resumo: string;
 }> {
   try {
-    // Contar produtos ativos
+    // Buscar produtos ativos com preços
     const produtosSnapshot = await db
       .collection("lojas")
       .doc(lojistaId)
       .collection("produtos")
       .where("arquivado", "!=", true)
       .get();
-    const totalProdutos = produtosSnapshot.size;
+    
+    const todosProdutos = produtosSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    const totalProdutos = todosProdutos.length;
+    
+    // Calcular valor total do estoque (soma de todos os preços)
+    let valorTotalEstoque = 0;
+    let produtosComPreco = 0;
+    let produtosSemPreco = 0;
+    
+    todosProdutos.forEach((prod: any) => {
+      const preco = prod.preco || prod.price || 0;
+      if (preco > 0) {
+        valorTotalEstoque += preco;
+        produtosComPreco++;
+      } else {
+        produtosSemPreco++;
+      }
+    });
 
     // Buscar composições recentes
     const composicoes = await fetchComposicoesRecentes(lojistaId, 1000);
@@ -50,7 +74,14 @@ export async function getStoreVitalStats(lojistaId: string): Promise<{
       ? (totalLikes / totalComposicoes) * 100 
       : 0;
 
-    const resumo = `Loja tem ${totalProdutos} produtos cadastrados, ${totalComposicoes} composições geradas. Taxa de aprovação: ${taxaAprovacao.toFixed(1)}% (${totalLikes} likes, ${totalDislikes} dislikes). ${composicoesComCheckout} composições resultaram em checkout/compartilhamento.`;
+    // Construir resumo incluindo valor total do estoque
+    let resumo = `Loja tem ${totalProdutos} produtos cadastrados, ${totalComposicoes} composições geradas. Taxa de aprovação: ${taxaAprovacao.toFixed(1)}% (${totalLikes} likes, ${totalDislikes} dislikes). ${composicoesComCheckout} composições resultaram em checkout/compartilhamento.`;
+    
+    if (valorTotalEstoque > 0) {
+      resumo += ` Valor total do estoque: R$ ${valorTotalEstoque.toFixed(2).replace('.', ',')} (${produtosComPreco} produtos com preço cadastrado${produtosSemPreco > 0 ? `, ${produtosSemPreco} produtos sem preço` : ''}).`;
+    } else if (produtosSemPreco > 0) {
+      resumo += ` Atenção: ${produtosSemPreco} produto(s) sem preço cadastrado.`;
+    }
 
     return {
       totalProdutos,
@@ -59,6 +90,9 @@ export async function getStoreVitalStats(lojistaId: string): Promise<{
       totalDislikes,
       taxaAprovacao: Math.round(taxaAprovacao * 10) / 10,
       composicoesComCheckout,
+      valorTotalEstoque,
+      produtosComPreco,
+      produtosSemPreco,
       resumo,
     };
   } catch (error) {
@@ -70,6 +104,9 @@ export async function getStoreVitalStats(lojistaId: string): Promise<{
       totalDislikes: 0,
       taxaAprovacao: 0,
       composicoesComCheckout: 0,
+      valorTotalEstoque: 0,
+      produtosComPreco: 0,
+      produtosSemPreco: 0,
       resumo: "Erro ao buscar estatísticas da loja.",
     };
   }

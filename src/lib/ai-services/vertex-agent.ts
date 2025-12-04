@@ -321,7 +321,7 @@ LINGUAGEM:
     return [
       {
         name: "getStoreVitalStats",
-        description: "Busca estatísticas vitais da loja: total de produtos, composições, taxa de aprovação, vendas recentes. Use quando o usuário perguntar sobre estatísticas gerais da loja, totais, ou métricas de performance. Use esta função para perguntas como 'quantos produtos tenho no total?', 'quantas composições?', 'qual a taxa de aprovação?'",
+        description: "🚨 FERRAMENTA OBRIGATÓRIA para perguntas sobre valores totais, somas, cálculos financeiros e estatísticas gerais! Busca estatísticas vitais da loja: total de produtos, composições, taxa de aprovação, vendas recentes, VALOR TOTAL DO ESTOQUE (soma de todos os preços dos produtos). Use SEMPRE quando o usuário perguntar: 'qual valor total dos produtos?', 'quanto vale meu estoque?', 'qual a soma dos preços?', 'valor total da loja?', 'quantos produtos tenho no total?', 'quantas composições?', 'qual a taxa de aprovação?'. Esta função CALCULA automaticamente o valor total do estoque somando todos os preços dos produtos. NUNCA responda sobre valores totais sem usar esta ferramenta!",
         parameters: {
           type: "object",
           properties: {
