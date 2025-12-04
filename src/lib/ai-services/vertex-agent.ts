@@ -5,6 +5,9 @@
 
 import { VertexAI } from "@google-cloud/vertexai";
 import { GoogleAuth } from "google-auth-library";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 import { ANA_TOOLS, type AnaToolName } from "../ai/ana-tools";
 
 /**
@@ -79,23 +82,60 @@ export class VertexAgent {
     // Inicializar Vertex AI com credenciais explícitas se disponíveis
     // Caso contrário, usa Application Default Credentials (ADC)
     try {
-      // Se temos credenciais, criar GoogleAuth e passar como 'auth'
+      // Se temos credenciais, criar arquivo temporário para o SDK detectar
       if (credentials) {
         console.log("[VertexAgent] 🔐 Configurando Vertex AI com Service Account explícita");
         
-        const auth = new GoogleAuth({
-          credentials: credentials,
-          projectId: this.project,
-        });
+        // Salvar credenciais em arquivo temporário
+        // O SDK do VertexAI detecta automaticamente via GOOGLE_APPLICATION_CREDENTIALS
+        const tempDir = os.tmpdir();
+        const tempFilePath = path.join(tempDir, `vertex-ai-credentials-${Date.now()}.json`);
         
-        // VertexAI aceita 'auth' diretamente no construtor
-        this.vertexAI = new VertexAI({
-          project: this.project,
-          location: this.location,
-          auth: auth,
-        });
-        
-        console.log("[VertexAgent] ✅ Vertex AI inicializado com Service Account");
+        try {
+          // Salvar JSON no arquivo temporário
+          fs.writeFileSync(tempFilePath, JSON.stringify(credentials, null, 2));
+          
+          // Configurar variável de ambiente para o SDK detectar
+          const originalCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+          process.env.GOOGLE_APPLICATION_CREDENTIALS = tempFilePath;
+          
+          try {
+            // Inicializar VertexAI - ele detectará automaticamente o arquivo via GOOGLE_APPLICATION_CREDENTIALS
+            this.vertexAI = new VertexAI({
+              project: this.project,
+              location: this.location,
+            });
+            
+            console.log("[VertexAgent] ✅ Vertex AI inicializado com Service Account");
+          } finally {
+            // Restaurar variável original
+            if (originalCredentials) {
+              process.env.GOOGLE_APPLICATION_CREDENTIALS = originalCredentials;
+            } else {
+              delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+            }
+            
+            // Limpar arquivo temporário após um delay (para não interferir com requisições em andamento)
+            // Não deletar imediatamente porque o SDK pode precisar ler o arquivo depois
+            setTimeout(() => {
+              try {
+                if (fs.existsSync(tempFilePath)) {
+                  fs.unlinkSync(tempFilePath);
+                }
+              } catch (e) {
+                // Ignorar erros ao deletar arquivo temporário
+              }
+            }, 60000); // Deletar após 60 segundos
+          }
+        } catch (fileError: any) {
+          console.error("[VertexAgent] ❌ Erro ao criar arquivo temporário de credenciais:", fileError?.message);
+          // Fallback: tentar sem arquivo (pode não funcionar, mas vamos tentar)
+          this.vertexAI = new VertexAI({
+            project: this.project,
+            location: this.location,
+          });
+          console.log("[VertexAgent] ⚠️ Vertex AI inicializado sem arquivo de credenciais (pode falhar na autenticação)");
+        }
       } else {
         console.log("[VertexAgent] 🔐 Configurando Vertex AI com Application Default Credentials (ADC)");
         
