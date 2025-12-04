@@ -810,8 +810,10 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
       }
 
       // Detectar se precisa de grounding (pesquisa web)
+      // SEMPRE habilitar grounding para perguntas que requerem informações da web
       const needsWebSearch = userMsgLower.includes('compar') || 
                             userMsgLower.includes('preço') ||
+                            userMsgLower.includes('preco') ||
                             userMsgLower.includes('caro') ||
                             userMsgLower.includes('barato') ||
                             userMsgLower.includes('centauro') ||
@@ -821,7 +823,27 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
                             userMsgLower.includes('internet') ||
                             userMsgLower.includes('tempo') ||
                             userMsgLower.includes('clima') ||
-                            userMsgLower.includes('previsão');
+                            userMsgLower.includes('previsão') ||
+                            userMsgLower.includes('previsao') ||
+                            userMsgLower.includes('cotação') ||
+                            userMsgLower.includes('cotacao') ||
+                            userMsgLower.includes('dólar') ||
+                            userMsgLower.includes('dolar') ||
+                            userMsgLower.includes('tendência') ||
+                            userMsgLower.includes('tendencia') ||
+                            userMsgLower.includes('pesquisa') ||
+                            userMsgLower.includes('buscar') ||
+                            userMsgLower.includes('quanto custa') ||
+                            userMsgLower.includes('qual o valor') ||
+                            userMsgLower.includes('quanto vale') ||
+                            userMsgLower.includes('informação') ||
+                            userMsgLower.includes('informacao') ||
+                            userMsgLower.includes('notícia') ||
+                            userMsgLower.includes('noticia') ||
+                            userMsgLower.includes('atual') ||
+                            userMsgLower.includes('hoje') ||
+                            userMsgLower.includes('agora') ||
+                            !precisaFerramentas; // Se não precisa de ferramentas de dados, provavelmente precisa de web
 
       // 3. Iniciar Chat com Histórico usando startChat()
       // Configurar grounding se necessário para pesquisas web
@@ -835,15 +857,14 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
         },
       };
       
-      // Habilitar grounding para pesquisas web
-      if (needsWebSearch) {
-        chatConfig.groundingConfig = {
-          googleSearchRetrieval: {
-            disableAttribution: false,
-          },
-        };
-        console.log(`[VertexAgent] 🌐 Grounding (Google Search) habilitado no chat para pesquisa web`);
-      }
+      // SEMPRE habilitar grounding para pesquisas web (expansivo para cobrir mais casos)
+      // Se não precisa de ferramentas específicas da loja, provavelmente precisa de informações da web
+      chatConfig.groundingConfig = {
+        googleSearchRetrieval: {
+          disableAttribution: false,
+        },
+      };
+      console.log(`[VertexAgent] 🌐 Grounding (Google Search) SEMPRE habilitado para permitir pesquisas web quando necessário`);
       
       const chat = model.startChat(chatConfig);
 
@@ -874,6 +895,26 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
       } else if (isPerguntaSobreComposicoes) {
         enhancedMessage = `${userMessage}\n\n[INSTRUÇÃO CRÍTICA: Esta pergunta é sobre composições. Você DEVE usar a ferramenta getCompositions ANTES de responder. NUNCA diga "não encontrei" sem usar a ferramenta primeiro!]`;
         console.log(`[VertexAgent] 🎨 Reforço de instrução: Pergunta sobre composições detectada, forçando uso de ferramentas`);
+      }
+      
+      // Detectar se é pergunta que requer informações da web (não conversacional e não sobre dados da loja)
+      const isPerguntaQueRequerWeb = !isPerguntaConversacional && !precisaFerramentas && (
+        needsWebSearch || 
+        userMsgLower.includes('tempo') ||
+        userMsgLower.includes('clima') ||
+        userMsgLower.includes('previsão') ||
+        userMsgLower.includes('previsao') ||
+        userMsgLower.includes('cotação') ||
+        userMsgLower.includes('cotacao') ||
+        userMsgLower.includes('dólar') ||
+        userMsgLower.includes('dolar') ||
+        userMsgLower.includes('tendência') ||
+        userMsgLower.includes('tendencia')
+      );
+      
+      if (isPerguntaQueRequerWeb) {
+        enhancedMessage = `${enhancedMessage}\n\n[INSTRUÇÃO CRÍTICA: Esta pergunta requer informações da internet/web. Você DEVE usar o Grounding (Google Search) que está ATIVO e DISPONÍVEL. NUNCA diga "não consigo informar" ou "não tenho acesso" - o Google Search está disponível através do Grounding! Pesquise na web e responda com as informações encontradas.]`;
+        console.log(`[VertexAgent] 🌐 Pergunta que requer informações da web detectada, instruindo a usar Grounding`);
       }
       
       // Se o usuário perguntar sobre o nome e houver no histórico, reforçar na mensagem
