@@ -79,33 +79,39 @@ export class VertexAgent {
     // Inicializar Vertex AI com credenciais explícitas se disponíveis
     // Caso contrário, usa Application Default Credentials (ADC)
     try {
-      const vertexAIOptions: any = {
-        project: this.project,
-        location: this.location,
-      };
-
-      // Se temos credenciais, passar explicitamente via GoogleAuth
+      // Se temos credenciais, criar GoogleAuth e passar como 'auth'
       if (credentials) {
+        console.log("[VertexAgent] 🔐 Configurando Vertex AI com Service Account explícita");
+        
         const auth = new GoogleAuth({
           credentials: credentials,
           projectId: this.project,
         });
         
-        // Configurar como credencial padrão
-        vertexAIOptions.googleAuthOptions = {
+        // VertexAI aceita 'auth' diretamente no construtor
+        this.vertexAI = new VertexAI({
+          project: this.project,
+          location: this.location,
           auth: auth,
-        };
+        });
         
-        console.log("[VertexAgent] 🔐 Configurando Vertex AI com Service Account explícita");
+        console.log("[VertexAgent] ✅ Vertex AI inicializado com Service Account");
       } else {
         console.log("[VertexAgent] 🔐 Configurando Vertex AI com Application Default Credentials (ADC)");
+        
+        // Sem credenciais explícitas, usa ADC (gcloud auth ou GOOGLE_APPLICATION_CREDENTIALS)
+        this.vertexAI = new VertexAI({
+          project: this.project,
+          location: this.location,
+        });
+        
+        console.log("[VertexAgent] ✅ Vertex AI inicializado com ADC");
       }
-
-      this.vertexAI = new VertexAI(vertexAIOptions);
-      console.log("[VertexAgent] ✅ Vertex AI inicializado com sucesso");
     } catch (error: any) {
       console.error("[VertexAgent] ❌ Erro ao inicializar Vertex AI:", {
         error: error?.message,
+        code: error?.code,
+        status: error?.status,
         stack: error?.stack?.substring(0, 500),
       });
       throw new Error(`Erro ao inicializar Vertex AI: ${error?.message}`);
