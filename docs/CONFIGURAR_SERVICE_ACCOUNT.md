@@ -84,3 +84,5 @@ Após o deploy, verifique os logs do Vercel. Você deve ver:
 - Verifique se `GOOGLE_CLOUD_PROJECT_ID=experimenta-ai` está configurado
 - Verifique se o projeto existe no Google Cloud
 
+
+

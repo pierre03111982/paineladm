@@ -53,6 +53,7 @@ export async function createInsight(
 
 /**
  * Obtém insights não lidos de um lojista
+ * Simplificado para não precisar de índice composto - toda filtragem em memória
  */
 export async function getUnreadInsights(
   lojistaId: string,
@@ -64,31 +65,48 @@ export async function getUnreadInsights(
       .doc(lojistaId)
       .collection("insights");
 
+    // Query MUITO simplificada: apenas ordenação por createdAt (sem where)
+    // Toda filtragem (isRead e expiresAt) será feita em memória
+    const now = new Date();
     const snapshot = await insightsRef
-      .where("isRead", "==", false)
-      .where("expiresAt", ">", new Date()) // Apenas insights não expirados
-      .orderBy("expiresAt", "asc")
       .orderBy("createdAt", "desc")
-      .limit(limit)
+      .limit(limit * 3) // Buscar mais para filtrar isRead e expirados depois
       .get();
 
     const insights: InsightDoc[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      insights.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        expiresAt: data.expiresAt?.toDate() || new Date(),
-      } as InsightDoc);
+      const expiresAt = data.expiresAt?.toDate() || new Date();
+      const isRead = data.isRead || false;
+      
+      // Filtrar insights não lidos E não expirados em memória
+      if (!isRead && expiresAt > now) {
+        insights.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          expiresAt,
+        } as InsightDoc);
+      }
     });
+
+    // Ordenar por expiresAt (mais próximo primeiro) e limitar
+    insights.sort((a, b) => {
+      const expiresDiff = a.expiresAt.getTime() - b.expiresAt.getTime();
+      if (expiresDiff !== 0) return expiresDiff;
+      // Se expiresAt igual, ordenar por createdAt (mais recente primeiro)
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
+
+    const limitedInsights = insights.slice(0, limit);
 
     console.log("[Insights] 📊 Insights não lidos encontrados:", {
-      count: insights.length,
+      count: limitedInsights.length,
       lojistaId,
+      totalBuscados: snapshot.size,
     });
 
-    return insights;
+    return limitedInsights;
   } catch (error) {
     console.error("[Insights] ❌ Erro ao buscar insights:", error);
     throw error;
@@ -97,6 +115,7 @@ export async function getUnreadInsights(
 
 /**
  * Obtém todos os insights de um lojista (lidos e não lidos)
+ * Simplificado para não precisar de índice composto
  */
 export async function getAllInsights(
   lojistaId: string,
@@ -108,25 +127,46 @@ export async function getAllInsights(
       .doc(lojistaId)
       .collection("insights");
 
+    // Query simplificada: apenas ordenação por createdAt
+    // A filtragem por expiresAt será feita em memória
+    const now = new Date();
     const snapshot = await insightsRef
-      .where("expiresAt", ">", new Date()) // Apenas insights não expirados
-      .orderBy("expiresAt", "asc")
       .orderBy("createdAt", "desc")
-      .limit(limit)
+      .limit(limit * 2) // Buscar mais para filtrar expirados depois
       .get();
 
     const insights: InsightDoc[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      insights.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        expiresAt: data.expiresAt?.toDate() || new Date(),
-      } as InsightDoc);
+      const expiresAt = data.expiresAt?.toDate() || new Date();
+      
+      // Filtrar insights expirados em memória
+      if (expiresAt > now) {
+        insights.push({
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          expiresAt,
+        } as InsightDoc);
+      }
     });
 
-    return insights;
+    // Ordenar por expiresAt (mais próximo primeiro) e limitar
+    insights.sort((a, b) => {
+      const expiresDiff = a.expiresAt.getTime() - b.expiresAt.getTime();
+      if (expiresDiff !== 0) return expiresDiff;
+      // Se expiresAt igual, ordenar por createdAt (mais recente primeiro)
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
+
+    const limitedInsights = insights.slice(0, limit);
+
+    console.log("[Insights] 📊 Todos os insights encontrados:", {
+      count: limitedInsights.length,
+      lojistaId,
+    });
+
+    return limitedInsights;
   } catch (error) {
     console.error("[Insights] ❌ Erro ao buscar todos os insights:", error);
     throw error;

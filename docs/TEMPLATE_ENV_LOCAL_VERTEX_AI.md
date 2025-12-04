@@ -92,3 +92,5 @@ Após configurar, verifique se:
 - ✅ `GOOGLE_CLOUD_PROJECT_ID=experimenta-ai`
 - ✅ `GOOGLE_CLOUD_LOCATION=us-central1` (opcional, tem padrão)
 
+
+

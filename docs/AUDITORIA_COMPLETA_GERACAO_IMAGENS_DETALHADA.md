@@ -832,3 +832,5 @@ Todos os três botões compartilham:
 **Documento gerado automaticamente**  
 **Última atualização:** Após implementação do Bloco de Fotografia Profissional
 
+
+

@@ -141,3 +141,5 @@ Após verificar os logs:
 
 Se o problema persistir, compartilhe os logs específicos do Vercel para análise mais detalhada.
 
+
+

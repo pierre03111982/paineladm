@@ -230,9 +230,27 @@ LINGUAGEM:
         throw new Error(`Função desconhecida: ${functionName}`);
       }
 
-      // Executar função
-      const tool = ANA_TOOLS[functionName as AnaToolName];
-      const result = await tool(lojistaId, args.limit);
+      // Executar função com argumentos corretos baseado no tipo
+      let result: any;
+      switch (functionName) {
+        case 'getStoreVitalStats':
+          result = await ANA_TOOLS.getStoreVitalStats(lojistaId);
+          break;
+        case 'getTopOpportunities':
+          result = await ANA_TOOLS.getTopOpportunities(lojistaId, args.limit || 5);
+          break;
+        case 'getProductPerformance':
+          result = await ANA_TOOLS.getProductPerformance(lojistaId, args.limit || 5);
+          break;
+        case 'getProductsByCategory':
+          result = await ANA_TOOLS.getProductsByCategory(lojistaId, args.categoria || '');
+          break;
+        case 'getProductsByName':
+          result = await ANA_TOOLS.getProductsByName(lojistaId, args.nomeProduto || '');
+          break;
+        default:
+          throw new Error(`Função ${functionName} não implementada`);
+      }
 
       console.log(`[VertexAgent] ✅ Função ${functionName} executada com sucesso`);
       return result;

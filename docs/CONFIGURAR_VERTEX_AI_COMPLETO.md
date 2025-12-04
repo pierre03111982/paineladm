@@ -187,3 +187,5 @@ Antes de testar, verifique:
 - **Vertex AI API:** https://console.cloud.google.com/apis/library/aiplatform.googleapis.com?project=experimenta-ai
 - **Billing:** https://console.cloud.google.com/billing?project=experimenta-ai
 
+
+

@@ -174,3 +174,5 @@ Gere um insight do tipo "risk" alertando sobre esses produtos e sugerindo açõe
   }
 }
 
+
+

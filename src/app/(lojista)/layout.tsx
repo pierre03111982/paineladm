@@ -25,9 +25,15 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     lojistaId = await getCurrentLojistaId();
     if (lojistaId) {
       perfil = await fetchLojaPerfil(lojistaId).catch(() => null);
+    } else {
+      // Token expirado ou não autenticado - não é um erro crítico
+      console.log("[LojistaLayout] LojistaId não encontrado (token pode ter expirado)");
     }
-  } catch (error) {
-    console.error("[LojistaLayout] Erro ao buscar perfil:", error);
+  } catch (error: any) {
+    // Apenas logar erros não relacionados a autenticação
+    if (!error?.code?.startsWith("auth/")) {
+      console.error("[LojistaLayout] Erro ao buscar perfil:", error);
+    }
   }
 
   const lojaNome = perfil?.nome || "Experimente AI";

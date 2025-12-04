@@ -839,3 +839,5 @@ GOOGLE_APPLICATION_CREDENTIALS=...
 
 *Documento gerado automaticamente - Última atualização: 28/11/2025*
 
+
+

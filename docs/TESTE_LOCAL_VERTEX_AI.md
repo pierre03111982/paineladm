@@ -87,3 +87,5 @@ Após testar localmente:
 3. Verificar logs do Vercel após deploy
 4. Testar o chat em produção
 
+
+

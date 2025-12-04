@@ -50,9 +50,10 @@ async function fetchComposicoes(
     try {
       console.log("[ComposicoesPage] Buscando composições (método fallback - sem índices)");
       // Buscar todas as composições do lojista (sem orderBy para evitar necessidade de índice)
+      // Aumentar limite para 2000 para garantir que todas as composições sejam carregadas
       const allSnapshot = await composicoesRef
         .where("lojistaId", "==", lojistaId)
-        .limit(500)
+        .limit(2000)
         .get();
       
       const allDocs: any[] = [];
@@ -73,10 +74,11 @@ async function fetchComposicoes(
       // Ordenar por data em memória (mais recente primeiro)
       allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       
-      // Criar snapshot mockado
+      // Criar snapshot mockado - REMOVER LIMITE para mostrar todas as composições
       snapshot = {
         forEach: (callback: any) => {
-          allDocs.slice(0, 100).forEach((item) => {
+          // Remover slice(0, 100) para mostrar TODAS as composições
+          allDocs.forEach((item) => {
             callback({
               id: item.id,
               data: () => item.data,

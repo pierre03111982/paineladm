@@ -118,8 +118,24 @@ export async function getCurrentLojistaId(): Promise<string | null> {
     }
 
     // Verificar token no Firebase Admin
-    const auth = getAuth(getAdminApp());
-    const decodedToken = await auth.verifyIdToken(token);
+    let decodedToken;
+    try {
+      const auth = getAuth(getAdminApp());
+      decodedToken = await auth.verifyIdToken(token);
+    } catch (error: any) {
+      // Tratar erro de token expirado de forma silenciosa
+      if (error?.code === "auth/id-token-expired") {
+        console.log("[LojistaAuth] Token expirado - será necessário renovar no cliente");
+        return null;
+      }
+      // Outros erros de autenticação
+      if (error?.code?.startsWith("auth/")) {
+        console.log("[LojistaAuth] Erro de autenticação:", error.code);
+        return null;
+      }
+      // Re-lançar erros não relacionados a autenticação
+      throw error;
+    }
 
     const email = decodedToken.email;
     if (!email) {
@@ -143,7 +159,13 @@ export async function getCurrentLojistaId(): Promise<string | null> {
     const lojistaId = lojaSnapshot.docs[0].id;
     console.log("[LojistaAuth] LojistaId encontrado:", lojistaId, "para email:", email);
     return lojistaId;
-  } catch (error) {
+  } catch (error: any) {
+    // Não logar como erro crítico se for apenas token expirado
+    if (error?.code === "auth/id-token-expired") {
+      console.log("[LojistaAuth] Token expirado - retornando null");
+      return null;
+    }
+    // Logar outros erros normalmente
     console.error("[LojistaAuth] Erro ao obter lojistaId:", error);
     return null;
   }
@@ -168,7 +190,18 @@ export async function getCurrentUserEmail(): Promise<string | null> {
     const auth = getAuth(getAdminApp());
     const decodedToken = await auth.verifyIdToken(token);
     return decodedToken.email || null;
-  } catch (error) {
+  } catch (error: any) {
+    // Tratar erro de token expirado de forma silenciosa
+    if (error?.code === "auth/id-token-expired") {
+      console.log("[LojistaAuth] Token expirado ao obter email");
+      return null;
+    }
+    // Outros erros de autenticação
+    if (error?.code?.startsWith("auth/")) {
+      console.log("[LojistaAuth] Erro de autenticação ao obter email:", error.code);
+      return null;
+    }
+    // Logar outros erros normalmente
     console.error("[LojistaAuth] Erro ao obter email:", error);
     return null;
   }

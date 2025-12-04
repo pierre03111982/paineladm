@@ -18,3 +18,5 @@ GCP_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"experimenta-ai",
 VERTEX_TRYON_COST=0.04
 IMAGEN_COST=0.04
 
+
+

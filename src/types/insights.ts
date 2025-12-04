@@ -46,3 +46,5 @@ export interface InsightResult {
   expiresInDays?: number; // Dias até expirar (padrão: 7)
 }
 
+
+

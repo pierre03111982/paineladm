@@ -276,3 +276,5 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
   );
 }
 
+
+
