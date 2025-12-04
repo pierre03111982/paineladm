@@ -321,6 +321,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
             isUser={message.isUser}
             timestamp={message.timestamp}
             image={message.image}
+            lojistaId={lojistaId}
             grounding={message.grounding}
           />
         ))}

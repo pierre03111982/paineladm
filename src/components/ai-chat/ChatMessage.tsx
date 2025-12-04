@@ -7,6 +7,7 @@ type ChatMessageProps = {
   isUser?: boolean;
   timestamp?: Date;
   image?: string | null; // URL da imagem (base64 ou HTTP)
+  lojistaId?: string; // ID do lojista para construir URLs corretas
   grounding?: {
     webSearchQueries?: string[];
     sources?: Array<{
@@ -21,7 +22,7 @@ type ChatMessageProps = {
  * Renderiza botões de navegação detectados no padrão [[Label]](/url)
  * Renderiza imagens anexadas como miniaturas
  */
-export function ChatMessage({ message, isUser = false, timestamp, image, grounding }: ChatMessageProps) {
+export function ChatMessage({ message, isUser = false, timestamp, image, lojistaId, grounding }: ChatMessageProps) {
   const router = useRouter();
 
   // Função para abrir Google Search com a query
@@ -138,7 +139,25 @@ export function ChatMessage({ message, isUser = false, timestamp, image, groundi
 
   const handleButtonClick = (url: string) => {
     // Limpar URL e garantir que comece com /
-    const cleanUrl = url.trim().startsWith('/') ? url.trim() : `/${url.trim()}`;
+    let cleanUrl = url.trim().startsWith('/') ? url.trim() : `/${url.trim()}`;
+    
+    // Adicionar lojistaId como query parameter se necessário
+    // Rotas que precisam de lojistaId: /produtos, /clientes, /pedidos, etc.
+    const routesNeedingLojistaId = ['/produtos', '/clientes', '/pedidos', '/composicoes', '/dashboard'];
+    const needsLojistaId = routesNeedingLojistaId.some(route => cleanUrl.startsWith(route));
+    
+    if (needsLojistaId && lojistaId && !cleanUrl.includes('lojistaId=')) {
+      const separator = cleanUrl.includes('?') ? '&' : '?';
+      cleanUrl = `${cleanUrl}${separator}lojistaId=${lojistaId}`;
+    }
+    
+    // Tratamento especial para /produtos/novo - redirecionar para /produtos com modal
+    if (cleanUrl === '/produtos/novo' || cleanUrl.startsWith('/produtos/novo?')) {
+      cleanUrl = `/produtos${lojistaId ? `?lojistaId=${lojistaId}` : ''}`;
+      // Abrir modal de criação de produto (será implementado via state ou evento)
+      console.log("[ChatMessage] 📝 Redirecionando para página de produtos (use o botão 'Adicionar Produto')");
+    }
+    
     console.log("[ChatMessage] 🔗 Navegando para:", cleanUrl);
     router.push(cleanUrl);
   };

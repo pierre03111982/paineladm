@@ -478,9 +478,9 @@ export async function getProductsByName(lojistaId: string, nomeProduto: string):
         if (categoriasUnicas.length > 0) {
           resumo += ` Categorias disponíveis: ${categoriasUnicas.slice(0, 5).join(", ")}.`;
         }
-        resumo += ` Tente buscar por categoria ou verifique se o nome do produto está correto.`;
+        resumo += ` Tente buscar por categoria ou verifique se o nome do produto está correto. [[Ver Produtos]](/produtos)`;
       } else {
-        resumo += ` Nenhum produto cadastrado ainda. Que tal cadastrar alguns? [[Cadastrar Produto]](/produtos/novo) 🚀`;
+        resumo += ` Nenhum produto cadastrado ainda. Que tal cadastrar alguns? [[Cadastrar Produto]](/produtos) 🚀`;
       }
     }
 
