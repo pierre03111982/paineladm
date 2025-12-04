@@ -1334,7 +1334,11 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
                 break;
               } else if (fr.name === 'getStoreVitalStats') {
                 const dados = fr.response;
-                respostaManual = dados?.resumo || `Você tem ${dados?.totalProdutos || 0} produtos cadastrados, ${dados?.totalComposicoes || 0} composições geradas. Taxa de aprovação: ${dados?.taxaAprovacao || 0}%.`;
+                if (dados?.valorTotalEstoque !== undefined && dados.valorTotalEstoque > 0) {
+                  respostaManual = dados?.resumo || `Você tem ${dados?.totalProdutos || 0} produtos cadastrados, ${dados?.totalComposicoes || 0} composições geradas. Taxa de aprovação: ${dados?.taxaAprovacao || 0}%. Valor total do estoque: R$ ${dados.valorTotalEstoque.toFixed(2).replace('.', ',')}.`;
+                } else {
+                  respostaManual = dados?.resumo || `Você tem ${dados?.totalProdutos || 0} produtos cadastrados, ${dados?.totalComposicoes || 0} composições geradas. Taxa de aprovação: ${dados?.taxaAprovacao || 0}%.`;
+                }
                 break;
               } else if (fr.name === 'getFinancialAnalysis') {
                 const dados = fr.response;
@@ -1453,7 +1457,11 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
                 }
               } else if (fr.name === 'getStoreVitalStats') {
                 const dados = fr.response;
-                respostaManual = dados?.resumo || `Você tem ${dados?.totalProdutos || 0} produtos cadastrados, ${dados?.totalComposicoes || 0} composições geradas. Taxa de aprovação: ${dados?.taxaAprovacao || 0}%.`;
+                if (dados?.valorTotalEstoque !== undefined && dados.valorTotalEstoque > 0) {
+                  respostaManual = dados?.resumo || `Você tem ${dados?.totalProdutos || 0} produtos cadastrados, ${dados?.totalComposicoes || 0} composições geradas. Taxa de aprovação: ${dados?.taxaAprovacao || 0}%. Valor total do estoque: R$ ${dados.valorTotalEstoque.toFixed(2).replace('.', ',')}.`;
+                } else {
+                  respostaManual = dados?.resumo || `Você tem ${dados?.totalProdutos || 0} produtos cadastrados, ${dados?.totalComposicoes || 0} composições geradas. Taxa de aprovação: ${dados?.taxaAprovacao || 0}%.`;
+                }
                 break;
               } else if (fr.response?.resumo) {
                 respostaManual = fr.response.resumo;
