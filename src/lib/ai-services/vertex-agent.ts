@@ -389,7 +389,7 @@ LINGUAGEM:
       },
       {
         name: "getProductsByName",
-        description: "🚨 FERRAMENTA OBRIGATÓRIA para TODAS as perguntas sobre produtos! Use SEMPRE que o usuário perguntar: 'quais tênis tenho?', 'quantos tênis tem?', 'tenho tênis?', 'quantos produtos tenho?', 'o que tem na minha loja?', 'quais produtos?', 'preço de X', 'quanto custa X?'. Esta ferramenta consulta o banco de dados REAL da loja. NUNCA responda 'não encontrei' ou 'não tenho acesso' SEM usar esta ferramenta primeiro! Sempre use termos genéricos como 'tênis', 'calçados', 'produtos' mesmo sem marca específica. Você DEVE chamar esta função ANTES de qualquer resposta sobre produtos. IMPORTANTE: Esta função busca pelo NOME do produto primeiro, depois pela categoria.",
+        description: "🚨 FERRAMENTA OBRIGATÓRIA para TODAS as perguntas sobre produtos! Use SEMPRE que o usuário perguntar: 'quais tênis tenho?', 'quantos tênis tem?', 'tenho tênis?', 'quantos produtos tenho?', 'o que tem na minha loja?', 'quais produtos?', 'preço de X', 'quanto custa X?'. Esta ferramenta consulta o banco de dados REAL da loja usando busca inteligente por similaridade e palavras-chave. NUNCA responda 'não encontrei' ou 'não tenho acesso' SEM usar esta ferramenta primeiro! IMPORTANTE: Esta ferramenta busca de forma FLEXÍVEL - encontra produtos mesmo com pequenas variações no nome (ex: 'tenis' encontra 'tênis', 'TÊNIS', 'Tenis Nike', etc). Sempre use o termo exato que o usuário mencionou (ex: se ele disse 'tenis', use 'tenis'; se disse 'calçados', use 'calçados'). Você DEVE chamar esta função ANTES de qualquer resposta sobre produtos.",
         parameters: {
           type: "object",
           properties: {

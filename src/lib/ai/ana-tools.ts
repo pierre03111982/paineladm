@@ -341,33 +341,100 @@ export async function getProductsByName(lojistaId: string, nomeProduto: string):
       .where("arquivado", "!=", true)
       .get();
 
-    // Buscar produtos por nome (case-insensitive, busca parcial)
+    // Buscar produtos por nome (case-insensitive, busca parcial e por similaridade)
     // PRIORIZAR busca pelo NOME do produto, depois pela categoria
-    const nomeLower = nomeProduto.toLowerCase();
+    const nomeLower = nomeProduto.toLowerCase().trim();
     const todosProdutos = produtosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     
-    // Primeiro: produtos que têm o termo no NOME (prioridade alta)
-    const produtosPorNome = todosProdutos.filter((prod: any) => {
-      const nomeProd = (prod.nome || prod.name || "").toLowerCase();
-      return nomeProd.includes(nomeLower) || nomeLower.includes(nomeProd);
-    });
+    // Função auxiliar para calcular similaridade de strings (busca por palavras-chave)
+    const calcularSimilaridade = (texto1: string, texto2: string): number => {
+      const palavras1 = texto1.toLowerCase().split(/\s+/).filter(p => p.length > 2);
+      const palavras2 = texto2.toLowerCase().split(/\s+/).filter(p => p.length > 2);
+      
+      if (palavras1.length === 0 || palavras2.length === 0) return 0;
+      
+      // Contar palavras em comum
+      const palavrasComuns = palavras1.filter(p => palavras2.some(p2 => p2.includes(p) || p.includes(p2))).length;
+      return palavrasComuns / Math.max(palavras1.length, palavras2.length);
+    };
     
-    // Segundo: produtos que têm o termo na CATEGORIA (prioridade baixa)
-    const produtosPorCategoria = todosProdutos.filter((prod: any) => {
-      const categoriaProd = (prod.categoria || prod.category || "").toLowerCase();
-      return categoriaProd.includes(nomeLower) || nomeLower.includes(categoriaProd);
-    });
+    // Normalizar termo de busca - remover acentos e caracteres especiais para busca mais flexível
+    const normalizarTexto = (texto: string): string => {
+      return texto
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .toLowerCase()
+        .trim();
+    };
     
-    // Combinar: primeiro os que têm no nome, depois os que têm na categoria
-    // Remover duplicatas mantendo a ordem de prioridade
-    const produtosUnicos = new Map();
-    [...produtosPorNome, ...produtosPorCategoria].forEach((prod: any) => {
-      if (!produtosUnicos.has(prod.id)) {
-        produtosUnicos.set(prod.id, prod);
+    const termoNormalizado = normalizarTexto(nomeProduto);
+    const termoPalavras = termoNormalizado.split(/\s+/).filter(p => p.length > 1);
+    
+    // Mapear produtos com scores de relevância
+    const produtosComScore = todosProdutos.map((prod: any) => {
+      const nomeProd = normalizarTexto(prod.nome || prod.name || "");
+      const categoriaProd = normalizarTexto(prod.categoria || prod.category || "");
+      const descricaoProd = normalizarTexto(prod.descricao || prod.description || "");
+      
+      let score = 0;
+      let matchType = 'none';
+      
+      // Match exato no nome (score máximo)
+      if (nomeProd === termoNormalizado) {
+        score = 100;
+        matchType = 'exact_name';
       }
+      // Nome contém o termo completo (score alto)
+      else if (nomeProd.includes(termoNormalizado) || termoNormalizado.includes(nomeProd)) {
+        score = 80;
+        matchType = 'partial_name';
+      }
+      // Nome contém todas as palavras-chave (score médio-alto)
+      else if (termoPalavras.every(palavra => nomeProd.includes(palavra))) {
+        score = 70;
+        matchType = 'keywords_name';
+      }
+      // Similaridade alta no nome (score médio)
+      else if (nomeProd.length > 0 && calcularSimilaridade(termoNormalizado, nomeProd) > 0.5) {
+        score = 60;
+        matchType = 'similarity_name';
+      }
+      // Nome contém alguma palavra-chave (score baixo-médio)
+      else if (termoPalavras.some(palavra => nomeProd.includes(palavra))) {
+        score = 40;
+        matchType = 'partial_keyword_name';
+      }
+      // Categoria contém o termo (score baixo)
+      else if (categoriaProd.includes(termoNormalizado) || termoNormalizado.includes(categoriaProd)) {
+        score = 30;
+        matchType = 'category';
+      }
+      // Descrição contém o termo (score muito baixo)
+      else if (descricaoProd.includes(termoNormalizado)) {
+        score = 20;
+        matchType = 'description';
+      }
+      
+      return { produto: prod, score, matchType };
     });
     
-    const produtosEncontrados = Array.from(produtosUnicos.values())
+    // Filtrar produtos com score > 0 e ordenar por score (maior primeiro)
+    const produtosFiltrados = produtosComScore
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.produto);
+    
+    console.log(`[AnaTools] Busca por "${nomeProduto}": ${todosProdutos.length} produtos total, ${produtosFiltrados.length} encontrados`);
+    if (produtosFiltrados.length > 0) {
+      const topMatches = produtosComScore.filter(item => item.score > 0).slice(0, 5);
+      console.log(`[AnaTools] Top matches:`, topMatches.map(item => ({
+        nome: item.produto.nome || item.produto.name,
+        score: item.score,
+        matchType: item.matchType
+      })));
+    }
+    
+    const produtosEncontrados = produtosFiltrados
       .slice(0, 10) // Limitar a 10 resultados
       .map((prod: any) => ({
         id: prod.id,
@@ -377,6 +444,7 @@ export async function getProductsByName(lojistaId: string, nomeProduto: string):
         imagemUrl: prod.imagemUrl || prod.imageUrl || prod.imagem || prod.image,
       }));
 
+    // Adicionar informações de debug no resumo
     let resumo: string;
     if (produtosEncontrados.length > 0) {
       const produtosComPreco = produtosEncontrados.filter(p => p.preco);
@@ -394,8 +462,26 @@ export async function getProductsByName(lojistaId: string, nomeProduto: string):
       } else {
         resumo = `Encontrei ${produtosEncontrados.length} produto(s) para "${nomeProduto}": ${produtosEncontrados.map(p => p.nome).join(", ")}. Atenção: nenhum produto tem preço cadastrado.`;
       }
+      
+      // Adicionar instruções para mostrar produtos
+      resumo += ` Use os Smart Cards para mostrar os produtos visualmente.`;
     } else {
-      resumo = `Nenhum produto encontrado para "${nomeProduto}". Verifique se o produto está cadastrado ou se o nome está correto.`;
+      // Se não encontrou, tentar sugerir busca alternativa
+      const totalProdutos = todosProdutos.length;
+      const categoriasUnicas = [...new Set(todosProdutos.map((p: any) => 
+        (p.categoria || p.category || "").toLowerCase()
+      ).filter(Boolean))];
+      
+      resumo = `Nenhum produto encontrado para "${nomeProduto}".`;
+      if (totalProdutos > 0) {
+        resumo += ` Você tem ${totalProdutos} produto(s) cadastrado(s) no total.`;
+        if (categoriasUnicas.length > 0) {
+          resumo += ` Categorias disponíveis: ${categoriasUnicas.slice(0, 5).join(", ")}.`;
+        }
+        resumo += ` Tente buscar por categoria ou verifique se o nome do produto está correto.`;
+      } else {
+        resumo += ` Nenhum produto cadastrado ainda. Que tal cadastrar alguns? [[Cadastrar Produto]](/produtos/novo) 🚀`;
+      }
     }
 
     return {
