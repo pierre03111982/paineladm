@@ -935,10 +935,11 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
       while (iteration < maxIterations) {
         let result: any;
         
-        // Para pesquisas web, usar generateContent com grounding (mais confiável)
-        if (iteration === 0 && needsWebSearch) {
+        // Para perguntas que não precisam de ferramentas da loja, usar generateContent com grounding
+        // Isso garante que perguntas sobre tempo, clima, etc. sempre usem Google Search
+        if (iteration === 0 && !precisaFerramentas) {
           try {
-            console.log(`[VertexAgent] 🌐 Usando generateContent com Grounding para pesquisa web`);
+            console.log(`[VertexAgent] 🌐 Usando generateContent com Grounding para pergunta que requer informações da web`);
             const groundingResult = await model.generateContent({
               contents: [
                 ...chatHistory.map((h: any) => ({
