@@ -110,6 +110,98 @@ export class GeminiFlashImageService {
   }
 
   /**
+   * Função wrapper para gerar conteúdo com retry inteligente para erro 429
+   * Tenta até 3 vezes com espera de 2-5 segundos entre tentativas
+   */
+  private async generateWithSmartRetry(
+    endpoint: string,
+    accessToken: string,
+    requestBody: any,
+    maxRetries: number = 3
+  ): Promise<Response> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[GeminiFlashImage] 🔄 Tentativa ${attempt}/${maxRetries} de geração...`);
+        
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        // Se a resposta for bem-sucedida, retornar
+        if (response.ok) {
+          console.log(`[GeminiFlashImage] ✅ Sucesso na tentativa ${attempt}/${maxRetries}`);
+          return response;
+        }
+
+        // Ler o erro
+        const errorText = await response.text();
+        let errorData: any = {};
+        
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Se não conseguir fazer parse, usar o texto como está
+        }
+
+        // Verificar se é erro 429 ou Resource Exhausted
+        const isRateLimitError = 
+          response.status === 429 || 
+          errorText.includes("Resource Exhausted") ||
+          errorText.includes("RESOURCE_EXHAUSTED") ||
+          errorData?.error?.status === "RESOURCE_EXHAUSTED" ||
+          errorData?.error?.code === 429;
+
+        if (isRateLimitError) {
+          // Se ainda temos tentativas restantes, esperar e tentar novamente
+          if (attempt < maxRetries) {
+            // Esperar entre 2 e 5 segundos (aleatório para evitar sincronização)
+            const waitTime = 2000 + Math.random() * 3000; // Entre 2000ms e 5000ms
+            console.warn(`[GeminiFlashImage] ⚠️ Rate limit (429) detectado na tentativa ${attempt}/${maxRetries}. Aguardando ${Math.round(waitTime)}ms antes de tentar novamente...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue; // Tentar novamente
+          } else {
+            // Última tentativa também falhou
+            const errorMessage = errorData?.error?.message || "Resource exhausted. Please try again later.";
+            console.error(`[GeminiFlashImage] ❌ Rate limit (429) após ${maxRetries} tentativas. Abortando.`);
+            throw new Error(`Gemini Flash Image API error: 429 ${JSON.stringify({ error: { code: 429, message: errorMessage, status: "RESOURCE_EXHAUSTED" } })}`);
+          }
+        } else {
+          // Outros erros HTTP - não fazer retry, retornar erro imediatamente
+          console.error(`[GeminiFlashImage] ❌ Erro HTTP ${response.status} na tentativa ${attempt}/${maxRetries}:`, errorText.substring(0, 500));
+          throw new Error(`Gemini Flash Image API error: ${response.status} ${errorText}`);
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // Se for erro de rate limit e ainda temos tentativas, continuar o loop
+        if (lastError.message.includes("429") || lastError.message.includes("RESOURCE_EXHAUSTED")) {
+          if (attempt < maxRetries) {
+            const waitTime = 2000 + Math.random() * 3000;
+            console.warn(`[GeminiFlashImage] ⚠️ Erro de rate limit capturado. Aguardando ${Math.round(waitTime)}ms antes de tentar novamente...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            continue;
+          }
+        }
+        
+        // Se for último erro ou erro não relacionado a rate limit, lançar
+        if (attempt === maxRetries || !lastError.message.includes("429")) {
+          throw lastError;
+        }
+      }
+    }
+
+    // Se chegou aqui, todas as tentativas falharam
+    throw lastError || new Error("Falha ao gerar imagem após múltiplas tentativas");
+  }
+
+  /**
    * Converte URL de imagem para base64
    */
   private async imageUrlToBase64(imageUrl: string): Promise<string> {
@@ -285,40 +377,13 @@ export class GeminiFlashImageService {
         totalParts: imageParts.length + 1, // +1 para o texto do prompt
       });
 
-      // FIX: Para erro 429, NÃO fazer retry - retornar erro imediatamente
-      // Retries só pioram o problema de rate limit
-      const response = await fetch(this.endpoint, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData: any = {};
-        
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          // Se não conseguir fazer parse, usar o texto como está
-        }
-
-        // FIX CRÍTICO: Para erro 429, NÃO fazer retry - retornar erro imediatamente
-        // Retries só fazem mais requisições e pioram o problema
-        if (response.status === 429) {
-          const errorMessage = errorData?.error?.message || "Resource exhausted. Please try again later.";
-          console.error("[GeminiFlashImage] ❌ Rate limit (429) - NÃO fazendo retry para evitar mais requisições");
-          console.error("[GeminiFlashImage] 💡 Aguarde pelo menos 30 segundos antes de tentar gerar outro look.");
-          throw new Error(`Gemini Flash Image API error: 429 ${JSON.stringify({ error: { code: 429, message: errorMessage, status: "RESOURCE_EXHAUSTED" } })}`);
-        }
-        
-        // Outros erros HTTP - não fazer retry
-        console.error("[GeminiFlashImage] ❌ Erro na API:", response.status, errorText.substring(0, 500));
-        throw new Error(`Gemini Flash Image API error: ${response.status} ${errorText}`);
-      }
+      // Usar função wrapper com retry inteligente para erro 429
+      const response = await this.generateWithSmartRetry(
+        this.endpoint,
+        accessToken,
+        requestBody,
+        3 // Máximo de 3 tentativas
+      );
 
       // Sucesso - processar resposta
       const data = await response.json();
