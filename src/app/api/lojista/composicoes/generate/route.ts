@@ -13,6 +13,7 @@ import { logError } from "@/lib/logger";
 // REMOVIDO: findScenarioByProductTags - sempre usar getSmartScenario
 import { reserveCredit, rollbackCredit } from "@/lib/financials";
 import { FieldValue } from "firebase-admin/firestore";
+import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
 
 const db = getAdminDb();
 const storage = (() => {
@@ -70,6 +71,10 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now(); // Iniciar contagem de tempo
+  
+  // FIX: Rate Limiting será aplicado depois de obter lojistaId (mais preciso)
+  // Primeiro, processar request para obter lojistaId
+  const clientIP = getClientIP(request);
   
   // PHASE 12 FIX: Declarar variáveis fora do try para acesso no catch
   let personImageUrl: string | null = null;
@@ -274,6 +279,36 @@ export async function POST(request: NextRequest) {
         )
       );
     }
+
+    // FIX: Rate Limiting por lojistaId - Prevenir múltiplas requisições simultâneas
+    // Isso ajuda a evitar erro 429 (Resource Exhausted) no app móvel
+    const rateLimitKey = lojistaId ? `composition:lojista:${lojistaId}` : `composition:ip:${clientIP}`;
+    
+    // Limite: 1 requisição a cada 20 segundos por lojista (evitar spam e erro 429)
+    // Aumentado de 15s para 20s para dar mais margem e evitar sobrecarga
+    const rateLimit = checkRateLimit(rateLimitKey, 1, 20000);
+    
+    if (!rateLimit.allowed) {
+      const waitSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
+      console.warn("[API/Composicoes] ⚠️ Rate limit excedido:", { 
+        rateLimitKey, 
+        waitSeconds,
+        lojistaId,
+        message: "Muitas requisições muito rápido. Aguarde antes de gerar outro look."
+      });
+      return applyCors(
+        request,
+        NextResponse.json(
+          {
+            error: "Muitas requisições muito rápido",
+            details: `Por favor, aguarde ${waitSeconds} segundos antes de tentar gerar outro look. Isso ajuda a evitar sobrecarga do sistema.`,
+          },
+          { status: 429 }
+        )
+      );
+    }
+    
+    console.log("[API/Composicoes] ✅ Rate limit OK, prosseguindo com geração de look...");
 
     // Busca informações dos produtos
     const productsData: any[] = [];
@@ -1158,8 +1193,8 @@ export async function POST(request: NextRequest) {
       });
       
       if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("Resource exhausted")) {
-        userFriendlyMessage = "Erro ao gerar composição";
-        userFriendlyDetails = "Muitas requisições. Aguarde alguns instantes e tente novamente.";
+        userFriendlyMessage = "Limite de requisições atingido";
+        userFriendlyDetails = "Muitas requisições foram feitas muito rápido. Por favor, aguarde pelo menos 30 segundos antes de tentar gerar outro look. Isso ajuda a evitar sobrecarga do sistema.";
         statusCode = 429;
       } else if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
         userFriendlyMessage = "Erro ao gerar composição";

@@ -46,6 +46,9 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
       };
     }> = [];
     
+    // Normalizar quebras de linha para facilitar parsing
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
     let lastIndex = 0;
     
     // Padrão melhorado para Smart Cards: {{CARD:TYPE|TITLE|SUBTITLE|IMAGE_URL|ACTION_LINK}}
@@ -56,18 +59,24 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
     
     // Resetar lastIndex do regex antes de usar
     cardPattern.lastIndex = 0;
-    while ((cardMatch = cardPattern.exec(text)) !== null) {
+    while ((cardMatch = cardPattern.exec(normalizedText)) !== null) {
       cardMatches.push({ index: cardMatch.index, match: cardMatch });
     }
     
     // Padrão para botões: [[Label]](/url) - aceita espaços opcionais entre ]] e (
-    const buttonPattern = /\[\[([^\]]+)\]\s*\(([^)]+)\)/g;
+    // Melhorado para capturar mesmo com quebras de linha e múltiplos espaços
+    const buttonPattern = /\[\[([^\]]+)\]\s*\(\s*([^)]+)\s*\)/g;
     let buttonMatch;
     const buttonMatches: Array<{ index: number; match: RegExpExecArray }> = [];
     
     buttonPattern.lastIndex = 0;
-    while ((buttonMatch = buttonPattern.exec(text)) !== null) {
+    while ((buttonMatch = buttonPattern.exec(normalizedText)) !== null) {
       buttonMatches.push({ index: buttonMatch.index, match: buttonMatch });
+    }
+    
+    // Log para debug (remover em produção se necessário)
+    if (buttonMatches.length > 0) {
+      console.log(`[ChatMessage] 🔗 ${buttonMatches.length} link(s) detectado(s) no texto`);
     }
     
     // Combinar todos os matches e ordenar por índice
@@ -80,7 +89,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
     for (const { index, match, type } of allMatches) {
       // Adicionar texto antes do match
       if (index > lastIndex) {
-        const textBefore = text.substring(lastIndex, index).trim();
+        const textBefore = normalizedText.substring(lastIndex, index).trim();
         if (textBefore) {
           parts.push({
             type: "text",
@@ -105,11 +114,15 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
         });
       } else {
         // Limpar URL de espaços e caracteres extras
+        const label = match[1].trim();
         const url = match[2].trim();
+        
+        console.log(`[ChatMessage] 🔗 Link detectado: "${label}" -> "${url}"`);
+        
         parts.push({
           type: "button",
-          content: match[1].trim(), // Label
-          url: url, // URL limpa
+          content: label,
+          url: url,
         });
       }
       
@@ -117,8 +130,8 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
     }
     
     // Adicionar texto restante
-    if (lastIndex < text.length) {
-      const textAfter = text.substring(lastIndex).trim();
+    if (lastIndex < normalizedText.length) {
+      const textAfter = normalizedText.substring(lastIndex).trim();
       if (textAfter) {
         parts.push({
           type: "text",
@@ -189,6 +202,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
             </div>
           )}
           
+          <div className="flex flex-col gap-2">
           {messageParts.map((part, index) => {
             if (part.type === "card" && part.cardData) {
               const { type, title, subtitle, imageUrl, actionLink } = part.cardData;
@@ -226,23 +240,34 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
               );
             }
             if (part.type === "button") {
+              if (!part.url) {
+                console.warn(`[ChatMessage] ⚠️ Botão sem URL: "${part.content}"`);
+                return null;
+              }
+              
               return (
-                <div key={index} className="mt-2">
-                  <button
-                    onClick={() => handleButtonClick(part.url!)}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
-                  >
-                    {part.content}
-                  </button>
-                </div>
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`[ChatMessage] 🔗 Clicando no botão: "${part.content}" -> "${part.url}"`);
+                    handleButtonClick(part.url!);
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm cursor-pointer self-start"
+                  type="button"
+                >
+                  {part.content}
+                </button>
               );
             }
             return (
-              <span key={index} className="whitespace-pre-wrap">
+              <span key={index} className="whitespace-pre-wrap break-words">
                 {part.content}
               </span>
             );
           })}
+          </div>
         </div>
         {timestamp && (
           <div
