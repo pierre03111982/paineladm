@@ -31,6 +31,10 @@ const GEMINI_FLASH_IMAGE_CONFIG = {
 /**
  * Fila Global para Serializar Requisições de Geração de Imagem
  * Garante que nunca ultrapassemos o limite de 5 RPM (1 requisição a cada 12 segundos)
+ * 
+ * IMPORTANTE: A requisição conta para o rate limit quando é ENVIADA (início),
+ * não quando termina. Isso permite otimizar para enviar a próxima requisição
+ * 12s após o INÍCIO da anterior, mesmo que a anterior ainda esteja processando.
  */
 class GlobalImageGenerationQueue {
   private queue: Array<{
@@ -39,7 +43,7 @@ class GlobalImageGenerationQueue {
     fn: () => Promise<any>;
   }> = [];
   private processing = false;
-  private lastRequestTime: number = 0;
+  private lastRequestSentTime: number = 0;
   private readonly minDelayBetweenRequests = 12000; // 12 segundos = 5 RPM
 
   /**
@@ -53,7 +57,9 @@ class GlobalImageGenerationQueue {
   }
 
   /**
-   * Processa a fila sequencialmente com intervalo mínimo entre requisições
+   * Processa a fila sequencialmente
+   * IMPORTANTE: A requisição conta para rate limit quando é ENVIADA (início),
+   * não quando termina. Por isso medimos desde o envio da última requisição.
    */
   private async processQueue() {
     if (this.processing || this.queue.length === 0) {
@@ -67,21 +73,26 @@ class GlobalImageGenerationQueue {
       if (!item) break;
 
       try {
-        // Calcular tempo de espera necessário para respeitar o limite de 5 RPM
+        // Calcular tempo desde que a última requisição foi ENVIADA
+        // A requisição conta para rate limit quando é enviada, não quando termina
         const now = Date.now();
-        const timeSinceLastRequest = now - this.lastRequestTime;
+        const timeSinceLastRequestSent = now - this.lastRequestSentTime;
         
-        if (timeSinceLastRequest < this.minDelayBetweenRequests) {
-          const waitTime = this.minDelayBetweenRequests - timeSinceLastRequest;
-          console.log(`[ImageGenerationQueue] ⏳ Aguardando ${waitTime}ms para respeitar limite de 5 RPM (12s entre requisições)...`);
-          console.log(`[ImageGenerationQueue] 📊 Posição na fila: ${this.queue.length + 1} requisição(ões) aguardando`);
+        // Esperar apenas o tempo necessário para respeitar 5 RPM (12s entre envios)
+        if (timeSinceLastRequestSent < this.minDelayBetweenRequests) {
+          const waitTime = this.minDelayBetweenRequests - timeSinceLastRequestSent;
+          console.log(`[ImageGenerationQueue] ⏳ Aguardando ${Math.round(waitTime/1000)}s para respeitar 5 RPM (${Math.round(timeSinceLastRequestSent/1000)}s desde último envio)...`);
+          console.log(`[ImageGenerationQueue] 📊 ${this.queue.length + 1} requisição(ões) na fila`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          console.log(`[ImageGenerationQueue] ✅ ${Math.round(timeSinceLastRequestSent/1000)}s desde último envio - enviando imediatamente`);
         }
 
-        console.log(`[ImageGenerationQueue] 🚀 Processando requisição (${this.queue.length} aguardando na fila)...`);
-        this.lastRequestTime = Date.now();
+        // Marcar o momento que ENVIAMOS a requisição (quando conta para rate limit)
+        this.lastRequestSentTime = Date.now();
+        console.log(`[ImageGenerationQueue] 🚀 Enviando requisição para API (${this.queue.length} aguardando na fila)...`);
 
-        // Executar a função
+        // Executar a função (sequencial - aguarda término antes da próxima)
         const result = await item.fn();
         item.resolve(result);
       } catch (error) {
