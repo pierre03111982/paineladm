@@ -250,12 +250,8 @@ LINGUAGEM:
           role: "user",
           parts: parts,
         }],
-        // Configurar Grounding com Google Search (usando as any temporariamente até SDK atualizar tipos)
-        groundingConfig: {
-          googleSearchRetrieval: {
-            disableAttribution: false, // Manter atribuição das fontes
-          },
-        } as any,
+        // Google Search já está ativado via tools: [{ googleSearch: {} }] no modelo
+        // Não precisa de groundingConfig separado para Gemini 2.0
       } as any);
       const response = result.response;
       
@@ -733,9 +729,14 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
           topP: 0.95,
           topK: 40,
         },
-        tools: [{
-          functionDeclarations: this.getFunctionDeclarations(),
-        }] as any,
+        tools: [
+          {
+            functionDeclarations: this.getFunctionDeclarations(),
+          },
+          {
+            googleSearch: {}, // Ativa Google Search para Gemini 2.0 Flash
+          },
+        ] as any,
         toolConfig: {
           functionCallingConfig: {
             mode: functionCallingMode,
@@ -860,14 +861,9 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
         },
       };
       
-      // SEMPRE habilitar grounding para pesquisas web (expansivo para cobrir mais casos)
-      // Se não precisa de ferramentas específicas da loja, provavelmente precisa de informações da web
-      chatConfig.groundingConfig = {
-        googleSearchRetrieval: {
-          disableAttribution: false,
-        },
-      };
-      console.log(`[VertexAgent] 🌐 Grounding (Google Search) SEMPRE habilitado para permitir pesquisas web quando necessário`);
+      // Google Search já está ativado via tools: [{ googleSearch: {} }] no modelo
+      // Não precisa de groundingConfig separado para Gemini 2.0
+      console.log(`[VertexAgent] 🌐 Google Search ativado via tools no modelo Gemini 2.0`);
       
       const chat = model.startChat(chatConfig);
 
@@ -960,11 +956,8 @@ O HISTÓRICO ESTÁ DISPONÍVEL - USE-O!
                 topP: 0.95,
                 topK: 40,
               },
-              groundingConfig: {
-                googleSearchRetrieval: {
-                  disableAttribution: false,
-                },
-              } as any,
+              // Google Search já está ativado via tools: [{ googleSearch: {} }] no modelo
+              // Não precisa de groundingConfig separado para Gemini 2.0
             } as any);
             
             result = {

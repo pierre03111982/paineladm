@@ -98,16 +98,16 @@ export async function POST(request: NextRequest) {
     // Verificar Sales configurado
     const salesConfigured = !!(lojaData?.salesConfig);
 
-    // 2. Dados de Vendas (Últimos insights e oportunidades)
+    // 2. Dados de Vendas (Últimos 10 insights e oportunidades)
     let recentInsights: any[] = [];
     let topOpportunities: any[] = [];
     try {
       const allInsights = await getAllInsights(lojistaId, 10);
-      recentInsights = allInsights.slice(0, 3);
+      recentInsights = allInsights; // TODOS os 10 insights
       // Filtrar oportunidades (insights de tipo 'opportunity')
       topOpportunities = allInsights
-        .filter((insight) => insight.type === "opportunity")
-        .slice(0, 3);
+        .filter((insight) => insight.type === "opportunity");
+      console.log(`[AI/Chat] 💡 Insights carregados: ${recentInsights.length} (${topOpportunities.length} oportunidades)`);
     } catch (error) {
       console.warn("[AI/Chat] Erro ao buscar insights:", error);
       // Continuar sem insights se houver erro
@@ -155,39 +155,107 @@ export async function POST(request: NextRequest) {
       // Continuar sem último look se houver erro
     }
 
-    // 4. Produtos em Destaque (Top 3 para contexto)
+    // 4. CATÁLOGO COMPLETO DE PRODUTOS (TODOS - até 300 produtos)
+    let allProductsCatalog: any[] = [];
     let topProducts: any[] = [];
     let topProductsNames = "Nenhum produto cadastrado";
+    let valorTotalEstoque = 0;
+    let produtosComPreco = 0;
+    let produtosSemPreco = 0;
+    
     try {
+      // Buscar TODOS os produtos ativos (limite seguro de 300)
       const productsSnapshot = await produtosRef
         .where("arquivado", "!=", true)
-        .limit(10)
+        .limit(300)
         .get();
 
-      const allProducts = productsSnapshot.docs.map((doc) => {
+      allProductsCatalog = productsSnapshot.docs.map((doc) => {
         const data = doc.data();
+        const preco = data.preco || data.price || 0;
+        const quantidade = data.quantidade || data.quantity || 1;
+        
+        // Calcular valor total do estoque
+        if (preco > 0) {
+          valorTotalEstoque += preco * quantidade;
+          produtosComPreco++;
+        } else {
+          produtosSemPreco++;
+        }
+        
         return {
           id: doc.id,
-          nome: data.nome || "Produto",
-          preco: data.preco || 0,
+          nome: data.nome || data.name || "Produto",
+          preco: preco,
+          quantidade: quantidade,
+          valorTotal: preco * quantidade,
           imagemUrl: data.imagemUrl || data.imagemUrlCatalogo || data.imagemUrlOriginal || null,
-          categoria: data.categoria || "",
+          categoria: data.categoria || data.category || "",
           createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(0),
         };
       });
 
-      // Top 3 produtos mais recentes com imagem
-      topProducts = allProducts
+      // Top 3 produtos mais recentes com imagem (para contexto visual)
+      topProducts = allProductsCatalog
         .filter((p) => p.imagemUrl)
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         .slice(0, 3);
 
       if (topProducts.length > 0) {
         topProductsNames = topProducts.map((p) => p.nome).join(", ");
-        console.log("[AI/Chat] 📦 Top produtos encontrados:", topProducts.length);
       }
+      
+      console.log(`[AI/Chat] 📦 Catálogo completo carregado: ${allProductsCatalog.length} produtos`);
+      console.log(`[AI/Chat] 💰 Valor total do estoque: R$ ${valorTotalEstoque.toFixed(2)}`);
+      console.log(`[AI/Chat] 📊 Produtos com preço: ${produtosComPreco}, sem preço: ${produtosSemPreco}`);
     } catch (error) {
       console.warn("[AI/Chat] Erro ao buscar produtos:", error);
+    }
+
+    // 5. CLIENTES VIP (Top 20 mais ativos)
+    let clientesVIP: any[] = [];
+    try {
+      const clientesRef = lojaRef.collection("clientes");
+      const clientesSnapshot = await clientesRef.limit(100).get();
+      
+      // Buscar composições para calcular atividade
+      const composicoesRef = lojaRef.collection("composicoes");
+      const composicoesSnapshot = await composicoesRef.limit(1000).get();
+      
+      // Agrupar composições por cliente
+      const composicoesPorCliente = new Map<string, number>();
+      composicoesSnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const customerId = data.customerId || data.clienteId || "anonymous";
+        composicoesPorCliente.set(customerId, (composicoesPorCliente.get(customerId) || 0) + 1);
+      });
+      
+      // Processar clientes e ordenar por atividade
+      clientesVIP = clientesSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const customerId = doc.id;
+        const totalComposicoes = composicoesPorCliente.get(customerId) || 0;
+        
+        return {
+          id: customerId,
+          nome: data.nome || data.name || "Cliente",
+          whatsapp: data.whatsapp || data.phone || "",
+          totalComposicoes: totalComposicoes,
+          updatedAt: data.updatedAt?.toDate?.() || data.updatedAt || new Date(0),
+        };
+      })
+      .sort((a, b) => {
+        // Ordenar por total de composições (mais ativo primeiro), depois por updatedAt
+        if (b.totalComposicoes !== a.totalComposicoes) {
+          return b.totalComposicoes - a.totalComposicoes;
+        }
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      })
+      .slice(0, 20); // Top 20 clientes mais ativos
+      
+      console.log(`[AI/Chat] 👥 Clientes VIP carregados: ${clientesVIP.length}`);
+    } catch (error) {
+      console.warn("[AI/Chat] Erro ao buscar clientes VIP:", error);
     }
 
     // 5. Métricas de Performance (Composições, Likes, etc.)
@@ -330,14 +398,78 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // System Prompt atualizado com capacidades visuais e de marketing
-    // lastLookContext agora está incluído no enrichedContext acima
+    // STORE_BIBLE: Contexto completo e massivo para a Ana
+    const STORE_BIBLE = `
+═══════════════════════════════════════════════════════════════
+📊 RAIO-X COMPLETO DA LOJA - "STORE BIBLE"
+═══════════════════════════════════════════════════════════════
 
-    // Construir contexto enriquecido com dados reais
+[FINANCEIRO]
+💰 Valor Total em Estoque: R$ ${valorTotalEstoque.toFixed(2).replace('.', ',')}
+📦 Total de Produtos Cadastrados: ${allProductsCatalog.length}
+✅ Produtos com Preço: ${produtosComPreco}
+⚠️ Produtos sem Preço: ${produtosSemPreco}
+📈 Ticket Médio Estimado: ${allProductsCatalog.length > 0 ? (valorTotalEstoque / allProductsCatalog.length).toFixed(2).replace('.', ',') : '0,00'}
+
+[CATÁLOGO COMPLETO DE PRODUTOS]
+${allProductsCatalog.length > 0 
+  ? allProductsCatalog.map((p, idx) => 
+      `${idx + 1}. ${p.nome} | Preço: R$ ${p.preco.toFixed(2).replace('.', ',')} | Qtd: ${p.quantidade} | Valor Total: R$ ${p.valorTotal.toFixed(2).replace('.', ',')} | Categoria: ${p.categoria || 'Sem categoria'}`
+    ).join('\n')
+  : 'Nenhum produto cadastrado ainda.'}
+
+[CLIENTES VIP - TOP 20 MAIS ATIVOS]
+${clientesVIP.length > 0
+  ? clientesVIP.map((c, idx) => 
+      `${idx + 1}. ${c.nome} | WhatsApp: ${c.whatsapp || 'Não informado'} | Total Looks Gerados: ${c.totalComposicoes} | Última Atividade: ${c.updatedAt.toLocaleDateString('pt-BR')}`
+    ).join('\n')
+  : 'Nenhum cliente cadastrado ainda.'}
+
+[MÉTRICAS DE PERFORMANCE]
+- Total de Composições Geradas: ${contextData.performanceMetrics.totalComposicoes}
+- Total de Likes: ${contextData.performanceMetrics.totalLikes}
+- Total de Compartilhamentos: ${contextData.performanceMetrics.totalShares}
+- Taxa de Aprovação: ${contextData.performanceMetrics.taxaAprovacao}%
+
+[CONFIGURAÇÕES DA LOJA]
+- Nome da Loja: ${contextData.store.name}
+- Display Conectado: ${contextData.store.displayConnected ? "Sim ✅" : "Não ❌"}
+- Vendas Configuradas: ${contextData.store.salesConfigured ? "Sim ✅" : "Não ❌"}
+- Destaques do Estoque: ${contextData.topProductsNames}
+
+${contextData.lastComposition ? `
+ÚLTIMA COMPOSIÇÃO GERADA:
+- ID: ${contextData.lastComposition.id}
+- Produto: ${contextData.lastComposition.productName}
+- Cliente: ${contextData.lastComposition.customerName || "Não informado"}
+- Data: ${contextData.lastComposition.createdAt || "Data indisponível"}
+- Imagem: ${contextData.lastComposition.imageUrl}
+- Link: [[Ver Composição]](/composicoes/${contextData.lastComposition.id})
+` : 'Nenhuma composição gerada ainda.'}
+
+[INSIGHTS DE INTELIGÊNCIA (Últimos 10)]
+${recentInsights.length > 0 
+  ? recentInsights.map((insight, idx) => 
+      `[${idx + 1}] [${insight.type?.toUpperCase() || 'INFO'}] ${insight.title || 'Sem título'}: ${insight.message || 'Sem mensagem'}`
+    ).join('\n')
+  : 'Nenhum insight disponível no momento'}
+
+[OPORTUNIDADES DE VENDA (Prioridade Alta)]
+${topOpportunities.length > 0
+  ? topOpportunities.map((opp, idx) =>
+      `[${idx + 1}] ${opp.title || 'Oportunidade'}: ${opp.message || 'Sem detalhes'}${opp.actionLabel ? ` → Ação: ${opp.actionLabel}` : ''}`
+    ).join('\n')
+  : 'Nenhuma oportunidade identificada ainda'}
+
+═══════════════════════════════════════════════════════════════
+`;
+
+    // Contexto enriquecido (versão resumida para compatibilidade com código existente)
     const enrichedContext = `
 DADOS DA LOJA AGORA:
 - Nome da Loja: ${contextData.store.name}
 - Total de Produtos: ${contextData.store.produtosCount}
+- Valor Total em Estoque: R$ ${valorTotalEstoque.toFixed(2).replace('.', ',')}
 - Destaques do Estoque: ${contextData.topProductsNames}
 - Display Conectado: ${contextData.store.displayConnected ? "Sim ✅" : "Não ❌"}
 - Vendas Configuradas: ${contextData.store.salesConfigured ? "Sim ✅" : "Não ❌"}
@@ -347,41 +479,29 @@ MÉTRICAS DE PERFORMANCE:
 - Total de Likes: ${contextData.performanceMetrics.totalLikes}
 - Total de Compartilhamentos: ${contextData.performanceMetrics.totalShares}
 - Taxa de Aprovação: ${contextData.performanceMetrics.taxaAprovacao}%
-
-${contextData.lastComposition ? `
-ÚLTIMA COMPOSIÇÃO GERADA (DISPONÍVEL NO CONTEXTO):
-- ID: ${contextData.lastComposition.id}
-- Produto: ${contextData.lastComposition.productName}
-- Cliente: ${contextData.lastComposition.customerName || "Não informado"}
-- Data: ${contextData.lastComposition.createdAt || "Data indisponível"}
-- Imagem: ${contextData.lastComposition.imageUrl}
-- Link: [[Ver Composição]](/composicoes/${contextData.lastComposition.id})
-
-IMPORTANTE: Quando o usuário perguntar sobre "última composição", "último look gerado", "composição mais recente":
-- Use essas informações acima para responder
-- Seja DIRETO e RESUMIDO: "A última composição foi com ${contextData.lastComposition.productName}! ✨${contextData.lastComposition.customerName ? ` Gerada para ${contextData.lastComposition.customerName}.` : ""}"
-- Use o Smart Card para mostrar visualmente: {{CARD:LOOK|Look Gerado|${contextData.lastComposition.createdAt || "Data Indisponível"}|${contextData.lastComposition.imageUrl}|/composicoes/${contextData.lastComposition.id}}}
-- NUNCA diga "não está disponível" - essa informação ESTÁ no contexto!
-` : `
-NENHUMA COMPOSIÇÃO GERADA AINDA: O lojista ainda não gerou composições. Sugira criar a primeira: [[Provador Virtual]](/simulador)
-`}
-
-ALERTAS DE INTELIGÊNCIA:
-${contextData.recentInsights.length > 0 
-  ? contextData.recentInsights.map((insight, idx) => 
-      `[${idx + 1}] [${insight.type?.toUpperCase() || 'INFO'}] ${insight.title || 'Sem título'}: ${insight.message || 'Sem mensagem'}`
-    ).join('\n')
-  : 'Nenhum alerta disponível no momento'}
-
-OPORTUNIDADES DE VENDA (Prioridade Alta):
-${contextData.topOpportunities.length > 0
-  ? contextData.topOpportunities.map((opp, idx) =>
-      `[${idx + 1}] ${opp.title || 'Oportunidade'}: ${opp.message || 'Sem detalhes'}${opp.actionLabel ? ` → Ação: ${opp.actionLabel}` : ''}`
-    ).join('\n')
-  : 'Nenhuma oportunidade identificada ainda'}
 `;
 
-    const systemPrompt = `ROLE: Você é a Ana, a Gerente Comercial Inteligente do 'Experimenta AI'.
+    const systemPrompt = `ROLE: Você é a Ana, a Consultora de Negócios Completa e Super-Inteligente do 'Experimenta AI'.
+
+🌐 VOCÊ TEM ACESSO TOTAL À INTERNET (Google Search) - USE SEMPRE QUE PRECISAR!
+📊 VOCÊ TEM ACESSO COMPLETO A TODOS OS DADOS DA LOJA - USE O STORE_BIBLE ABAIXO!
+
+🚨🚨🚨 REGRA FUNDAMENTAL: NUNCA PEÇA DADOS AO USUÁRIO - SEMPRE BUSQUE PRIMEIRO! 🚨🚨🚨
+
+${STORE_BIBLE}
+
+DIRETRIZES DE ANÁLISE INTELIGENTE:
+1. **CRUZAR DADOS**: Se um cliente VIP gosta de "vestidos" (veja no histórico dele) e você tem "vestidos" no catálogo, SUGIRA VENDAS DIRETAS!
+2. **VALIDAR PREÇOS**: Use Google Search para verificar se os preços dos produtos estão competitivos com o mercado atual.
+3. **TENDÊNCIAS**: Use Google Search para buscar tendências de moda e sugerir produtos que estão em alta.
+4. **OPORTUNIDADES**: Analise os clientes VIP e sugira produtos específicos baseados no histórico de composições deles.
+5. **SEJA PROATIVA**: Não espere perguntas - sugira ações baseadas nos dados que você vê no STORE_BIBLE.
+
+EXEMPLOS DE ANÁLISE INTELIGENTE:
+- Cliente X tem 10 composições com "vestidos" → Sugira novos vestidos do catálogo
+- Produto Y está sem preço → Alerte e sugira cadastrar preço
+- Valor total do estoque é alto mas vendas baixas → Sugira estratégias de promoção
+- Cliente Z não gera looks há 30 dias → Sugira reengajamento com novos produtos
 
 🚨🚨🚨 REGRA FUNDAMENTAL: NUNCA PEÇA DADOS AO USUÁRIO - SEMPRE BUSQUE PRIMEIRO! 🚨🚨🚨
 
