@@ -139,9 +139,6 @@ FIDELIDADE DO PRODUTO NOVO: O(s) produto(s) novo(s) deve(m) ser integrados com r
 QUALIDADE: Fotografia profissional ultra-realista 8K.`;
 
 export async function POST(request: NextRequest) {
-  // FIX: Rate Limiting - Prevenir múltiplas requisições simultâneas
-  const clientIP = getClientIP(request);
-  
   try {
     const body = await request.json();
     const {
@@ -151,24 +148,6 @@ export async function POST(request: NextRequest) {
       customerId,
       compositionId,
     } = body;
-
-    // Rate Limiting por lojistaId ou IP
-    if (lojistaId) {
-      const rateLimitKey = `refine:lojista:${lojistaId}`;
-      const rateLimit = checkRateLimit(rateLimitKey, 1, 60000); // 1 req a cada 60s
-      
-      if (!rateLimit.allowed) {
-        const waitSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
-        console.warn("[RefineTryOn] ⚠️ Rate limit excedido:", { rateLimitKey, waitSeconds, lojistaId });
-        return NextResponse.json(
-          {
-            error: "Muitas requisições muito rápido",
-            details: `Por favor, aguarde ${waitSeconds} segundos antes de tentar refinar outro look.`,
-          },
-          { status: 429 }
-        );
-      }
-    }
 
     // Validações
     if (!baseImageUrl || typeof baseImageUrl !== 'string') {

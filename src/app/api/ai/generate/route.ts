@@ -11,7 +11,6 @@ import { getGeminiFlashImageService } from "@/lib/ai-services/gemini-flash-image
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { getStorage } from "firebase-admin/storage";
 import { getAdminApp } from "@/lib/firebaseAdmin";
-import { getClientIP } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
 const db = getAdminDb();
@@ -382,7 +381,7 @@ export async function POST(request: NextRequest) {
         0,
         0,
         0,
-        { customerId, ip: getClientIP(request) }
+        { customerId }
       );
 
       const response = NextResponse.json(
@@ -573,7 +572,6 @@ export async function POST(request: NextRequest) {
       {
         lojistaId: lojistaId || body?.lojistaId,
         customerId: customerId || body?.customerId,
-        ip: getClientIP(request),
         origin,
       }
     );
