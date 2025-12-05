@@ -284,9 +284,9 @@ export async function POST(request: NextRequest) {
     // Isso ajuda a evitar erro 429 (Resource Exhausted) no app móvel
     const rateLimitKey = lojistaId ? `composition:lojista:${lojistaId}` : `composition:ip:${clientIP}`;
     
-    // Limite: 1 requisição a cada 20 segundos por lojista (evitar spam e erro 429)
-    // Aumentado de 15s para 20s para dar mais margem e evitar sobrecarga
-    const rateLimit = checkRateLimit(rateLimitKey, 1, 20000);
+    // Limite: 1 requisição a cada 60 segundos por lojista (evitar spam e erro 429)
+    // Aumentado para 60s para garantir que não exceda o limite da API (1 req/min)
+    const rateLimit = checkRateLimit(rateLimitKey, 1, 60000);
     
     if (!rateLimit.allowed) {
       const waitSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);

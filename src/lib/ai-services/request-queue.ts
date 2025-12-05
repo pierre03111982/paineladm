@@ -6,7 +6,7 @@
 
 interface QueuedRequest<T> {
   id: string;
-  promise: Promise<T>;
+  requestFn: () => Promise<T>; // Função a ser executada, não a promise
   resolve: (value: T) => void;
   reject: (error: Error) => void;
   timestamp: number;
@@ -15,7 +15,7 @@ interface QueuedRequest<T> {
 class RequestQueue {
   private queue: QueuedRequest<any>[] = [];
   private processing = false;
-  private minDelayBetweenRequests = 12000; // 12 segundos entre requisições (5 por minuto = 1 a cada 12s)
+  private minDelayBetweenRequests = 60000; // 60 segundos entre requisições (1 por minuto - limite conservador)
   private lastRequestTime = 0;
 
   /**
@@ -28,7 +28,7 @@ class RequestQueue {
       
       const queuedRequest: QueuedRequest<T> = {
         id: requestId,
-        promise: requestFn(),
+        requestFn: requestFn, // Guardar a função, não executar ainda
         resolve,
         reject,
         timestamp: Date.now(),
@@ -62,20 +62,20 @@ class RequestQueue {
       }
 
       try {
-        // Calcular delay necessário para respeitar limite de 5 requisições por minuto
+        // Calcular delay necessário para respeitar limite de 1 requisição por minuto
         const timeSinceLastRequest = Date.now() - this.lastRequestTime;
         const delayNeeded = Math.max(0, this.minDelayBetweenRequests - timeSinceLastRequest);
 
         if (delayNeeded > 0) {
-          console.log(`[RequestQueue] ⏳ Aguardando ${(delayNeeded / 1000).toFixed(1)}s antes de processar requisição ${request.id} (respeitando limite de 5 req/min)`);
+          console.log(`[RequestQueue] ⏳ Aguardando ${(delayNeeded / 1000).toFixed(1)}s antes de processar requisição ${request.id} (respeitando limite de 1 req/min)`);
           await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
 
         console.log(`[RequestQueue] 🚀 Processando requisição ${request.id}...`);
         const startTime = Date.now();
         
-        // Executar a requisição
-        const result = await request.promise;
+        // Executar a requisição (agora sim, quando for sua vez na fila)
+        const result = await request.requestFn();
         
         const executionTime = Date.now() - startTime;
         this.lastRequestTime = Date.now();

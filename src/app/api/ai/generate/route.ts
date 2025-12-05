@@ -371,10 +371,10 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, origin);
     }
 
-    // Rate Limiting: 1 requisição a cada 10 segundos por IP ou customerId
+    // Rate Limiting: 1 requisição a cada 60 segundos por IP ou customerId (limite conservador)
     const clientIP = getClientIP(request);
     const rateLimitKey = customerId ? `customer:${customerId}` : `ip:${clientIP}`;
-    const rateLimit = checkRateLimit(rateLimitKey, 1, 10000); // 1 requisição a cada 10 segundos
+    const rateLimit = checkRateLimit(rateLimitKey, 1, 60000); // 1 requisição a cada 60 segundos (limite conservador)
 
     if (!rateLimit.allowed) {
       const waitSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
