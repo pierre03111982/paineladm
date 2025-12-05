@@ -287,232 +287,143 @@ export class GeminiFlashImageService {
 
       // FIX: Para erro 429, NÃO fazer retry - retornar erro imediatamente
       // Retries só pioram o problema de rate limit
-      // Apenas 1 tentativa - se der 429, retornar erro para o usuário aguardar
-      try {
-        const response = await fetch(this.endpoint, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        });
+      const response = await fetch(this.endpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorData: any = {};
-          
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            // Se não conseguir fazer parse, usar o texto como está
-          }
-
-          // FIX CRÍTICO: Para erro 429, NÃO fazer retry - retornar erro imediatamente
-          // Retries só fazem mais requisições e pioram o problema
-          if (response.status === 429) {
-            const errorMessage = errorData?.error?.message || "Resource exhausted. Please try again later.";
-            console.error("[GeminiFlashImage] ❌ Rate limit (429) - NÃO fazendo retry para evitar mais requisições");
-            console.error("[GeminiFlashImage] 💡 Aguarde pelo menos 30 segundos antes de tentar gerar outro look.");
-            throw new Error(`Gemini Flash Image API error: 429 ${JSON.stringify({ error: { code: 429, message: errorMessage, status: "RESOURCE_EXHAUSTED" } })}`);
-          } else {
-            // Outros erros HTTP - fazer retry apenas para erros temporários (5xx)
-            if (response.status >= 500 && response.status < 600) {
-              // Erro do servidor - pode tentar novamente uma vez após delay
-              console.warn(`[GeminiFlashImage] ⚠️ Erro do servidor (${response.status}). Aguardando 3s antes de tentar novamente...`);
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              
-              // Uma tentativa adicional apenas para erros 5xx
-              const retryResponse = await fetch(this.endpoint, {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${accessToken}`,
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestBody),
-              });
-              
-              if (!retryResponse.ok) {
-                const retryErrorText = await retryResponse.text();
-                console.error("[GeminiFlashImage] ❌ Erro persistente após retry:", retryResponse.status);
-                throw new Error(`Gemini Flash Image API error: ${retryResponse.status} ${retryErrorText.substring(0, 500)}`);
-              }
-              
-              // Se retry funcionou, continuar processamento com retryResponse
-              const data = await retryResponse.json();
-              const executionTime = Date.now() - startTime;
-              
-              console.log("[GeminiFlashImage] ✅ Retry bem-sucedido após erro do servidor", {
-                executionTime,
-              });
-              
-              // Processar resposta do retry (mesmo código de sucesso abaixo)
-              // ... continuar com processamento da resposta
-              // (código de extração de imagem continua igual)
-              // PULAR para processamento de resposta
-              const candidate = data.candidates?.[0];
-              if (!candidate) {
-                throw new Error("Resposta da API não contém candidates");
-              }
-              
-              let imageUrl: string | null = null;
-              
-              if (candidate.content?.parts) {
-                for (const part of candidate.content.parts) {
-                  if (part.inlineData?.data) {
-                    const mimeType = part.inlineData.mimeType || "image/png";
-                    imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
-                    break;
-                  }
-                }
-              }
-              
-              if (!imageUrl) {
-                throw new Error("Resposta da API não contém imagem gerada");
-              }
-              
-              return {
-                success: true,
-                data: {
-                  imageUrl,
-                  processingTime: executionTime,
-                  finishReason: candidate.finishReason || "SUCCESS",
-                },
-                executionTime,
-                cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
-                metadata: {
-                  provider: "gemini-flash-image",
-                  model: GEMINI_FLASH_IMAGE_CONFIG.modelId,
-                },
-              };
-            } else {
-              // Outros erros HTTP (4xx) - não fazer retry
-              console.error("[GeminiFlashImage] ❌ Erro na API:", response.status, errorText.substring(0, 500));
-              throw new Error(`Gemini Flash Image API error: ${response.status} ${errorText}`);
-            }
-          }
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData: any = {};
+        
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Se não conseguir fazer parse, usar o texto como está
         }
 
-          // Sucesso - sair do loop de retry
-          const data = await response.json();
-          const executionTime = Date.now() - startTime;
+        // FIX CRÍTICO: Para erro 429, NÃO fazer retry - retornar erro imediatamente
+        // Retries só fazem mais requisições e pioram o problema
+        if (response.status === 429) {
+          const errorMessage = errorData?.error?.message || "Resource exhausted. Please try again later.";
+          console.error("[GeminiFlashImage] ❌ Rate limit (429) - NÃO fazendo retry para evitar mais requisições");
+          console.error("[GeminiFlashImage] 💡 Aguarde pelo menos 30 segundos antes de tentar gerar outro look.");
+          throw new Error(`Gemini Flash Image API error: 429 ${JSON.stringify({ error: { code: 429, message: errorMessage, status: "RESOURCE_EXHAUSTED" } })}`);
+        }
+        
+        // Outros erros HTTP - não fazer retry
+        console.error("[GeminiFlashImage] ❌ Erro na API:", response.status, errorText.substring(0, 500));
+        throw new Error(`Gemini Flash Image API error: ${response.status} ${errorText}`);
+      }
 
-          console.log("[GeminiFlashImage] ✅ Resposta da API recebida", {
-            attempt: attempt + 1,
-            executionTime,
+      // Sucesso - processar resposta
+      const data = await response.json();
+      const executionTime = Date.now() - startTime;
+
+      console.log("[GeminiFlashImage] ✅ Resposta da API recebida", {
+        executionTime,
+      });
+
+      // Extrair a imagem gerada da resposta
+      let imageUrl: string | null = null;
+
+      console.log("[GeminiFlashImage] 🔍 Analisando estrutura da resposta:", {
+        hasCandidates: !!data.candidates,
+        candidatesLength: data.candidates?.length || 0,
+        firstCandidate: data.candidates?.[0] ? {
+          hasContent: !!data.candidates[0].content,
+          hasParts: !!data.candidates[0].content?.parts,
+          partsLength: data.candidates[0].content?.parts?.length || 0,
+        } : null,
+      });
+
+      if (data.candidates && data.candidates.length > 0) {
+        const candidate = data.candidates[0];
+        
+        // Verificar se há finishReason que indique bloqueio
+        if (candidate.finishReason && candidate.finishReason !== "STOP") {
+          console.warn("[GeminiFlashImage] ⚠️ FinishReason não é STOP:", candidate.finishReason);
+        }
+        
+        if (candidate.content?.parts) {
+          console.log("[GeminiFlashImage] 🔍 Analisando parts:", {
+            partsCount: candidate.content.parts.length,
+            partsStructure: candidate.content.parts.map((part: any, index: number) => ({
+              index,
+              hasInlineData: !!part.inlineData,
+              hasText: !!part.text,
+              inlineDataMimeType: part.inlineData?.mimeType,
+              inlineDataHasData: !!part.inlineData?.data,
+              inlineDataLength: part.inlineData?.data?.length || 0,
+              textPreview: part.text?.substring(0, 100),
+            })),
           });
 
-          // Extrair a imagem gerada da resposta
-          // O Gemini Flash Image pode retornar a imagem em diferentes estruturas
-          let imageUrl: string | null = null;
-
-          console.log("[GeminiFlashImage] 🔍 Analisando estrutura da resposta:", {
-            hasCandidates: !!data.candidates,
-            candidatesLength: data.candidates?.length || 0,
-            firstCandidate: data.candidates?.[0] ? {
-              hasContent: !!data.candidates[0].content,
-              hasParts: !!data.candidates[0].content?.parts,
-              partsLength: data.candidates[0].content?.parts?.length || 0,
-            } : null,
-          });
-
-          if (data.candidates && data.candidates.length > 0) {
-            const candidate = data.candidates[0];
-            
-            // Verificar se há finishReason que indique bloqueio
-            if (candidate.finishReason && candidate.finishReason !== "STOP") {
-              console.warn("[GeminiFlashImage] ⚠️ FinishReason não é STOP:", candidate.finishReason);
+          for (const part of candidate.content.parts) {
+            // Tentar encontrar imagem em inlineData
+            if (part.inlineData?.data) {
+              const mimeType = part.inlineData.mimeType || "image/png";
+              imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+              console.log("[GeminiFlashImage] ✅ Imagem encontrada em inlineData:", {
+                mimeType,
+                dataLength: part.inlineData.data.length,
+              });
+              break;
             }
             
-            if (candidate.content?.parts) {
-              console.log("[GeminiFlashImage] 🔍 Analisando parts:", {
-                partsCount: candidate.content.parts.length,
-                partsStructure: candidate.content.parts.map((part: any, index: number) => ({
-                  index,
-                  hasInlineData: !!part.inlineData,
-                  hasText: !!part.text,
-                  inlineDataMimeType: part.inlineData?.mimeType,
-                  inlineDataHasData: !!part.inlineData?.data,
-                  inlineDataLength: part.inlineData?.data?.length || 0,
-                  textPreview: part.text?.substring(0, 100),
-                })),
-              });
-
-              for (const part of candidate.content.parts) {
-                // Tentar encontrar imagem em inlineData
-                if (part.inlineData?.data) {
-                  const mimeType = part.inlineData.mimeType || "image/png";
-                  imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
-                  console.log("[GeminiFlashImage] ✅ Imagem encontrada em inlineData:", {
-                    mimeType,
-                    dataLength: part.inlineData.data.length,
-                  });
-                  break;
-                }
-                
-                // Verificar se há texto que possa conter URL de imagem
-                if (part.text) {
-                  console.log("[GeminiFlashImage] 📝 Texto encontrado na resposta:", part.text.substring(0, 200));
-                  // Se o texto contém uma URL de imagem, usar ela
-                  const urlMatch = part.text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
-                  if (urlMatch) {
-                    imageUrl = urlMatch[0];
-                    console.log("[GeminiFlashImage] ✅ URL de imagem encontrada no texto:", imageUrl);
-                    break;
-                  }
-                }
+            // Verificar se há texto que possa conter URL de imagem
+            if (part.text) {
+              console.log("[GeminiFlashImage] 📝 Texto encontrado na resposta:", part.text.substring(0, 200));
+              // Se o texto contém uma URL de imagem, usar ela
+              const urlMatch = part.text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
+              if (urlMatch) {
+                imageUrl = urlMatch[0];
+                console.log("[GeminiFlashImage] ✅ URL de imagem encontrada no texto:", imageUrl);
+                break;
               }
             }
           }
-
-          if (!imageUrl) {
-            console.error("[GeminiFlashImage] ❌ Resposta completa da API:", JSON.stringify(data, null, 2));
-            console.error("[GeminiFlashImage] ❌ Estrutura da resposta:", {
-              topLevelKeys: Object.keys(data),
-              candidates: data.candidates?.map((c: any) => ({
-                finishReason: c.finishReason,
-                hasContent: !!c.content,
-                contentKeys: c.content ? Object.keys(c.content) : [],
-                partsCount: c.content?.parts?.length || 0,
-              })),
-            });
-            throw new Error("Resposta da API não contém imagem gerada. Verifique os logs para mais detalhes.");
-          }
-
-          console.log("[GeminiFlashImage] ✅ Imagem gerada com sucesso", {
-            executionTime,
-            cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
-            imageUrlType: imageUrl.startsWith("data:") ? "base64" : "uri",
-          });
-
-          return {
-            success: true,
-            data: {
-              imageUrl,
-              processingTime: executionTime,
-              finishReason: data.candidates?.[0]?.finishReason || "SUCCESS",
-            },
-            executionTime,
-            cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
-            metadata: {
-              provider: "gemini-flash-image",
-              model: GEMINI_FLASH_IMAGE_CONFIG.modelId,
-            },
-          };
-        } catch (error) {
-          lastError = error instanceof Error ? error : new Error(String(error));
-          
-          // Se não for erro 429 ou se já tentamos todas as vezes, lançar o erro
-          if (!lastError.message.includes("429") || attempt >= maxRetries) {
-            throw lastError;
-          }
-          
-          // Continuar o loop para tentar novamente
         }
       }
-      
-      // Se chegou aqui, todas as tentativas falharam
-      throw lastError || new Error("Falha ao gerar imagem após múltiplas tentativas");
+
+      if (!imageUrl) {
+        console.error("[GeminiFlashImage] ❌ Resposta completa da API:", JSON.stringify(data, null, 2));
+        console.error("[GeminiFlashImage] ❌ Estrutura da resposta:", {
+          topLevelKeys: Object.keys(data),
+          candidates: data.candidates?.map((c: any) => ({
+            finishReason: c.finishReason,
+            hasContent: !!c.content,
+            contentKeys: c.content ? Object.keys(c.content) : [],
+            partsCount: c.content?.parts?.length || 0,
+          })),
+        });
+        throw new Error("Resposta da API não contém imagem gerada. Verifique os logs para mais detalhes.");
+      }
+
+      console.log("[GeminiFlashImage] ✅ Imagem gerada com sucesso", {
+        executionTime,
+        cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
+        imageUrlType: imageUrl.startsWith("data:") ? "base64" : "uri",
+      });
+
+      return {
+        success: true,
+        data: {
+          imageUrl,
+          processingTime: executionTime,
+          finishReason: data.candidates?.[0]?.finishReason || "SUCCESS",
+        },
+        executionTime,
+        cost: GEMINI_FLASH_IMAGE_CONFIG.costPerRequest,
+        metadata: {
+          provider: "gemini-flash-image",
+          model: GEMINI_FLASH_IMAGE_CONFIG.modelId,
+        },
+      };
     } catch (error) {
       const executionTime = Date.now() - startTime;
       console.error("[GeminiFlashImage] Erro ao gerar imagem:", error);
