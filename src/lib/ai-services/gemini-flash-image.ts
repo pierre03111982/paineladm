@@ -29,6 +29,81 @@ const GEMINI_FLASH_IMAGE_CONFIG = {
 };
 
 /**
+ * Fila Global para Serializar Requisições de Geração de Imagem
+ * Garante que nunca ultrapassemos o limite de 5 RPM (1 requisição a cada 12 segundos)
+ */
+class GlobalImageGenerationQueue {
+  private queue: Array<{
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+    fn: () => Promise<any>;
+  }> = [];
+  private processing = false;
+  private lastRequestTime: number = 0;
+  private readonly minDelayBetweenRequests = 12000; // 12 segundos = 5 RPM
+
+  /**
+   * Adiciona uma função à fila e espera sua execução
+   */
+  async enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.queue.push({ resolve, reject, fn });
+      this.processQueue();
+    });
+  }
+
+  /**
+   * Processa a fila sequencialmente com intervalo mínimo entre requisições
+   */
+  private async processQueue() {
+    if (this.processing || this.queue.length === 0) {
+      return;
+    }
+
+    this.processing = true;
+
+    while (this.queue.length > 0) {
+      const item = this.queue.shift();
+      if (!item) break;
+
+      try {
+        // Calcular tempo de espera necessário para respeitar o limite de 5 RPM
+        const now = Date.now();
+        const timeSinceLastRequest = now - this.lastRequestTime;
+        
+        if (timeSinceLastRequest < this.minDelayBetweenRequests) {
+          const waitTime = this.minDelayBetweenRequests - timeSinceLastRequest;
+          console.log(`[ImageGenerationQueue] ⏳ Aguardando ${waitTime}ms para respeitar limite de 5 RPM (12s entre requisições)...`);
+          console.log(`[ImageGenerationQueue] 📊 Posição na fila: ${this.queue.length + 1} requisição(ões) aguardando`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+
+        console.log(`[ImageGenerationQueue] 🚀 Processando requisição (${this.queue.length} aguardando na fila)...`);
+        this.lastRequestTime = Date.now();
+
+        // Executar a função
+        const result = await item.fn();
+        item.resolve(result);
+      } catch (error) {
+        item.reject(error);
+      }
+    }
+
+    this.processing = false;
+  }
+
+  /**
+   * Retorna o tamanho atual da fila
+   */
+  getQueueSize(): number {
+    return this.queue.length;
+  }
+}
+
+// Singleton global da fila
+const globalImageGenerationQueue = new GlobalImageGenerationQueue();
+
+/**
  * Parâmetros para geração de imagem com Gemini Flash Image
  */
 export interface GeminiFlashImageParams {
@@ -111,7 +186,7 @@ export class GeminiFlashImageService {
 
   /**
    * Função wrapper para gerar conteúdo com retry inteligente para erro 429
-   * Tenta até 3 vezes com espera de 2-5 segundos entre tentativas
+   * Tenta até 3 vezes com espera de 12 segundos entre tentativas
    */
   private async generateWithSmartRetry(
     endpoint: string,
@@ -161,9 +236,9 @@ export class GeminiFlashImageService {
         if (isRateLimitError) {
           // Se ainda temos tentativas restantes, esperar e tentar novamente
           if (attempt < maxRetries) {
-            // Esperar entre 2 e 5 segundos (aleatório para evitar sincronização)
-            const waitTime = 2000 + Math.random() * 3000; // Entre 2000ms e 5000ms
-            console.warn(`[GeminiFlashImage] ⚠️ Rate limit (429) detectado na tentativa ${attempt}/${maxRetries}. Aguardando ${Math.round(waitTime)}ms antes de tentar novamente...`);
+            // Esperar 12 segundos entre tentativas
+            const waitTime = 12000; // 12 segundos
+            console.warn(`[GeminiFlashImage] ⚠️ Rate limit (429) detectado na tentativa ${attempt}/${maxRetries}. Aguardando ${waitTime}ms (12 segundos) antes de tentar novamente...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue; // Tentar novamente
           } else {
@@ -183,8 +258,8 @@ export class GeminiFlashImageService {
         // Se for erro de rate limit e ainda temos tentativas, continuar o loop
         if (lastError.message.includes("429") || lastError.message.includes("RESOURCE_EXHAUSTED")) {
           if (attempt < maxRetries) {
-            const waitTime = 2000 + Math.random() * 3000;
-            console.warn(`[GeminiFlashImage] ⚠️ Erro de rate limit capturado. Aguardando ${Math.round(waitTime)}ms antes de tentar novamente...`);
+            const waitTime = 12000; // 12 segundos
+            console.warn(`[GeminiFlashImage] ⚠️ Erro de rate limit capturado. Aguardando ${waitTime}ms (12 segundos) antes de tentar novamente...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue;
           }
@@ -228,6 +303,7 @@ export class GeminiFlashImageService {
 
   /**
    * Gera imagem usando Gemini 2.5 Flash Image
+   * Usa fila global para serializar requisições e respeitar limite de 5 RPM
    */
   async generateImage(
     params: GeminiFlashImageParams
@@ -238,12 +314,25 @@ export class GeminiFlashImageService {
       promptLength: params.prompt.length,
       imageCount: params.imageUrls.length,
       isConfigured: this.isConfigured(),
+      queueSize: globalImageGenerationQueue.getQueueSize(),
     });
 
     if (!this.isConfigured()) {
       console.warn("[GeminiFlashImage] ⚠️ USANDO MOCK - Configure GOOGLE_CLOUD_PROJECT_ID para usar o serviço real!");
       return this.mockGeneration(params, startTime);
     }
+
+    // Enfileirar requisição na fila global para garantir que nunca ultrapassemos 5 RPM
+    return globalImageGenerationQueue.enqueue(() => this._generateImageInternal(params, startTime));
+  }
+
+  /**
+   * Método interno que executa a geração de imagem (chamado pela fila)
+   */
+  private async _generateImageInternal(
+    params: GeminiFlashImageParams,
+    startTime: number
+  ): Promise<APIResponse<GeminiFlashImageResult>> {
 
     try {
       const accessToken = await this.getAccessToken();

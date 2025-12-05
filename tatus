@@ -1,0 +1,38 @@
+warning: in the working copy of 'src/lib/ai-services/gemini-flash-image.ts', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/lib/ai-services/gemini-flash-image.ts b/src/lib/ai-services/gemini-flash-image.ts[m
+[1mindex 3766b5f3..c5c3545b 100644[m
+[1m--- a/src/lib/ai-services/gemini-flash-image.ts[m
+[1m+++ b/src/lib/ai-services/gemini-flash-image.ts[m
+[36m@@ -111,7 +111,7 @@[m [mexport class GeminiFlashImageService {[m
+ [m
+   /**[m
+    * Função wrapper para gerar conteúdo com retry inteligente para erro 429[m
+[31m-   * Tenta até 3 vezes com espera de 2-5 segundos entre tentativas[m
+[32m+[m[32m   * Tenta até 3 vezes com espera de 12 segundos entre tentativas[m
+    */[m
+   private async generateWithSmartRetry([m
+     endpoint: string,[m
+[36m@@ -161,9 +161,9 @@[m [mexport class GeminiFlashImageService {[m
+         if (isRateLimitError) {[m
+           // Se ainda temos tentativas restantes, esperar e tentar novamente[m
+           if (attempt < maxRetries) {[m
+[31m-            // Esperar entre 2 e 5 segundos (aleatório para evitar sincronização)[m
+[31m-            const waitTime = 2000 + Math.random() * 3000; // Entre 2000ms e 5000ms[m
+[31m-            console.warn(`[GeminiFlashImage] ⚠️ Rate limit (429) detectado na tentativa ${attempt}/${maxRetries}. Aguardando ${Math.round(waitTime)}ms antes de tentar novamente...`);[m
+[32m+[m[32m            // Esperar 12 segundos entre tentativas[m
+[32m+[m[32m            const waitTime = 12000; // 12 segundos[m
+[32m+[m[32m            console.warn(`[GeminiFlashImage] ⚠️ Rate limit (429) detectado na tentativa ${attempt}/${maxRetries}. Aguardando ${waitTime}ms (12 segundos) antes de tentar novamente...`);[m
+             await new Promise(resolve => setTimeout(resolve, waitTime));[m
+             continue; // Tentar novamente[m
+           } else {[m
+[36m@@ -183,8 +183,8 @@[m [mexport class GeminiFlashImageService {[m
+         // Se for erro de rate limit e ainda temos tentativas, continuar o loop[m
+         if (lastError.message.includes("429") || lastError.message.includes("RESOURCE_EXHAUSTED")) {[m
+           if (attempt < maxRetries) {[m
+[31m-            const waitTime = 2000 + Math.random() * 3000;[m
+[31m-            console.warn(`[GeminiFlashImage] ⚠️ Erro de rate limit capturado. Aguardando ${Math.round(waitTime)}ms antes de tentar novamente...`);[m
+[32m+[m[32m            const waitTime = 12000; // 12 segundos[m
+[32m+[m[32m            console.warn(`[GeminiFlashImage] ⚠️ Erro de rate limit capturado. Aguardando ${waitTime}ms (12 segundos) antes de tentar novamente...`);[m
+             await new Promise(resolve => setTimeout(resolve, waitTime));[m
+             continue;[m
+           }[m
