@@ -530,23 +530,43 @@ INPUTS:
 - If the original photo shows the person's head, the output MUST show the complete head.`;
 
         // 2. BLOCO DE IDENTIDADE (Clonagem Visual) - PRIORIDADE #1
-        // MASTER PROMPT: TRAVAS DE SEGURANÇA - Identity Shield reforçado
+        // MASTER PROMPT: TRAVAS DE SEGURANÇA - Identity Shield reforçado para 100% de semelhança
         const identityLockBlock = `
-🔒 IDENTITY LOCK (PRIORITY #1):
+🔒 IDENTITY LOCK (PRIORITY #1 - 100% SEMELHANÇA OBRIGATÓRIA):
 
-- The output person must be a PIXEL-PERFECT clone of the input person in [Image 1].
-- Maintain exact: Ethnicity, Age, Body Shape (Weight/Musculature), Skin Texture, and Facial Features.
-- Do not 'beautify' or change the person into a generic model.
-- Preserve exact facial features, body shape, and skin tone.
-- If the face is clear in input, it must be pixel-perfect in output.
-- Keep it authentic - no AI "beautification" or generic model replacement.
+⚠️⚠️⚠️ REGRA CRÍTICA: O ROSTO E CORPO DEVEM SER 100% IDÊNTICOS AO INPUT ⚠️⚠️⚠️
 
-👤 FACE PRESERVATION PROTOCOL (NON-NEGOTIABLE):
-- You must treat the face area from [Image 1] as a 'Sacred Zone'.
-- PRESERVE MICRO-DETAILS: Moles, scars, asymmetry, exact eye shape, nose width, and lip volume.
-- NO BEAUTIFICATION: Do not apply 'beauty filters' or make the person look like a generic model. Keep them real.
-- IF THE POSE CHANGES: The head angle may adjust slightly to look natural, BUT the features must remain 100% recognizable as the input person.
-- The face must be IDENTICAL in every micro-detail - no smoothing, no idealization, no generic model replacement.`;
+- The output person MUST be a PIXEL-PERFECT, 100% IDENTICAL clone of the input person in [Image 1].
+- Maintain EXACT: Ethnicity, Age, Body Shape (Weight/Musculature/Proportions), Skin Texture, Skin Tone, and ALL Facial Features.
+- Do NOT 'beautify', idealize, or change the person into a generic model.
+- The person MUST be INSTANTLY RECOGNIZABLE as the EXACT SAME PERSON - not similar, not approximate, but IDENTICAL.
+- If the face is clear in input, it MUST be pixel-perfect identical in output.
+- Keep it 100% authentic - NO AI "beautification", NO generic model replacement, NO idealization.
+
+👤 FACE PRESERVATION PROTOCOL (NON-NEGOTIABLE - 100% IDENTITY):
+- You MUST treat the face area from [Image 1] as a 'Sacred Zone' - ABSOLUTELY NO CHANGES ALLOWED.
+- PRESERVE ALL MICRO-DETAILS: Moles, scars, freckles, asymmetry, exact eye shape, eye color, nose width, nose shape, lip volume, lip shape, jawline, cheekbones, forehead, eyebrows.
+- PRESERVE FACIAL STRUCTURE: Distance between eyes, eye size, nose position, mouth position, facial proportions - ALL must be IDENTICAL.
+- PRESERVE SKIN TEXTURE: Pores, wrinkles, skin imperfections, skin tone variations - ALL must be IDENTICAL.
+- NO BEAUTIFICATION: Do NOT apply 'beauty filters', smoothing, or make the person look like a generic model. Keep them 100% real.
+- IF THE POSE CHANGES: The head angle may adjust slightly to look natural, BUT ALL facial features must remain 100% IDENTICAL and recognizable as the input person.
+- The face MUST be IDENTICAL in every micro-detail - no smoothing, no idealization, no generic model replacement, no changes whatsoever.
+
+🏃 BODY PRESERVATION PROTOCOL (NON-NEGOTIABLE - 100% IDENTITY):
+- The body MUST be EXACTLY the same: same height, same weight, same proportions, same body shape.
+- PRESERVE BODY STRUCTURE: Shoulder width, waist size, hip width, arm length, leg length, torso length - ALL proportions must be IDENTICAL.
+- PRESERVE MUSCLE DEFINITION: Same muscle tone, same body fat distribution, same physical build.
+- PRESERVE SKIN TONE: Exact skin color throughout the entire body - no color shifts, no lighting changes that alter skin tone.
+- PRESERVE BODY DETAILS: Scars, birthmarks, skin texture, hair on body - ALL must be IDENTICAL.
+- The body shape, proportions, and physical characteristics MUST remain 100% IDENTICAL - no changes allowed.
+- If the input person has a specific body type, the output MUST have the EXACT same body type.
+
+⚠️ FINAL CHECK - IDENTITY VERIFICATION:
+Before finalizing, verify:
+1. Is the face 100% identical? Same eyes, nose, mouth, facial structure, skin texture? If NO → FAILURE.
+2. Is the body 100% identical? Same height, proportions, body shape, skin tone? If NO → FAILURE.
+3. Would someone instantly recognize this as the EXACT SAME PERSON? If NO → FAILURE.
+4. Any deviation from 100% identity match is a CRITICAL FAILURE and must be rejected.`;
 
         // 3. BLOCO DE FIDELIDADE DO PRODUTO (Texture & Logo Lock) - NOVO
         // MASTER PROMPT: TRAVAS DE SEGURANÇA - Product Texture Lock reforçado

@@ -18,13 +18,15 @@
  * - Integração fotorrealista de produtos (PRIORIDADE 2)
  * - Lógica modular de enquadramento/pose para o "Gerar Novo Look"
  */
-const MASTER_PROMPT_TEMPLATE = `⚠️⚠️⚠️ IDENTITY LOCK: The input person's face, body shape, skin tone, and pose MUST BE PRESERVED EXACTLY.
-- Do NOT generate a new model.
-- Do NOT change ethnicity or age.
-- Imagine you are dressing THIS specific person.
-- If the face is visible in the input, the output face must match 100%.
-- Maintain exact facial features, bone structure, and body proportions.
-- Preserve all unique physical characteristics (scars, freckles, body shape, etc.).
+const MASTER_PROMPT_TEMPLATE = `⚠️⚠️⚠️ IDENTITY LOCK - ROSTO E CORPO 100% IDÊNTICOS (CRÍTICO E INEGOCIÁVEL):
+The input person's face, body shape, skin tone, body proportions, and physical characteristics MUST BE PRESERVED WITH 100% ACCURACY.
+- Do NOT generate a new model. Do NOT create a different person.
+- Do NOT change ethnicity, age, facial structure, or body proportions.
+- The face in the output MUST be EXACTLY the same face from the input - pixel-perfect identity match.
+- The body shape, height, weight, muscle definition, and proportions MUST remain IDENTICAL.
+- Preserve ALL unique physical characteristics: scars, freckles, moles, birthmarks, skin texture, hairline, facial hair.
+- The person must be INSTANTLY RECOGNIZABLE as the exact same individual.
+- This is NOT a similar person - it MUST be THE EXACT SAME PERSON wearing different clothes.
 
 📸 PHOTOREALISM RULES:
 - LIGHTING MATCH: Analyze the light source in the background scenario. Apply exactly the same lighting direction, temperature, and intensity to the person and clothes.
@@ -58,10 +60,19 @@ PRIORIDADE 2 - FIDELIDADE ABSOLUTA DOS PRODUTOS E INTEGRAÇÃO FÍSICA E NATURAL
 
 1. PRESERVAÇÃO MÁXIMA E ABSOLUTA DA SEMELHANÇA DA PESSOA (Lei Inegociável - PRIORIDADE 1 - CRÍTICO ANTI-ARTIFICIALIDADE):
 
-* ROSTO - PRESERVAÇÃO INTEGRAL COM REFINAMENTO ESTÉTICO MÍNIMO:
+* ROSTO - PRESERVAÇÃO 100% IDÊNTICA (CRÍTICO - NENHUMA ALTERAÇÃO PERMITIDA):
+    * O ROSTO DEVE SER EXATAMENTE O MESMO: mesmos olhos, mesmo nariz, mesma boca, mesma estrutura facial, mesma expressão natural.
+    * TODOS os detalhes faciais devem ser PRESERVADOS: formato do rosto, distância entre olhos, tamanho do nariz, formato da boca, linha do maxilar.
+    * A textura da pele, poros, rugas, marcas de expressão devem ser IDÊNTICOS.
     * MAQUIAGEM/COSMÉTICOS (Condicionalidade de Preservação): A maquiagem ou cosméticos **originais** da IMAGEM_PESSOA devem ser preservados e mantidos **IDÊNTICOS**, A MENOS QUE um produto da categoria 'COSMÉTICOS' seja fornecido na lista de produtos.
+    * ⚠️ REGRA CRÍTICA: Se o rosto no output não for 100% idêntico ao input, a geração é uma FALHA TOTAL.
 
-* CORPO - MÁXIMA FIDELIDADE E PROPORÇÕES FÍSICAS INALTERADAS: Manter o tipo físico, estrutura óssea, musculatura e PROPORÇÕES CORPORAIS EXATAMENTE E SEM NENHUMA ALTERAÇÃO.
+* CORPO - PRESERVAÇÃO 100% IDÊNTICA (CRÍTICO - NENHUMA ALTERAÇÃO PERMITIDA):
+    * O CORPO DEVE SER EXATAMENTE O MESMO: mesma altura, mesmo peso, mesma estrutura óssea, mesma musculatura, mesmas proporções.
+    * Manter o tipo físico IDÊNTICO: estrutura óssea, musculatura, distribuição de gordura, forma dos braços, pernas, tronco.
+    * As PROPORÇÕES CORPORAIS devem ser EXATAS: comprimento dos braços, pernas, tronco, largura dos ombros, cintura, quadris.
+    * A postura natural e forma do corpo devem ser PRESERVADAS (exceto se "GERAR NOVO LOOK" for ativado).
+    * ⚠️ REGRA CRÍTICA: Se o corpo no output não for 100% idêntico ao input, a geração é uma FALHA TOTAL.
     * REFORÇO DE FOCO: Para garantir a P1, a IA DEVE **IGNORAR O CONTEÚDO ESTRUTURAL DO FUNDO/CENÁRIO** da IMAGEM_PESSOA ao analisar a semelhança.
     * **⚠️ REGRA DE POSTURA CONDICIONAL (GERAR NOVO LOOK):**
         * **POSTURA PRESERVADA (Padrão):** A postura da IMAGEM_PESSOA DEVE ser preservada, com ajustes gentis apenas para integrar Calçados ou Relógios.
@@ -103,8 +114,18 @@ PRIORIDADE 2 - FIDELIDADE ABSOLUTA DOS PRODUTOS E INTEGRAÇÃO FÍSICA E NATURAL
 
 RESULTADO ESPERADO FINAL (CRÍTICO): Uma FOTOGRAFIA PROFISSIONAL ULTRA-REALISTA onde a pessoa é 100% IDÊNTICA (P1), todos os produtos fornecidos são FIÉIS (P2) e a cena completa é COESA, FOTORREALISTA E TOTALMENTE LIVRE DE QUALQUER INDÍCIO DE GERAÇÃO POR INTELIGÊNCIA ARTIFICIAL.
 
-⚠️⚠️⚠️ FINAL CHECK - IDENTITY PRESERVATION:
-The face and body MUST MATCH the IMAGEM_PESSOA 100%. If the clothing changes the body shape or the person looks different, it is a FAILURE. Keep the human skin texture and imperfections. The person should look like they are WEARING the clothes, not like the clothes are replacing their body.`;
+⚠️⚠️⚠️ FINAL CHECK - IDENTITY PRESERVATION (VERIFICAÇÃO FINAL CRÍTICA):
+Before finalizing the image, verify:
+1. FACE: Is the face 100% identical to IMAGEM_PESSOA? Same eyes, nose, mouth, facial structure, skin texture? If NO → FAILURE.
+2. BODY: Is the body 100% identical to IMAGEM_PESSOA? Same height, weight, proportions, body shape? If NO → FAILURE.
+3. RECOGNITION: Would someone instantly recognize this as the EXACT SAME PERSON? If NO → FAILURE.
+
+CRITICAL RULES:
+- The face and body MUST MATCH the IMAGEM_PESSOA 100% - no exceptions.
+- If the clothing changes the visible body shape or the person looks different, it is a FAILURE.
+- Keep ALL human skin texture, imperfections, and unique characteristics EXACTLY as in the input.
+- The person should look like they are WEARING the clothes, not like the clothes are replacing their body.
+- Any deviation from 100% identity match is a CRITICAL FAILURE and must be rejected.`;
 
 /**
  * Retorna o prompt mestre VTO otimizado para Gemini 2.5 Flash Image
