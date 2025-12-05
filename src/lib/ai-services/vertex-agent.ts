@@ -52,7 +52,10 @@ export class VertexAgent {
 
   constructor() {
     // Prioridade para o ID que sabemos que tem a API ativa
-    this.project = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || "paineladmexperimenteai";
+    // FIX: ID correto do projeto onde a API Vertex AI está ativa
+    this.project = process.env.GOOGLE_CLOUD_PROJECT_ID || 
+                   process.env.FIREBASE_PROJECT_ID || 
+                   "paineladmexperimenteai"; // <--- ID CORRETO (projeto com Vertex AI ativo)
     this.location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
 
     console.log(`[VertexAgent] Inicializando:`);
