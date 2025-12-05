@@ -11,7 +11,7 @@ import { getGeminiFlashImageService } from "@/lib/ai-services/gemini-flash-image
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { getStorage } from "firebase-admin/storage";
 import { getAdminApp } from "@/lib/firebaseAdmin";
-import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
+import { getClientIP } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
 const db = getAdminDb();
@@ -371,24 +371,6 @@ export async function POST(request: NextRequest) {
       return addCorsHeaders(response, origin);
     }
 
-    // Rate Limiting: 1 requisição a cada 60 segundos por IP ou customerId (limite conservador)
-    const clientIP = getClientIP(request);
-    const rateLimitKey = customerId ? `customer:${customerId}` : `ip:${clientIP}`;
-    const rateLimit = checkRateLimit(rateLimitKey, 1, 60000); // 1 requisição a cada 60 segundos (limite conservador)
-
-    if (!rateLimit.allowed) {
-      const waitSeconds = Math.ceil((rateLimit.resetAt - Date.now()) / 1000);
-      console.warn("[API/AI/Generate] Rate limit excedido:", { rateLimitKey, waitSeconds });
-      const response = NextResponse.json(
-        { 
-          error: `Muitas requisições. Aguarde ${waitSeconds} segundo(s) antes de tentar novamente.`,
-          retryAfter: waitSeconds
-        },
-        { status: 429 }
-      );
-      response.headers.set("Retry-After", waitSeconds.toString());
-      return addCorsHeaders(response, origin);
-    }
 
     // Validar saldo
     const hasBalance = await validateBalance(lojistaId);

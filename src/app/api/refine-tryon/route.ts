@@ -10,7 +10,6 @@ import { getGeminiFlashImageService } from "@/lib/ai-services/gemini-flash-image
 import { logAPICost } from "@/lib/ai-services/cost-logger";
 import { getAdminDb, getAdminStorage } from "@/lib/firebaseAdmin";
 import { randomUUID } from "crypto";
-import { checkRateLimit, getClientIP } from "@/lib/rate-limit";
 
 const db = getAdminDb();
 const storage = (() => {

@@ -5,7 +5,6 @@
  */
 
 import { APIResponse } from "./types";
-import { getRequestQueue } from "./request-queue";
 
 /**
  * Configuração do Gemini 2.5 Flash Image
@@ -137,24 +136,8 @@ export class GeminiFlashImageService {
 
   /**
    * Gera imagem usando Gemini 2.5 Flash Image
-   * Usa fila de requisições para evitar múltiplas chamadas simultâneas
    */
   async generateImage(
-    params: GeminiFlashImageParams
-  ): Promise<APIResponse<GeminiFlashImageResult>> {
-    // FIX: Usar fila de requisições para evitar múltiplas chamadas simultâneas
-    // Isso previne erro 429 (Resource Exhausted) - limite de 5 requisições por minuto
-    const queue = getRequestQueue();
-    
-    return queue.enqueue(async () => {
-      return this._generateImageInternal(params);
-    });
-  }
-
-  /**
-   * Implementação interna de geração de imagem
-   */
-  private async _generateImageInternal(
     params: GeminiFlashImageParams
   ): Promise<APIResponse<GeminiFlashImageResult>> {
     const startTime = Date.now();
