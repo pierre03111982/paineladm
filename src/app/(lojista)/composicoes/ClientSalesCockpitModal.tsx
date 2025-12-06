@@ -56,6 +56,7 @@ export function ClientSalesCockpitModal({
   const [isLoading, setIsLoading] = useState(false)
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false)
   const [extraDiscountPercent, setExtraDiscountPercent] = useState<number>(0)
+  const [socialMediaDiscount, setSocialMediaDiscount] = useState<number>(0) // Desconto de redes sociais
   const [totalOriginal, setTotalOriginal] = useState<number>(0)
   const [totalFinal, setTotalFinal] = useState<number>(0)
 
@@ -228,13 +229,45 @@ export function ClientSalesCockpitModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [composition?.id, isOpen, lojistaId])
 
+  // Buscar desconto de redes sociais do lojista
+  useEffect(() => {
+    if (!lojistaId || !isOpen) {
+      setSocialMediaDiscount(0)
+      return
+    }
+
+    const fetchSocialDiscount = async () => {
+      try {
+        const response = await fetch(`/api/lojista/perfil?lojistaId=${encodeURIComponent(lojistaId)}`)
+        if (response.ok) {
+          const data = await response.json()
+          const discount = data.descontoRedesSociais || 0
+          // Verificar se o desconto não expirou
+          if (data.descontoRedesSociaisExpiraEm) {
+            const expiryDate = new Date(data.descontoRedesSociaisExpiraEm)
+            if (expiryDate < new Date()) {
+              setSocialMediaDiscount(0)
+              return
+            }
+          }
+          setSocialMediaDiscount(discount)
+        }
+      } catch (error) {
+        console.error("[ClientSalesCockpitModal] Erro ao buscar desconto de redes sociais:", error)
+        setSocialMediaDiscount(0)
+      }
+    }
+
+    fetchSocialDiscount()
+  }, [lojistaId, isOpen])
+
   // Calcular totais quando produtos, seleção ou desconto mudarem
   useEffect(() => {
     if (products.length > 0) {
       updatePricesAndTotal()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, selectedProductIds, extraDiscountPercent])
+  }, [products, selectedProductIds, extraDiscountPercent, socialMediaDiscount])
 
   // Função para atualizar preços e totais
   const updatePricesAndTotal = () => {
@@ -252,8 +285,11 @@ export function ClientSalesCockpitModal({
         // Preço base é o promocional da loja
         const basePrice = prod.promoPrice
         
-        // Aplica desconto extra
-        const finalItemPrice = basePrice * ((100 - extraDiscountPercent) / 100)
+        // Aplicar primeiro o desconto de redes sociais
+        const priceAfterSocial = basePrice * ((100 - socialMediaDiscount) / 100)
+        
+        // Depois aplicar o desconto extra do cockpit
+        const finalItemPrice = priceAfterSocial * ((100 - extraDiscountPercent) / 100)
 
         totalOrig += basePrice
         totalFin += finalItemPrice
@@ -263,6 +299,12 @@ export function ClientSalesCockpitModal({
     setTotalOriginal(totalOrig)
     setTotalFinal(totalFin)
   }
+
+  // Calcular desconto total (redes sociais + extra)
+  const totalDiscountPercent = socialMediaDiscount + extraDiscountPercent
+  
+  // Calcular valor do desconto em reais
+  const discountAmount = totalOriginal - totalFinal
 
   // Toggle seleção de produto
   const toggleProductSelection = (productId: string) => {
@@ -506,6 +548,29 @@ export function ClientSalesCockpitModal({
 
               {/* Caixa de Desconto e Totais */}
               <div className="p-3 bg-gradient-to-br from-orange-500/10 to-yellow-500/10 rounded-lg border border-orange-500/30">
+                {/* Descontos Aplicados */}
+                {(socialMediaDiscount > 0 || extraDiscountPercent > 0) && (
+                  <div className="mb-3 p-2 bg-[#151520] dark:bg-zinc-900 rounded-lg">
+                    <div className="text-[10px] text-gray-400 mb-1.5">Descontos Aplicados:</div>
+                    {socialMediaDiscount > 0 && (
+                      <div className="flex justify-between text-xs text-gray-300 mb-1">
+                        <span>Redes Sociais:</span>
+                        <span className="text-green-400">{socialMediaDiscount}%</span>
+                      </div>
+                    )}
+                    {extraDiscountPercent > 0 && (
+                      <div className="flex justify-between text-xs text-gray-300 mb-1">
+                        <span>Desconto Extra:</span>
+                        <span className="text-orange-400">{extraDiscountPercent}%</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-xs font-semibold text-white pt-1 border-t border-gray-700">
+                      <span>Desconto Total:</span>
+                      <span className="text-green-400">{totalDiscountPercent.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                )}
+
                 <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-main)] mb-2">
                   <Percent className="h-3 w-3 text-orange-400" />
                   Aplicar Desconto Extra (%):
@@ -536,9 +601,15 @@ export function ClientSalesCockpitModal({
                 {/* Resumo Financeiro */}
                 <div className="bg-[#151520] dark:bg-zinc-900 p-2.5 rounded-lg">
                   <div className="flex justify-between mb-1.5 text-xs text-gray-300">
-                    <span>Total Tabela:</span>
+                    <span>Total sem Desconto:</span>
                     <span>{formatPrice(totalOriginal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between mb-1.5 text-xs text-red-400">
+                      <span>Desconto ({totalDiscountPercent.toFixed(1)}%):</span>
+                      <span>-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-1.5 border-t border-gray-700 text-sm font-bold text-white">
                     <span>Total com Desconto:</span>
                     <span className="text-green-400">{formatPrice(totalFinal)}</span>
