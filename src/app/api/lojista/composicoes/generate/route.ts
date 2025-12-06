@@ -2058,11 +2058,13 @@ export async function POST(request: NextRequest) {
           
           // ✅ Persistência Dupla: Forçar inclusão do campo produtos (array completo) e productIds
           await saveGeneration({
-            lojistaId,
-            userId: customerId,
-            compositionId: composicaoId,
-            // 👇 AQUI: Se jobId for null, envia string vazia para satisfazer o tipo 'string'
-            jobId: null as string | null,
+            // Correção: Se lojistaId for null, envia string vazia ""
+            lojistaId: lojistaId || "",
+            // Correção: Se customerId for null, envia string vazia ""
+            userId: customerId || "",
+            compositionId: composicaoId || null,
+            // Correção: Se jobId for null, envia string vazia ""
+            jobId: (jobId as string | null) || "",
             imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl : null,
             uploadImageUrl: personImageUrl || null,
             productIds: productIdsFinaisParaGeneration, // ✅ Array de IDs do COLETOR UNIVERSAL
