@@ -1873,14 +1873,11 @@ export async function POST(request: NextRequest) {
         try {
           const { registerCompositionProducts } = await import("@/lib/firestore/productRegistry");
           // ✅ Type guard: garantir que composicaoId não seja null antes de usar
-          if (!composicaoId) {
-            throw new Error("composicaoId não pode ser null ao registrar produtos");
-          }
-          // Criar variável com tipo explícito para TypeScript entender que não é null
-          const safeComposicaoId: string = composicaoId;
+          // Como já verificamos no if acima, podemos usar non-null assertion
+          const safeComposicaoId = composicaoId as string;
           const registeredProductIds = await registerCompositionProducts(
             lojistaId || "",
-            safeComposicaoId, // TypeScript agora sabe que é string, não string | null
+            safeComposicaoId, // TypeScript agora sabe que é string
             composicaoData.produtos
           );
           
