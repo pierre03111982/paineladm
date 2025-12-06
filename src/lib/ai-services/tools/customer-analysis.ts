@@ -94,7 +94,7 @@ export async function analyzeCustomerProfile(
             if (produtoDoc.exists) {
               const produtoData = produtoDoc.data();
               const existing = produtosCurtidosMap.get(productId) || {
-                produtoId,
+                produtoId: productId,
                 produtoNome: gen.productName || produtoData?.nome || "Produto",
                 categoria: produtoData?.categoria || "",
                 cor: produtoData?.cores?.[0] || produtoData?.cor || "",
