@@ -1990,8 +1990,8 @@ export async function POST(request: NextRequest) {
           // ============================================
           // ✅ Verificação Final: Alertar se array estiver vazio
           // ============================================
-          // TypeScript: verificar null antes de acessar .length
-          const temProdutosVerificacao = produtosParaSalvar && produtosParaSalvar.length > 0;
+          // TypeScript: usar optional chaining para verificar null antes de acessar .length
+          const temProdutosVerificacao = produtosParaSalvar?.length > 0;
           if (!temProdutosVerificacao) {
             console.warn("[API] ⚠️⚠️⚠️ ATENÇÃO: Uma geração está sendo criada SEM PRODUTOS VINCULADOS!");
             console.warn("[API] 📋 Debug:", {
