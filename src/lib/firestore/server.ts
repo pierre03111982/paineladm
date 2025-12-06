@@ -1041,15 +1041,25 @@ export async function fetchLojaMetrics(lojistaId: string): Promise<LojaMetrics |
   try {
     if (!lojistaId) return null;
 
+    // Buscar métricas do documento (para likes, shares, etc.)
     const metricsDoc = await lojaRef(lojistaId).collection("metrics").doc("dados").get();
+    const data = metricsDoc.exists ? metricsDoc.data() : null;
 
-    if (!metricsDoc.exists) {
-      return null;
+    // Buscar total de composições diretamente do banco (sempre atualizado)
+    let totalComposicoes = 0;
+    try {
+      const { countAllCompositions } = await import("@/app/(lojista)/composicoes/count-compositions");
+      const countResult = await countAllCompositions(lojistaId);
+      totalComposicoes = countResult.unique;
+      console.log(`[fetchLojaMetrics] Total de composições no banco: ${totalComposicoes}`);
+    } catch (error) {
+      console.warn("[fetchLojaMetrics] Erro ao contar composições, usando valor do documento:", error);
+      // Fallback para valor do documento se houver
+      totalComposicoes = typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0;
     }
 
-    const data = metricsDoc.data();
     return {
-      totalComposicoes: typeof data?.totalComposicoes === "number" ? data.totalComposicoes : 0,
+      totalComposicoes, // Usar contagem real do banco
       likedTotal: typeof data?.likedTotal === "number" ? data.likedTotal : 0,
       sharesTotal: typeof data?.sharesTotal === "number" ? data.sharesTotal : 0,
       checkoutTotal: typeof data?.checkoutTotal === "number" ? data.checkoutTotal : 0,

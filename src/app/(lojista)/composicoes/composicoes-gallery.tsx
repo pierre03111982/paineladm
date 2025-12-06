@@ -4,10 +4,11 @@ import {
   useEffect,
   useState,
   useTransition,
+  useRef,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles, Eye } from "lucide-react";
+import { Share2, ShieldAlert, Send, CheckSquare, Square, Filter, X, Sparkles, Eye, Search, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COMPOSICOES_TIMEFRAMES } from "./constants";
 
@@ -79,6 +80,18 @@ function formatRelative(date: Date) {
   if (days < 7) return `há ${days} dia${days > 1 ? "s" : ""}`;
   const weeks = Math.round(days / 7);
   return `há ${weeks} semana${weeks > 1 ? "s" : ""}`;
+}
+
+function formatWhatsApp(whatsapp: string | null): string {
+  if (!whatsapp) return "";
+  const cleaned = whatsapp.replace(/\D/g, "");
+  if (cleaned.length === 11) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+  }
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+  }
+  return whatsapp;
 }
 
 function formatFullDate(date: Date) {
@@ -206,11 +219,89 @@ export function ComposicoesGallery({
     variations: Array<{ id: string; imageUrl: string; style: string; background: string }>;
   } | null>(null);
 
+  // Estado para paginação
+  const [displayedCount, setDisplayedCount] = useState(6); // Mostrar 6 inicialmente (3 colunas x 2 linhas)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Estado para busca de cliente
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [clienteSuggestions, setClienteSuggestions] = useState<Array<{ id: string; nome: string; whatsapp?: string; label: string }>>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estado para atualização
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Função para atualizar composições
+  const refreshComposicoes = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      // Recarregar a página com cache bypass
+      startTransition(() => {
+        router.refresh();
+      });
+      // Aguardar um pouco para o refresh processar
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error("[ComposicoesGallery] Erro ao atualizar:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Atualização automática a cada 1 minuto
   useEffect(() => {
-    setItems(composicoes);
+    const interval = setInterval(() => {
+      refreshComposicoes();
+    }, 60000); // 60 segundos = 1 minuto
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Ordenar composições do mais recente para o mais antigo (por data de criação)
+    const sortedComposicoes = [...composicoes].sort((a, b) => {
+      const dateA = new Date(a.createdAtISO).getTime();
+      const dateB = new Date(b.createdAtISO).getTime();
+      return dateB - dateA; // Mais recente primeiro
+    });
+    // Limitar às 100 mais recentes apenas se não houver filtros ativos E período não for "all"
+    // Se período for "all", mostrar todas (permitir scroll infinito para ver mais antigas)
+    const hasActiveFilters = filters.liked || filters.shared || filters.anonymous || filters.highConversion || 
+                             filters.cliente !== "all" || filters.produto !== "all";
+    const isAllPeriod = filters.timeframe === "all";
+    const limitedComposicoes = (hasActiveFilters || isAllPeriod) ? sortedComposicoes : sortedComposicoes.slice(0, 100);
+    setItems(limitedComposicoes);
     // Limpar seleção quando composições mudarem
     setSelectedComposicoes(new Set());
+    // Resetar paginação quando composições mudarem
+    setDisplayedCount(6);
   }, [composicoes]);
+
+  // Scroll infinito - carregar mais quando chegar perto do final
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Quando estiver a 200px do final, carregar mais 6
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        setDisplayedCount((prev) => {
+          const newCount = prev + 6;
+          // Não exceder o total de itens
+          return Math.min(newCount, items.length);
+        });
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [items.length]);
 
   const handleFilterChange = (next: Partial<ActiveFilters>) => {
     const params = new URLSearchParams(searchParams?.toString() ?? "");
@@ -237,10 +328,12 @@ export function ComposicoesGallery({
       params.set("periodo", merged.timeframe);
     }
 
-    if (merged.liked) {
-      params.set("liked", "true");
+    // Se liked for false, passar explicitamente "liked=false" na URL
+    // Se liked for true ou undefined (padrão), não passar parâmetro (será true por padrão)
+    if (merged.liked === false) {
+      params.set("liked", "false");
     } else {
-      params.delete("liked");
+      params.delete("liked"); // Se true ou undefined, remover parâmetro para usar padrão
     }
 
     if (merged.shared) {
@@ -637,7 +730,7 @@ export function ComposicoesGallery({
       : "composição(ões) recente(s)";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {feedback ? (
         <div
           className={cn(
@@ -674,110 +767,202 @@ export function ComposicoesGallery({
         </div>
       )}
 
-      <form className="neon-card grid grid-cols-1 gap-3 p-4 text-xs md:grid-cols-7">
-        <label className="flex flex-col gap-1">
-          <span className="font-medium text-[var(--text-secondary)]">Cliente</span>
-          <select
-            className={cn(
-              "rounded-xl border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
-              isPending && "cursor-wait opacity-70"
-            )}
-            value={filters.cliente}
-            onChange={(event) =>
-              handleFilterChange({ cliente: event.target.value })
-            }
-          >
-            <option value="all">Todos</option>
-            {filterOptions.clientes.map((cliente) => (
-              <option key={cliente.value} value={cliente.value}>
-                {cliente.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-medium text-[var(--text-secondary)]">Produto</span>
-          <select
-            className={cn(
-              "rounded-xl border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
-              isPending && "cursor-wait opacity-70"
-            )}
-            value={filters.produto}
-            onChange={(event) =>
-              handleFilterChange({ produto: event.target.value })
-            }
-          >
-            <option value="all">Todos</option>
-            {filterOptions.produtos.map((produto) => (
-              <option key={produto.value} value={produto.value}>
-                {produto.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-medium text-[var(--text-secondary)]">Período</span>
-          <select
-            className={cn(
-              "rounded-xl border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
-              isPending && "cursor-wait opacity-70"
-            )}
-            value={filters.timeframe}
-            onChange={(event) =>
-              handleFilterChange({ timeframe: event.target.value })
-            }
-          >
-            {COMPOSICOES_TIMEFRAMES.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="mt-5 inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={filters.liked}
-            onChange={(event) => handleFilterChange({ liked: event.target.checked })}
-            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-rose-500"
-          />
-          <span className="text-[var(--text-secondary)]">Mostrar apenas curtidas</span>
-        </label>
-        <label className="mt-5 inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={filters.shared}
-            onChange={(event) => handleFilterChange({ shared: event.target.checked })}
-            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-sky-500"
-          />
-          <span className="text-[var(--text-secondary)]">Apenas enviados</span>
-        </label>
-        <label className="mt-5 inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={filters.anonymous}
-            onChange={(event) =>
-              handleFilterChange({ anonymous: event.target.checked })
-            }
-            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-emerald-500"
-          />
-          <span className="text-[var(--text-secondary)]">Apenas anônimas</span>
-        </label>
-        <label className="mt-5 inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={filters.highConversion || false}
-            onChange={(event) =>
-              handleFilterChange({ highConversion: event.target.checked })
-            }
-            className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-purple-500"
-          />
-          <span className="text-[var(--text-secondary)]">Alta conversão</span>
-        </label>
-      </form>
-
-      <div className="text-xs font-medium text-[var(--text-secondary)]">
-        {items.length} {resultsSummaryLabel}
+      {/* Caixa de Filtros - Layout Compacto */}
+      <div className="neon-card -mt-2">
+        {/* Título dentro da caixa */}
+        <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+          <h2 className="text-lg font-bold text-[var(--text-main)]">Composições</h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-1">
+            Visualize e gerencie todas as composições geradas
+          </p>
+        </div>
+        
+        {/* Filtros Compactos */}
+        <form className="p-4">
+          {/* Primeira linha: Busca de Cliente e Filtros principais */}
+          <div className="grid grid-cols-1 gap-3 mb-3 md:grid-cols-4">
+            {/* Busca de Cliente com Autocomplete */}
+            <div className="relative flex flex-col gap-1.5">
+              <span className="font-medium text-xs text-gray-700 dark:text-[var(--text-secondary)] mb-0.5">Buscar Cliente</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none z-10" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={clienteSearch}
+                  onChange={async (e) => {
+                    const searchTerm = e.target.value;
+                    setClienteSearch(searchTerm);
+                    
+                    // Buscar sugestões via API se tiver 2+ caracteres
+                    if (searchTerm.length >= 2 && lojistaId) {
+                      try {
+                        const response = await fetch(`/api/lojista/clientes/search?q=${encodeURIComponent(searchTerm)}&lojistaId=${lojistaId}`);
+                        const data = await response.json();
+                        
+                        if (data.success && data.clientes) {
+                          setClienteSuggestions(data.clientes);
+                          setShowSuggestions(data.clientes.length > 0);
+                        }
+                      } catch (error) {
+                        console.error("[ComposicoesGallery] Erro ao buscar clientes:", error);
+                        // Fallback: buscar na lista local
+                        const suggestions = filterOptions.clientes.filter((cliente) => {
+                          const nome = cliente.label.toLowerCase();
+                          const search = searchTerm.toLowerCase();
+                          return nome.includes(search);
+                        }).slice(0, 5);
+                        setClienteSuggestions(suggestions.map(c => ({
+                          id: c.value,
+                          nome: c.label,
+                          label: c.label,
+                        })));
+                        setShowSuggestions(suggestions.length > 0);
+                      }
+                    } else {
+                      setClienteSuggestions([]);
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (clienteSuggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay para permitir clique nas sugestões
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
+                  placeholder="Nome ou WhatsApp..."
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)]/60 pl-9 pr-3 py-2 text-xs text-gray-900 dark:text-[var(--text-main)] placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition"
+                />
+                
+                {/* Sugestões */}
+                {showSuggestions && clienteSuggestions.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {clienteSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        type="button"
+                        onClick={() => {
+                          setClienteSearch(suggestion.label || suggestion.nome);
+                          handleFilterChange({ cliente: suggestion.id });
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        {suggestion.label || suggestion.nome}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Produto */}
+            <label className="flex flex-col gap-1">
+              <span className="font-medium text-xs text-gray-700 dark:text-[var(--text-secondary)]">Produto</span>
+              <select
+                className={cn(
+                  "rounded-lg border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
+                  isPending && "cursor-wait opacity-70"
+                )}
+                value={filters.produto}
+                onChange={(event) =>
+                  handleFilterChange({ produto: event.target.value })
+                }
+              >
+                <option value="all">Todos</option>
+                {filterOptions.produtos.map((produto) => (
+                  <option key={produto.value} value={produto.value}>
+                    {produto.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            
+            {/* Período */}
+            <label className="flex flex-col gap-1">
+              <span className="font-medium text-xs text-gray-700 dark:text-[var(--text-secondary)]">Período</span>
+              <select
+                className={cn(
+                  "rounded-lg border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
+                  isPending && "cursor-wait opacity-70"
+                )}
+                value={filters.timeframe}
+                onChange={(event) =>
+                  handleFilterChange({ timeframe: event.target.value })
+                }
+              >
+                {COMPOSICOES_TIMEFRAMES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            
+            {/* Cliente (Select) - para seleção direta */}
+            <label className="flex flex-col gap-1">
+              <span className="font-medium text-xs text-gray-700 dark:text-[var(--text-secondary)]">Cliente</span>
+              <select
+                className={cn(
+                  "rounded-lg border border-transparent bg-[var(--bg-card)]/60 px-3 py-2 text-xs text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition",
+                  isPending && "cursor-wait opacity-70"
+                )}
+                value={filters.cliente}
+                onChange={(event) => {
+                  handleFilterChange({ cliente: event.target.value });
+                  if (event.target.value === "all") {
+                    setClienteSearch("");
+                  }
+                }}
+              >
+                <option value="all">Todos</option>
+                {filterOptions.clientes.map((cliente) => (
+                  <option key={cliente.value} value={cliente.value}>
+                    {cliente.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          
+          {/* Segunda linha: Checkboxes compactos */}
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={filters.shared}
+                onChange={(event) => handleFilterChange({ shared: event.target.checked })}
+                className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-sky-500"
+              />
+              <span className="text-xs font-medium text-gray-700 dark:text-[var(--text-secondary)]">Compartilhados</span>
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={filters.anonymous}
+                onChange={(event) =>
+                  handleFilterChange({ anonymous: event.target.checked })
+                }
+                className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-emerald-500"
+              />
+              <span className="text-xs font-medium text-gray-700 dark:text-[var(--text-secondary)]">Apenas anônimas</span>
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={filters.highConversion || false}
+                onChange={(event) =>
+                  handleFilterChange({ highConversion: event.target.checked })
+                }
+                className="h-4 w-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] accent-purple-500"
+              />
+              <span className="text-xs font-medium text-gray-700 dark:text-[var(--text-secondary)]">Alta conversão</span>
+            </label>
+          </div>
+        </form>
       </div>
 
       {emptyState ? (
@@ -785,9 +970,36 @@ export function ComposicoesGallery({
           Nenhuma composição encontrada com os filtros selecionados.
         </div>
       ) : (
-        <div className="max-h-[900px] overflow-y-auto pr-1">
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((item, index) => {
+        <>
+          {/* Header com contador e botão de atualizar */}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-[var(--text-secondary)]">
+              {items.length} {resultsSummaryLabel}
+              {lastRefresh && (
+                <span className="ml-2 text-xs opacity-70">
+                  (Atualizado {formatRelative(lastRefresh)})
+                </span>
+              )}
+            </p>
+            <button
+              onClick={refreshComposicoes}
+              disabled={isRefreshing}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-all hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-lg hover:shadow-indigo-500/30",
+                isRefreshing && "cursor-wait opacity-60"
+              )}
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "Atualizando..." : "Atualizar"}
+            </button>
+          </div>
+          
+          <div 
+            ref={scrollContainerRef}
+            className="max-h-[900px] overflow-y-auto pr-1"
+          >
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {items.slice(0, displayedCount).map((item, index) => {
             const createdAt = new Date(item.createdAtISO);
             return (
               <article
@@ -873,40 +1085,35 @@ export function ComposicoesGallery({
                 </div>
 
                 <div className="space-y-4 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center rounded-full border-2 border-indigo-400/60 dark:border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 dark:from-indigo-900/30 dark:to-purple-900/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
-                          #{String(index + 1).padStart(2, "0")}
-                        </span>
-                        <p className="text-sm font-bold text-[var(--text-main)]">
-                          {item.productName}
-                        </p>
-                      </div>
-                      <p className="text-xs text-[var(--text-secondary)]">
-                        {item.customerName}
+                  {/* Informações do Cliente - Layout melhorado */}
+                  <div className="space-y-2">
+                    {/* Nome do Cliente */}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-[var(--text-main)]">
+                        {item.customerName || "Cliente Anônimo"}
                       </p>
+                      <span className="inline-flex items-center rounded-full border-2 border-indigo-400/60 dark:border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 dark:from-indigo-900/30 dark:to-purple-900/30 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                        #{String(index + 1).padStart(2, "0")}
+                      </span>
                     </div>
-                    <span className="rounded-full border border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-3 py-1 text-xs font-medium text-[var(--text-secondary)] whitespace-nowrap">
-                      {formatRelative(createdAt)}
-                    </span>
+                    
+                    {/* WhatsApp */}
+                    {item.customerWhatsapp && (
+                      <p className="text-xs font-medium text-gray-700 dark:text-[var(--text-secondary)]">
+                        {formatWhatsApp(item.customerWhatsapp)}
+                      </p>
+                    )}
+                    
+                    {/* Data de criação */}
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-300/50 dark:border-gray-700/30">
+                      <p className="text-xs font-medium text-gray-600 dark:text-[var(--text-secondary)]">
+                        {formatFullDate(createdAt)}
+                      </p>
+                      <span className="text-xs text-gray-500 dark:text-[var(--text-secondary)] opacity-80">
+                        {formatRelative(createdAt)}
+                      </span>
+                    </div>
                   </div>
-                  
-                  {/* Informações de tempo */}
-                  {item.processingTime !== null && item.processingTime !== undefined ? (
-                    <div className="neon-card rounded-lg border-2 border-indigo-300/50 dark:border-indigo-500/50 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/30 p-3 shadow-sm">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-[var(--text-secondary)]">Tempo:</span>
-                        <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                          {item.processingTime < 1000 
-                            ? `${item.processingTime}ms`
-                            : item.processingTime < 60000
-                            ? `${(item.processingTime / 1000).toFixed(1)}s`
-                            : `${(item.processingTime / 60000).toFixed(1)}min`}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
 
                   <div className="flex flex-col gap-3">
                     <button
@@ -937,7 +1144,26 @@ export function ComposicoesGallery({
             );
           })}
           </div>
-        </div>
+          
+          {/* Indicador de mais itens para carregar */}
+          {displayedCount < items.length && (
+            <div className="col-span-full flex justify-center py-6">
+              <div className="text-sm text-[var(--text-secondary)]">
+                Carregando mais composições... ({displayedCount} de {items.length})
+              </div>
+            </div>
+          )}
+          
+          {/* Indicador de fim da lista */}
+          {displayedCount >= items.length && items.length > 6 && (
+            <div className="col-span-full flex justify-center py-4">
+              <div className="text-xs text-[var(--text-secondary)]">
+                Todas as {items.length} composições foram carregadas
+              </div>
+            </div>
+          )}
+          </div>
+      </>
       )}
 
       {/* Modal de Envio Massivo */}
