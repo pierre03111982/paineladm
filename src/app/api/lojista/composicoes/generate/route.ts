@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
       // PASSO 2: COLETOR UNIVERSAL DE PRODUTOS (BLOCO BLINDADO)
       // ============================================
       // 1. Tenta pegar produtos de QUALQUER lugar possível
-      const rawProducts = body.products || body.produtos || body.selectedProducts || body.itens || body.items || [];
+      rawProducts = body.products || body.produtos || body.selectedProducts || body.itens || body.items || [];
       
       console.log("🔍 [DEBUG SUPREMO] Produtos Recebidos Brutos:", JSON.stringify(rawProducts, null, 2));
       console.log("🔍 [DEBUG SUPREMO] Chaves disponíveis no body:", Object.keys(body));
