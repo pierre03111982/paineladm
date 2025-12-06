@@ -546,7 +546,8 @@ export async function POST(request: NextRequest) {
     // Não confiar na estrutura que vem do frontend
     
     // Adaptar conforme a variável descoberta no log acima
-    const rawProducts = 
+    // Usar a variável rawProducts já declarada no início (linha 99)
+    rawProducts = 
       (rawBodyData?.products) || 
       (rawBodyData?.selectedProducts) || 
       (payloadRecebido?.products) || 
@@ -1907,12 +1908,12 @@ export async function POST(request: NextRequest) {
       if (customerId && lojistaId) {
         try {
           // Garantir que temos produtos para salvar
-          const produtosParaSalvar = composicaoData.produtos && composicaoData.produtos.length > 0
+          let produtosParaSalvar = composicaoData.produtos && composicaoData.produtos.length > 0
             ? composicaoData.produtos
             : null;
           
           // Garantir que temos productIds
-          const productIdsParaSalvar = finalProductIds.length > 0
+          let productIdsParaSalvar = finalProductIds.length > 0
             ? finalProductIds
             : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : []);
           
