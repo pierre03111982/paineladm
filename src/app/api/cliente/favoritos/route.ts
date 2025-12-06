@@ -20,7 +20,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Adicionar headers para evitar cache
-    const favorites = await fetchFavoriteLooks({ lojistaId, customerId });
+    let favorites: any[] = [];
+    try {
+      favorites = await fetchFavoriteLooks({ lojistaId, customerId });
+    } catch (fetchError: any) {
+      console.error("[api/cliente/favoritos] Erro ao buscar favoritos:", fetchError);
+      console.error("[api/cliente/favoritos] Stack:", fetchError?.stack);
+      // Retornar array vazio em vez de erro 500
+      favorites = [];
+    }
     
     console.log(`[api/cliente/favoritos] Favoritos encontrados: ${favorites.length}`);
     if (favorites.length > 0) {
@@ -43,14 +51,15 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error: any) {
-    console.error("[api/cliente/favoritos] Erro ao buscar favoritos:", error);
+    console.error("[api/cliente/favoritos] Erro crítico:", error);
     console.error("[api/cliente/favoritos] Stack:", error?.stack);
+    // Retornar array vazio em vez de erro 500 para não quebrar o frontend
     return NextResponse.json(
       { 
-        error: "Erro interno ao buscar favoritos",
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        favorites: [],
+        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
       },
-      { status: 500 }
+      { status: 200 } // Retornar 200 com array vazio
     );
   }
 }

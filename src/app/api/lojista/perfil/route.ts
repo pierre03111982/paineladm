@@ -30,7 +30,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar perfil sem cache
-    const perfil = await fetchLojaPerfil(lojistaId);
+    let perfil;
+    try {
+      perfil = await fetchLojaPerfil(lojistaId);
+    } catch (fetchError: any) {
+      console.error("[API Perfil] Erro ao buscar perfil:", fetchError);
+      console.error("[API Perfil] Stack:", fetchError?.stack);
+      // Retornar perfil vazio em vez de erro 500
+      perfil = {
+        nome: null,
+        descricao: null,
+        logoUrl: null,
+        app_icon_url: null,
+        instagram: null,
+        facebook: null,
+        tiktok: null,
+        whatsapp: null,
+        checkoutLink: null,
+        descontoRedesSociais: null,
+        descontoRedesSociaisExpiraEm: null,
+        appModel: "modelo-1",
+        displayOrientation: "horizontal",
+        salesConfig: null,
+        planTier: null,
+        planBillingStatus: null,
+      };
+    }
     
     // Garantir que não retorne "Moda Tailandesa" - corrigir se necessário
     if (perfil && perfil.nome && (perfil.nome === "Moda Tailandesa" || perfil.nome === "moda tailandesa" || perfil.nome === "MODA TAILANDESA")) {
@@ -38,16 +63,20 @@ export async function GET(request: NextRequest) {
       // Não corrigir automaticamente aqui, apenas logar
     }
     
-    const response = NextResponse.json(perfil);
+    const response = NextResponse.json(perfil || null);
     // Adicionar headers para evitar cache
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
     return addCorsHeaders(response);
-  } catch (error) {
-    console.error("[API Perfil] Erro:", error);
+  } catch (error: any) {
+    console.error("[API Perfil] Erro crítico:", error);
+    console.error("[API Perfil] Stack:", error?.stack);
     const response = NextResponse.json(
-      { error: "Erro ao buscar perfil" },
+      { 
+        error: "Erro ao buscar perfil",
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     );
     return addCorsHeaders(response);

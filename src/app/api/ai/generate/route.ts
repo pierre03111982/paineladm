@@ -297,10 +297,12 @@ async function saveComposition(
   imageUrl: string,
   userImageUrl: string,
   productImageUrls: string[],
-  isRemix: boolean = false
+  isRemix: boolean = false,
+  produtos?: any[], // NOVO: Produtos completos
+  productIds?: string[] // NOVO: IDs dos produtos
 ): Promise<string> {
   try {
-    const compositionData = {
+    const compositionData: any = {
       lojistaId,
       customerId,
       imagemUrl: imageUrl,
@@ -313,7 +315,27 @@ async function saveComposition(
       isRemix: isRemix, // Flag para identificar remix (não contará no radar)
     };
 
+    // NOVO: Salvar produtos completos se fornecidos
+    if (Array.isArray(produtos) && produtos.length > 0) {
+      compositionData.produtos = produtos;
+      console.log("[API/AI/Generate] ✅ Produtos completos salvos na composição:", produtos.length);
+    }
+
+    // NOVO: Salvar productIds se fornecidos
+    if (Array.isArray(productIds) && productIds.length > 0) {
+      compositionData.productIds = productIds;
+      console.log("[API/AI/Generate] ✅ ProductIds salvos na composição:", productIds.length);
+    }
+
     const docRef = await db.collection("composicoes").add(compositionData);
+    
+    console.log("[API/AI/Generate] ✅ Composição salva:", {
+      compositionId: docRef.id,
+      temProdutos: !!compositionData.produtos,
+      totalProdutos: compositionData.produtos?.length || 0,
+      temProductIds: !!compositionData.productIds,
+      totalProductIds: compositionData.productIds?.length || 0,
+    });
     
     return docRef.id;
   } catch (error) {
@@ -355,7 +377,15 @@ export async function POST(request: NextRequest) {
     }
 
     body = await request.json();
-    ({ lojistaId, customerId, userImageUrl, productImageUrl, scenePrompts } = body);
+    ({ 
+      lojistaId, 
+      customerId, 
+      userImageUrl, 
+      productImageUrl, 
+      scenePrompts,
+      produtos, // NOVO: Produtos completos
+      productIds // NOVO: IDs dos produtos
+    } = body);
     
     // Verificar se é remix (tem scenePrompts)
     // Garantir que isRemix seja sempre boolean, nunca null
@@ -514,14 +544,74 @@ export async function POST(request: NextRequest) {
 
     // PASSO 4: Salvar no Firestore
     console.log("[API/AI/Generate] Passo 4: Salvando composição no Firestore...");
+    
+    // Preparar produtos e productIds para salvar
+    const produtosParaSalvar = Array.isArray(produtos) && produtos.length > 0 
+      ? produtos 
+      : null;
+    
+    const productIdsParaSalvar = Array.isArray(productIds) && productIds.length > 0
+      ? productIds
+      : null;
+    
+    console.log("[API/AI/Generate] 📦 Dados para salvar:", {
+      temProdutos: !!produtosParaSalvar,
+      totalProdutos: produtosParaSalvar?.length || 0,
+      temProductIds: !!productIdsParaSalvar,
+      totalProductIds: productIdsParaSalvar?.length || 0,
+    });
+    
     const compositionId = await saveComposition(
       lojistaId,
       customerId || "anonymous",
       imageUrl,
       userImageUrl,
       productImageUrls,
-      isRemix // Marcar como remix se tiver scenePrompts
+      isRemix, // Marcar como remix se tiver scenePrompts
+      produtosParaSalvar || undefined, // Produtos completos
+      productIdsParaSalvar || undefined // ProductIds
     );
+    
+    // NOVO: Registrar produtos no ProductRegistry
+    if (produtosParaSalvar && produtosParaSalvar.length > 0 && compositionId) {
+      try {
+        const { registerCompositionProducts } = await import("@/lib/firestore/productRegistry");
+        const registeredProductIds = await registerCompositionProducts(
+          lojistaId,
+          compositionId,
+          produtosParaSalvar
+        );
+        
+        console.log("[API/AI/Generate] ✅ Produtos registrados no ProductRegistry:", {
+          total: registeredProductIds.length,
+          productIds: registeredProductIds,
+        });
+      } catch (registryError) {
+        console.warn("[API/AI/Generate] ⚠️ Erro ao registrar produtos no ProductRegistry:", registryError);
+      }
+    }
+    
+    // NOVO: Salvar também na generation se tiver customerId e productIds
+    if (customerId && (productIdsParaSalvar || produtosParaSalvar)) {
+      try {
+        const { saveGeneration } = await import("@/lib/firestore/generations");
+        await saveGeneration({
+          lojistaId,
+          userId: customerId,
+          compositionId: compositionId,
+          jobId: null,
+          imagemUrl: imageUrl,
+          uploadImageUrl: userImageUrl || null,
+          productIds: productIdsParaSalvar || (produtosParaSalvar?.map((p: any) => p.id || p.productId).filter(Boolean) || []),
+          productName: produtosParaSalvar?.[0]?.nome || null,
+          customerName: null,
+          produtos: produtosParaSalvar || undefined,
+        });
+        console.log("[API/AI/Generate] ✅ Generation salva com produtos");
+      } catch (genError) {
+        console.warn("[API/AI/Generate] ⚠️ Erro ao salvar generation:", genError);
+      }
+    }
     
     // Log evento de desconto de créditos (após criar compositionId)
     await logger.logCreditEvent(

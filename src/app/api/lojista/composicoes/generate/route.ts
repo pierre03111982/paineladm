@@ -13,6 +13,7 @@ import { logError } from "@/lib/logger";
 // REMOVIDO: findScenarioByProductTags - sempre usar getSmartScenario
 import { reserveCredit, rollbackCredit } from "@/lib/financials";
 import { FieldValue } from "firebase-admin/firestore";
+import { saveGeneration } from "@/lib/firestore/generations";
 
 const db = getAdminDb();
 const storage = (() => {
@@ -91,13 +92,133 @@ export async function POST(request: NextRequest) {
   let reservationId: string | undefined;
   
   try {
-    // Verificar se é FormData ou JSON pelo content-type
-    const contentType = request.headers.get("content-type") || "";
-    const isFormData = contentType.includes("multipart/form-data");
-
-    if (isFormData) {
-      // FormData (do frontend)
-      const formData = await request.formData();
+    // ============================================
+    // 1. LEITURA INTELIGENTE (FormData vs JSON)
+    // ============================================
+    let body: any = {};
+    let rawProducts: any[] = [];
+    let formData: FormData | null = null;
+    let isFormData = false;
+    
+    // Tenta ler como FormData primeiro (Provável, pois tem upload de imagem)
+    try {
+      formData = await request.formData();
+      isFormData = true;
+      body = Object.fromEntries(formData.entries());
+      
+      // Extrai produtos de string JSON dentro do FormData
+      const productsString = formData.get("products") || 
+                            formData.get("produtos") || 
+                            formData.get("selectedProducts") || 
+                            formData.get("itens") ||
+                            formData.get("items") ||
+                            "[]";
+      
+      if (typeof productsString === 'string') {
+        try {
+          rawProducts = JSON.parse(productsString);
+          console.log("📦 [DEBUG] Produtos extraídos via FormData:", rawProducts.length);
+          console.log("📦 [DEBUG] Produtos brutos:", JSON.stringify(rawProducts, null, 2));
+        } catch (e) {
+          console.error("❌ [ERRO] Erro ao fazer parse dos produtos do FormData:", e);
+          console.error("❌ [ERRO] String recebida:", productsString.substring(0, 200));
+          rawProducts = [];
+        }
+      } else if (Array.isArray(productsString)) {
+        rawProducts = productsString;
+        console.log("📦 [DEBUG] Produtos já são array no FormData:", rawProducts.length);
+      }
+      
+      console.log("✅ [LEITURA INTELIGENTE] FormData detectado e processado");
+    } catch (formDataError) {
+      // Se falhar, tenta ler como JSON clássico
+      console.log("⚠️ [LEITURA INTELIGENTE] FormData falhou, tentando JSON...");
+      try {
+        body = await request.json();
+        rawProducts = body.products || body.produtos || body.selectedProducts || body.itens || body.items || [];
+        console.log("📦 [DEBUG] Produtos extraídos via JSON:", rawProducts.length);
+        console.log("✅ [LEITURA INTELIGENTE] JSON detectado e processado");
+      } catch (jsonError) {
+        console.error("❌ [CRÍTICO] Falha total ao ler Body da requisição.");
+        console.error("❌ [CRÍTICO] Erro:", jsonError);
+        return applyCors(
+          request,
+          NextResponse.json(
+            { error: "Erro ao processar requisição. Verifique o formato dos dados." },
+            { status: 400 }
+          )
+        );
+      }
+    }
+    
+    // ============================================
+    // 2. NORMALIZA OS PRODUTOS (Proteção contra nulos)
+    // ============================================
+    const produtosParaSalvar = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
+      id: p.id || p.productId || `prod-${Date.now()}-${Math.random()}`,
+      nome: p.nome || p.name || "Produto Sem Nome",
+      preco: Number(p.preco || p.price || 0),
+      imagemUrl: p.imagemUrl || p.image || null,
+      categoria: p.categoria || p.category || null,
+      tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : ["Único"]),
+      cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
+      medidas: p.medidas || p.medida || null,
+      desconto: p.desconto || 0,
+      descricao: p.descricao || p.description || null,
+      // Garante que campos extras não quebrem o banco
+      ...p
+    })) : [];
+    
+    const productIdsParaSalvar = produtosParaSalvar.map((p: any) => p.id);
+    
+    console.log("✅ [NORMALIZAÇÃO] Produtos normalizados:", {
+      total: produtosParaSalvar.length,
+      produtos: produtosParaSalvar.map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        preco: p.preco,
+        temImagemUrl: !!p.imagemUrl,
+      })),
+      productIds: productIdsParaSalvar,
+    });
+    
+    // ============================================
+    // CONTINUAÇÃO: Processar FormData ou JSON
+    // ============================================
+    let payloadRecebido: any = null;
+    let rawBodyData: any = body;
+    
+    if (isFormData && formData) {
+      // FormData já foi lido acima - usar produtos normalizados
+      const formDataEntries: any = {};
+      for (const [key, value] of formData.entries()) {
+        if (key === 'products' || key === 'productIds') {
+          try {
+            formDataEntries[key] = JSON.parse(value as string);
+          } catch {
+            formDataEntries[key] = value;
+          }
+        } else {
+          formDataEntries[key] = value;
+        }
+      }
+      
+      console.log("[API] 📦 FormData processado:", {
+        produtosNormalizados: produtosParaSalvar.length,
+        productIdsNormalizados: productIdsParaSalvar.length,
+        lojistaId: formDataEntries.lojistaId,
+        customerId: formDataEntries.customerId,
+        customerName: formDataEntries.customerName,
+      });
+      
+      payloadRecebido = {
+        type: "FormData",
+        products: produtosParaSalvar,
+        productIds: productIdsParaSalvar,
+        temProducts: produtosParaSalvar.length > 0,
+        temProductIds: productIdsParaSalvar.length > 0,
+      };
+      
       const photo = formData.get("photo") as File;
       lojistaId = formData.get("lojistaId") as string;
       const produtosJson = formData.get("produtos") as string;
@@ -147,13 +268,37 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // ============================================
+      // DEBUG: Log do FormData recebido
+      // ============================================
+      console.log("[API] 📦 FormData completo recebido:", {
+        temProdutos: !!produtosJson,
+        produtosJson: produtosJson ? (produtosJson.length > 200 ? produtosJson.substring(0, 200) + "..." : produtosJson) : null,
+        lojistaId: formData.get("lojistaId"),
+        customerId: formData.get("customerId"),
+        customerName: formData.get("customerName"),
+        temPhoto: !!photo,
+        photoName: photo?.name,
+        photoSize: photo?.size,
+        temProductUrl: !!formData.get("productUrl"),
+        productUrl: formData.get("productUrl"),
+      });
+
       // Parse produtos
       if (produtosJson) {
         try {
-          productIds = JSON.parse(produtosJson);
+          const produtosParsed = JSON.parse(produtosJson);
+          productIds = Array.isArray(produtosParsed) ? produtosParsed : [produtosParsed];
+          console.log("[API] 📦 Produtos parseados do FormData:", {
+            total: productIds.length,
+            productIds: productIds,
+          });
         } catch {
           productIds = [produtosJson];
+          console.warn("[API] ⚠️ Erro ao parsear produtos, usando como string única");
         }
+      } else {
+        console.warn("[API] ⚠️ FormData não contém campo 'produtos'");
       }
 
       // Obter URL do produto se fornecida
@@ -164,6 +309,95 @@ export async function POST(request: NextRequest) {
     } else {
       // JSON (compatibilidade com chamadas antigas)
       const body = await request.json();
+      rawBodyData = body;
+      
+      // ============================================
+      // PASSO 2: COLETOR UNIVERSAL DE PRODUTOS (BLOCO BLINDADO)
+      // ============================================
+      // 1. Tenta pegar produtos de QUALQUER lugar possível
+      const rawProducts = body.products || body.produtos || body.selectedProducts || body.itens || body.items || [];
+      
+      console.log("🔍 [DEBUG SUPREMO] Produtos Recebidos Brutos:", JSON.stringify(rawProducts, null, 2));
+      console.log("🔍 [DEBUG SUPREMO] Chaves disponíveis no body:", Object.keys(body));
+      
+      // 2. Normaliza os dados (Garante que sempre teremos um array válido)
+      const produtosParaSalvar = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
+        id: p.id || p.productId || `prod-${Date.now()}-${Math.random()}`,
+        nome: p.nome || p.name || p.title || "Produto Identificado",
+        preco: Number(p.preco || p.price || p.valor || 0),
+        imagemUrl: p.imagemUrl || p.image || p.img || p.url || null,
+        categoria: p.categoria || p.category || null,
+        tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : ["Único"]),
+        cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
+        medidas: p.medidas || p.medida || null,
+        desconto: p.desconto || 0,
+        descricao: p.descricao || p.description || null,
+        // Mantém outros campos se existirem
+        ...p
+      })) : [];
+      
+      // 3. Gera os IDs
+      const productIdsParaSalvar = produtosParaSalvar.map((p: any) => p.id);
+      
+      if (produtosParaSalvar.length === 0) {
+        console.warn("⚠️ [ALERTA] Nenhum produto identificado no payload! O Frontend enviou:", Object.keys(body));
+      } else {
+        console.log("✅ [COLETOR UNIVERSAL] Produtos coletados e normalizados:", {
+          total: produtosParaSalvar.length,
+          produtos: produtosParaSalvar.map((p: any) => ({
+            id: p.id,
+            nome: p.nome,
+            preco: p.preco,
+            temImagemUrl: !!p.imagemUrl,
+          })),
+          productIds: productIdsParaSalvar,
+        });
+      }
+      
+      // ============================================
+      // PASSO 1: DEBUG DA CHEGADA DE DADOS (LOG OBRIGATÓRIO)
+      // ============================================
+      console.log("🔥 [DEBUG CRÍTICO] Payload do Frontend:", JSON.stringify({
+        products: body.products || null,
+        selectedProducts: body.selectedProducts || null,
+        productIds: body.productIds || null,
+        produtos: body.produtos || null,
+        produtosColetados: produtosParaSalvar.length,
+      }, null, 2));
+      
+      // ============================================
+      // DEBUG: Log completo do body recebido
+      // ============================================
+      payloadRecebido = {
+        type: "JSON",
+        body: body,
+        temProducts: !!body.products,
+        products: body.products,
+        temSelectedProducts: !!body.selectedProducts,
+        selectedProducts: body.selectedProducts,
+        temProductIds: !!body.productIds,
+        productIds: body.productIds,
+      };
+      
+      console.log("[API] 📦 PAYLOAD RECEBIDO:", payloadRecebido);
+      console.log("[API] 📦 Body completo recebido:", {
+        temProducts: !!body.products,
+        productsLength: Array.isArray(body.products) ? body.products.length : "NÃO É ARRAY",
+        products: Array.isArray(body.products) ? body.products.map((p: any) => ({
+          id: p?.id,
+          nome: p?.nome || p?.name,
+          preco: p?.preco || p?.price,
+          temImagem: !!(p?.imagemUrl || p?.imageUrl),
+        })) : body.products,
+        temProductIds: !!body.productIds,
+        productIdsLength: Array.isArray(body.productIds) ? body.productIds.length : "NÃO É ARRAY",
+        productIds: body.productIds,
+        lojistaId: body.lojistaId,
+        customerId: body.customerId,
+        customerName: body.customerName,
+        temPersonImage: !!body.personImage,
+        temProductUrl: !!body.productUrl,
+      });
       
       // PHASE 13: Source of Truth - Sempre priorizar original_photo_url
       // Se original_photo_url for fornecido, usar ele. Caso contrário, usar personImageUrl.
@@ -276,11 +510,138 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // Busca informações dos produtos
-    const productsData: any[] = [];
+    // ============================================
+    // DEBUG: Log do que foi recebido ANTES de processar
+    // ============================================
+    console.log("[API] 🔍 ========== RECEBIDO NO BACKEND ==========");
+    console.log("[API] 📦 productsData (antes de processar):", {
+      temBodyProducts: !!body?.products,
+      bodyProductsType: Array.isArray(body?.products) ? "ARRAY" : typeof body?.products,
+      bodyProductsLength: Array.isArray(body?.products) ? body.products.length : "NÃO É ARRAY",
+      bodyProducts: body?.products,
+      temFormDataProdutos: isFormData ? !!formData?.get("produtos") : false,
+      formDataProdutos: isFormData ? formData?.get("produtos") : null,
+      productIds: productIds,
+      productIdsLength: productIds.length,
+    });
     
-    // Se productUrl foi fornecido, criar um produto virtual
-    if (productUrl && productIds.length === 0) {
+    // ============================================
+    // TAREFA 3: DEBUG - Log do que foi recebido do frontend
+    // ============================================
+    console.log("[API] 🔍 DEBUG SAVE - PRODUTOS RECEBIDOS:", {
+      temBodyProducts: !!body?.products,
+      bodyProductsType: Array.isArray(body?.products) ? "ARRAY" : typeof body?.products,
+      bodyProductsLength: Array.isArray(body?.products) ? body.products.length : "NÃO É ARRAY",
+      bodyProducts: body?.products,
+      temFormDataProdutos: isFormData ? !!formData?.get("produtos") : false,
+      formDataProdutos: isFormData ? formData?.get("produtos") : null,
+      productIds: productIds,
+      productIdsLength: productIds.length,
+    });
+    
+    // ============================================
+    // PASSO 2: NORMALIZAÇÃO FORÇADA DOS PRODUTOS
+    // ============================================
+    // Antes de qualquer lógica de IA, criar variável segura
+    // Não confiar na estrutura que vem do frontend
+    
+    // Adaptar conforme a variável descoberta no log acima
+    const rawProducts = 
+      (rawBodyData?.products) || 
+      (rawBodyData?.selectedProducts) || 
+      (payloadRecebido?.products) || 
+      (payloadRecebido?.selectedProducts) || 
+      (isFormData && formDataEntries?.products) ||
+      [];
+    
+    console.log("🔥 [NORMALIZAÇÃO] Raw Products encontrados:", {
+      temRawBodyProducts: !!rawBodyData?.products,
+      temRawBodySelectedProducts: !!rawBodyData?.selectedProducts,
+      temPayloadProducts: !!payloadRecebido?.products,
+      temFormDataProducts: !!(isFormData && formDataEntries?.products),
+      rawProductsLength: Array.isArray(rawProducts) ? rawProducts.length : "NÃO É ARRAY",
+      rawProducts: Array.isArray(rawProducts) ? rawProducts : rawProducts,
+    });
+    
+    // GARANTIA DE DADOS: Mapear para garantir que nada se perca
+    const produtosParaSalvarNormalizados = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
+      id: p.id || `prod-${Date.now()}-${Math.random()}`,
+      nome: p.nome || p.name || "Produto Sem Nome",
+      preco: Number(p.preco || p.price || 0),
+      imagemUrl: p.imagemUrl || p.image || p.imageUrl || p.cover || p.productUrl || null,
+      categoria: p.categoria || p.category || null,
+      tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : ["Único"]),
+      cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
+      medidas: p.medidas || p.medida || null,
+      desconto: p.desconto || 0,
+      descricao: p.descricao || p.description || null,
+    })) : [];
+    
+    const productIdsParaSalvarNormalizados = produtosParaSalvarNormalizados.map((p: any) => p.id);
+    
+    console.log("🔥 [NORMALIZAÇÃO] Produtos normalizados:", {
+      total: produtosParaSalvarNormalizados.length,
+      produtos: produtosParaSalvarNormalizados.map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        preco: p.preco,
+        temImagemUrl: !!p.imagemUrl,
+      })),
+      productIds: productIdsParaSalvarNormalizados,
+    });
+    
+    // ============================================
+    // ✅ CORREÇÃO CRÍTICA: Usar produtos do payload se disponíveis
+    // ============================================
+    let productsData: any[] = [];
+    
+    // PRIORIDADE 1: Se produtos normalizados existem, usar diretamente
+    if (produtosParaSalvarNormalizados.length > 0) {
+      console.log("[API] ✅ PRODUTOS NORMALIZADOS ENCONTRADOS - USANDO DIRETAMENTE");
+      productsData = produtosParaSalvarNormalizados;
+      productIds = productIdsParaSalvarNormalizados;
+      console.log("[API] 📦 Produtos extraídos do payload normalizado:", {
+        total: productsData.length,
+        produtos: productsData.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+          temImagemUrl: !!p.imagemUrl,
+        })),
+      });
+    } else if (payloadRecebido?.products && Array.isArray(payloadRecebido.products) && payloadRecebido.products.length > 0) {
+      console.log("[API] ✅ PRODUTOS COMPLETOS ENCONTRADOS NO PAYLOAD - USANDO DIRETAMENTE");
+      productsData = payloadRecebido.products.map((p: any) => ({
+        id: p.id || `prod-${Date.now()}-${Math.random()}`,
+        nome: p.nome || p.name || "Produto",
+        preco: p.preco !== undefined ? p.preco : (p.price || 0),
+        categoria: p.categoria || p.category || null,
+        imagemUrl: p.imagemUrl || p.imageUrl || p.productUrl || null,
+        tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : []),
+        cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
+        medidas: p.medidas || p.medida || null,
+        desconto: p.desconto || 0,
+        descricao: p.descricao || p.description || null,
+      }));
+      
+      // Atualizar productIds se necessário
+      if (productIds.length === 0 && productsData.length > 0) {
+        productIds = productsData.map(p => p.id);
+        console.log("[API] ✅ ProductIds atualizados a partir dos produtos do payload:", productIds);
+      }
+      
+      console.log("[API] 📦 Produtos extraídos do payload:", {
+        total: productsData.length,
+        produtos: productsData.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+          temImagemUrl: !!p.imagemUrl,
+        })),
+      });
+    } else if (productUrl && productIds.length === 0) {
+      // PRIORIDADE 2: Se productUrl foi fornecido, criar um produto virtual
+      console.log("[API] ⚠️ Usando productUrl para criar produto virtual");
       productsData.push({
         id: `url-${Date.now()}`,
         nome: "Produto do Link",
@@ -290,7 +651,7 @@ export async function POST(request: NextRequest) {
         productUrl: productUrl, // Guardar a URL original
       });
     } else {
-      // Buscar produtos do catálogo
+      // PRIORIDADE 3: Buscar produtos do catálogo do Firestore
       console.log("[API] 🔍 Buscando produtos do Firestore:", {
         totalProductIds: productIds.length,
         productIds: productIds,
@@ -349,7 +710,23 @@ export async function POST(request: NextRequest) {
         produtos: productsData.map(p => ({
           id: p.id,
           nome: p.nome,
+          preco: p.preco,
           temImagem: !!(p?.imagemUrl || p?.productUrl),
+        })),
+      });
+      
+      // ============================================
+      // DEBUG: Log APÓS processar productsData
+      // ============================================
+      console.log("[API] 📦 productsData APÓS processar:", {
+        total: productsData.length,
+        produtos: productsData.map((p: any) => ({
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+          temImagemUrl: !!(p.imagemUrl || p.imageUrl || p.productUrl),
+          imagemUrl: (p.imagemUrl || p.imageUrl || p.productUrl)?.substring(0, 100),
+          categoria: p.categoria,
         })),
       });
     }
@@ -1020,6 +1397,29 @@ export async function POST(request: NextRequest) {
       const jobId = randomUUID();
       const jobsRef = db.collection("generation_jobs");
       
+      // ============================================
+      // 4. FORCE O SALVAMENTO NO FIRESTORE (Job Data)
+      // ============================================
+      // Garantir que produtos normalizados sejam salvos no job
+      const produtosParaJob = produtosParaSalvar.length > 0 
+        ? produtosParaSalvar 
+        : (productsData.length > 0 ? productsData : []);
+      
+      const productIdsParaJob = productIdsParaSalvar.length > 0 
+        ? productIdsParaSalvar 
+        : (productIds.length > 0 ? productIds : []);
+      
+      console.log("💾 [SALVANDO] Gravando", produtosParaJob.length, "produtos no job.");
+      console.log("💾 [SALVANDO] Detalhes:", {
+        produtos: produtosParaJob.map((p: any) => ({
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+          temImagemUrl: !!p.imagemUrl,
+        })),
+        productIds: productIdsParaJob,
+      });
+      
       const jobData = {
         id: jobId,
         lojistaId,
@@ -1027,6 +1427,10 @@ export async function POST(request: NextRequest) {
         status: "PENDING",
         reservationId,
         createdAt: FieldValue.serverTimestamp(),
+        // ✅ FORCE: Produtos normalizados salvos no job
+        produtos: produtosParaJob,
+        productIds: productIdsParaJob,
+        temProdutos: produtosParaJob.length > 0,
         params: {
           personImageUrl,
           productId: primaryProduct.id,
@@ -1291,6 +1695,93 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ============================================
+    // SOLUÇÃO DEFINITIVA: Garantir produtos ANTES de salvar
+    // ============================================
+    // Usar produtos normalizados OU productsData processado
+    // IMPORTANTE: Sempre usar TODOS os produtos, nunca apenas o primeiro
+    let produtosFinaisParaComposicao: any[] = [];
+    
+    if (produtosParaSalvarNormalizados && produtosParaSalvarNormalizados.length > 0) {
+      produtosFinaisParaComposicao = produtosParaSalvarNormalizados;
+      console.log("🔥 [SOLUÇÃO DEFINITIVA] Usando produtos normalizados para composição:", produtosFinaisParaComposicao.length);
+    } else if (productsData && productsData.length > 0) {
+      // ✅ CORREÇÃO: Usar TODOS os produtos, não apenas o primeiro
+      produtosFinaisParaComposicao = productsData;
+      console.log("🔥 [SOLUÇÃO DEFINITIVA] Usando productsData processado para composição:", produtosFinaisParaComposicao.length);
+      console.log("🔥 [SOLUÇÃO DEFINITIVA] Produtos incluídos:", produtosFinaisParaComposicao.map(p => ({ id: p.id, nome: p.nome })));
+    } else if (primaryProduct) {
+      // ⚠️ FALLBACK: Se só temos primaryProduct, usar ele, mas logar aviso
+      produtosFinaisParaComposicao = [primaryProduct];
+      console.warn("🔥 [SOLUÇÃO DEFINITIVA] ⚠️ Usando apenas primaryProduct como fallback - apenas 1 produto será salvo");
+      console.warn("🔥 [SOLUÇÃO DEFINITIVA] ⚠️ Isso pode indicar que productsData não foi populado corretamente");
+    } else {
+      console.error("🔥 [SOLUÇÃO DEFINITIVA] ❌ ERRO: Nenhum produto disponível para salvar na composição!");
+      produtosFinaisParaComposicao = [{
+        id: `prod-minimo-${Date.now()}`,
+        nome: "Produto",
+        preco: 0,
+        imagemUrl: null,
+        categoria: null,
+        tamanhos: ["Único"],
+        cores: [],
+        medidas: null,
+        desconto: 0,
+        descricao: null,
+      }];
+    }
+    
+    // Garantir que todos os produtos tenham estrutura completa
+    produtosFinaisParaComposicao = produtosFinaisParaComposicao.map((p: any) => ({
+      id: p.id || `prod-${Date.now()}-${Math.random()}`,
+      nome: p.nome || p.name || "Produto Sem Nome",
+      preco: Number(p.preco || p.price || 0),
+      imagemUrl: p.imagemUrl || p.imageUrl || p.image || p.cover || p.productUrl || null,
+      categoria: p.categoria || p.category || null,
+      tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : ["Único"]),
+      cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
+      medidas: p.medidas || p.medida || null,
+      desconto: p.desconto || 0,
+      descricao: p.descricao || p.description || null,
+    }));
+    
+    const productIdsFinaisParaComposicao = produtosFinaisParaComposicao.map((p: any) => p.id);
+    
+    // ✅ VALIDAÇÃO CRÍTICA: Garantir que temos múltiplos produtos se foram enviados
+    if (produtosParaSalvarNormalizados && produtosParaSalvarNormalizados.length > 1 && produtosFinaisParaComposicao.length === 1) {
+      console.error("🔥 [SOLUÇÃO DEFINITIVA] ❌ ERRO: Múltiplos produtos foram enviados mas apenas 1 está sendo salvo!");
+      console.error("🔥 [SOLUÇÃO DEFINITIVA] Debug:", {
+        produtosNormalizados: produtosParaSalvarNormalizados.length,
+        produtosFinais: produtosFinaisParaComposicao.length,
+        productsData: productsData.length,
+      });
+      // Forçar uso de todos os produtos normalizados
+      produtosFinaisParaComposicao = produtosParaSalvarNormalizados.map((p: any) => ({
+        id: p.id || `prod-${Date.now()}-${Math.random()}`,
+        nome: p.nome || p.name || "Produto Sem Nome",
+        preco: Number(p.preco || p.price || 0),
+        imagemUrl: p.imagemUrl || p.imageUrl || p.image || p.cover || p.productUrl || null,
+        categoria: p.categoria || p.category || null,
+        tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : ["Único"]),
+        cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
+        medidas: p.medidas || p.medida || null,
+        desconto: p.desconto || 0,
+        descricao: p.descricao || p.description || null,
+      }));
+      console.log("🔥 [SOLUÇÃO DEFINITIVA] ✅ CORRIGIDO: Todos os produtos normalizados serão salvos:", produtosFinaisParaComposicao.length);
+    }
+    
+    console.log("🔥 [SOLUÇÃO DEFINITIVA] Produtos finais preparados para composição:", {
+      total: produtosFinaisParaComposicao.length,
+      produtos: produtosFinaisParaComposicao.map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        preco: p.preco,
+        temImagemUrl: !!p.imagemUrl,
+      })),
+      productIds: productIdsFinaisParaComposicao,
+    });
+    
     // Salvar composição no Firestore
     let composicaoId: string | null = null;
     try {
@@ -1312,11 +1803,138 @@ export async function POST(request: NextRequest) {
           watermarkText: look.watermarkText,
           compositionId: look.compositionId,
         })),
-        produtos: productIds.length > 0 
-          ? productIds.map((id) => ({ id, nome: primaryProduct.nome }))
-          : productUrl 
-          ? [{ url: productUrl, nome: primaryProduct.nome }]
-          : [],
+        // ✅ SOLUÇÃO DEFINITIVA: Usar produtos finais preparados diretamente
+        produtos: produtosFinaisParaComposicao,
+        productIds: productIdsFinaisParaComposicao,
+        // REMOVER função anônima - usar array direto
+          console.log("[API] 🔍 DEBUG: Preparando produtos para salvar:", {
+            productsDataLength: productsData.length,
+            productIdsLength: productIds.length,
+            temPrimaryProduct: !!primaryProduct,
+            primaryProductId: primaryProduct?.id,
+            primaryProductNome: primaryProduct?.nome,
+            payloadRecebido: payloadRecebido ? {
+              type: payloadRecebido.type,
+              temProducts: !!payloadRecebido.products,
+              productsLength: Array.isArray(payloadRecebido.products) ? payloadRecebido.products.length : "NÃO É ARRAY",
+            } : null,
+          });
+          
+          // ============================================
+          // ✅ Proteção de Array: Verificar se productsData está preenchida
+          // ============================================
+          // Se productsData vier do frontend (req.body.products), forçar atribuição
+          let produtosParaSalvar: any[] = [];
+          
+          // Verificar se há produtos no payload recebido
+          if (payloadRecebido?.products && Array.isArray(payloadRecebido.products) && payloadRecebido.products.length > 0) {
+            console.log("[API] ✅ Produtos encontrados no payload recebido, usando esses produtos:", payloadRecebido.products.length);
+            produtosParaSalvar = payloadRecebido.products;
+          } else if (productsData.length > 0) {
+            // ✅ CORREÇÃO: Se não tem no payload, usar TODOS os productsData processados
+            produtosParaSalvar = productsData;
+            console.log("[API] ✅ Usando productsData processado (TODOS os produtos):", productsData.length);
+          } else if (produtosParaSalvarNormalizados && produtosParaSalvarNormalizados.length > 0) {
+            // ✅ NOVO: Tentar usar produtos normalizados antes do fallback
+            produtosParaSalvar = produtosParaSalvarNormalizados;
+            console.log("[API] ✅ Usando produtos normalizados (TODOS os produtos):", produtosParaSalvarNormalizados.length);
+          } else if (primaryProduct) {
+            // ⚠️ FALLBACK: Se só temos primaryProduct, usar ele, mas logar aviso
+            produtosParaSalvar = [primaryProduct];
+            console.warn("[API] ⚠️ Usando apenas primaryProduct como fallback - apenas 1 produto será salvo");
+            console.warn("[API] ⚠️ Isso pode indicar que productsData não foi populado corretamente");
+          }
+          
+          // ============================================
+          // VALIDAÇÃO CRÍTICA: Garantir que temos produtos
+          // ============================================
+          if (produtosParaSalvar.length === 0) {
+            console.error("[API] ❌ ERRO CRÍTICO: Nenhum produto encontrado para salvar!");
+            console.error("[API] 📋 Debug completo:", {
+              productsData,
+              productIds,
+              primaryProduct,
+              payloadRecebido,
+              bodyProducts: body?.products,
+            });
+            // Não retornar vazio - criar produto mínimo
+            produtosParaSalvar = [{
+              id: `prod-minimo-${Date.now()}`,
+              nome: "Produto",
+              preco: 0,
+              imagemUrl: null,
+              categoria: null,
+              tamanhos: ["Único"],
+              cores: [],
+              medidas: null,
+              desconto: 0,
+              descricao: null,
+            }];
+          }
+          
+          if (produtosParaSalvar.length > 0) {
+            console.log("[API] 📦 Usando produtosParaSalvar para salvar produtos:", produtosParaSalvar.map(p => ({
+              id: p.id,
+              nome: p.nome || p.name,
+              preco: p.preco || p.price,
+              temImagem: !!(p.imagemUrl || p.imageUrl || p.productUrl),
+            })));
+            
+            const produtosMapeados = produtosParaSalvar.map((prod: any) => ({
+              id: prod.id || `prod-${Date.now()}-${Math.random()}`,
+              nome: prod.nome || prod.name || "Produto",
+              preco: prod.preco !== undefined ? prod.preco : (prod.price || 0),
+              categoria: prod.categoria || prod.category || null,
+              imagemUrl: prod.imagemUrl || prod.imageUrl || prod.productUrl || prod.imagem || prod.image || null,
+              tamanhos: Array.isArray(prod.tamanhos) 
+                ? prod.tamanhos 
+                : (prod.tamanho ? [prod.tamanho] : []),
+              cores: Array.isArray(prod.cores) 
+                ? prod.cores 
+                : (prod.cor ? [prod.cor] : []),
+              medidas: prod.medidas || prod.medida || null,
+              desconto: prod.desconto || 0,
+              descricao: prod.descricao || prod.description || null,
+            }));
+            
+            console.log("[API] 📦 Produtos mapeados para salvar na composição:", {
+              total: produtosMapeados.length,
+              produtos: produtosMapeados.map(p => ({
+                id: p.id,
+                nome: p.nome,
+                preco: p.preco,
+                temImagemUrl: !!p.imagemUrl,
+                categoria: p.categoria,
+              }))
+            });
+            
+            return produtosMapeados;
+          } else if (primaryProduct && primaryProduct.id) {
+            console.log("[API] ⚠️ productsData está vazio, usando primaryProduct como fallback:", {
+              id: primaryProduct.id,
+              nome: primaryProduct.nome,
+              preco: primaryProduct.preco,
+            });
+            return [{
+              id: primaryProduct.id,
+              nome: primaryProduct.nome || "Produto",
+              preco: primaryProduct.preco || 0,
+              categoria: primaryProduct.categoria || null,
+              imagemUrl: primaryProduct.imagemUrl || primaryProduct.productUrl || null,
+              tamanhos: Array.isArray(primaryProduct.tamanhos) ? primaryProduct.tamanhos : (primaryProduct.tamanho ? [primaryProduct.tamanho] : []),
+              cores: Array.isArray(primaryProduct.cores) ? primaryProduct.cores : (primaryProduct.cor ? [primaryProduct.cor] : []),
+              medidas: primaryProduct.medidas || primaryProduct.medida || null,
+              desconto: primaryProduct.desconto || 0,
+              descricao: primaryProduct.descricao || null,
+            }];
+          }
+          console.warn("[API] ⚠️⚠️⚠️ NENHUM PRODUTO PARA SALVAR! productsData vazio E sem primaryProduct!");
+          return [];
+        })(),
+        // SALVAR TODOS OS PRODUCTIDS selecionados (não apenas o principal)
+        productIds: productIds.length > 0 
+          ? productIds 
+          : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : []),
         productUrl: productUrl || null,
         primaryProductId: primaryProduct.id,
         primaryProductName: primaryProduct.nome,
@@ -1330,6 +1948,31 @@ export async function POST(request: NextRequest) {
         compartilhado: false,
       };
 
+      // Log detalhado ANTES de salvar
+      console.log("[API] 📦 DADOS DA COMPOSIÇÃO QUE SERÁ SALVA:", {
+        composicaoId,
+        lojistaId,
+        totalProdutos: composicaoData.produtos?.length || 0,
+        produtos: composicaoData.produtos?.map((p: any) => ({
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+          temImagemUrl: !!(p.imagemUrl || p.imageUrl),
+        })) || [],
+        totalProductIds: composicaoData.productIds?.length || 0,
+        productIds: composicaoData.productIds || [],
+      });
+
+      // CRÍTICO: Garantir que temos produtos antes de salvar
+      if (!composicaoData.produtos || composicaoData.produtos.length === 0) {
+        console.error("[API] ❌ ERRO CRÍTICO: Tentando salvar composição SEM PRODUTOS!");
+        console.error("[API] 📋 Debug:", {
+          productsDataLength: productsData.length,
+          productIdsLength: productIds.length,
+          temPrimaryProduct: !!primaryProduct,
+        });
+      }
+
       await db
         .collection("lojas")
         .doc(lojistaId || "")
@@ -1337,7 +1980,279 @@ export async function POST(request: NextRequest) {
         .doc(composicaoId || "")
         .set(composicaoData);
 
-      console.log("[API] Composição salva no Firestore:", composicaoId);
+      console.log("[API] ✅ Composição salva no Firestore:", composicaoId);
+      console.log("[API] ✅ Produtos salvos na composição:", {
+        total: composicaoData.produtos?.length || 0,
+        produtos: composicaoData.produtos?.map((p: any) => ({
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+        })) || [],
+      });
+
+      // NOVO: Registrar produtos no ProductRegistry
+      if (composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
+        try {
+          const { registerCompositionProducts } = await import("@/lib/firestore/productRegistry");
+          const registeredProductIds = await registerCompositionProducts(
+            lojistaId || "",
+            composicaoId,
+            composicaoData.produtos
+          );
+          
+          // Atualizar composição com os IDs registrados
+          if (registeredProductIds.length > 0) {
+            await db
+              .collection("lojas")
+              .doc(lojistaId || "")
+              .collection("composicoes")
+              .doc(composicaoId || "")
+              .update({
+                registeredProductIds: registeredProductIds,
+                productIds: registeredProductIds, // Garantir que productIds também tenha os IDs
+              });
+            
+            console.log("[API] ✅ Produtos registrados no ProductRegistry:", {
+              total: registeredProductIds.length,
+              productIds: registeredProductIds,
+            });
+          }
+        } catch (registryError) {
+          console.error("[API] ⚠️ Erro ao registrar produtos no ProductRegistry:", registryError);
+          // Não falhar a requisição se o registry falhar
+        }
+      }
+
+      // NOVO: Salvar na coleção 'generations' para controle de feedback e Radar
+      // GARANTIR que TODOS os productIds sejam salvos (todos os produtos selecionados)
+      const finalProductIds = productIds.length > 0 
+        ? productIds 
+        : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : []);
+      
+      if (customerId && lojistaId) {
+        try {
+          // Garantir que temos produtos para salvar
+          const produtosParaSalvar = composicaoData.produtos && composicaoData.produtos.length > 0
+            ? composicaoData.produtos
+            : null;
+          
+          // Garantir que temos productIds
+          const productIdsParaSalvar = finalProductIds.length > 0
+            ? finalProductIds
+            : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : []);
+          
+          console.log("[API] 📦 Preparando para salvar generation:", {
+            compositionId: composicaoId,
+            temProdutos: !!produtosParaSalvar,
+            totalProdutos: produtosParaSalvar?.length || 0,
+            temProductIds: productIdsParaSalvar.length > 0,
+            totalProductIds: productIdsParaSalvar.length,
+            productIds: productIdsParaSalvar,
+          });
+          
+          // ============================================
+          // ✅ Verificação Final: Alertar se array estiver vazio
+          // ============================================
+          if (!produtosParaSalvar || produtosParaSalvar.length === 0) {
+            console.warn("[API] ⚠️⚠️⚠️ ATENÇÃO: Uma geração está sendo criada SEM PRODUTOS VINCULADOS!");
+            console.warn("[API] 📋 Debug:", {
+              composicaoId,
+              temProdutosNaComposicao: !!composicaoData.produtos,
+              produtosNaComposicao: composicaoData.produtos?.length || 0,
+              temPrimaryProduct: !!primaryProduct,
+              primaryProductId: primaryProduct?.id,
+              primaryProductNome: primaryProduct?.nome,
+              temProductIds: productIdsParaSalvar.length > 0,
+              payloadRecebido: payloadRecebido ? {
+                type: payloadRecebido.type,
+                temProducts: !!payloadRecebido.products,
+              } : null,
+            });
+            
+            // Tentar usar produtos da composição como fallback
+            if (composicaoData.produtos && composicaoData.produtos.length > 0) {
+              produtosParaSalvar = composicaoData.produtos;
+              console.warn("[API] ⚠️ Usando produtos da composição como fallback para generation");
+            } else {
+              // Se ainda não tem produtos, lançar erro
+              throw new Error(
+                `[API] ❌ ERRO CRÍTICO: Não é possível salvar generation sem produtos. ` +
+                `compositionId: ${composicaoId}, lojistaId: ${lojistaId}, customerId: ${customerId}`
+              );
+            }
+          }
+          
+          // ============================================
+          // ✅ Persistência Dupla: Forçar inclusão do campo produtos na generation
+          // ============================================
+          // Se productIds estiver vazio mas houver produtos, gerar IDs manualmente
+          if (productIdsParaSalvar.length === 0 && produtosParaSalvar && produtosParaSalvar.length > 0) {
+            console.warn("[API] ⚠️ productIds vazio mas há produtos - gerando IDs manualmente");
+            productIdsParaSalvar = produtosParaSalvar.map((p: any, index: number) => {
+              if (p.id) return p.id;
+              return `prod-${composicaoId}-${index}-${Date.now()}`;
+            });
+            
+            // Atualizar produtos com IDs gerados
+            produtosParaSalvar = produtosParaSalvar.map((p: any, index: number) => ({
+              ...p,
+              id: p.id || productIdsParaSalvar[index],
+            }));
+            
+            console.log("[API] ✅ IDs gerados manualmente:", productIdsParaSalvar);
+          }
+          
+          // ============================================
+          // ✅ Verificação Final: Alertar se array estiver vazio
+          // ============================================
+          if (!produtosParaSalvar || produtosParaSalvar.length === 0) {
+            console.warn("[API] ⚠️⚠️⚠️ ATENÇÃO: Uma geração está sendo criada SEM PRODUTOS VINCULADOS!");
+            console.warn("[API] 📋 Debug:", {
+              composicaoId,
+              temProdutosNaComposicao: !!composicaoData.produtos,
+              produtosNaComposicao: composicaoData.produtos?.length || 0,
+              temPrimaryProduct: !!primaryProduct,
+              payloadRecebido,
+            });
+          }
+          
+          // FORÇAR salvamento duplo: Generation E Composição
+          // GARANTIR que produtos completos sejam salvos (não apenas IDs)
+          console.log("[API] 💾 FORÇANDO salvamento de produtos completos na generation:", {
+            totalProdutos: produtosParaSalvar?.length || 0,
+            produtos: produtosParaSalvar?.map((p: any) => ({
+              id: p.id,
+              nome: p.nome,
+              preco: p.preco,
+              temImagemUrl: !!(p.imagemUrl || p.imageUrl),
+            })) || [],
+            totalProductIds: productIdsParaSalvar.length,
+            productIds: productIdsParaSalvar,
+          });
+          
+          // ============================================
+          // PASSO 3: FORCE A GRAVAÇÃO NO FIRESTORE
+          // ============================================
+          // Use as variáveis blindadas do COLETOR UNIVERSAL
+          // Se produtos foram coletados do body, usar eles (prioridade máxima)
+          const produtosFinaisParaGeneration = (produtosParaSalvar && produtosParaSalvar.length > 0)
+            ? produtosParaSalvar
+            : (produtosFinaisParaSalvar && produtosFinaisParaSalvar.length > 0)
+              ? produtosFinaisParaSalvar
+              : (composicaoData.produtos && composicaoData.produtos.length > 0)
+                ? composicaoData.produtos
+                : produtosFinaisParaComposicao;
+          
+          const productIdsFinaisParaGeneration = (productIdsParaSalvar && productIdsParaSalvar.length > 0)
+            ? productIdsParaSalvar
+            : (productIdsFinaisParaSalvar && productIdsFinaisParaSalvar.length > 0)
+              ? productIdsFinaisParaSalvar
+              : (composicaoData.productIds && composicaoData.productIds.length > 0)
+                ? composicaoData.productIds
+                : productIdsFinaisParaComposicao;
+          
+          console.log("💾 [FORÇA GRAVAÇÃO] Produtos finais para generation:", {
+            total: produtosFinaisParaGeneration.length,
+            produtos: produtosFinaisParaGeneration.map((p: any) => ({
+              id: p.id,
+              nome: p.nome,
+              preco: p.preco,
+              temImagemUrl: !!p.imagemUrl,
+            })),
+            productIds: productIdsFinaisParaGeneration,
+            origem: produtosParaSalvar && produtosParaSalvar.length > 0 ? "COLETOR UNIVERSAL" : "PROCESSAMENTO INTERNO",
+          });
+          
+          // ✅ Persistência Dupla: Forçar inclusão do campo produtos (array completo) e productIds
+          await saveGeneration({
+            lojistaId,
+            userId: customerId,
+            compositionId: composicaoId,
+            jobId: null,
+            imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl : null,
+            uploadImageUrl: personImageUrl || null,
+            productIds: productIdsFinaisParaGeneration, // ✅ Array de IDs do COLETOR UNIVERSAL
+            productName: primaryProduct.nome || null,
+            customerName: customerName || null,
+            produtos: produtosFinaisParaGeneration, // ✅ Array completo do COLETOR UNIVERSAL - FORÇADO
+          });
+          
+          // GARANTIR que a composição também tem os produtos
+          if (composicaoData.produtos && composicaoData.produtos.length > 0) {
+            console.log("[API] ✅ Salvamento duplo confirmado: produtos na composição E na generation");
+            console.log("[API] 📦 Produtos salvos na composição:", composicaoData.produtos.map((p: any) => ({
+              id: p.id,
+              nome: p.nome,
+              preco: p.preco,
+              temImagemUrl: !!(p.imagemUrl || p.imageUrl),
+            })));
+          } else {
+            console.error("[API] ❌ ERRO: Composição não tem produtos salvos!");
+            // Tentar atualizar a composição com os produtos da generation
+            if (produtosParaSalvar && produtosParaSalvar.length > 0) {
+              try {
+                await db
+                  .collection("lojas")
+                  .doc(lojistaId || "")
+                  .collection("composicoes")
+                  .doc(composicaoId || "")
+                  .update({
+                    produtos: produtosParaSalvar,
+                    productIds: productIdsParaSalvar,
+                  });
+                console.log("[API] ✅ Composição atualizada com produtos da generation");
+              } catch (updateError) {
+                console.error("[API] ❌ Erro ao atualizar composição com produtos:", updateError);
+              }
+            }
+          }
+          
+          console.log("[API] ✅ Generation salva na coleção 'generations':", {
+            compositionId: composicaoId,
+            totalProductIds: productIdsParaSalvar.length,
+            productIds: productIdsParaSalvar,
+            totalProdutos: produtosParaSalvar?.length || 0,
+            produtos: produtosParaSalvar?.map((p: any) => ({
+              id: p.id,
+              nome: p.nome,
+              preco: p.preco,
+              temImagemUrl: !!(p.imagemUrl || p.imageUrl),
+            })) || [],
+            imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl?.substring(0, 100) : null,
+          });
+          
+          // Se não salvou produtos na generation mas tem na composição, atualizar a generation
+          if ((!produtosParaSalvar || produtosParaSalvar.length === 0) && composicaoData.produtos && composicaoData.produtos.length > 0) {
+            console.log("[API] 🔄 Atualizando generation com produtos da composição...");
+            try {
+              const generationsRef = db.collection("generations");
+              const existingGen = await generationsRef
+                .where("compositionId", "==", composicaoId)
+                .where("lojistaId", "==", lojistaId)
+                .limit(1)
+                .get();
+              
+              if (!existingGen.empty) {
+                await existingGen.docs[0].ref.update({
+                  produtos: composicaoData.produtos,
+                  productIds: composicaoData.productIds || productIdsParaSalvar,
+                });
+                console.log("[API] ✅ Generation atualizada com produtos da composição");
+              }
+            } catch (updateError) {
+              console.warn("[API] ⚠️ Erro ao atualizar generation com produtos:", updateError);
+            }
+          }
+        } catch (generationError) {
+          console.error("[API] ❌ Erro ao salvar generation:", generationError);
+          // Não falhar a requisição se a generation falhar
+        }
+      } else {
+        console.warn("[API] ⚠️ Generation NÃO salva - faltando dados:", {
+          temCustomerId: !!customerId,
+          temLojistaId: !!lojistaId,
+        });
+      }
 
       // Atualizar estatísticas do cliente se houver customerId
       // Agora conta TODAS as composições geradas, não apenas as com like

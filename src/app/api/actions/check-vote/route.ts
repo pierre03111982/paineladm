@@ -21,7 +21,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getAdminDb();
+    let db;
+    try {
+      db = getAdminDb();
+      if (!db) {
+        throw new Error("Firebase Admin não inicializado");
+      }
+    } catch (dbError: any) {
+      console.error("[Check Vote] Erro ao inicializar Firebase Admin:", dbError);
+      // Retornar resposta padrão (não votou) em vez de erro 500
+      return NextResponse.json({
+        votedType: null,
+        action: null,
+        alreadyVoted: false,
+      });
+    }
 
     // Verificar na composição se já foi votado
     try {

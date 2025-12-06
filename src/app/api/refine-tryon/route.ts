@@ -299,8 +299,37 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Buscar produtos da composição original para incluir na nova
+        let produtosOriginais: any[] = [];
+        let productIdsOriginais: string[] = [];
+        
+        if (originalCompositionData) {
+          produtosOriginais = originalCompositionData.produtos || [];
+          productIdsOriginais = originalCompositionData.productIds || [];
+        }
+        
+        // Se não encontrou na composição original, buscar na generation
+        if (produtosOriginais.length === 0 && compositionId) {
+          try {
+            const generationsRef = db.collection("generations");
+            const genQuery = await generationsRef
+              .where("compositionId", "==", compositionId)
+              .where("lojistaId", "==", lojistaId)
+              .limit(1)
+              .get();
+            
+            if (!genQuery.empty) {
+              const genData = genQuery.docs[0].data();
+              produtosOriginais = genData.produtos || [];
+              productIdsOriginais = genData.productIds || [];
+            }
+          } catch (error) {
+            console.warn("[RefineTryOn] Erro ao buscar produtos na generation:", error);
+          }
+        }
+        
         // Criar nova composição na coleção principal "composicoes"
-        const newCompositionData = {
+        const newCompositionData: any = {
           lojistaId,
           customerId,
           imagemUrl: refinedImageUrl,
@@ -319,10 +348,73 @@ export async function POST(request: NextRequest) {
           curtido: false,
           liked: false,
         };
+        
+        // NOVO: Salvar produtos completos se disponíveis
+        if (produtosOriginais.length > 0) {
+          newCompositionData.produtos = produtosOriginais;
+          newCompositionData.productIds = productIdsOriginais;
+          console.log("[RefineTryOn] ✅ Produtos da composição original incluídos:", {
+            totalProdutos: produtosOriginais.length,
+            totalProductIds: productIdsOriginais.length,
+          });
+        }
 
         const newCompositionRef = await db.collection("composicoes").add(newCompositionData);
         newCompositionId = newCompositionRef.id; // Salvar o ID imediatamente
-        console.log("[RefineTryOn] Nova composição de refinamento criada:", newCompositionId);
+        console.log("[RefineTryOn] ✅ Nova composição de refinamento criada:", newCompositionId);
+        console.log("[RefineTryOn] 📦 Produtos salvos:", {
+          totalProdutos: newCompositionData.produtos?.length || 0,
+          totalProductIds: newCompositionData.productIds?.length || 0,
+        });
+        
+        // NOVO: Registrar produtos no ProductRegistry
+        if (newCompositionData.produtos && newCompositionData.produtos.length > 0 && newCompositionId) {
+          try {
+            const { registerCompositionProducts } = await import("@/lib/firestore/productRegistry");
+            const registeredProductIds = await registerCompositionProducts(
+              lojistaId,
+              newCompositionId,
+              newCompositionData.produtos
+            );
+            
+            // Atualizar composição com os IDs registrados
+            if (registeredProductIds.length > 0) {
+              await db.collection("composicoes").doc(newCompositionId).update({
+                registeredProductIds: registeredProductIds,
+                productIds: registeredProductIds,
+              });
+              
+              console.log("[RefineTryOn] ✅ Produtos registrados no ProductRegistry:", {
+                total: registeredProductIds.length,
+                productIds: registeredProductIds,
+              });
+            }
+          } catch (registryError) {
+            console.warn("[RefineTryOn] ⚠️ Erro ao registrar produtos no ProductRegistry:", registryError);
+          }
+        }
+        
+        // NOVO: Salvar também na generation se tiver customerId e produtos
+        if (customerId && (newCompositionData.produtos || newCompositionData.productIds)) {
+          try {
+            const { saveGeneration } = await import("@/lib/firestore/generations");
+            await saveGeneration({
+              lojistaId,
+              userId: customerId,
+              compositionId: newCompositionId,
+              jobId: null,
+              imagemUrl: refinedImageUrl,
+              uploadImageUrl: baseImageUrl || null,
+              productIds: newCompositionData.productIds || [],
+              productName: newCompositionData.produtoNome || null,
+              customerName: null,
+              produtos: newCompositionData.produtos || undefined,
+            });
+            console.log("[RefineTryOn] ✅ Generation salva com produtos");
+          } catch (genError) {
+            console.warn("[RefineTryOn] ⚠️ Erro ao salvar generation:", genError);
+          }
+        }
 
         // Atualizar composição original também (se existir) para manter histórico
         if (compositionId) {
