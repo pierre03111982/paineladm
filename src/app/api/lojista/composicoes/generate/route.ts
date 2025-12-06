@@ -155,25 +155,24 @@ export async function POST(request: NextRequest) {
     // ============================================
     // 2. GARANTIA DE ARRAY (TypeScript-Safe - Nunca null)
     // ============================================
-    // O segredo é inicializar com [] se for null/undefined
-    // Isso garante que produtosParaSalvar é sempre um array, nunca null
-    const produtosParaSalvar: any[] = Array.isArray(rawProducts) ? rawProducts : [];
+    // Forçamos o tipo para 'any[]' e garantimos que nunca seja null usando '?? []'
+    const produtosParaSalvar: any[] = (Array.isArray(rawProducts) ? rawProducts : []) ?? [];
     
     // ============================================
     // 3. MAPEAMENTO SEGURO
     // ============================================
-    // Agora o TypeScript sabe que produtosParaSalvar é um array, pois forçamos acima
-    const produtosNormalizados = produtosParaSalvar.map((p: any) => ({
-      id: p?.id || p?.productId || `prod-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      nome: p?.nome || p?.name || "Produto Sem Nome",
-      preco: Number(p?.preco || p?.price || 0),
-      imagemUrl: p?.imagemUrl || p?.image || p?.img || null,
-      categoria: p?.categoria || p?.category || null,
+    // Adicionamos '|| []' para garantir que o map sempre rode sobre um array
+    const produtosNormalizados = (produtosParaSalvar || []).map((p: any) => ({
+      id: p?.id ?? `prod-${Date.now()}`, // Usa '??' em vez de '||' para segurança
+      nome: p?.nome ?? "Produto Sem Nome",
+      preco: Number(p?.preco ?? 0),
+      imagemUrl: p?.imagemUrl ?? null,
+      categoria: p?.categoria ?? null,
       tamanhos: Array.isArray(p?.tamanhos) ? p.tamanhos : (p?.tamanho ? [p.tamanho] : ["Único"]),
       cores: Array.isArray(p?.cores) ? p.cores : (p?.cor ? [p.cor] : []),
-      medidas: p?.medidas || p?.medida || null,
-      desconto: p?.desconto || 0,
-      descricao: p?.descricao || p?.description || null,
+      medidas: p?.medidas ?? null,
+      desconto: p?.desconto ?? 0,
+      descricao: p?.descricao ?? null,
       // Garante que campos extras não quebrem o banco
       ...p
     }));
@@ -2062,7 +2061,8 @@ export async function POST(request: NextRequest) {
             lojistaId,
             userId: customerId,
             compositionId: composicaoId,
-            jobId: null as string | null,
+            // 👇 AQUI: Se jobId for null, envia string vazia para satisfazer o tipo 'string'
+            jobId: (jobId as string | null) || "",
             imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl : null,
             uploadImageUrl: personImageUrl || null,
             productIds: productIdsFinaisParaGeneration, // ✅ Array de IDs do COLETOR UNIVERSAL
