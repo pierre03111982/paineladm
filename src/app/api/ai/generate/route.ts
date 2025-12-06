@@ -377,15 +377,15 @@ export async function POST(request: NextRequest) {
     }
 
     body = await request.json();
-    ({ 
+    const { 
       lojistaId, 
       customerId, 
       userImageUrl, 
       productImageUrl, 
       scenePrompts,
-      produtos, // NOVO: Produtos completos
-      productIds // NOVO: IDs dos produtos
-    } = body);
+      produtos = undefined, // NOVO: Produtos completos (opcional)
+      productIds = undefined // NOVO: IDs dos produtos (opcional)
+    } = body;
     
     // Verificar se é remix (tem scenePrompts)
     // Garantir que isRemix seja sempre boolean, nunca null
