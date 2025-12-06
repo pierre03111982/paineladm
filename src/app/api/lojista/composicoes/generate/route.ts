@@ -153,28 +153,36 @@ export async function POST(request: NextRequest) {
     }
     
     // ============================================
-    // 2. NORMALIZA OS PRODUTOS (Proteção contra nulos)
+    // 2. GARANTIA DE ARRAY (TypeScript-Safe - Nunca null)
     // ============================================
-    const produtosParaSalvar = Array.isArray(rawProducts) ? rawProducts.map((p: any) => ({
-      id: p.id || p.productId || `prod-${Date.now()}-${Math.random()}`,
-      nome: p.nome || p.name || "Produto Sem Nome",
-      preco: Number(p.preco || p.price || 0),
-      imagemUrl: p.imagemUrl || p.image || null,
-      categoria: p.categoria || p.category || null,
-      tamanhos: Array.isArray(p.tamanhos) ? p.tamanhos : (p.tamanho ? [p.tamanho] : ["Único"]),
-      cores: Array.isArray(p.cores) ? p.cores : (p.cor ? [p.cor] : []),
-      medidas: p.medidas || p.medida || null,
-      desconto: p.desconto || 0,
-      descricao: p.descricao || p.description || null,
+    // O segredo é inicializar com [] se for null/undefined
+    // Isso garante que produtosParaSalvar é sempre um array, nunca null
+    const produtosParaSalvar: any[] = Array.isArray(rawProducts) ? rawProducts : [];
+    
+    // ============================================
+    // 3. MAPEAMENTO SEGURO
+    // ============================================
+    // Agora o TypeScript sabe que produtosParaSalvar é um array, pois forçamos acima
+    const produtosNormalizados = produtosParaSalvar.map((p: any) => ({
+      id: p?.id || p?.productId || `prod-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      nome: p?.nome || p?.name || "Produto Sem Nome",
+      preco: Number(p?.preco || p?.price || 0),
+      imagemUrl: p?.imagemUrl || p?.image || p?.img || null,
+      categoria: p?.categoria || p?.category || null,
+      tamanhos: Array.isArray(p?.tamanhos) ? p.tamanhos : (p?.tamanho ? [p.tamanho] : ["Único"]),
+      cores: Array.isArray(p?.cores) ? p.cores : (p?.cor ? [p.cor] : []),
+      medidas: p?.medidas || p?.medida || null,
+      desconto: p?.desconto || 0,
+      descricao: p?.descricao || p?.description || null,
       // Garante que campos extras não quebrem o banco
       ...p
-    })) : [];
+    }));
     
-    const productIdsParaSalvar = produtosParaSalvar.map((p: any) => p.id);
+    const productIdsParaSalvar = produtosNormalizados.map((p) => p.id);
     
     console.log("✅ [NORMALIZAÇÃO] Produtos normalizados:", {
-      total: produtosParaSalvar.length,
-      produtos: produtosParaSalvar.map((p: any) => ({
+      total: produtosNormalizados.length,
+      produtos: produtosNormalizados.map((p: any) => ({
         id: p.id,
         nome: p.nome,
         preco: p.preco,
