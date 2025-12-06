@@ -2022,7 +2022,7 @@ export async function POST(request: NextRequest) {
           // ============================================
           // Use as variáveis blindadas do COLETOR UNIVERSAL
           // Se produtos foram coletados do body, usar eles (prioridade máxima)
-          const produtosFinaisParaGeneration = (produtosParaSalvar && produtosParaSalvar.length > 0)
+          const produtosFinaisParaGeneration = ((produtosParaSalvar?.length ?? 0) > 0)
             ? produtosParaSalvar
             : (produtosFinaisParaSalvar && produtosFinaisParaSalvar.length > 0)
               ? produtosFinaisParaSalvar
