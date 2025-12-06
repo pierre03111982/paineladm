@@ -797,7 +797,7 @@ export async function POST(request: NextRequest) {
       return "A beautiful and harmonious outdoor environment that complements the person and the clothing. Think of a photorealistic minimalist setting, such as a well-maintained botanical garden, a charming street with luxury boutiques in the background, or a terrace with a view of a modern urban landscape. Maintain natural and soft lighting, focusing attention on the person and clothing details, without distractions. Professional photographic quality, fashion editorial style.";
     };
 
-    const scenePrompt = getScenePrompt(primaryProduct.nome, primaryProduct.categoria);
+    const scenePrompt = getScenePrompt(primaryProduct?.nome || "Produto", primaryProduct?.categoria || "");
 
     // Função auxiliar para detectar se um produto é roupa
     const isProductClothing = (productCategory: string): boolean => {
@@ -832,9 +832,9 @@ export async function POST(request: NextRequest) {
     const finalProductImageUrl = primaryProduct?.productUrl || primaryProduct?.imagemUrl || "";
 
     console.log("[API] 🔍 Configuração simplificada - apenas Look Criativo com Gemini:", {
-      produtoId: primaryProduct.id,
-      produtoNome: primaryProduct.nome,
-      categoria: primaryProduct.categoria,
+      produtoId: primaryProduct?.id || "N/A",
+      produtoNome: primaryProduct?.nome || "N/A",
+      categoria: primaryProduct?.categoria || "N/A",
       productImageUrl: primaryProduct?.imagemUrl ? primaryProduct.imagemUrl.substring(0, 80) + "..." : "NÃO FORNECIDA",
       scenePrompt: scenePrompt.substring(0, 100) + "...",
     });
@@ -1435,7 +1435,7 @@ export async function POST(request: NextRequest) {
         temProdutos: produtosParaJob.length > 0,
         params: {
           personImageUrl,
-          productId: primaryProduct.id,
+          productId: primaryProduct?.id || "",
           productImageUrl: finalProductImageUrl,
           productName: productsData.map(p => p.nome).join(" + "),
           productPrice: productsData.reduce((sum, p) => sum + (p.preco || 0), 0)
@@ -1670,7 +1670,7 @@ export async function POST(request: NextRequest) {
       looksFiltrados: allLooks.length - validLooks.length,
       totalCost,
       totalCostBRL,
-      primaryProduct: primaryProduct.nome,
+      primaryProduct: primaryProduct?.nome || "Produto",
       looksUrls: validLooks.map(l => ({
         id: l.id,
         url: l.imagemUrl?.substring(0, 80) + "...",
@@ -1814,8 +1814,8 @@ export async function POST(request: NextRequest) {
             ? productIds 
             : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : [])),
         productUrl: productUrl || null,
-        primaryProductId: primaryProduct.id,
-        primaryProductName: primaryProduct.nome,
+        primaryProductId: primaryProduct?.id || null,
+        primaryProductName: primaryProduct?.nome || null,
         totalCost,
         totalCostBRL,
         exchangeRate: usdToBrlRate,
@@ -1872,9 +1872,13 @@ export async function POST(request: NextRequest) {
       if (composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
         try {
           const { registerCompositionProducts } = await import("@/lib/firestore/productRegistry");
+          // ✅ Garantir que composicaoId não seja null
+          if (!composicaoId) {
+            throw new Error("composicaoId não pode ser null ao registrar produtos");
+          }
           const registeredProductIds = await registerCompositionProducts(
             lojistaId || "",
-            composicaoId,
+            composicaoId, // Agora TypeScript sabe que não é null
             composicaoData.produtos
           );
           
@@ -1968,7 +1972,9 @@ export async function POST(request: NextRequest) {
             console.warn("[API] ⚠️ productIds vazio mas há produtos - gerando IDs manualmente");
             productIdsParaSalvar = produtosParaSalvar.map((p: any, index: number) => {
               if (p.id) return p.id;
-              return `prod-${composicaoId}-${index}-${Date.now()}`;
+              // ✅ Garantir que composicaoId não seja null
+              const safeComposicaoId = composicaoId || `comp-${Date.now()}`;
+              return `prod-${safeComposicaoId}-${index}-${Date.now()}`;
             });
             
             // Atualizar produtos com IDs gerados
@@ -2050,7 +2056,7 @@ export async function POST(request: NextRequest) {
             imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl : null,
             uploadImageUrl: personImageUrl || null,
             productIds: productIdsFinaisParaGeneration, // ✅ Array de IDs do COLETOR UNIVERSAL
-            productName: primaryProduct.nome || null,
+            productName: primaryProduct?.nome || null,
             customerName: customerName || null,
             produtos: produtosFinaisParaGeneration, // ✅ Array completo do COLETOR UNIVERSAL - FORÇADO
           });
@@ -2100,12 +2106,12 @@ export async function POST(request: NextRequest) {
           });
           
           // Se não salvou produtos na generation mas tem na composição, atualizar a generation
-          if ((!produtosParaSalvar || produtosParaSalvar.length === 0) && composicaoData.produtos && composicaoData.produtos.length > 0) {
+          if ((!produtosParaSalvar || produtosParaSalvar.length === 0) && composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
             console.log("[API] 🔄 Atualizando generation com produtos da composição...");
             try {
               const generationsRef = db.collection("generations");
               const existingGen = await generationsRef
-                .where("compositionId", "==", composicaoId)
+                .where("compositionId", "==", composicaoId) // composicaoId não é null aqui devido à verificação acima
                 .where("lojistaId", "==", lojistaId)
                 .limit(1)
                 .get();
