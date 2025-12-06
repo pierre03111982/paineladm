@@ -2064,7 +2064,8 @@ export async function POST(request: NextRequest) {
             userId: customerId || "",
             compositionId: composicaoId || null,
             // Correção: Se jobId for null, envia string vazia ""
-            jobId: (jobId as string | null) || "",
+            // jobId não está no escopo aqui, então usamos null (função aceita string | null)
+            jobId: null as string | null,
             imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl : null,
             uploadImageUrl: personImageUrl || null,
             productIds: productIdsFinaisParaGeneration, // ✅ Array de IDs do COLETOR UNIVERSAL
