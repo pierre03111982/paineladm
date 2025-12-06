@@ -2035,11 +2035,9 @@ export async function POST(request: NextRequest) {
           // Se produtos foram coletados do body, usar eles (prioridade máxima)
           const produtosFinaisParaGeneration = ((produtosParaSalvar?.length ?? 0) > 0)
             ? produtosParaSalvar
-            : (produtosFinaisParaSalvar && produtosFinaisParaSalvar.length > 0)
-              ? produtosFinaisParaSalvar
-              : (composicaoData.produtos && composicaoData.produtos.length > 0)
-                ? composicaoData.produtos
-                : produtosFinaisParaComposicao;
+            : (composicaoData.produtos && composicaoData.produtos.length > 0)
+              ? composicaoData.produtos
+              : produtosFinaisParaComposicao;
           
           const productIdsFinaisParaGeneration = (productIdsParaSalvar && productIdsParaSalvar.length > 0)
             ? productIdsParaSalvar
