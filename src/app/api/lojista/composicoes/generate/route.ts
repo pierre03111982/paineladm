@@ -1807,11 +1807,12 @@ export async function POST(request: NextRequest) {
         })),
         // ✅ SOLUÇÃO DEFINITIVA: Usar produtos finais preparados diretamente
         produtos: produtosFinaisParaComposicao,
-        productIds: productIdsFinaisParaComposicao,
         // SALVAR TODOS OS PRODUCTIDS selecionados (não apenas o principal)
-        productIds: productIds.length > 0 
-          ? productIds 
-          : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : []),
+        productIds: productIdsFinaisParaComposicao.length > 0 
+          ? productIdsFinaisParaComposicao 
+          : (productIds.length > 0 
+            ? productIds 
+            : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : [])),
         productUrl: productUrl || null,
         primaryProductId: primaryProduct.id,
         primaryProductName: primaryProduct.nome,
