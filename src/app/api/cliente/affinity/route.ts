@@ -40,6 +40,13 @@ export async function GET(request: NextRequest) {
       const count = await countProductAffinity(lojistaId, userId, productId);
       return NextResponse.json({ count });
     } else if (action === "gallery") {
+      if (!productId) {
+        return NextResponse.json(
+          { error: "productId é obrigatório para action=gallery" },
+          { status: 400 }
+        );
+      }
+
       const gallery = await getProductGallery(
         lojistaId,
         userId,
