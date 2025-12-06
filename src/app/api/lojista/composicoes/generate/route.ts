@@ -1934,7 +1934,9 @@ export async function POST(request: NextRequest) {
           // ============================================
           // ✅ Verificação Final: Alertar se array estiver vazio
           // ============================================
-          if (!produtosParaSalvar || produtosParaSalvar.length === 0) {
+          // TypeScript: verificar null antes de acessar .length
+          const temProdutos = produtosParaSalvar && produtosParaSalvar.length > 0;
+          if (!temProdutos) {
             console.warn("[API] ⚠️⚠️⚠️ ATENÇÃO: Uma geração está sendo criada SEM PRODUTOS VINCULADOS!");
             console.warn("[API] 📋 Debug:", {
               composicaoId,
