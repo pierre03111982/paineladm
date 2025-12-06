@@ -1920,10 +1920,10 @@ export async function POST(request: NextRequest) {
       
       if (customerId && lojistaId) {
         try {
-          // Garantir que temos produtos para salvar
-          let produtosParaSalvar = composicaoData.produtos && composicaoData.produtos.length > 0
+          // Garantir que temos produtos para salvar (TypeScript-Safe: sempre array, nunca null)
+          let produtosParaSalvar: any[] = composicaoData.produtos && composicaoData.produtos.length > 0
             ? composicaoData.produtos
-            : null;
+            : [];
           
           // Garantir que temos productIds
           let productIdsParaSalvar = finalProductIds.length > 0
