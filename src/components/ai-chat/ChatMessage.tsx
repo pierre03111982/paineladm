@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useRouter } from "next/navigation";
 
 type ChatMessageProps = {
@@ -46,6 +47,10 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
       };
     }> = [];
     
+    if (!text || typeof text !== 'string') {
+      return [{ type: "text" as const, content: String(text || '') }];
+    }
+    
     // Normalizar quebras de linha para facilitar parsing
     const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
@@ -63,9 +68,10 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
       cardMatches.push({ index: cardMatch.index, match: cardMatch });
     }
     
-    // Padrão para botões: [[Label]](/url) - aceita espaços opcionais entre ]] e (
-    // Melhorado para capturar mesmo com quebras de linha e múltiplos espaços
-    const buttonPattern = /\[\[([^\]]+)\]\s*\(\s*([^)]+)\s*\)/g;
+    // Padrão melhorado para links: [[Label]](/url)
+    // Captura: [[Texto]] seguido de (url) - aceita espaços opcionais
+    // Usa [^\]]* para capturar o conteúdo entre [[ e ]]
+    const buttonPattern = /\[\[([^\]]+)\]\]\s*\(\s*([^)]+)\s*\)/g;
     let buttonMatch;
     const buttonMatches: Array<{ index: number; match: RegExpExecArray }> = [];
     
@@ -74,9 +80,14 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
       buttonMatches.push({ index: buttonMatch.index, match: buttonMatch });
     }
     
-    // Log para debug (remover em produção se necessário)
+    // Log para debug
     if (buttonMatches.length > 0) {
       console.log(`[ChatMessage] 🔗 ${buttonMatches.length} link(s) detectado(s) no texto`);
+      buttonMatches.forEach((m, i) => {
+        console.log(`[ChatMessage] Link ${i + 1}: "${m.match[1]}" -> "${m.match[2]}"`);
+      });
+    } else {
+      console.log(`[ChatMessage] ⚠️ Nenhum link detectado no texto. Texto: "${normalizedText.substring(0, 100)}..."`);
     }
     
     // Combinar todos os matches e ordenar por índice
@@ -87,9 +98,9 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
     
     // Processar matches em ordem
     for (const { index, match, type } of allMatches) {
-      // Adicionar texto antes do match
+      // Adicionar texto antes do match (sem trim para preservar espaços)
       if (index > lastIndex) {
-        const textBefore = normalizedText.substring(lastIndex, index).trim();
+        const textBefore = normalizedText.substring(lastIndex, index);
         if (textBefore) {
           parts.push({
             type: "text",
@@ -113,11 +124,11 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
           },
         });
       } else {
-        // Limpar URL de espaços e caracteres extras
+        // Limpar label e URL de espaços
         const label = match[1].trim();
         const url = match[2].trim();
         
-        console.log(`[ChatMessage] 🔗 Link detectado: "${label}" -> "${url}"`);
+        console.log(`[ChatMessage] 🔗 Processando link: "${label}" -> "${url}"`);
         
         parts.push({
           type: "button",
@@ -129,9 +140,9 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
       lastIndex = index + match[0].length;
     }
     
-    // Adicionar texto restante
+    // Adicionar texto restante (sem trim para preservar espaços)
     if (lastIndex < normalizedText.length) {
-      const textAfter = normalizedText.substring(lastIndex).trim();
+      const textAfter = normalizedText.substring(lastIndex);
       if (textAfter) {
         parts.push({
           type: "text",
@@ -241,29 +252,108 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
             }
             if (part.type === "button") {
               if (!part.url) {
-                console.warn(`[ChatMessage] ⚠️ Botão sem URL: "${part.content}"`);
+                console.warn(`[ChatMessage] ⚠️ Link sem URL: "${part.content}"`);
                 return null;
               }
               
+              // Limpar URL e garantir que comece com /
+              let cleanUrl = part.url.trim().startsWith('/') ? part.url.trim() : `/${part.url.trim()}`;
+              
+              // Adicionar lojistaId como query parameter se necessário
+              const routesNeedingLojistaId = ['/produtos', '/clientes', '/pedidos', '/composicoes', '/dashboard', '/configuracoes'];
+              const needsLojistaId = routesNeedingLojistaId.some(route => cleanUrl.startsWith(route));
+              
+              if (needsLojistaId && lojistaId && !cleanUrl.includes('lojistaId=')) {
+                const separator = cleanUrl.includes('?') ? '&' : '?';
+                cleanUrl = `${cleanUrl}${separator}lojistaId=${lojistaId}`;
+              }
+              
               return (
-                <button
-                  key={index}
+                <a
+                  key={`link-${index}`}
+                  href={cleanUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
                   onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log(`[ChatMessage] 🔗 Clicando no botão: "${part.content}" -> "${part.url}"`);
-                    handleButtonClick(part.url!);
+                    console.log(`[ChatMessage] 🔗 Abrindo link em nova aba: "${part.content}" -> "${cleanUrl}"`);
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm cursor-pointer self-start"
-                  type="button"
                 >
                   {part.content}
-                </button>
+                </a>
               );
             }
+            // Renderizar texto normal com links inline
+            const renderTextWithLinks = (text: string) => {
+              const linkPattern = /\[\[([^\]]+)\]\]\s*\(\s*([^)]+)\s*\)/g;
+              const parts: Array<React.ReactNode> = [];
+              let lastIndex = 0;
+              let match;
+              let linkIndex = 0;
+              
+              // Resetar regex
+              linkPattern.lastIndex = 0;
+              
+              while ((match = linkPattern.exec(text)) !== null) {
+                // Adicionar texto antes do link
+                if (match.index > lastIndex) {
+                  const textBefore = text.substring(lastIndex, match.index);
+                  if (textBefore) {
+                    parts.push(textBefore);
+                  }
+                }
+                
+                // Processar link
+                const label = match[1].trim();
+                const url = match[2].trim();
+                let cleanUrl = url.startsWith('/') ? url : `/${url}`;
+                
+                // Adicionar lojistaId se necessário
+                const routesNeedingLojistaId = ['/produtos', '/clientes', '/pedidos', '/composicoes', '/dashboard', '/configuracoes'];
+                const needsLojistaId = routesNeedingLojistaId.some(route => cleanUrl.startsWith(route));
+                
+                if (needsLojistaId && lojistaId && !cleanUrl.includes('lojistaId=')) {
+                  const separator = cleanUrl.includes('?') ? '&' : '?';
+                  cleanUrl = `${cleanUrl}${separator}lojistaId=${lojistaId}`;
+                }
+                
+                parts.push(
+                  <a
+                    key={`inline-link-${index}-${linkIndex++}`}
+                    href={cleanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+                    onClick={(e) => {
+                      console.log(`[ChatMessage] 🔗 Abrindo link inline: "${label}" -> "${cleanUrl}"`);
+                    }}
+                  >
+                    {label}
+                  </a>
+                );
+                
+                lastIndex = match.index + match[0].length;
+              }
+              
+              // Adicionar texto restante
+              if (lastIndex < text.length) {
+                const textAfter = text.substring(lastIndex);
+                if (textAfter) {
+                  parts.push(textAfter);
+                }
+              }
+              
+              // Se não encontrou links, retornar texto completo
+              if (parts.length === 0) {
+                return text;
+              }
+              
+              return parts;
+            };
+            
             return (
-              <span key={index} className="whitespace-pre-wrap break-words">
-                {part.content}
+              <span key={`text-${index}`} className="whitespace-pre-wrap wrap-break-word">
+                {renderTextWithLinks(part.content)}
               </span>
             );
           })}

@@ -8,6 +8,7 @@ import { LojistaLayoutUpdater } from "./components/LojistaLayoutUpdater";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
+import { ChatButtonWrapper } from "./components/ChatButtonWrapper";
 
 // Forçar renderização dinâmica (não estática)
 export const dynamic = 'force-dynamic';
@@ -161,6 +162,9 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
       
       {/* Client-side updater para modo admin (quando lojistaId vem da URL) */}
       <LojistaLayoutUpdater />
+      
+      {/* Chat Button - Assistente Virtual Ana */}
+      {lojistaId && <ChatButtonWrapper lojistaId={lojistaId} />}
     </div>
   );
 }

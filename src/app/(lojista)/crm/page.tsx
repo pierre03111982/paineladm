@@ -21,13 +21,13 @@ export default async function CRMPage({ searchParams }: CRMPageProps) {
     process.env.LOJISTA_ID ||
     ""
 
-  const activeClients = lojistaId ? await fetchActiveClients(lojistaId, 72) : []
+  const activeClients = lojistaId ? await fetchActiveClients(lojistaId, 168) : []
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Radar de Oportunidades"
-        description={`${activeClients.length} cliente${activeClients.length !== 1 ? "s" : ""} ativo${activeClients.length !== 1 ? "s" : ""} nas últimas 72h`}
+        description={`${activeClients.length} cliente${activeClients.length !== 1 ? "s" : ""} ativo${activeClients.length !== 1 ? "s" : ""} na última semana`}
       />
       <CRMTable activeClients={activeClients} />
     </div>

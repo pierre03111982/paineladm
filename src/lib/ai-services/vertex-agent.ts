@@ -187,12 +187,11 @@ export class VertexAgent {
     try {
       console.log(`[VertexAgent] 📤 Enviando mensagem para Gemini 2.0 Flash...`);
 
-      // FIX: Remover tools completamente para evitar erro "Multiple tools"
-      // Google Search será usado automaticamente pelo modelo quando necessário
+      // Habilitar Google Search (grounding) explicitamente
       const model = this.vertexAI.preview.getGenerativeModel({ 
         model: this.modelName,
         systemInstruction: systemPrompt,
-        // Não configurar tools aqui - o modelo usa Google Search automaticamente quando necessário
+        tools: [{ googleSearch: {} }],
         generationConfig: {
           maxOutputTokens: 1000,
           temperature: 0.7,
@@ -404,11 +403,11 @@ export class VertexAgent {
       console.log(`[VertexAgent] 📸 Enviando mensagem com imagem para ${this.modelName}...`);
       console.log(`[VertexAgent] 🖼️ URL da imagem: ${imageUrl.substring(0, 100)}...`);
 
-      // FIX: Remover tools completamente para evitar erro "Multiple tools"
+      // Habilitar Google Search (grounding) explicitamente
       const model = this.vertexAI.preview.getGenerativeModel({ 
         model: this.modelName,
         systemInstruction: systemPrompt,
-        // Não configurar tools aqui - o modelo usa Google Search automaticamente quando necessário
+        tools: [{ googleSearch: {} }],
         generationConfig: {
           maxOutputTokens: 1000,
           temperature: 0.7,

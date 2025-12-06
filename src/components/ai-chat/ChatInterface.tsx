@@ -286,32 +286,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-lg">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
-            <MessageCircle className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-              Ana - Assistente Inteligente
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Consultoria de Vendas & Onboarding
-            </p>
-          </div>
-        </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-400" />
-          </button>
-        )}
-      </div>
-
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (

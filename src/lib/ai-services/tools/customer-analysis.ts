@@ -9,6 +9,7 @@
  */
 
 import { getAdminDb } from "@/lib/firebaseAdmin";
+import { fetchUserGenerations, getFeedbackSummary } from "@/lib/firestore/generations";
 
 export interface CustomerAnalysisResult {
   customerId: string;
@@ -56,16 +57,22 @@ export async function analyzeCustomerProfile(
     const nome = clienteData?.nome || "Cliente";
     const whatsapp = clienteData?.whatsapp || "";
     
-    // 2. Buscar composições do cliente
-    const composicoesRef = lojaRef.collection("composicoes");
-    const composicoesSnapshot = await composicoesRef
-      .where("customerId", "==", customerId)
-      .limit(50)
-      .get();
+    // 2. NOVO: Buscar últimos 15 generations do cliente (fonte principal de dados)
+    const recentGenerations = await fetchUserGenerations(lojistaId, customerId, 15);
+    const feedbackSummary = await getFeedbackSummary(lojistaId, customerId);
     
-    const totalComposicoes = composicoesSnapshot.size;
-    let totalLikes = 0;
-    let totalDislikes = 0;
+    console.log(`[CustomerAnalysis] Generations encontradas: ${recentGenerations.length}`);
+    console.log(`[CustomerAnalysis] Resumo de feedback:`, feedbackSummary);
+    
+    // Extrair nomes de produtos das generations recentes
+    const recentProductNames = feedbackSummary.recentProductNames;
+    const likedProductNames = feedbackSummary.likedProductNames;
+    
+    const totalComposicoes = recentGenerations.length;
+    const totalLikes = feedbackSummary.totalLikes;
+    const totalDislikes = feedbackSummary.totalDislikes;
+    
+    // Mapear produtos curtidos
     const produtosCurtidosMap = new Map<string, {
       produtoId: string;
       produtoNome: string;
@@ -74,31 +81,41 @@ export async function analyzeCustomerProfile(
       vezes: number;
     }>();
     
-    // Processar composições para extrair likes e produtos
-    for (const compDoc of composicoesSnapshot.docs) {
-      const compData = compDoc.data();
-      
-      if (compData.curtido || compData.liked) {
-        totalLikes++;
-      }
-      if (compData.dislikeReason) {
-        totalDislikes++;
-      }
-      
-      // Extrair produtos das composições curtidas
-      if (compData.curtido || compData.liked) {
-        const primaryProductId = compData.primaryProductId;
-        const primaryProductName = compData.primaryProductName || compData.looks?.[0]?.produtoNome || "Produto";
-        
-        if (primaryProductId) {
-          const existing = produtosCurtidosMap.get(primaryProductId) || {
-            produtoId: primaryProductId,
-            produtoNome: primaryProductName,
-            categoria: "",
-            vezes: 0,
-          };
-          existing.vezes++;
-          produtosCurtidosMap.set(primaryProductId, existing);
+    // Processar generations para extrair produtos curtidos
+    for (const gen of recentGenerations) {
+      if (gen.status === "liked" && gen.productName) {
+        // Buscar detalhes do produto se tiver productIds
+        const productId = gen.productIds && gen.productIds.length > 0 ? gen.productIds[0] : null;
+        if (productId) {
+          try {
+            const produtoRef = lojaRef.collection("produtos").doc(productId);
+            const produtoDoc = await produtoRef.get();
+            
+            if (produtoDoc.exists) {
+              const produtoData = produtoDoc.data();
+              const existing = produtosCurtidosMap.get(productId) || {
+                produtoId,
+                produtoNome: gen.productName || produtoData?.nome || "Produto",
+                categoria: produtoData?.categoria || "",
+                cor: produtoData?.cores?.[0] || produtoData?.cor || "",
+                vezes: 0,
+              };
+              existing.vezes++;
+              produtosCurtidosMap.set(productId, existing);
+            } else {
+              // Se não encontrar produto, usar apenas o nome
+              const existing = produtosCurtidosMap.get(gen.productName) || {
+                produtoId: gen.productName,
+                produtoNome: gen.productName,
+                categoria: "",
+                vezes: 0,
+              };
+              existing.vezes++;
+              produtosCurtidosMap.set(gen.productName, existing);
+            }
+          } catch (error) {
+            console.warn(`[CustomerAnalysis] Erro ao buscar produto ${productId}:`, error);
+          }
         }
       }
     }
@@ -215,14 +232,31 @@ export async function analyzeCustomerProfile(
       ? Math.round((totalLikes / totalComposicoes) * 100)
       : 0;
     
-    // 6. Gerar resumo textual rico
+    // 6. Gerar resumo textual rico com dados das generations
     const resumo = `
 PERFIL DE MODA DO CLIENTE: ${nome}
 
 📊 ESTATÍSTICAS:
-- Total de Composições: ${totalComposicoes}
+- Total de Composições (últimas 15): ${totalComposicoes}
 - Likes: ${totalLikes} | Dislikes: ${totalDislikes}
 - Taxa de Aprovação: ${taxaAprovacao}%
+
+📋 ÚLTIMAS PEÇAS TESTADAS:
+${recentProductNames.length > 0
+  ? recentProductNames.slice(0, 10).map((prod, idx) => `${idx + 1}. ${prod}`).join('\n')
+  : 'Nenhuma peça testada recentemente'}
+
+❤️ PREFERÊNCIAS (BASEADO EM LIKES/DISLIKES):
+${likedProductNames.length > 0
+  ? `Peças que ela curtiu: ${likedProductNames.slice(0, 5).join(', ')}`
+  : 'Nenhuma preferência identificada ainda'}
+
+${feedbackSummary.dislikesByCategory.style > 0
+  ? `⚠️ Rejeitou ${feedbackSummary.dislikesByCategory.style} peça(s) por ESTILO - evite sugerir peças parecidas`
+  : ''}
+${feedbackSummary.dislikesByCategory.technical > 0
+  ? `⚠️ Rejeitou ${feedbackSummary.dislikesByCategory.technical} peça(s) por PROBLEMAS TÉCNICOS - peça desculpas pela IA e sugira tecidos mais simples`
+  : ''}
 
 🎨 PREFERÊNCIAS DE COR:
 ${coresFavoritas.length > 0 

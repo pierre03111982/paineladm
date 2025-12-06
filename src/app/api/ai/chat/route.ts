@@ -12,6 +12,8 @@ import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAllInsights } from "@/lib/firestore/insights";
 import { analyzeCustomerProfile } from "@/lib/ai-services/tools/customer-analysis";
 import { FieldValue } from "firebase-admin/firestore";
+import { countAllCompositions } from "@/app/(lojista)/composicoes/count-compositions";
+import { checkAdminAccess } from "@/lib/auth/admin-auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +29,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Verificar se é admin (para acesso à coleção global)
+    const isAdmin = await checkAdminAccess();
 
     // Obter lojistaId
     const lojistaIdFromAuth = lojistaIdFromBody ? null : await getCurrentLojistaId();
@@ -113,22 +118,52 @@ export async function POST(request: NextRequest) {
       // Continuar sem insights se houver erro
     }
 
-    // 3. Último Look Gerado (para capacidades visuais e copywriting)
+    // 3. Último e Primeiro Look Gerado (para capacidades visuais e copywriting)
     let lastComposition: any = null;
+    let firstComposition: any = null;
     let lastCompositionImageUrl: string | null = null;
+    let firstCompositionImageUrl: string | null = null;
+    
     try {
       const composicoesRef = lojaRef.collection("composicoes");
-      const lastCompositionSnapshot = await composicoesRef
-        .orderBy("createdAt", "desc")
-        .limit(1)
-        .get();
+      
+      // Buscar última composição (mais recente) - APENAS da subcoleção
+      let lastCompositionSnapshot;
+      try {
+        lastCompositionSnapshot = await composicoesRef
+          .orderBy("createdAt", "desc")
+          .limit(1)
+          .get();
+      } catch (error: any) {
+        // Se não tiver índice, buscar todas e ordenar em memória
+        if (error?.code === "failed-precondition") {
+          console.log("[AI/Chat] Índice não encontrado, buscando todas e ordenando em memória");
+          const allSnapshot = await composicoesRef.get();
+          const allDocs: any[] = [];
+          allSnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data?.createdAt) {
+              const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+              allDocs.push({ id: doc.id, data, createdAt });
+            }
+          });
+          allDocs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          lastCompositionSnapshot = {
+            empty: allDocs.length === 0,
+            docs: allDocs.slice(0, 1).map(item => ({
+              id: item.id,
+              data: () => item.data,
+            })),
+          } as any;
+        } else {
+          throw error;
+        }
+      }
 
       if (!lastCompositionSnapshot.empty) {
         const lastDoc = lastCompositionSnapshot.docs[0];
         const lastData = lastDoc.data();
         
-        // Tentar obter a URL da imagem do último look
-        // Pode estar em: final_image_url, looks[0].imagemUrl, ou imageUrl
         lastCompositionImageUrl = 
           lastData.final_image_url || 
           (lastData.looks && lastData.looks.length > 0 ? lastData.looks[0]?.imagemUrl : null) ||
@@ -136,12 +171,20 @@ export async function POST(request: NextRequest) {
           null;
 
         if (lastCompositionImageUrl) {
+          const createdAt = lastData.createdAt?.toDate?.() || lastData.createdAt || new Date();
           lastComposition = {
             id: lastDoc.id,
             productName: lastData.primaryProductName || lastData.looks?.[0]?.produtoNome || "Produto",
             imageUrl: lastCompositionImageUrl,
             customerName: lastData.customerName || lastData.clienteNome || null,
-            createdAt: lastData.createdAt?.toDate?.() || lastData.createdAt || new Date(),
+            createdAt: createdAt,
+            createdAtFormatted: createdAt instanceof Date ? createdAt.toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }) : null,
           };
           console.log("[AI/Chat] 📸 Último look encontrado:", {
             compositionId: lastComposition.id,
@@ -150,9 +193,127 @@ export async function POST(request: NextRequest) {
           });
         }
       }
+
+      // Buscar primeira composição (mais antiga) - APENAS da subcoleção
+      try {
+        let firstCompositionSnapshot;
+        try {
+          firstCompositionSnapshot = await composicoesRef
+            .orderBy("createdAt", "asc")
+            .limit(1)
+            .get();
+        } catch (error: any) {
+          // Se não tiver índice, buscar todas e ordenar em memória
+          if (error?.code === "failed-precondition") {
+            console.log("[AI/Chat] Índice não encontrado para primeira composição, buscando todas e ordenando em memória");
+            const allSnapshot = await composicoesRef.get();
+            const allDocs: any[] = [];
+            allSnapshot.forEach((doc) => {
+              const data = doc.data();
+              if (data?.createdAt) {
+                const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+                allDocs.push({ id: doc.id, data, createdAt });
+              }
+            });
+            allDocs.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+            firstCompositionSnapshot = {
+              empty: allDocs.length === 0,
+              docs: allDocs.slice(0, 1).map(item => ({
+                id: item.id,
+                data: () => item.data,
+              })),
+            } as any;
+          } else {
+            throw error;
+          }
+        }
+
+        if (!firstCompositionSnapshot.empty) {
+          const firstDoc = firstCompositionSnapshot.docs[0];
+          const firstData = firstDoc.data();
+          
+          firstCompositionImageUrl = 
+            firstData.final_image_url || 
+            (firstData.looks && firstData.looks.length > 0 ? firstData.looks[0]?.imagemUrl : null) ||
+            firstData.imageUrl ||
+            null;
+
+          if (firstCompositionImageUrl) {
+            const createdAt = firstData.createdAt?.toDate?.() || firstData.createdAt || null;
+            if (createdAt) {
+              firstComposition = {
+                id: firstDoc.id,
+                productName: firstData.primaryProductName || firstData.looks?.[0]?.produtoNome || "Produto",
+                imageUrl: firstCompositionImageUrl,
+                customerName: firstData.customerName || firstData.clienteNome || null,
+                createdAt: createdAt instanceof Date ? createdAt : new Date(createdAt),
+                createdAtFormatted: createdAt instanceof Date ? createdAt.toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }) : null,
+              };
+              console.log("[AI/Chat] 📸 Primeira composição encontrada:", {
+                compositionId: firstComposition.id,
+                productName: firstComposition.productName,
+                date: firstComposition.createdAtFormatted,
+              });
+            }
+          }
+        }
+      } catch (error: any) {
+        // PAINEL DO LOJISTA: Não busca da coleção global (apenas admin tem acesso)
+        // Se não tiver índice e for admin, pode buscar da coleção global
+        if (error?.code === "failed-precondition" && isAdmin) {
+          try {
+            const globalComposicoesRef = db.collection("composicoes");
+            const globalFirstSnapshot = await globalComposicoesRef
+              .where("lojistaId", "==", lojistaId)
+              .orderBy("createdAt", "asc")
+              .limit(1)
+              .get();
+
+            if (!globalFirstSnapshot.empty) {
+              const firstDoc = globalFirstSnapshot.docs[0];
+              const firstData = firstDoc.data();
+              
+              firstCompositionImageUrl = 
+                firstData.final_image_url || 
+                (firstData.looks && firstData.looks.length > 0 ? firstData.looks[0]?.imagemUrl : null) ||
+                firstData.imageUrl ||
+                null;
+
+              if (firstCompositionImageUrl) {
+                const createdAt = firstData.createdAt?.toDate?.() || firstData.createdAt || null;
+                if (createdAt) {
+                  firstComposition = {
+                    id: firstDoc.id,
+                    productName: firstData.primaryProductName || firstData.looks?.[0]?.produtoNome || "Produto",
+                    imageUrl: firstCompositionImageUrl,
+                    customerName: firstData.customerName || firstData.clienteNome || null,
+                    createdAt: createdAt instanceof Date ? createdAt : new Date(createdAt),
+                    createdAtFormatted: createdAt instanceof Date ? createdAt.toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }) : null,
+                  };
+                }
+              }
+            }
+          } catch (globalError) {
+            console.warn("[AI/Chat] Erro ao buscar primeira composição da coleção global:", globalError);
+          }
+        } else {
+          console.warn("[AI/Chat] Erro ao buscar primeira composição:", error);
+        }
+      }
     } catch (error) {
-      console.warn("[AI/Chat] Erro ao buscar último look:", error);
-      // Continuar sem último look se houver erro
+      console.warn("[AI/Chat] Erro ao buscar composições:", error);
     }
 
     // 4. CATÁLOGO COMPLETO DE PRODUTOS (TODOS - até 300 produtos)
@@ -266,18 +427,49 @@ export async function POST(request: NextRequest) {
       taxaAprovacao: 0,
     };
     try {
+      // PAINEL DO LOJISTA: Usar função que conta APENAS da subcoleção
+      // PAINEL ADMIN: Pode usar coleção global (mas a função já está configurada para subcoleção)
+      console.log(`[AI/Chat] 🔍 Contando composições para lojistaId: ${lojistaId}`);
+      const countResult = await countAllCompositions(lojistaId);
+      const totalComposicoes = countResult.unique;
+      console.log(`[AI/Chat] 📊 Resultado da contagem:`, countResult);
+      
+      // Buscar uma amostra para calcular likes e shares APENAS da subcoleção
       const composicoesRef = lojaRef.collection("composicoes");
-      const composicoesSnapshot = await composicoesRef.limit(100).get();
+      const composicoesSnapshot = await composicoesRef.limit(1000).get();
+      console.log(`[AI/Chat] 📦 Composições encontradas na subcoleção para likes/shares: ${composicoesSnapshot.size}`);
       
       let totalLikes = 0;
       let totalShares = 0;
-      let totalComposicoes = composicoesSnapshot.size;
 
+      // Contar likes e shares APENAS da subcoleção (painel do lojista)
       composicoesSnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.curtido || data.liked) totalLikes++;
         if (data.compartilhado || data.shared) totalShares++;
       });
+      console.log(`[AI/Chat] ❤️ Likes: ${totalLikes}, 📤 Shares: ${totalShares}`);
+
+      // PAINEL ADMIN: Se for admin, também buscar da coleção global para likes/shares
+      if (isAdmin) {
+        const globalComposicoesRef = db.collection("composicoes");
+        const globalSnapshot = await globalComposicoesRef
+          .where("lojistaId", "==", lojistaId)
+          .limit(1000)
+          .get();
+        
+        const seenIds = new Set<string>();
+        composicoesSnapshot.forEach((doc) => seenIds.add(doc.id));
+
+        globalSnapshot.forEach((doc) => {
+          // Evitar duplicatas (se já contou da subcoleção)
+          if (!seenIds.has(doc.id)) {
+            const data = doc.data();
+            if (data.curtido || data.liked) totalLikes++;
+            if (data.compartilhado || data.shared) totalShares++;
+          }
+        });
+      }
 
       performanceMetrics = {
         totalComposicoes,
@@ -287,6 +479,8 @@ export async function POST(request: NextRequest) {
           ? Math.round((totalLikes / totalComposicoes) * 100) 
           : 0,
       };
+      
+      console.log(`[AI/Chat] 📊 Métricas: ${totalComposicoes} composições, ${totalLikes} likes, ${totalShares} shares`);
 
       console.log("[AI/Chat] 📊 Métricas de performance:", performanceMetrics);
     } catch (error) {
@@ -319,6 +513,21 @@ export async function POST(request: NextRequest) {
               year: "numeric",
             })
           : (lastComposition as any).createdAt) : null,
+        createdAtFormatted: (lastComposition as any).createdAtFormatted || null,
+      } : null,
+      firstComposition: firstComposition ? {
+        id: firstComposition.id,
+        productName: firstComposition.productName,
+        imageUrl: firstComposition.imageUrl,
+        customerName: (firstComposition as any).customerName || null,
+        createdAt: (firstComposition as any).createdAt ? ((firstComposition as any).createdAt instanceof Date 
+          ? (firstComposition as any).createdAt.toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+          : (firstComposition as any).createdAt) : null,
+        createdAtFormatted: (firstComposition as any).createdAtFormatted || null,
       } : null,
       topProducts: topProducts.map((p) => ({
         id: p.id,
@@ -421,7 +630,7 @@ ${allProductsCatalog.length > 0
 [CLIENTES VIP - TOP 20 MAIS ATIVOS]
 ${clientesVIP.length > 0
   ? clientesVIP.map((c, idx) => 
-      `${idx + 1}. ${c.nome} | WhatsApp: ${c.whatsapp || 'Não informado'} | Total Looks Gerados: ${c.totalComposicoes} | Última Atividade: ${c.updatedAt.toLocaleDateString('pt-BR')}`
+      `${idx + 1}. ${c.nome} (ID: ${c.id}) | WhatsApp: ${c.whatsapp || 'Não informado'} | Total Looks Gerados: ${c.totalComposicoes} | Última Atividade: ${c.updatedAt.toLocaleDateString('pt-BR')}`
     ).join('\n')
   : 'Nenhum cliente cadastrado ainda.'}
 
@@ -438,14 +647,24 @@ ${clientesVIP.length > 0
 - Destaques do Estoque: ${contextData.topProductsNames}
 
 ${contextData.lastComposition ? `
-ÚLTIMA COMPOSIÇÃO GERADA:
+ÚLTIMA COMPOSIÇÃO GERADA (MAIS RECENTE):
 - ID: ${contextData.lastComposition.id}
 - Produto: ${contextData.lastComposition.productName}
 - Cliente: ${contextData.lastComposition.customerName || "Não informado"}
-- Data: ${contextData.lastComposition.createdAt || "Data indisponível"}
+- Data: ${contextData.lastComposition.createdAtFormatted || contextData.lastComposition.createdAt || "Data indisponível"}
 - Imagem: ${contextData.lastComposition.imageUrl}
 - Link: [[Ver Composição]](/composicoes/${contextData.lastComposition.id})
 ` : 'Nenhuma composição gerada ainda.'}
+
+${contextData.firstComposition ? `
+PRIMEIRA COMPOSIÇÃO GERADA (MAIS ANTIGA):
+- ID: ${contextData.firstComposition.id}
+- Produto: ${contextData.firstComposition.productName}
+- Cliente: ${contextData.firstComposition.customerName || "Não informado"}
+- Data: ${contextData.firstComposition.createdAtFormatted || contextData.firstComposition.createdAt || "Data indisponível"}
+- Imagem: ${contextData.firstComposition.imageUrl}
+- Link: [[Ver Composição]](/composicoes/${contextData.firstComposition.id})
+` : ''}
 
 [INSIGHTS DE INTELIGÊNCIA (Últimos 10)]
 ${recentInsights.length > 0 
@@ -481,7 +700,9 @@ MÉTRICAS DE PERFORMANCE:
 - Taxa de Aprovação: ${contextData.performanceMetrics.taxaAprovacao}%
 `;
 
-    const systemPrompt = `ROLE: Você é a Ana, a Consultora de Negócios Completa e Super-Inteligente do 'Experimenta AI'.
+    const systemPrompt = `ROLE: Você é a Ana, Consultora de Moda e Visagismo do 'Experimenta AI'.
+
+SUA META: Analisar o comportamento da cliente para fazer vendas consultivas baseadas em dados reais de preferências e feedback.
 
 🌐 VOCÊ TEM ACESSO TOTAL À INTERNET (Google Search) - USE SEMPRE QUE PRECISAR!
 📊 VOCÊ TEM ACESSO COMPLETO A TODOS OS DADOS DA LOJA - USE O STORE_BIBLE ABAIXO!
@@ -496,12 +717,19 @@ DIRETRIZES DE ANÁLISE INTELIGENTE:
 3. **TENDÊNCIAS**: Use Google Search para buscar tendências de moda e sugerir produtos que estão em alta.
 4. **OPORTUNIDADES**: Analise os clientes VIP e sugira produtos específicos baseados no histórico de composições deles.
 5. **SEJA PROATIVA**: Não espere perguntas - sugira ações baseadas nos dados que você vê no STORE_BIBLE.
+6. **LINKS COM IDS REAIS**: Quando mencionar um cliente específico, procure o ID dele na lista de CLIENTES VIP acima e use no link. Exemplo: Se mencionar "PIERRE" que tem ID "abc123", use [[Ver Cliente]](/clientes/abc123). NUNCA use placeholders como "ID_DO_CLIENTE" ou texto entre parênteses explicando.
 
 EXEMPLOS DE ANÁLISE INTELIGENTE:
 - Cliente X tem 10 composições com "vestidos" → Sugira novos vestidos do catálogo
 - Produto Y está sem preço → Alerte e sugira cadastrar preço
 - Valor total do estoque é alto mas vendas baixas → Sugira estratégias de promoção
 - Cliente Z não gera looks há 30 dias → Sugira reengajamento com novos produtos
+
+EXEMPLO DE COMO USAR LINKS COM IDS REAIS:
+Se a lista de CLIENTES VIP mostra: "1. PIERRE (ID: abc123def456) | Total Looks Gerados: 486"
+E você mencionar o PIERRE na resposta, use: [[Ver Cliente]](/clientes/abc123def456)
+NUNCA escreva: [[Ver Cliente]](/clientes/ID_DO_CLIENTE) ou (substitua ID_DO_CLIENTE pelo ID real)
+SEMPRE use o ID real que está na lista acima!
 
 🚨🚨🚨 REGRA FUNDAMENTAL: NUNCA PEÇA DADOS AO USUÁRIO - SEMPRE BUSQUE PRIMEIRO! 🚨🚨🚨
 
@@ -585,9 +813,9 @@ MAPA DE NAVEGAÇÃO (Use estes links para criar botões - NUNCA invente links qu
 - 👥 Clientes: [[Ver Clientes]](/clientes)
 - 📊 Dashboard: [[Ver Dashboard]](/dashboard)
 - 📈 Vendas: [[Configurar Vendas]](/configuracoes)
-- 🔍 Ver Cliente Específico: [[Ver Cliente]](/clientes/ID_DO_CLIENTE) - Substitua ID_DO_CLIENTE pelo ID real
-- ✏️ Editar Produto: [[Editar Produto]](/produtos/ID_DO_PRODUTO) - Substitua ID_DO_PRODUTO pelo ID real
-- 👁️ Ver Composição: [[Ver Composição]](/composicoes/ID_DA_COMPOSICAO) - Substitua ID_DA_COMPOSICAO pelo ID real
+- 🔍 Ver Cliente Específico: Quando mencionar um cliente específico, procure o ID dele na lista de CLIENTES VIP acima (formato: "Nome (ID: xyz123)") e use diretamente no link: [[Ver Cliente]](/clientes/xyz123). NUNCA coloque texto explicativo entre parênteses ou use placeholders - apenas o link com o ID real.
+- ✏️ Editar Produto: Quando mencionar um produto específico, use o ID real do produto no link: [[Editar Produto]](/produtos/id_real)
+- 👁️ Ver Composição: Quando mencionar uma composição específica, use o ID real no link: [[Ver Composição]](/composicoes/id_real)
 
 🚨 SUPORTE TÉCNICO - COMO AJUDAR COM PROBLEMAS DO PAINEL 🚨
 
@@ -614,6 +842,7 @@ Você é também SUPORTE TÉCNICO. Quando o usuário pedir ajuda com:
   → SEMPRE use o STORE_BIBLE acima primeiro
   → Se não encontrar, oriente a verificar no [[Dashboard]](/dashboard)
   → Exemplo: "Quantos vestidos tenho?" → Procure "vestido" no catálogo do STORE_BIBLE e conte
+  → Para perguntas sobre composições específicas (mais antiga, mais recente, etc.), use as informações de PRIMEIRA COMPOSIÇÃO e ÚLTIMA COMPOSIÇÃO no STORE_BIBLE
 
 REGRAS DE SUPORTE:
 1. **SEMPRE** use links clicáveis para orientar: [[Nome]](/caminho)
@@ -666,7 +895,36 @@ ${customerAnalysis ? `
 📋 ANÁLISE PROFUNDA DO CLIENTE SOLICITADO:
 ${customerAnalysis}
 
-INSTRUÇÃO ESPECIAL: Com base no relatório acima, descreva o perfil de moda do cliente como uma consultora de imagem experiente. 
+INSTRUÇÕES DE ANÁLISE COMO CONSULTORA DE MODA E VISAGISMO:
+
+1. **IDENTIFICAR O "DNA DE ESTILO"**: 
+   - Com base nas peças que ela testou e curtiu, defina o estilo dela (ex: Romântica, Executiva, Minimalista, Esportiva, Praia)
+   - Analise padrões de cores, categorias e combinações
+   - Descreva o estilo de forma empática e positiva
+
+2. **ANÁLISE DE REJEIÇÃO**:
+   - Se houver dislikes por "Estilo": Evite sugerir peças parecidas. Identifique o que ela não gostou e sugira alternativas diferentes
+   - Se houver dislikes "Técnicos": Peça desculpas pela IA e sugira tecidos mais simples ou produtos com melhor qualidade de imagem
+   - Use os dados de feedback para personalizar as sugestões
+
+3. **SUGESTÃO CRUZADA**:
+   - Se ela curtiu muito um produto específico (ex: Blazer), sugira uma peça complementar (ex: "Que tal provar a Calça de Alfaiataria que combina com aquele Blazer que você amou?")
+   - Crie combinações inteligentes baseadas no histórico de likes
+   - Use o catálogo de produtos do STORE_BIBLE para fazer sugestões concretas
+
+4. **CONTEXTO E TENDÊNCIAS**:
+   - Use seu acesso à internet (Google Search) para verificar o clima local e adaptar a sugestão
+   - Considere tendências de moda atuais ao fazer recomendações
+   - Combine dados internos (preferências do cliente) com tendências externas
+
+TOM DE VOZ:
+- Profissional, empático e focado em elevar a autoestima da cliente
+- Use emojis com moderação
+- Seja consultiva, não apenas informativa
+- Foque em fazer vendas consultivas baseadas em análise profunda
+
+AÇÃO:
+- Descreva o perfil de moda do cliente como uma consultora de imagem experiente
 - Identifique padrões de estilo, cores e preferências
 - Sugira 2-3 produtos do estoque atual (use os produtos do CONTEXTO) que combinem com esse estilo
 - Use Smart Cards para mostrar os produtos sugeridos: {{CARD:PRODUCT|Nome|Preço|URL|/produtos/ID}}
@@ -756,9 +1014,11 @@ REGRAS DE RESPOSTA (OBRIGATÓRIAS):
      * [[Gerenciar Produtos]](/produtos)
      * [[Cadastrar Produto]](/produtos/novo)
      * [[Provador Virtual]](/simulador)
-   - Para links dinâmicos (com ID), substitua o ID real:
-     * [[Ver Cliente]](/clientes/abc123) - onde abc123 é o ID real do cliente
-     * [[Editar Produto]](/produtos/xyz789) - onde xyz789 é o ID real do produto
+   - Para links dinâmicos (com ID), SEMPRE use o ID real do item encontrado no contexto acima:
+     * Quando mencionar um cliente específico (ex: "PIERRE"), procure na lista de CLIENTES VIP o formato "PIERRE (ID: xyz123)" e copie o ID exato "xyz123" para usar: [[Ver Cliente]](/clientes/xyz123)
+     * Quando mencionar um produto específico, use o ID real do produto do catálogo
+     * Quando mencionar uma composição específica, use o ID real da composição
+     * REGRA CRÍTICA: NUNCA escreva texto explicativo entre parênteses como "(substitua ID_DO_CLIENTE pelo ID real)" - apenas coloque o link com o ID real, sem explicações
 
 4. PRODUCT GUIDANCE: If produtosCount is 0, suggest adding products first.
 

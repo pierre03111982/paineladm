@@ -26,11 +26,11 @@ export interface ActiveClient {
 }
 
 /**
- * Busca clientes que tiveram atividade nas últimas 72h
+ * Busca clientes que tiveram atividade nas últimas 7 dias (168h)
  */
 export async function fetchActiveClients(
   lojistaId: string,
-  hoursAgo: number = 72
+  hoursAgo: number = 168
 ): Promise<ActiveClient[]> {
   try {
     const now = new Date();
@@ -38,37 +38,47 @@ export async function fetchActiveClients(
 
     console.log("[CRM] Buscando clientes ativos desde:", cutoffDate.toISOString());
 
-    // Buscar composições criadas nas últimas 72h
-    const compositionsRef = db.collection("composicoes");
-    
-    // Buscar todas as composições do lojista
-    // Usar Timestamp para filtrar por data
+    // PAINEL DO LOJISTA: Buscar composições criadas nas últimas 72h APENAS da subcoleção
+    // Apenas o painel administrativo tem acesso à coleção global
     const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
+    const allCompositions: any[] = [];
     
+    // Buscar APENAS da subcoleção do lojista
     try {
-      // Tentar buscar com filtro de data (requer índice)
-      const allCompositionsQuery = compositionsRef
-        .where("lojistaId", "==", lojistaId)
-        .where("createdAt", ">=", cutoffTimestamp)
-        .orderBy("createdAt", "desc")
-        .limit(1000);
-
-      var compositionsSnapshot = await allCompositionsQuery.get();
-    } catch (error: any) {
-      // Se não tiver índice, buscar todas e filtrar em memória
-      console.log("[CRM] Índice não encontrado, buscando todas e filtrando:", error.message);
-      const allCompositionsQuery = compositionsRef
-        .where("lojistaId", "==", lojistaId)
-        .limit(1000);
+      const subcollectionRef = db
+        .collection("lojas")
+        .doc(lojistaId)
+        .collection("composicoes");
       
-      var compositionsSnapshot = await allCompositionsQuery.get();
+      const subcollectionSnapshot = await subcollectionRef.limit(1000).get();
+      subcollectionSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data?.createdAt) {
+          const createdAt = data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+          if (createdAt >= cutoffDate) {
+            allCompositions.push({ id: doc.id, data, source: 'subcollection' });
+          }
+        }
+      });
+      console.log(`[CRM] ${subcollectionSnapshot.size} composições encontradas na subcoleção`);
+    } catch (error) {
+      console.warn("[CRM] Erro ao buscar da subcoleção:", error);
     }
+    
+    // Criar snapshot combinado
+    const compositionsSnapshot = {
+      docs: allCompositions.map(item => ({
+        id: item.id,
+        data: () => item.data,
+      })),
+    };
 
     // Agrupar por customerId
     const clientMap = new Map<string, ActiveClient>();
 
     for (const doc of compositionsSnapshot.docs) {
-      const data = doc.data();
+      const data = typeof doc.data === "function" ? doc.data() : doc.data;
+      if (!data) continue;
       const customerId = data.customerId || "anonymous";
       
       // Converter Timestamp do Firestore para Date
@@ -263,127 +273,178 @@ export async function fetchActiveClients(
       console.log("[CRM] Coleção de sessões não encontrada ou erro ao buscar:", error);
     }
 
-    // Buscar favoritos com like das últimas 72h para incluir no radar
+    // NOVO: Buscar da coleção 'generations' com showInRadar = true
+    // Isso garante que apenas composições únicas (não remixes) apareçam no Radar
     try {
       const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
-      
-      // Buscar favoritos de todos os clientes do lojista
+      const generationsRef = db.collection("generations");
       const lojaRef = db.collection("lojas").doc(lojistaId);
-      const clientesSnapshot = await lojaRef.collection("clientes").get();
       
-      for (const clienteDoc of clientesSnapshot.docs) {
-        const customerId = clienteDoc.id;
-        const clienteData = clienteDoc.data();
+      // Buscar generations com showInRadar = true das últimas 7 dias
+      let generationsSnapshot;
+      try {
+        generationsSnapshot = await generationsRef
+          .where("lojistaId", "==", lojistaId)
+          .where("showInRadar", "==", true)
+          .where("status", "==", "liked")
+          .where("createdAt", ">=", cutoffTimestamp)
+          .orderBy("createdAt", "desc")
+          .limit(500)
+          .get();
+      } catch (error: any) {
+        // Se não tiver índice, buscar todos e filtrar em memória
+        console.log("[CRM] Índice de generations não encontrado, buscando todos:", error.message);
+        const allGenerations = await generationsRef
+          .where("lojistaId", "==", lojistaId)
+          .where("showInRadar", "==", true)
+          .where("status", "==", "liked")
+          .limit(500)
+          .get();
         
-        try {
-          // Buscar favoritos com like deste cliente
-          const favoritosRef = lojaRef
-            .collection("clientes")
-            .doc(customerId)
-            .collection("favoritos");
-          
-          // Buscar favoritos com like das últimas 72h
-          let favoritosSnapshot;
-          try {
-            favoritosSnapshot = await favoritosRef
-              .where("action", "==", "like")
-              .where("createdAt", ">=", cutoffTimestamp)
-              .orderBy("createdAt", "desc")
-              .limit(50)
-              .get();
-          } catch (error: any) {
-            // Se não tiver índice, buscar todos e filtrar
-            console.log("[CRM] Índice de favoritos não encontrado, buscando todos:", error.message);
-            const allFavoritos = await favoritosRef
-              .where("action", "==", "like")
-              .limit(200)
-              .get();
-            
-            favoritosSnapshot = {
-              forEach: (callback: any) => {
-                allFavoritos.forEach((doc) => {
-                  const data = doc.data();
-                  const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt || 0);
-                  if (createdAt >= cutoffDate) {
-                    callback(doc);
-                  }
-                });
-              },
-            } as any;
-          }
-          
-          favoritosSnapshot.forEach((doc: any) => {
-            const data = typeof doc.data === "function" ? doc.data() : doc.data;
-            if (!data) return;
-            
-            // Converter Timestamp do Firestore para Date
-            let createdAt: Date;
-            if (data.createdAt) {
-              if (data.createdAt.toDate) {
-                createdAt = data.createdAt.toDate();
-              } else if (typeof data.createdAt === "string") {
-                createdAt = new Date(data.createdAt);
-              } else {
-                createdAt = new Date();
+        generationsSnapshot = {
+          forEach: (callback: any) => {
+            allGenerations.forEach((doc) => {
+              const data = doc.data();
+              const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt || 0);
+              if (createdAt >= cutoffDate) {
+                callback(doc);
               }
-            } else {
-              createdAt = new Date();
-            }
-            
-            // Filtrar apenas favoritos das últimas 72h
-            if (createdAt < cutoffDate) {
-              return;
-            }
-            
-            // Verificar se tem imagem válida
-            const imagemUrl = data.imagemUrl || data.imageUrl;
-            if (!imagemUrl || imagemUrl.trim() === "") {
-              return; // Ignorar favoritos sem imagem
-            }
-            
-            // Adicionar ou atualizar cliente no mapa
-            if (!clientMap.has(customerId)) {
-              clientMap.set(customerId, {
-                customerId,
-                nome: clienteData?.nome || data.customerName || "Cliente",
-                whatsapp: clienteData?.whatsapp || "",
-                avatar: clienteData?.avatar || clienteData?.fotoUrl || clienteData?.photoUrl || null,
-                lastActivity: createdAt,
-                lastActivityType: "generation",
-                lastProductName: data.produtoNome || data.productName || undefined,
-                compositionCount: 0,
-                compositions: [],
-              });
-            }
-            
-            const client = clientMap.get(customerId)!;
-            
-            // Adicionar favorito como composição
-            client.compositionCount++;
-            client.compositions.push({
-              id: doc.id,
-              imagemUrl: imagemUrl,
-              createdAt,
-              produtoNome: data.produtoNome || data.productName || undefined,
             });
-            
-            // Atualizar última atividade se for mais recente
-            if (createdAt > client.lastActivity) {
-              client.lastActivity = createdAt;
-              client.lastActivityType = "generation";
-              client.lastProductName = data.produtoNome || data.productName || undefined;
+          },
+        } as any;
+      }
+      
+      // Cache de dados dos clientes para evitar múltiplas buscas
+      const clientesCache = new Map<string, any>();
+      
+      // Processar cada generation (usar for...of para permitir await)
+      // Converter snapshot para array para permitir await dentro do loop
+      const docsArray: any[] = [];
+      if (generationsSnapshot.forEach) {
+        generationsSnapshot.forEach((doc: any) => {
+          docsArray.push(doc);
+        });
+      } else if (Array.isArray(generationsSnapshot)) {
+        docsArray.push(...generationsSnapshot);
+      } else if (generationsSnapshot.docs) {
+        docsArray.push(...Array.from(generationsSnapshot.docs));
+      }
+      
+      for (const doc of docsArray) {
+        const data = typeof doc.data === "function" ? doc.data() : doc.data;
+        if (!data || !data.userId) continue;
+        
+        const customerId = data.userId;
+        
+        // Converter Timestamp do Firestore para Date
+        let createdAt: Date;
+        if (data.createdAt) {
+          if (data.createdAt.toDate) {
+            createdAt = data.createdAt.toDate();
+          } else if (typeof data.createdAt === "string") {
+            createdAt = new Date(data.createdAt);
+          } else {
+            createdAt = new Date();
+          }
+        } else {
+          createdAt = new Date();
+        }
+        
+        // Filtrar apenas das últimas 7 dias
+        if (createdAt < cutoffDate) {
+          continue;
+        }
+        
+        // Verificar se tem imagem válida - se não tiver, buscar da composição original
+        let imagemUrl = data.imagemUrl || data.imageUrl;
+        
+        // Se não tiver imagem na generation, buscar da composição original
+        if (!imagemUrl || imagemUrl.trim() === "") {
+          const compositionId = data.compositionId;
+          if (compositionId) {
+            try {
+              const composicaoRef = lojaRef.collection("composicoes").doc(compositionId);
+              const composicaoDoc = await composicaoRef.get();
+              if (composicaoDoc.exists) {
+                const composicaoData = composicaoDoc.data();
+                imagemUrl = composicaoData?.imagemUrl || composicaoData?.imageUrl || 
+                           composicaoData?.looks?.[0]?.imagemUrl || 
+                           composicaoData?.looks?.[0]?.imageUrl || 
+                           composicaoData?.looks?.[0]?.url || null;
+              }
+            } catch (error) {
+              console.warn(`[CRM] Erro ao buscar imagem da composição ${compositionId}:`, error);
             }
+          }
+        }
+        
+        // Se ainda não tiver imagem, ignorar esta generation
+        if (!imagemUrl || imagemUrl.trim() === "") {
+          continue;
+        }
+        
+        // Buscar dados do cliente (com cache)
+        let clienteData = clientesCache.get(customerId);
+        if (!clienteData) {
+          // Buscar do Firestore (será preenchido assincronamente, mas por enquanto usar dados da generation)
+          clienteData = {
+            nome: data.customerName || "Cliente",
+            whatsapp: null,
+            avatar: null,
+          };
+          clientesCache.set(customerId, clienteData);
+          
+          // Buscar dados completos do cliente em background (não bloqueia)
+          lojaRef.collection("clientes").doc(customerId).get().then((clienteDoc) => {
+            if (clienteDoc.exists) {
+              const fullData = clienteDoc.data();
+              clienteData.nome = fullData?.nome || clienteData.nome;
+              clienteData.whatsapp = fullData?.whatsapp || null;
+              clienteData.avatar = fullData?.avatar || fullData?.fotoUrl || fullData?.photoUrl || null;
+            }
+          }).catch(() => {
+            // Ignorar erros de busca
           });
-        } catch (error) {
-          console.warn(`[CRM] Erro ao buscar favoritos do cliente ${customerId}:`, error);
-          // Continuar com próximo cliente
+        }
+        
+        // Adicionar ou atualizar cliente no mapa
+        if (!clientMap.has(customerId)) {
+          clientMap.set(customerId, {
+            customerId,
+            nome: clienteData.nome || data.customerName || "Cliente",
+            whatsapp: clienteData.whatsapp || "",
+            avatar: clienteData.avatar || null,
+            lastActivity: createdAt,
+            lastActivityType: "generation",
+            lastProductName: data.productName || undefined,
+            compositionCount: 0,
+            compositions: [],
+          });
+        }
+        
+        const client = clientMap.get(customerId)!;
+        
+        // Adicionar generation como composição
+        client.compositionCount++;
+        client.compositions.push({
+          id: doc.id,
+          imagemUrl: imagemUrl,
+          createdAt,
+          produtoNome: data.productName || undefined,
+        });
+        
+        // Atualizar última atividade se for mais recente
+        if (createdAt > client.lastActivity) {
+          client.lastActivity = createdAt;
+          client.lastActivityType = "generation";
+          client.lastProductName = data.productName || undefined;
         }
       }
       
-      console.log("[CRM] Favoritos com like incluídos no radar");
+      console.log("[CRM] Generations com showInRadar=true incluídas no radar");
     } catch (error) {
-      console.warn("[CRM] Erro ao buscar favoritos:", error);
-      // Continuar mesmo se houver erro ao buscar favoritos
+      console.warn("[CRM] Erro ao buscar generations:", error);
+      // Continuar mesmo se houver erro ao buscar generations
     }
 
     // Converter para array e ordenar por mais recente
