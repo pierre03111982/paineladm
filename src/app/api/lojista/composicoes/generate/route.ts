@@ -2062,7 +2062,7 @@ export async function POST(request: NextRequest) {
             userId: customerId,
             compositionId: composicaoId,
             // 👇 AQUI: Se jobId for null, envia string vazia para satisfazer o tipo 'string'
-            jobId: (jobId as string | null) || "",
+            jobId: null as string | null,
             imagemUrl: validLooks.length > 0 ? validLooks[0].imagemUrl : null,
             uploadImageUrl: personImageUrl || null,
             productIds: productIdsFinaisParaGeneration, // ✅ Array de IDs do COLETOR UNIVERSAL
