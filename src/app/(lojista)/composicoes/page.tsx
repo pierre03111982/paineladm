@@ -1,5 +1,5 @@
 import { ComposicoesVisualHistory } from "./composicoes-visual-history";
-import { fetchAllCompositionsWithLike } from "./fetch-all-compositions-with-like";
+import { fetchAllCompositionsWithLike, type CompositionForVisualHistory } from "./fetch-all-compositions-with-like";
 import { countAllCompositions } from "./count-compositions";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 
@@ -28,7 +28,7 @@ export default async function ComposicoesPage({
     process.env.LOJISTA_ID ||
     "";
 
-  let compositions = [];
+  let compositions: CompositionForVisualHistory[] = [];
   let totalCount = 0;
   
   console.log(`[ComposicoesPage] 🔍 Buscando composições para lojistaId: ${lojistaId}`);
