@@ -2041,11 +2041,9 @@ export async function POST(request: NextRequest) {
           
           const productIdsFinaisParaGeneration = (productIdsParaSalvar && productIdsParaSalvar.length > 0)
             ? productIdsParaSalvar
-            : (productIdsFinaisParaSalvar && productIdsFinaisParaSalvar.length > 0)
-              ? productIdsFinaisParaSalvar
-              : (composicaoData.productIds && composicaoData.productIds.length > 0)
-                ? composicaoData.productIds
-                : productIdsFinaisParaComposicao;
+            : (composicaoData.productIds && composicaoData.productIds.length > 0)
+              ? composicaoData.productIds
+              : productIdsFinaisParaComposicao;
           
           console.log("💾 [FORÇA GRAVAÇÃO] Produtos finais para generation:", {
             total: produtosFinaisParaGeneration.length,
