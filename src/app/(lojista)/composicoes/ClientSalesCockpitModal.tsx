@@ -342,6 +342,31 @@ export function ClientSalesCockpitModal({
     return `R$ ${price.toFixed(2).replace(".", ",")}`
   }
 
+  // Formatar número de telefone: (DDD) XXXXX-XXXX
+  const formatPhoneNumber = (phone: string | null): string => {
+    if (!phone) return "Sem WhatsApp"
+    
+    // Remove todos os caracteres não numéricos
+    const cleaned = phone.replace(/\D/g, "")
+    
+    // Se tiver 11 dígitos (com DDD): (XX) XXXXX-XXXX
+    if (cleaned.length === 11) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`
+    }
+    
+    // Se tiver 10 dígitos (sem o 9 inicial): (XX) XXXX-XXXX
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`
+    }
+    
+    // Se não tiver o formato esperado, retornar limpo mas sem formatação
+    if (cleaned.length > 0) {
+      return cleaned
+    }
+    
+    return "Sem WhatsApp"
+  }
+
   if (!isOpen || !composition) {
     return null
   }
@@ -354,7 +379,7 @@ export function ClientSalesCockpitModal({
           <div>
             <h2 className="text-xl font-bold text-[var(--text-main)]">Cockpit de Vendas</h2>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              {composition.customerName} • {composition.customerWhatsapp || "Sem WhatsApp"}
+              {composition.customerName} • {formatPhoneNumber(composition.customerWhatsapp)}
             </p>
           </div>
           <button
