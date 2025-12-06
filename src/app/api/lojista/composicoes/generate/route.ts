@@ -1969,7 +1969,7 @@ export async function POST(request: NextRequest) {
           // ✅ Persistência Dupla: Forçar inclusão do campo produtos na generation
           // ============================================
           // Se productIds estiver vazio mas houver produtos, gerar IDs manualmente
-          if (productIdsParaSalvar.length === 0 && produtosParaSalvar && produtosParaSalvar.length > 0) {
+          if (productIdsParaSalvar.length === 0 && (produtosParaSalvar?.length ?? 0) > 0) {
             console.warn("[API] ⚠️ productIds vazio mas há produtos - gerando IDs manualmente");
             productIdsParaSalvar = produtosParaSalvar.map((p: any, index: number) => {
               if (p.id) return p.id;
@@ -2047,7 +2047,7 @@ export async function POST(request: NextRequest) {
               temImagemUrl: !!p.imagemUrl,
             })),
             productIds: productIdsFinaisParaGeneration,
-            origem: produtosParaSalvar && produtosParaSalvar.length > 0 ? "COLETOR UNIVERSAL" : "PROCESSAMENTO INTERNO",
+            origem: (produtosParaSalvar?.length ?? 0) > 0 ? "COLETOR UNIVERSAL" : "PROCESSAMENTO INTERNO",
           });
           
           // ✅ Persistência Dupla: Forçar inclusão do campo produtos (array completo) e productIds
@@ -2076,7 +2076,7 @@ export async function POST(request: NextRequest) {
           } else {
             console.error("[API] ❌ ERRO: Composição não tem produtos salvos!");
             // Tentar atualizar a composição com os produtos da generation
-            if (produtosParaSalvar && produtosParaSalvar.length > 0) {
+            if ((produtosParaSalvar?.length ?? 0) > 0) {
               try {
                 await db
                   .collection("lojas")
@@ -2109,7 +2109,7 @@ export async function POST(request: NextRequest) {
           });
           
           // Se não salvou produtos na generation mas tem na composição, atualizar a generation
-          if ((!produtosParaSalvar || produtosParaSalvar.length === 0) && composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
+          if (((produtosParaSalvar?.length ?? 0) === 0) && composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
             console.log("[API] 🔄 Atualizando generation com produtos da composição...");
             try {
               const generationsRef = db.collection("generations");
