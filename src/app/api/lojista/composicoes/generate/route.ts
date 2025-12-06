@@ -1969,11 +1969,11 @@ export async function POST(request: NextRequest) {
           // ✅ Persistência Dupla: Forçar inclusão do campo produtos na generation
           // ============================================
           // Se productIds estiver vazio mas houver produtos, gerar IDs manualmente
-          if (productIdsParaSalvar.length === 0 && produtosParaSalvar && (produtosParaSalvar.length ?? 0) > 0) {
+          // TypeScript: verificar explicitamente que produtosParaSalvar não é null e tem itens
+          if (productIdsParaSalvar.length === 0 && produtosParaSalvar !== null && produtosParaSalvar !== undefined && produtosParaSalvar.length > 0) {
             console.warn("[API] ⚠️ productIds vazio mas há produtos - gerando IDs manualmente");
-            // TypeScript: garantir que produtosParaSalvar não é null antes de usar .map()
-            const produtosParaMapear = produtosParaSalvar;
-            productIdsParaSalvar = produtosParaMapear.map((p: any, index: number) => {
+            // TypeScript: dentro deste bloco, produtosParaSalvar não é null
+            productIdsParaSalvar = produtosParaSalvar.map((p: any, index: number) => {
               if (p.id) return p.id;
               // ✅ Garantir que composicaoId não seja null
               const safeComposicaoId = composicaoId || `comp-${Date.now()}`;
@@ -1981,7 +1981,7 @@ export async function POST(request: NextRequest) {
             });
             
             // Atualizar produtos com IDs gerados
-            produtosParaSalvar = produtosParaMapear.map((p: any, index: number) => ({
+            produtosParaSalvar = produtosParaSalvar.map((p: any, index: number) => ({
               ...p,
               id: p.id || productIdsParaSalvar[index],
             }));
