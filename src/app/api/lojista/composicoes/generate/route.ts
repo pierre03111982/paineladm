@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
     let rawProducts: any[] = [];
     let formData: FormData | null = null;
     let isFormData = false;
+    let formDataEntries: any = null; // Declarar no escopo correto
     
     // Tenta ler como FormData primeiro (Provável, pois tem upload de imagem)
     try {
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
     
     if (isFormData && formData) {
       // FormData já foi lido acima - usar produtos normalizados
-      const formDataEntries: any = {};
+      formDataEntries = {};
       for (const [key, value] of formData.entries()) {
         if (key === 'products' || key === 'productIds') {
           try {
@@ -552,7 +553,7 @@ export async function POST(request: NextRequest) {
       (rawBodyData?.selectedProducts) || 
       (payloadRecebido?.products) || 
       (payloadRecebido?.selectedProducts) || 
-      (isFormData && formDataEntries?.products) ||
+      (isFormData && formDataEntries && formDataEntries?.products) ||
       [];
     
     console.log("🔥 [NORMALIZAÇÃO] Raw Products encontrados:", {
