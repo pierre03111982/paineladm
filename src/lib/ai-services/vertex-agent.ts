@@ -191,7 +191,7 @@ export class VertexAgent {
       const model = this.vertexAI.preview.getGenerativeModel({ 
         model: this.modelName,
         systemInstruction: systemPrompt,
-        tools: [{ googleSearch: {} }],
+        tools: [{ googleSearch: {} }] as any,
         generationConfig: {
           maxOutputTokens: 1000,
           temperature: 0.7,
@@ -407,7 +407,7 @@ export class VertexAgent {
       const model = this.vertexAI.preview.getGenerativeModel({ 
         model: this.modelName,
         systemInstruction: systemPrompt,
-        tools: [{ googleSearch: {} }],
+        tools: [{ googleSearch: {} }] as any,
         generationConfig: {
           maxOutputTokens: 1000,
           temperature: 0.7,
