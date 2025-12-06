@@ -1409,14 +1409,21 @@ export async function POST(request: NextRequest) {
       // ============================================
       // 4. FORCE O SALVAMENTO NO FIRESTORE (Job Data)
       // ============================================
-      // Garantir que produtos normalizados sejam salvos no job
-      const produtosParaJob = produtosParaSalvar.length > 0 
-        ? produtosParaSalvar 
-        : (productsData.length > 0 ? productsData : []);
+      // ✅ CORREÇÃO CRÍTICA: Usar produtosParaSalvarNormalizados OU productsData (nunca produtosParaSalvar inicial)
+      // produtosParaSalvar da linha 159 pode estar vazio, usar a versão normalizada que foi processada corretamente
+      console.log("💾 [DEBUG] Verificando produtos disponíveis para job:", {
+        produtosParaSalvarNormalizados: produtosParaSalvarNormalizados?.length || 0,
+        productsData: productsData?.length || 0,
+        produtosParaSalvar: produtosParaSalvar?.length || 0,
+      });
       
-      const productIdsParaJob = productIdsParaSalvar.length > 0 
-        ? productIdsParaSalvar 
-        : (productIds.length > 0 ? productIds : []);
+      const produtosParaJob = (produtosParaSalvarNormalizados && produtosParaSalvarNormalizados.length > 0)
+        ? produtosParaSalvarNormalizados 
+        : (productsData && productsData.length > 0 ? productsData : []);
+      
+      const productIdsParaJob = (productIdsParaSalvarNormalizados && productIdsParaSalvarNormalizados.length > 0)
+        ? productIdsParaSalvarNormalizados 
+        : (productIds && productIds.length > 0 ? productIds : []);
       
       console.log("💾 [SALVANDO] Gravando", produtosParaJob.length, "produtos no job.");
       console.log("💾 [SALVANDO] Detalhes:", {
@@ -1427,6 +1434,7 @@ export async function POST(request: NextRequest) {
           temImagemUrl: !!p.imagemUrl,
         })),
         productIds: productIdsParaJob,
+        origem: produtosParaSalvarNormalizados?.length > 0 ? "produtosParaSalvarNormalizados" : (productsData?.length > 0 ? "productsData" : "VAZIO"),
       });
       
       const jobData = {
@@ -1790,7 +1798,7 @@ export async function POST(request: NextRequest) {
       })),
       productIds: productIdsFinaisParaComposicao,
     });
-    
+
     // Salvar composição no Firestore
     let composicaoId: string | null = null;
     try {
@@ -1818,7 +1826,7 @@ export async function POST(request: NextRequest) {
         productIds: productIdsFinaisParaComposicao.length > 0 
           ? productIdsFinaisParaComposicao 
           : (productIds.length > 0 
-            ? productIds 
+          ? productIds 
             : (primaryProduct && primaryProduct.id ? [primaryProduct.id] : [])),
         productUrl: productUrl || null,
         primaryProductId: primaryProduct?.id || null,
