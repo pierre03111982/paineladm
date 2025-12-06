@@ -155,24 +155,24 @@ export async function POST(request: NextRequest) {
     // ============================================
     // 2. GARANTIA DE ARRAY (TypeScript-Safe - Nunca null)
     // ============================================
-    // Forçamos o tipo para 'any[]' e garantimos que nunca seja null usando '?? []'
-    const produtosParaSalvar: any[] = (Array.isArray(rawProducts) ? rawProducts : []) ?? [];
+    // Correção: Garantimos que é array usando 'as any[]' e fallback
+    const produtosParaSalvar: any[] = (Array.isArray(rawProducts) ? rawProducts : []) as any[];
     
     // ============================================
     // 3. MAPEAMENTO SEGURO
     // ============================================
-    // Adicionamos '|| []' para garantir que o map sempre rode sobre um array
+    // Correção: Adiciona '|| []' antes do .map para silenciar o erro 'possibly null'
     const produtosNormalizados = (produtosParaSalvar || []).map((p: any) => ({
-      id: p?.id ?? `prod-${Date.now()}`, // Usa '??' em vez de '||' para segurança
-      nome: p?.nome ?? "Produto Sem Nome",
-      preco: Number(p?.preco ?? 0),
-      imagemUrl: p?.imagemUrl ?? null,
-      categoria: p?.categoria ?? null,
+      id: p?.id || `prod-${Date.now()}`,
+      nome: p?.nome || "Produto Sem Nome",
+      preco: Number(p?.preco || 0),
+      imagemUrl: p?.imagemUrl || null,
+      categoria: p?.categoria || null,
       tamanhos: Array.isArray(p?.tamanhos) ? p.tamanhos : (p?.tamanho ? [p.tamanho] : ["Único"]),
       cores: Array.isArray(p?.cores) ? p.cores : (p?.cor ? [p.cor] : []),
-      medidas: p?.medidas ?? null,
-      desconto: p?.desconto ?? 0,
-      descricao: p?.descricao ?? null,
+      medidas: p?.medidas || null,
+      desconto: p?.desconto || 0,
+      descricao: p?.descricao || null,
       // Garante que campos extras não quebrem o banco
       ...p
     }));
