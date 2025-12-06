@@ -1872,14 +1872,15 @@ export async function POST(request: NextRequest) {
       if (composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
         try {
           const { registerCompositionProducts } = await import("@/lib/firestore/productRegistry");
-          // ✅ Garantir que composicaoId não seja null (TypeScript type guard)
-          const safeComposicaoId: string = composicaoId;
-          if (!safeComposicaoId) {
+          // ✅ Type guard: garantir que composicaoId não seja null antes de usar
+          if (!composicaoId) {
             throw new Error("composicaoId não pode ser null ao registrar produtos");
           }
+          // Criar variável com tipo explícito para TypeScript entender que não é null
+          const safeComposicaoId: string = composicaoId;
           const registeredProductIds = await registerCompositionProducts(
             lojistaId || "",
-            safeComposicaoId, // TypeScript agora sabe que é string
+            safeComposicaoId, // TypeScript agora sabe que é string, não string | null
             composicaoData.produtos
           );
           
