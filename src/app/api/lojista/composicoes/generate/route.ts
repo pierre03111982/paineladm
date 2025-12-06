@@ -1806,30 +1806,32 @@ export async function POST(request: NextRequest) {
         // ✅ SOLUÇÃO DEFINITIVA: Usar produtos finais preparados diretamente
         produtos: produtosFinaisParaComposicao,
         productIds: productIdsFinaisParaComposicao,
-        // REMOVER função anônima - usar array direto
-          console.log("[API] 🔍 DEBUG: Preparando produtos para salvar:", {
-            productsDataLength: productsData.length,
-            productIdsLength: productIds.length,
-            temPrimaryProduct: !!primaryProduct,
-            primaryProductId: primaryProduct?.id,
-            primaryProductNome: primaryProduct?.nome,
-            payloadRecebido: payloadRecebido ? {
-              type: payloadRecebido.type,
-              temProducts: !!payloadRecebido.products,
-              productsLength: Array.isArray(payloadRecebido.products) ? payloadRecebido.products.length : "NÃO É ARRAY",
-            } : null,
-          });
-          
-          // ============================================
-          // ✅ Proteção de Array: Verificar se productsData está preenchida
-          // ============================================
-          // Se productsData vier do frontend (req.body.products), forçar atribuição
-          let produtosParaSalvar: any[] = [];
-          
-          // Verificar se há produtos no payload recebido
-          if (payloadRecebido?.products && Array.isArray(payloadRecebido.products) && payloadRecebido.products.length > 0) {
-            console.log("[API] ✅ Produtos encontrados no payload recebido, usando esses produtos:", payloadRecebido.products.length);
-            produtosParaSalvar = payloadRecebido.products;
+      };
+      
+      // REMOVER função anônima - usar array direto
+      console.log("[API] 🔍 DEBUG: Preparando produtos para salvar:", {
+        productsDataLength: productsData.length,
+        productIdsLength: productIds.length,
+        temPrimaryProduct: !!primaryProduct,
+        primaryProductId: primaryProduct?.id,
+        primaryProductNome: primaryProduct?.nome,
+        payloadRecebido: payloadRecebido ? {
+          type: payloadRecebido.type,
+          temProducts: !!payloadRecebido.products,
+          productsLength: Array.isArray(payloadRecebido.products) ? payloadRecebido.products.length : "NÃO É ARRAY",
+        } : null,
+      });
+      
+      // ============================================
+      // ✅ Proteção de Array: Verificar se productsData está preenchida
+      // ============================================
+      // Se productsData vier do frontend (req.body.products), forçar atribuição
+      let produtosParaSalvar: any[] = [];
+      
+      // Verificar se há produtos no payload recebido
+      if (payloadRecebido?.products && Array.isArray(payloadRecebido.products) && payloadRecebido.products.length > 0) {
+        console.log("[API] ✅ Produtos encontrados no payload recebido, usando esses produtos:", payloadRecebido.products.length);
+        produtosParaSalvar = payloadRecebido.products;
           } else if (productsData.length > 0) {
             // ✅ CORREÇÃO: Se não tem no payload, usar TODOS os productsData processados
             produtosParaSalvar = productsData;
