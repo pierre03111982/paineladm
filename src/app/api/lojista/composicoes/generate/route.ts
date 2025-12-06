@@ -1832,20 +1832,20 @@ export async function POST(request: NextRequest) {
       if (payloadRecebido?.products && Array.isArray(payloadRecebido.products) && payloadRecebido.products.length > 0) {
         console.log("[API] ✅ Produtos encontrados no payload recebido, usando esses produtos:", payloadRecebido.products.length);
         produtosParaSalvar = payloadRecebido.products;
-          } else if (productsData.length > 0) {
-            // ✅ CORREÇÃO: Se não tem no payload, usar TODOS os productsData processados
-            produtosParaSalvar = productsData;
-            console.log("[API] ✅ Usando productsData processado (TODOS os produtos):", productsData.length);
-          } else if (produtosParaSalvarNormalizados && produtosParaSalvarNormalizados.length > 0) {
-            // ✅ NOVO: Tentar usar produtos normalizados antes do fallback
-            produtosParaSalvar = produtosParaSalvarNormalizados;
-            console.log("[API] ✅ Usando produtos normalizados (TODOS os produtos):", produtosParaSalvarNormalizados.length);
-          } else if (primaryProduct) {
-            // ⚠️ FALLBACK: Se só temos primaryProduct, usar ele, mas logar aviso
-            produtosParaSalvar = [primaryProduct];
-            console.warn("[API] ⚠️ Usando apenas primaryProduct como fallback - apenas 1 produto será salvo");
-            console.warn("[API] ⚠️ Isso pode indicar que productsData não foi populado corretamente");
-          }
+      } else if (productsData.length > 0) {
+        // ✅ CORREÇÃO: Se não tem no payload, usar TODOS os productsData processados
+        produtosParaSalvar = productsData;
+        console.log("[API] ✅ Usando productsData processado (TODOS os produtos):", productsData.length);
+      } else if (produtosParaSalvarNormalizados && produtosParaSalvarNormalizados.length > 0) {
+        // ✅ NOVO: Tentar usar produtos normalizados antes do fallback
+        produtosParaSalvar = produtosParaSalvarNormalizados;
+        console.log("[API] ✅ Usando produtos normalizados (TODOS os produtos):", produtosParaSalvarNormalizados.length);
+      } else if (primaryProduct) {
+        // ⚠️ FALLBACK: Se só temos primaryProduct, usar ele, mas logar aviso
+        produtosParaSalvar = [primaryProduct];
+        console.warn("[API] ⚠️ Usando apenas primaryProduct como fallback - apenas 1 produto será salvo");
+        console.warn("[API] ⚠️ Isso pode indicar que productsData não foi populado corretamente");
+      }
           
           // ============================================
           // VALIDAÇÃO CRÍTICA: Garantir que temos produtos
