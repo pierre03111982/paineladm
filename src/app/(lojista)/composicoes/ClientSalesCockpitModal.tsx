@@ -354,9 +354,18 @@ export function ClientSalesCockpitModal({
       text += `Verifiquei aqui e tenho no seu tamanho.`
 
       // Lógica do Desconto na Mensagem
-      if (extraDiscountPercent > 0) {
-        text += `\n\n🎁 *EXCLUSIVO:* Consegui liberar um **DESCONTO EXTRA de ${extraDiscountPercent}%** para fechar agora!\n`
-        text += `Deu a louca no gerente: O valor final fica só *R$ ${totalFinal.toFixed(2).replace(".", ",")}*!`
+      if (totalDiscountPercent > 0) {
+        if (socialMediaDiscount > 0 && extraDiscountPercent > 0) {
+          text += `\n\n🎁 *EXCLUSIVO:* Você já tem ${socialMediaDiscount}% de desconto das redes sociais, e consegui liberar mais ${extraDiscountPercent}% para fechar agora!\n`
+          text += `Total de desconto: **${totalDiscountPercent.toFixed(1)}%**\n`
+          text += `Deu a louca no gerente: O valor final fica só *R$ ${totalFinal.toFixed(2).replace(".", ",")}*!`
+        } else if (socialMediaDiscount > 0) {
+          text += `\n\n🎁 Você tem ${socialMediaDiscount}% de desconto das redes sociais aplicado!\n`
+          text += `O valor final fica *R$ ${totalFinal.toFixed(2).replace(".", ",")}*!`
+        } else if (extraDiscountPercent > 0) {
+          text += `\n\n🎁 *EXCLUSIVO:* Consegui liberar um **DESCONTO EXTRA de ${extraDiscountPercent}%** para fechar agora!\n`
+          text += `Deu a louca no gerente: O valor final fica só *R$ ${totalFinal.toFixed(2).replace(".", ",")}*!`
+        }
       } else {
         text += `\n\nAs peças são limitadas e estão saindo muito rápido. Vamos reservar?`
       }
