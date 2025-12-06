@@ -1445,9 +1445,10 @@ export async function POST(request: NextRequest) {
         reservationId,
         createdAt: FieldValue.serverTimestamp(),
         // ✅ FORCE: Produtos normalizados salvos no job
-        produtos: produtosParaJob,
-        productIds: productIdsParaJob,
-        temProdutos: produtosParaJob.length > 0,
+        // IMPORTANTE: Garantir que produtos sejam salvos mesmo se estiver vazio (para debug)
+        produtos: produtosParaJob.length > 0 ? produtosParaJob : (productsData.length > 0 ? productsData : []),
+        productIds: productIdsParaJob.length > 0 ? productIdsParaJob : (productIds.length > 0 ? productIds : []),
+        temProdutos: produtosParaJob.length > 0 || productsData.length > 0,
         params: {
           personImageUrl,
           productId: primaryProduct?.id || "",
