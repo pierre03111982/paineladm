@@ -1,338 +1,167 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
-  AlertCircle, 
+  AlertTriangle, 
   TrendingUp, 
-  Lightbulb, 
+  User,
   ArrowRight,
-  X,
-  CheckCircle2,
-  Sparkles,
-  Loader2
+  Package,
+  Gift,
+  Eye
 } from "lucide-react";
-import { InsightDoc } from "@/types/insights";
 import Link from "next/link";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { AIIcon } from "@/components/ui/AIIcon";
 
 type AIInsightsFeedProps = {
   lojistaId: string;
 };
 
+type MockInsight = {
+  id: string;
+  type: "alert" | "opportunity" | "trend";
+  icon: "alert" | "user" | "trending";
+  title: string;
+  description: string;
+  actionLabel: string;
+  actionLink: string;
+  color: {
+    bg: string;
+    border: string;
+    icon: string;
+    button: string;
+    buttonHover: string;
+  };
+};
+
 /**
- * Componente de Feed de Insights da IA (Cérebro da Loja)
- * Exibe insights proativos gerados pela IA no topo do Dashboard
+ * Feed de Insights Estratégicos da IA
+ * Mostra 3 insights acionáveis para guiar o lojista
  */
 export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
-  const [insights, setInsights] = useState<InsightDoc[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchInsights();
-  }, [lojistaId]);
-
-  const fetchInsights = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch(`/api/ai/insights?lojistaId=${lojistaId}`);
-      
-      if (!response.ok) {
-        throw new Error("Falha ao carregar insights");
+  // Mock de insights inteligentes (substituir por API real depois)
+  const mockInsights: MockInsight[] = [
+    {
+      id: "1",
+      type: "alert",
+      icon: "alert",
+      title: "Estoque Crítico: Tênis Nike Air",
+      description: "Apenas 2 unidades restantes e alta procura. Reponha agora para não perder vendas.",
+      actionLabel: "Repor Estoque",
+      actionLink: "/produtos?filter=low-stock",
+      color: {
+        bg: "bg-red-50",
+        border: "border-red-200",
+        icon: "text-red-600",
+        button: "border border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400",
+        buttonHover: "hover:bg-red-50"
       }
-      
-      const data = await response.json();
-      setInsights(data.insights || []);
-    } catch (err) {
-      console.error("[AIInsightsFeed] Erro:", err);
-      setError("Não foi possível carregar insights no momento");
-      
-      // Mock data para teste visual
-      setInsights([
-        {
-          id: "mock-1",
-          lojistaId,
-          type: "opportunity",
-          title: "Cliente interessado em vestidos",
-          message: "Maria Silva visualizou 5 vestidos nas últimas 2 horas. Envie uma oferta personalizada!",
-          priority: "high",
-          relatedEntity: {
-            type: "client",
-            id: "client-123",
-            name: "Maria Silva",
-          },
-          actionLabel: "Enviar WhatsApp",
-          actionLink: "/clientes/client-123",
-          isRead: false,
-          createdAt: new Date(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
-        {
-          id: "mock-2",
-          lojistaId,
-          type: "risk",
-          title: "Produto com alta rejeição",
-          message: "Vestido Floral tem 35% de taxa de rejeição. Considere ajustar a foto ou descrição.",
-          priority: "medium",
-          relatedEntity: {
-            type: "product",
-            id: "prod-456",
-            name: "Vestido Floral",
-          },
-          actionLabel: "Ver Produto",
-          actionLink: "/produtos/prod-456",
-          isRead: false,
-          createdAt: new Date(),
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMarkAsRead = async (insightId: string) => {
-    try {
-      const response = await fetch(`/api/ai/insights/${insightId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lojistaId, isRead: true }),
-      });
-
-      if (response.ok) {
-        setInsights((prev) =>
-          prev.map((insight) =>
-            insight.id === insightId ? { ...insight, isRead: true } : insight
-          )
-        );
+    },
+    {
+      id: "2",
+      type: "opportunity",
+      icon: "user",
+      title: "Cliente em Potencial: Ana Silva",
+      description: "Gerou 5 looks com a Blusa de Seda mas não comprou. Envie um cupom de 5% para fechar a venda.",
+      actionLabel: "Enviar Cupom",
+      actionLink: "/clientes",
+      color: {
+        bg: "bg-emerald-50",
+        border: "border-emerald-200",
+        icon: "text-emerald-600",
+        button: "border border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400",
+        buttonHover: "hover:bg-emerald-50"
       }
-    } catch (err) {
-      console.error("[AIInsightsFeed] Erro ao marcar como lido:", err);
+    },
+    {
+      id: "3",
+      type: "trend",
+      icon: "trending",
+      title: "Em Alta: Peças Azul Royal",
+      description: "Peças da cor Azul Royal estão sendo muito provadas hoje. Destaque-as na vitrine.",
+      actionLabel: "Ver Produtos",
+      actionLink: "/produtos?color=azul-royal",
+      color: {
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        icon: "text-blue-600",
+        button: "border border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400",
+        buttonHover: "hover:bg-blue-50"
+      }
     }
-  };
+  ];
 
-  const handleDismiss = (insightId: string) => {
-    handleMarkAsRead(insightId);
-  };
-
-  const getTypeIcon = (type: InsightDoc["type"]) => {
-    switch (type) {
-      case "opportunity":
+  const getIcon = (iconType: string) => {
+    switch (iconType) {
+      case "alert":
+        return <AlertTriangle className="h-5 w-5" />;
+      case "user":
+        return <User className="h-5 w-5" />;
+      case "trending":
         return <TrendingUp className="h-5 w-5" />;
-      case "risk":
-        return <AlertCircle className="h-5 w-5" />;
-      case "trend":
-        return <TrendingUp className="h-5 w-5" />;
-      case "action":
-        return <Lightbulb className="h-5 w-5" />;
       default:
-        return <Sparkles className="h-5 w-5" />;
+        return <AIIcon className="h-5 w-5" />;
     }
   };
-
-  const getPriorityColor = (priority: InsightDoc["priority"]) => {
-    switch (priority) {
-      case "high":
-        return {
-          bg: "bg-red-50 dark:bg-red-900/20",
-          border: "border-red-200 dark:border-red-800/50",
-          icon: "text-red-600 dark:text-red-400",
-          dot: "bg-red-500",
-        };
-      case "medium":
-        return {
-          bg: "bg-yellow-50 dark:bg-yellow-900/20",
-          border: "border-yellow-200 dark:border-yellow-800/50",
-          icon: "text-yellow-600 dark:text-yellow-400",
-          dot: "bg-yellow-500",
-        };
-      case "low":
-        return {
-          bg: "bg-blue-50 dark:bg-blue-900/20",
-          border: "border-blue-200 dark:border-blue-800/50",
-          icon: "text-blue-600 dark:text-blue-400",
-          dot: "bg-blue-500",
-        };
-    }
-  };
-
-  // Filtrar apenas insights não lidos
-  const unreadInsights = insights.filter((insight) => !insight.isRead);
-
-  if (loading) {
-    return (
-      <div className="mb-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6">
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 text-indigo-600 dark:text-purple-400 animate-spin" />
-          <span className="ml-2 text-sm font-medium text-slate-700 dark:text-gray-400">
-            Carregando insights...
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && unreadInsights.length === 0) {
-    return (
-      <div className="mb-6 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 p-4">
-        <p className="text-sm font-medium text-red-600 dark:text-red-400">
-          {error}
-        </p>
-      </div>
-    );
-  }
-
-  // Se não houver insights, exibir botão para gerar análise
-  if (unreadInsights.length === 0) {
-    const handleGenerateAnalysis = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/ai/analyze-daily", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lojistaId }),
-        });
-
-        if (response.ok) {
-          // Recarregar insights após gerar
-          await fetchInsights();
-        } else {
-          setError("Não foi possível gerar análise. Tente novamente.");
-        }
-      } catch (err) {
-        console.error("[AIInsightsFeed] Erro ao gerar análise:", err);
-        setError("Erro ao gerar análise. Tente novamente.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    return (
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-purple-400" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Cérebro da Loja
-          </h2>
-        </div>
-        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Ainda não há insights disponíveis. Gere uma análise da sua loja para receber recomendações personalizadas.
-          </p>
-          <button
-            onClick={handleGenerateAnalysis}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Gerando análise...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Gerar Análise da Loja
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="mb-6 space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-purple-400" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Cérebro da Loja
-          </h2>
-          {unreadInsights.length > 0 && (
-            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-purple-900/30 text-indigo-700 dark:text-purple-300">
-              {unreadInsights.length}
-            </span>
-          )}
+    <AnimatedCard className="p-5 mb-4">
+      {/* Header com Ícone de IA Pulsante */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center justify-center w-14 h-14 rounded-lg bg-white shadow-lg p-2">
+          <AIIcon className="h-10 w-10" pulse={true} />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 font-heading">Assistência IA</h2>
+          <p className="text-xs text-slate-600">Insights estratégicos</p>
         </div>
       </div>
 
-      {/* Insights Feed - Carrossel de Cards */}
+      {/* Lista de Insights */}
       <div className="space-y-3">
-        {unreadInsights.map((insight) => {
-          const colors = getPriorityColor(insight.priority);
-          const Icon = getTypeIcon(insight.type);
+        {mockInsights.map((insight) => (
+          <div
+            key={insight.id}
+            className={`${insight.color.bg} border ${insight.color.border} rounded-lg p-3 transition-all hover:shadow-md`}
+          >
+            <div className="flex items-start gap-3">
+              {/* Ícone à esquerda */}
+              <div className={`flex-shrink-0 ${insight.color.icon} mt-0.5`}>
+                {getIcon(insight.icon)}
+              </div>
 
-          return (
-            <div
-              key={insight.id}
-              className={`relative rounded-xl border-2 ${colors.border} ${colors.bg} p-4 shadow-sm transition-all hover:shadow-md`}
-            >
-              <div className="flex items-start gap-3">
-                {/* Ícone de Tipo */}
-                <div className={`flex-shrink-0 ${colors.icon}`}>
-                  {Icon}
-                </div>
+              {/* Conteúdo */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-slate-900 mb-1">
+                  {insight.title}
+                </h3>
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  {insight.description}
+                </p>
+              </div>
 
-                {/* Conteúdo */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                      {insight.title}
-                    </h3>
-                    {/* Indicador de Prioridade */}
-                    <div
-                      className={`h-2 w-2 rounded-full flex-shrink-0 mt-1.5 ${colors.dot}`}
-                      title={`Prioridade: ${insight.priority}`}
-                    />
-                  </div>
-
-                  <p className="text-sm text-slate-700 dark:text-gray-300 mb-3">
-                    {insight.message}
-                  </p>
-
-                  {/* Botão de Ação */}
-                  {insight.actionLabel && insight.actionLink && (
-                    <div className="flex items-center gap-2">
-                      {insight.actionLink.startsWith("http") ? (
-                        <a
-                          href={insight.actionLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors"
-                        >
-                          {insight.actionLabel}
-                          <ArrowRight className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <Link
-                          href={insight.actionLink}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 dark:bg-purple-600 text-white hover:bg-indigo-700 dark:hover:bg-purple-700 transition-colors"
-                        >
-                          {insight.actionLabel}
-                          <ArrowRight className="h-3 w-3" />
-                        </Link>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Botão de Fechar */}
-                <button
-                  onClick={() => handleDismiss(insight.id)}
-                  className="flex-shrink-0 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                  title="Marcar como lido"
+              {/* Botão de Ação à direita */}
+              <div className="flex-shrink-0">
+                <Link
+                  href={insight.actionLink}
+                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg ${insight.color.button} text-xs font-semibold transition-all bg-white`}
                 >
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                </button>
+                  {insight.actionLabel}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
-    </div>
+
+      {/* Rodapé informativo */}
+      <div className="mt-4 pt-3 border-t border-slate-200">
+        <p className="text-xs text-slate-500 text-center">
+          💡 A IA analisa sua loja 24/7 e sugere ações para maximizar vendas
+        </p>
+      </div>
+    </AnimatedCard>
   );
 }
-

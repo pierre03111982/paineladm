@@ -164,34 +164,67 @@ export async function POST(request: NextRequest) {
         const lastDoc = lastCompositionSnapshot.docs[0];
         const lastData = lastDoc.data();
         
+        // Buscar imagem em múltiplos campos possíveis
         lastCompositionImageUrl = 
           lastData.final_image_url || 
-          (lastData.looks && lastData.looks.length > 0 ? lastData.looks[0]?.imagemUrl : null) ||
+          lastData.imagemUrl ||
           lastData.imageUrl ||
+          (lastData.looks && lastData.looks.length > 0 ? lastData.looks[0]?.imagemUrl : null) ||
           null;
 
-        if (lastCompositionImageUrl) {
-          const createdAt = lastData.createdAt?.toDate?.() || lastData.createdAt || new Date();
+        // Buscar produtoNome em múltiplos campos possíveis
+        const productName = 
+          lastData.produtoNome ||
+          lastData.productName ||
+          lastData.primaryProductName || 
+          (lastData.looks && lastData.looks.length > 0 ? lastData.looks[0]?.produtoNome : null) ||
+          "Produto";
+
+        // Buscar customerName em múltiplos campos possíveis
+        const customerName = 
+          lastData.customerName || 
+          lastData.clienteNome || 
+          null;
+
+        // Converter createdAt corretamente
+        let createdAt: Date;
+        if (lastData.createdAt) {
+          if (lastData.createdAt.toDate) {
+            createdAt = lastData.createdAt.toDate();
+          } else if (lastData.createdAt instanceof Date) {
+            createdAt = lastData.createdAt;
+          } else if (typeof lastData.createdAt === "string") {
+            createdAt = new Date(lastData.createdAt);
+          } else {
+            createdAt = new Date();
+          }
+        } else {
+          createdAt = new Date();
+        }
+
+        // Criar objeto mesmo sem imagem (para ter informações básicas)
           lastComposition = {
             id: lastDoc.id,
-            productName: lastData.primaryProductName || lastData.looks?.[0]?.produtoNome || "Produto",
+          productName: productName,
             imageUrl: lastCompositionImageUrl,
-            customerName: lastData.customerName || lastData.clienteNome || null,
+          customerName: customerName,
             createdAt: createdAt,
-            createdAtFormatted: createdAt instanceof Date ? createdAt.toLocaleDateString("pt-BR", {
+          createdAtFormatted: createdAt.toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
               hour: "2-digit",
               minute: "2-digit",
-            }) : null,
+          }),
           };
-          console.log("[AI/Chat] 📸 Último look encontrado:", {
+        
+        console.log("[AI/Chat] 📸 Última composição encontrada:", {
             compositionId: lastComposition.id,
             productName: lastComposition.productName,
+          customerName: lastComposition.customerName,
+          createdAt: lastComposition.createdAtFormatted,
             hasImage: !!lastCompositionImageUrl,
           });
-        }
       }
 
       // Buscar primeira composição (mais antiga) - APENAS da subcoleção
@@ -232,36 +265,67 @@ export async function POST(request: NextRequest) {
           const firstDoc = firstCompositionSnapshot.docs[0];
           const firstData = firstDoc.data();
           
+          // Buscar imagem em múltiplos campos possíveis
           firstCompositionImageUrl = 
             firstData.final_image_url || 
-            (firstData.looks && firstData.looks.length > 0 ? firstData.looks[0]?.imagemUrl : null) ||
+            firstData.imagemUrl ||
             firstData.imageUrl ||
+            (firstData.looks && firstData.looks.length > 0 ? firstData.looks[0]?.imagemUrl : null) ||
             null;
 
-          if (firstCompositionImageUrl) {
-            const createdAt = firstData.createdAt?.toDate?.() || firstData.createdAt || null;
-            if (createdAt) {
+          // Buscar produtoNome em múltiplos campos possíveis
+          const productName = 
+            firstData.produtoNome ||
+            firstData.productName ||
+            firstData.primaryProductName || 
+            (firstData.looks && firstData.looks.length > 0 ? firstData.looks[0]?.produtoNome : null) ||
+            "Produto";
+
+          // Buscar customerName em múltiplos campos possíveis
+          const customerName = 
+            firstData.customerName || 
+            firstData.clienteNome || 
+            null;
+
+          // Converter createdAt corretamente
+          let createdAt: Date;
+          if (firstData.createdAt) {
+            if (firstData.createdAt.toDate) {
+              createdAt = firstData.createdAt.toDate();
+            } else if (firstData.createdAt instanceof Date) {
+              createdAt = firstData.createdAt;
+            } else if (typeof firstData.createdAt === "string") {
+              createdAt = new Date(firstData.createdAt);
+            } else {
+              createdAt = new Date();
+            }
+          } else {
+            createdAt = new Date();
+          }
+
+          // Criar objeto mesmo sem imagem (para ter informações básicas)
               firstComposition = {
                 id: firstDoc.id,
-                productName: firstData.primaryProductName || firstData.looks?.[0]?.produtoNome || "Produto",
+            productName: productName,
                 imageUrl: firstCompositionImageUrl,
-                customerName: firstData.customerName || firstData.clienteNome || null,
-                createdAt: createdAt instanceof Date ? createdAt : new Date(createdAt),
-                createdAtFormatted: createdAt instanceof Date ? createdAt.toLocaleDateString("pt-BR", {
+            customerName: customerName,
+            createdAt: createdAt,
+            createdAtFormatted: createdAt.toLocaleDateString("pt-BR", {
                   day: "2-digit",
                   month: "2-digit",
                   year: "numeric",
                   hour: "2-digit",
                   minute: "2-digit",
-                }) : null,
+            }),
               };
+          
               console.log("[AI/Chat] 📸 Primeira composição encontrada:", {
                 compositionId: firstComposition.id,
                 productName: firstComposition.productName,
-                date: firstComposition.createdAtFormatted,
+            customerName: firstComposition.customerName,
+            createdAt: firstComposition.createdAtFormatted,
+            hasImage: !!firstCompositionImageUrl,
               });
-            }
-          }
         }
       } catch (error: any) {
         // PAINEL DO LOJISTA: Não busca da coleção global (apenas admin tem acesso)
@@ -649,21 +713,23 @@ ${clientesVIP.length > 0
 ${contextData.lastComposition ? `
 ÚLTIMA COMPOSIÇÃO GERADA (MAIS RECENTE):
 - ID: ${contextData.lastComposition.id}
-- Produto: ${contextData.lastComposition.productName}
-- Cliente: ${contextData.lastComposition.customerName || "Não informado"}
-- Data: ${contextData.lastComposition.createdAtFormatted || contextData.lastComposition.createdAt || "Data indisponível"}
-- Imagem: ${contextData.lastComposition.imageUrl}
-- Link: [[Ver Composição]](/composicoes/${contextData.lastComposition.id})
+- Produto(s): ${contextData.lastComposition.productName || "Produto não identificado"}
+- Cliente: ${contextData.lastComposition.customerName || "Cliente não informado"}
+- Data e Hora: ${contextData.lastComposition.createdAtFormatted || contextData.lastComposition.createdAt || "Data indisponível"}
+- Imagem: ${contextData.lastComposition.imageUrl ? "Disponível" : "Não disponível"}
+- Link para visualizar: [[Ver Composição]](/composicoes/${contextData.lastComposition.id})
+
+IMPORTANTE: Quando o usuário perguntar sobre a última composição, use EXATAMENTE estas informações acima.
 ` : 'Nenhuma composição gerada ainda.'}
 
 ${contextData.firstComposition ? `
 PRIMEIRA COMPOSIÇÃO GERADA (MAIS ANTIGA):
 - ID: ${contextData.firstComposition.id}
-- Produto: ${contextData.firstComposition.productName}
-- Cliente: ${contextData.firstComposition.customerName || "Não informado"}
-- Data: ${contextData.firstComposition.createdAtFormatted || contextData.firstComposition.createdAt || "Data indisponível"}
-- Imagem: ${contextData.firstComposition.imageUrl}
-- Link: [[Ver Composição]](/composicoes/${contextData.firstComposition.id})
+- Produto(s): ${contextData.firstComposition.productName || "Produto não identificado"}
+- Cliente: ${contextData.firstComposition.customerName || "Cliente não informado"}
+- Data e Hora: ${contextData.firstComposition.createdAtFormatted || contextData.firstComposition.createdAt || "Data indisponível"}
+- Imagem: ${contextData.firstComposition.imageUrl ? "Disponível" : "Não disponível"}
+- Link para visualizar: [[Ver Composição]](/composicoes/${contextData.firstComposition.id})
 ` : ''}
 
 [INSIGHTS DE INTELIGÊNCIA (Últimos 10)]

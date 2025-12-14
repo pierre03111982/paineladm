@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { AIIcon } from "@/components/ui/AIIcon";
 
 type Insight = {
   id: string;
@@ -19,32 +21,49 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!lojistaId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchInsights = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("/api/ai/insights");
+        console.log("[AIAssistantWidget] 🔍 Buscando insights para lojistaId:", lojistaId);
+        
+        const response = await fetch(`/api/ai/insights?lojistaId=${lojistaId}`);
+        
+        console.log("[AIAssistantWidget] 📡 Resposta da API:", {
+          status: response.status,
+          ok: response.ok,
+        });
+        
         if (!response.ok) {
-          throw new Error("Falha ao carregar insights");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Falha ao carregar insights");
         }
+        
         const data = await response.json();
-        setInsights(data.insights || []);
-      } catch (err) {
-        console.error("[AIAssistantWidget] Erro:", err);
+        console.log("[AIAssistantWidget] ✅ Dados recebidos:", {
+          success: data.success,
+          count: data.insights?.length || 0,
+          insights: data.insights,
+        });
+        
+        // Converter formato da API para o formato esperado pelo widget
+        const formattedInsights: Insight[] = (data.insights || []).map((insight: any) => ({
+          id: insight.id || `insight-${Date.now()}-${Math.random()}`,
+          text: insight.message || insight.title || "Insight sem descrição",
+          priority: insight.priority || "medium",
+        }));
+        
+        console.log("[AIAssistantWidget] 📊 Insights formatados:", formattedInsights);
+        setInsights(formattedInsights);
+      } catch (err: any) {
+        console.error("[AIAssistantWidget] ❌ Erro:", err);
         setError("Não foi possível carregar insights no momento");
-        // Fallback com insights padrão
-        setInsights([
-          {
-            id: "1",
-            text: "Analise seus produtos mais visualizados para otimizar o catálogo.",
-            priority: "medium",
-          },
-          {
-            id: "2",
-            text: "Clientes ativos nas últimas horas - envie ofertas personalizadas!",
-            priority: "high",
-          },
-        ]);
+        setInsights([]);
       } finally {
         setLoading(false);
       }
@@ -55,21 +74,19 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
 
 
   return (
-    <div className="neon-card ai-assistance-card relative overflow-hidden rounded-xl border-indigo-500/60 dark:border-purple-500/60" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03)' }}>
+    <AnimatedCard className="ai-assistance-card relative overflow-hidden">
       {/* Inner Content */}
       <div className="relative p-6 h-full">
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-4">
-          <div className="relative">
-            <div className="relative z-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-purple-500 dark:to-purple-600 p-2 shadow-lg shadow-indigo-500/50 dark:shadow-purple-500/50">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
+          <div className="rounded-lg bg-white p-2 shadow-lg w-14 h-14 flex items-center justify-center">
+            <AIIcon className="h-10 w-10" pulse={true} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h3 className="text-lg font-bold text-slate-900 font-heading">
               Assistência IA
             </h3>
-            <p className="text-xs font-medium text-slate-600 dark:text-gray-400">
+            <p className="text-xs font-medium text-slate-600">
               Insights estratégicos
             </p>
           </div>
@@ -77,42 +94,48 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
 
           {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 text-indigo-600 dark:text-purple-400 animate-spin" />
-            <span className="ml-2 text-sm font-medium text-slate-700 dark:text-gray-400">
+            <Loader2 className="h-6 w-6 text-[#4169E1] animate-spin" />
+            <span className="ml-2 text-sm font-medium text-slate-700">
               Analisando dados...
             </span>
           </div>
         ) : error && insights.length === 0 ? (
-          <div className="text-sm font-medium text-red-600 dark:text-red-400 py-4 bg-red-50 dark:bg-red-900/20 rounded-lg px-4 border border-red-200 dark:border-red-800/50">
+          <div className="text-sm font-medium text-red-700 py-4 bg-red-50 rounded-lg px-4 border-2 border-red-300">
             {error}
+          </div>
+        ) : insights.length === 0 ? (
+          <div className="text-sm font-medium text-slate-600 py-4 bg-slate-50 rounded-lg px-4 border-2 border-slate-200">
+            Nenhum insight disponível no momento. Gere uma análise para receber recomendações.
           </div>
         ) : (
           <div className="space-y-3">
             {insights.map((insight, index) => (
-              <div
+              <AnimatedCard
                 key={insight.id}
-                className="flex items-start gap-3 p-4 rounded-lg border-2 border-indigo-500/60 dark:border-indigo-500/70 bg-white dark:insight-card-dark shadow-md animate-in fade-in slide-in-from-bottom-2 transition-all duration-200 neon-insight-card"
+                className="p-4"
                 style={{ 
                   animationDelay: `${index * 100}ms`
                 }}
               >
-                <div className={`mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0 ${
-                  insight.priority === "high" 
-                    ? "bg-indigo-500 dark:bg-cyan-400"
-                    : insight.priority === "medium"
-                    ? "bg-indigo-400 dark:bg-indigo-400"
-                    : "bg-slate-400 dark:bg-gray-400"
-                }`} />
-                <p className="text-sm leading-relaxed font-medium text-slate-800 dark:text-white">
-                  {insight.text}
-                </p>
-              </div>
+                <div className="flex items-start gap-3">
+                  <div className={`mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0 ${
+                    insight.priority === "high" 
+                      ? "bg-[#4169E1]"
+                      : insight.priority === "medium"
+                      ? "bg-[#5B7FE8]"
+                      : "bg-slate-400"
+                  }`} />
+                  <p className="text-sm leading-relaxed font-medium text-slate-800">
+                    {insight.text}
+                  </p>
+                </div>
+              </AnimatedCard>
             ))}
           </div>
           )}
         </div>
       </div>
-    </div>
+    </AnimatedCard>
   );
 }
 

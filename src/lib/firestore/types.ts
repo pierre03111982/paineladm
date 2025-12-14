@@ -98,6 +98,7 @@ export type ComposicaoDoc = {
   liked: boolean;
   shares: number;
   isAnonymous: boolean;
+  imagemUrl?: string | null; // URL da imagem da composição
   dislikeReason?: DislikeReason | null;
   metrics?: {
     totalCostBRL?: number;

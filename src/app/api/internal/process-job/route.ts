@@ -49,7 +49,7 @@ async function uploadBase64ToStorage(
       console.warn("[process-job] Formato base64 inválido, retornando como está");
       return imageUrl;
     }
-    
+
     const mimeType = matches[1];
     const base64Data = matches[2];
     
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
         error: `Job data não encontrado: ${jobId}` 
       }, { status: 404 });
     }
-
+    
     console.log("[process-job] 📦 Job data carregado:", {
       lojistaId: jobData.lojistaId,
       customerId: jobData.customerId,
@@ -212,9 +212,9 @@ export async function POST(req: NextRequest) {
         console.log("[process-job] ✅ Produtos encontrados em params.options.productsData:", produtosParaSalvar.length);
       } else {
         const errorMsg = `❌ productIds inválido ou vazio e produtos não encontrados em nenhum lugar`;
-        console.error(`[process-job] ${errorMsg}`);
-        throw new Error(errorMsg);
-      }
+      console.error(`[process-job] ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
     }
 
     // Buscar produtos do Firestore (apenas se não tiver produtos no jobData)
@@ -248,31 +248,31 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // Buscar do Firestore usando productIds
-      console.log("[process-job] 🔍 Buscando produtos do Firestore:", {
-        lojistaId: jobData.lojistaId,
+    console.log("[process-job] 🔍 Buscando produtos do Firestore:", {
+      lojistaId: jobData.lojistaId,
         productIds: productIdsParaSalvar,
         productIdsCount: productIdsParaSalvar.length,
-      });
-      
-      let produtosSnapshot;
-      try {
-        produtosSnapshot = await db
-          .collection("lojas")
-          .doc(jobData.lojistaId)
-          .collection("produtos")
-          .get();
-        console.log("[process-job] ✅ Produtos buscados do Firestore:", {
-          totalDocs: produtosSnapshot.docs.length,
+    });
+    
+    let produtosSnapshot;
+    try {
+      produtosSnapshot = await db
+        .collection("lojas")
+        .doc(jobData.lojistaId)
+        .collection("produtos")
+        .get();
+      console.log("[process-job] ✅ Produtos buscados do Firestore:", {
+        totalDocs: produtosSnapshot.docs.length,
           productIdsBuscados: productIdsParaSalvar,
-        });
-      } catch (firestoreError: any) {
-        console.error("[process-job] ❌ Erro ao buscar produtos do Firestore:", {
-          error: firestoreError?.message,
-          lojistaId: jobData.lojistaId,
-          stack: firestoreError?.stack?.substring(0, 500),
-        });
-        throw new Error(`Erro ao buscar produtos: ${firestoreError?.message || "Erro desconhecido"}`);
-      }
+      });
+    } catch (firestoreError: any) {
+      console.error("[process-job] ❌ Erro ao buscar produtos do Firestore:", {
+        error: firestoreError?.message,
+        lojistaId: jobData.lojistaId,
+        stack: firestoreError?.stack?.substring(0, 500),
+      });
+      throw new Error(`Erro ao buscar produtos: ${firestoreError?.message || "Erro desconhecido"}`);
+    }
 
       // FIX: Validar e mapear produtos com tratamento de erros
       productsData = produtosSnapshot.docs
@@ -340,7 +340,7 @@ export async function POST(req: NextRequest) {
           console.warn("[process-job] ⚠️ Usando produtos do jobData como fallback");
           productsData = produtosParaSalvar;
         } else {
-          throw new Error(errorMsg);
+        throw new Error(errorMsg);
         }
       }
       
@@ -401,17 +401,17 @@ export async function POST(req: NextRequest) {
         });
         throw new Error(errorMsg);
       }
-
+      
       console.log("[process-job] ✅ Imagens de produtos validadas:", {
         totalImagens: allProductImageUrls.length,
         imagens: allProductImageUrls.map((url, i) => ({
           indice: i + 1,
           url: url.substring(0, 80) + "...",
           tipo: url.startsWith("http") ? "HTTP" : url.startsWith("data:") ? "BASE64" : "UNKNOWN",
-        })),
-      });
-    }
-
+          })),
+        });
+      }
+      
     // Processar personImageUrl (pode ser data:image/ ou HTTP URL)
     let personImageUrl = jobData.personImageUrl || jobData.params?.personImageUrl;
     
@@ -419,32 +419,32 @@ export async function POST(req: NextRequest) {
       const errorMsg = "personImageUrl não encontrado no jobData";
       console.error(`[process-job] ❌ ${errorMsg}`);
       throw new Error(errorMsg);
-    }
-
+      }
+      
     // Se personImageUrl for data:image/, fazer upload para Storage
-    if (personImageUrl.startsWith("data:image/")) {
-      try {
+      if (personImageUrl.startsWith("data:image/")) {
+        try {
         console.log("[process-job] 🔄 Detectado data:image/ para personImageUrl, fazendo upload...");
-        personImageUrl = await uploadBase64ToStorage(personImageUrl, jobData.lojistaId, jobId);
+          personImageUrl = await uploadBase64ToStorage(personImageUrl, jobData.lojistaId, jobId);
         console.log("[process-job] ✅ Upload de personImageUrl concluído:", personImageUrl.substring(0, 100) + "...");
-      } catch (uploadError: any) {
+        } catch (uploadError: any) {
         console.error("[process-job] ❌ Erro ao fazer upload de personImageUrl:", uploadError);
         // Continuar com a URL original se o upload falhar
         console.warn("[process-job] ⚠️ Continuando com personImageUrl original");
-      }
-    } else if (!personImageUrl.startsWith("http://") && !personImageUrl.startsWith("https://")) {
+        }
+      } else if (!personImageUrl.startsWith("http://") && !personImageUrl.startsWith("https://")) {
       const errorMsg = `personImageUrl inválido: ${personImageUrl.substring(0, 100)}`;
       console.error(`[process-job] ❌ ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-
+        throw new Error(errorMsg);
+      }
+      
     // Detectar se é REMIX (baseImageUrl presente)
     const isRemix = !!jobData.baseImageUrl || !!jobData.params?.baseImageUrl;
     console.log("[process-job] 📋 Tipo de geração:", isRemix ? "REMIX" : "NOVO LOOK");
 
     // Buscar primeiro produto para lógica de cenário
     const firstProductOnly = productsData.slice(0, 1);
-    
+
     // PHASE 15: Buscar cenário do Firestore baseado nas tags do produto
     let scenarioImageUrl: string | undefined = undefined;
     let scenarioLightingPrompt: string | undefined = undefined;
@@ -622,7 +622,7 @@ export async function POST(req: NextRequest) {
       // 3. BLINDE A CHAMADA DA IA (Erro 429)
       // ============================================
       try {
-        finalResult = await orchestrator.createComposition(params);
+      finalResult = await orchestrator.createComposition(params);
       } catch (aiError: any) {
         const errorMessage = aiError?.message || String(aiError);
         
@@ -792,7 +792,7 @@ export async function POST(req: NextRequest) {
       })),
       productIds: productIdsFinaisParaSalvar,
     });
-    
+
     // Salva no Firestore usando estrutura PLANA (na raiz).
     // Isso evita o erro "invalid nested entity" 100% das vezes.
     // FIX: Usar JSON.parse/stringify para remover undefined
@@ -816,10 +816,10 @@ export async function POST(req: NextRequest) {
     };
     
     // Limpar undefined values
-    const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
-    
-    await jobsRef.doc(jobId).update(cleanUpdateData);
-    
+        const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
+        
+        await jobsRef.doc(jobId).update(cleanUpdateData);
+
     // ============================================
     // SALVAR GENERATION COM PRODUTOS (CRÍTICO)
     // ============================================
@@ -942,7 +942,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, jobId });
-  } catch (error: any) {
+    } catch (error: any) {
     console.error("[process-job] ❌ ERRO FATAL NO PROCESS-JOB:", {
       message: error?.message || "Erro desconhecido",
       name: error?.name,

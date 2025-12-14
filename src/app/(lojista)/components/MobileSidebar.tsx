@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { X, Menu } from "lucide-react";
-import { LojistaNav } from "@/app/components/lojista-nav";
+import LojistaNav from "@/app/components/lojista-nav";
 import { usePathname } from "next/navigation";
 
 type MobileSidebarProps = {

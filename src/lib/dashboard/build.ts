@@ -174,8 +174,47 @@ function buildProductBreakdown(
     }));
 }
 
-function buildActiveCustomers(clientes: ClienteDoc[]) {
-  return clientes.slice(0, 4).map((cliente) => {
+function buildActiveCustomers(clientes: ClienteDoc[], composicoes: ComposicaoDoc[]) {
+  // Criar um mapa de cliente -> última composição (com imagem)
+  const lastCompositionByCustomer = new Map<string, { imageUrl: string | null; createdAt: Date }>();
+  
+  console.log("[buildActiveCustomers] Processando composições:", composicoes.length);
+  
+  composicoes.forEach((comp) => {
+    if (!comp.customer?.id) return;
+    
+    const customerId = comp.customer.id;
+    const existing = lastCompositionByCustomer.get(customerId);
+    
+    // Buscar URL da imagem da composição (pode estar em vários campos)
+    const imageUrl = 
+      comp.imagemUrl || 
+      (comp as any).imageUrl || 
+      (comp as any).final_image_url ||
+      (comp as any).looks?.[0]?.imagemUrl ||
+      (comp as any).looks?.[0]?.imageUrl ||
+      (comp as any).generation?.imagemUrl ||
+      null;
+    
+    // Se não tem imagem, pular
+    if (!imageUrl) {
+      console.log("[buildActiveCustomers] Composição sem imagem para cliente:", customerId);
+      return;
+    }
+    
+    // Se não existe ou esta é mais recente, atualizar
+    if (!existing || comp.createdAt.getTime() > existing.createdAt.getTime()) {
+      lastCompositionByCustomer.set(customerId, {
+        imageUrl,
+        createdAt: comp.createdAt,
+      });
+      console.log("[buildActiveCustomers] ✅ Imagem encontrada para cliente:", customerId, imageUrl);
+    }
+  });
+
+  console.log("[buildActiveCustomers] Mapa de imagens:", Array.from(lastCompositionByCustomer.entries()).map(([id, data]) => ({ id, imageUrl: data.imageUrl })));
+
+  return clientes.slice(0, 5).map((cliente) => {
     const initials = cliente.nome
       .split(" ")
       .filter(Boolean)
@@ -189,13 +228,26 @@ function buildActiveCustomers(clientes: ClienteDoc[]) {
         ? formatRelative(cliente.updatedAt)
         : `${cliente.totalComposicoes} comp.`;
 
-    return {
+    // Buscar imagem da última composição deste cliente
+    const lastComposition = lastCompositionByCustomer.get(cliente.id);
+
+    const result = {
       id: cliente.id,
       name: cliente.nome,
       avatarInitials: initials || "C",
       totalCompositions: cliente.totalComposicoes,
       lastActivity,
+      lastCompositionImageUrl: lastComposition?.imageUrl || null,
     };
+    
+    console.log("[buildActiveCustomers] Cliente processado:", {
+      id: cliente.id,
+      name: cliente.nome,
+      hasImage: !!result.lastCompositionImageUrl,
+      imageUrl: result.lastCompositionImageUrl,
+    });
+
+    return result;
   });
 }
 
@@ -429,7 +481,7 @@ export async function getDashboardData(
       fetchLojaPerfil(lojistaId),
       fetchProdutos(lojistaId),
       fetchClientes(lojistaId, 10),
-      fetchComposicoesRecentes(lojistaId, 50),
+      fetchComposicoesRecentes(lojistaId, 200), // Aumentar limite para garantir que todas as composições sejam buscadas
       fetchLojaMetrics(lojistaId),
     ]);
 
@@ -480,7 +532,7 @@ export async function getDashboardData(
       compositionsCount > 0 ? totalCostBRL / compositionsCount : 0;
 
     const breakdown = buildProductBreakdown(composicoes, produtos);
-    const activeCustomers = buildActiveCustomers(clientes);
+    const activeCustomers = buildActiveCustomers(clientes, composicoes);
     const compositionsCards = buildCompositions(composicoes);
 
     const totalLiked = metrics?.likedTotal ?? computedLiked;

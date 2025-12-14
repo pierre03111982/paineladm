@@ -330,7 +330,7 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                   </div>
                 )}
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{selectedClient.nome}</h2>
+                  <h2 className="text-2xl font-bold text-white font-heading">{selectedClient.nome}</h2>
                   <p className="text-zinc-400">{selectedClient.whatsapp}</p>
                 </div>
               </div>

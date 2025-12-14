@@ -786,7 +786,7 @@ export function ProductsTable({
                   <label className="block text-xs font-medium text-zinc-400 mb-1">Métricas de Qualidade</label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">Compatibilidade:</span>
+                      <span className="text-xs text-[var(--text-secondary)]">Compatibilidade:</span>
                       <div className="flex items-center gap-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
@@ -804,12 +804,12 @@ export function ProductsTable({
                       </span>
                     </div>
                     {viewingProduto.qualityMetrics.conversionRate !== undefined && (
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-[var(--text-secondary)]">
                         Taxa de conversão: {viewingProduto.qualityMetrics.conversionRate.toFixed(1)}%
                       </p>
                     )}
                     {viewingProduto.qualityMetrics.complaintRate !== undefined && (
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-[var(--text-secondary)]">
                         Taxa de reclamações: {viewingProduto.qualityMetrics.complaintRate.toFixed(1)}%
                       </p>
                     )}
@@ -826,12 +826,12 @@ export function ProductsTable({
                                    viewingProduto.ecommerceSync.platform}
                     </p>
                     {viewingProduto.ecommerceSync.productId && (
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-[var(--text-secondary)]">
                         ID do Produto: {viewingProduto.ecommerceSync.productId}
                       </p>
                     )}
                     {viewingProduto.ecommerceSync.lastSyncedAt && (
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-[var(--text-secondary)]">
                         Última sincronização: {viewingProduto.ecommerceSync.lastSyncedAt instanceof Date
                           ? viewingProduto.ecommerceSync.lastSyncedAt.toLocaleString("pt-BR")
                           : new Date(viewingProduto.ecommerceSync.lastSyncedAt).toLocaleString("pt-BR")}
@@ -1036,15 +1036,15 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 sm:pt-12 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg mb-8">
+      <div className="w-full max-w-2xl rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] p-5 shadow-lg mb-8">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Editar produto</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">
+          <h2 className="text-lg font-semibold text-[var(--text-main)]">Editar produto</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-400 mb-3">
+        <p className="text-xs text-[var(--text-secondary)] mb-3">
           Atualize os campos abaixo para modificar o produto. O envio real será conectado ao Firestore.
         </p>
 
@@ -1062,14 +1062,14 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Foto Principal - Mostrar Original e Catálogo lado a lado */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">FOTO PRINCIPAL</label>
-            <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-3">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">FOTO PRINCIPAL</label>
+            <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
               {/* Preview lado a lado: Original e Catálogo */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Foto Original */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Foto Original</label>
-                  <div className="w-full h-32 rounded-lg border border-zinc-700 bg-zinc-900/50 flex items-center justify-center overflow-hidden">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Foto Original</label>
+                  <div className="w-full h-32 rounded-lg bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
                     {(formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl) ? (
                       <img
                         src={formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl}
@@ -1078,8 +1078,8 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       />
                     ) : (
                       <div className="text-center">
-                        <Upload className="h-8 w-8 text-zinc-600 mx-auto mb-1" />
-                        <p className="text-xs text-zinc-500">Sem imagem</p>
+                        <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Sem imagem</p>
                       </div>
                     )}
                   </div>
@@ -1087,10 +1087,10 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 
                 {/* Foto Catálogo (IA) */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                     Foto Catálogo (IA) {formData.imagemUrlCatalogo && <span className="text-emerald-400">✓</span>}
                   </label>
-                  <div className="w-full h-32 rounded-lg border border-zinc-700 bg-zinc-900/50 flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-32 rounded-lg bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
                     {(formData.imagemUrlCatalogo || generatedCatalogImage) ? (
                       <img
                         src={formData.imagemUrlCatalogo || generatedCatalogImage || ""}
@@ -1099,7 +1099,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       />
                     ) : (
                       <div className="text-center">
-                        <p className="text-xs text-zinc-500">Gere com IA</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Gere com IA</p>
                         <p className="text-[10px] text-zinc-600 mt-1">Esta será exibida em todos os lugares</p>
                       </div>
                     )}
@@ -1109,7 +1109,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               
               {/* Botão de Upload e Campo URL */}
               <div className="space-y-2">
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-[var(--text-secondary)]">
                   Utilize imagens em PNG ou JPG com fundo limpo. O upload é salvo automaticamente no Firebase Storage.
                 </p>
                 {uploadedImageUrl && (
@@ -1151,7 +1151,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       });
                     }}
                     placeholder="https://exemplo.com/imagem.jpg"
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1160,14 +1160,14 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
           {/* Fase 13: Estúdio Virtual & Display */}
           {(formData.imagemUrl || uploadedImageUrl) && (
-            <div className="border-t border-zinc-800 pt-4">
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <label className="block text-xs font-medium text-zinc-300 mb-2">
                 ✨ ESTÚDIO VIRTUAL & DISPLAY
               </label>
-              <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-3">
+              <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
                 {/* Seletor de Cor do Manequim */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                     Cor do Manequim
                   </label>
                   <select
@@ -1183,7 +1183,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
                 {/* Seletor de Cenário */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                     Cenário de Fundo
                   </label>
                   <select
@@ -1296,7 +1296,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       <p className="text-xs text-emerald-300 mb-2 font-semibold">
                         ✅ Imagem salva automaticamente como imagem principal do catálogo!
                       </p>
-                      <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 p-2">
+                      <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/50 p-2">
                         <img
                           src={generatedCatalogImage}
                           alt="Imagem de catálogo gerada"
@@ -1327,37 +1327,37 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
           {/* Nome */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">NOME</label>
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">NOME</label>
             <input
               type="text"
               value={formData.nome}
               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
               placeholder="Ex: Vestido Aurora"
               required
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Preço e Categoria */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">PREÇO (R$)</label>
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">PREÇO (R$)</label>
               <input
                 type="text"
                 value={formData.preco}
                 onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
                 placeholder="Ex: 329,90"
                 required
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">CATEGORIA</label>
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">CATEGORIA</label>
               <select
                 value={formData.categoria}
                 onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                 required
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               >
                 <option value="">Selecione uma categoria</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -1370,7 +1370,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
 
           {/* Descontos e Valor Final Calculado */}
-          <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-3">
+          <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
             <label className="block text-xs font-medium text-zinc-300 mb-2">
               💰 DESCONTOS E PREÇO FINAL
             </label>
@@ -1378,14 +1378,14 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {/* Desconto Redes Sociais (somente leitura) */}
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1.5">
+                <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                   DESCONTO REDES SOCIAIS (%)
                 </label>
                 <input
                   type="text"
                   value={descontoRedesSociais ? `${descontoRedesSociais}%` : "0%"}
                   disabled
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-xs text-zinc-400 cursor-not-allowed"
+                  className="w-full rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-xs text-[var(--text-secondary)] cursor-not-allowed"
                 />
                 <p className="text-[10px] text-zinc-500 mt-1">
                   Definido na tela de Produtos
@@ -1394,7 +1394,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
               {/* Desconto Especial */}
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                   DESCONTO ESPECIAL (%)
                 </label>
                 <input
@@ -1405,7 +1405,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                   value={formData.descontoProduto}
                   onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
                   placeholder="Ex: 10"
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
                 />
                 <p className="text-[10px] text-zinc-500 mt-1">
                   Somado ao desconto das redes sociais
@@ -1414,7 +1414,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
               {/* Valor Final Calculado */}
               <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                   PREÇO FINAL COM DESCONTOS
                 </label>
                 <input
@@ -1456,7 +1456,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           {/* Cores e Tamanhos */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                 CORES (SEPARADAS POR -)
               </label>
               <input
@@ -1464,11 +1464,11 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.cores}
                 onChange={(e) => setFormData({ ...formData, cores: e.target.value })}
                 placeholder="Ex: lilás - grafite"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                 TAMANHOS (SEPARADOS POR ;)
               </label>
               <input
@@ -1476,7 +1476,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.tamanhos}
                 onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
                 placeholder="Ex: P;M;G"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
@@ -1484,17 +1484,17 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           {/* Estoque e Tags */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">ESTOQUE</label>
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">ESTOQUE</label>
               <input
                 type="text"
                 value={formData.estoque}
                 onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
                 placeholder="Ex: 10"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                 TAGS (SEPARADAS POR ,)
               </label>
               <input
@@ -1502,26 +1502,26 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder="Ex: promoção, novo, destaque"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Medidas */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">MEDIDAS</label>
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">MEDIDAS</label>
             <input
               type="text"
               value={formData.medidas}
               onChange={(e) => setFormData({ ...formData, medidas: e.target.value })}
               placeholder="Ex: Altura: 150cm, Largura: 80cm"
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Observações para IA */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
               OBSERVAÇÕES PARA IA
             </label>
             <textarea
@@ -1529,12 +1529,12 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               placeholder="Ex: tecido em seda, caimento leve, ideal para looks noturnos."
               rows={2}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Info e Botões */}
-          <div className="pt-2 border-t border-zinc-800">
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-start gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-2 mb-2">
               <Info className="h-3.5 w-3.5 mt-0.5 text-indigo-400 flex-shrink-0" />
               <p className="text-xs text-indigo-200">
@@ -1546,14 +1546,14 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white transition hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50"
+                className="rounded-lg bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Salvar produto"}
               </button>

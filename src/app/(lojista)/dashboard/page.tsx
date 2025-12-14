@@ -1,4 +1,4 @@
-import { DashboardContent } from "../../dashboard/components/DashboardContent";
+import { DashboardWrapper } from "./DashboardWrapper";
 import { getDashboardData } from "@/lib/dashboard/build";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 
@@ -31,5 +31,5 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const data = await getDashboardData(lojistaId);
 
-  return <DashboardContent data={data} lojistaId={lojistaId} />;
+  return <DashboardWrapper data={data} lojistaId={lojistaId} />;
 }

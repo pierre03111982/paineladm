@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Minimize2, Maximize2, Zap } from "lucide-react";
 import { ChatInterface } from "./ChatInterface";
+import { AIIcon } from "../ui/AIIcon";
 
 type ChatButtonProps = {
   lojistaId: string;
@@ -97,31 +98,41 @@ export function ChatButton({ lojistaId }: ChatButtonProps) {
 
   return (
     <>
-      {/* Botão Flutuante - Mostrar quando fechado OU quando minimizado */}
+      {/* Botão de Chat - Simples e Limpo */}
       {(!isOpen || isMinimized) && (
-        <button
-          onClick={() => {
-            setIsOpen(true);
-            setIsMinimized(false);
-          }}
-          className={`fixed bottom-6 right-6 z-50 h-16 w-16 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-110 flex items-center justify-center group ${
-            isMinimized ? 'animate-pulse' : ''
-          }`}
-          title="Falar com Ana - Assistente Inteligente"
-        >
-          {/* Ícone melhorado com efeito de brilho */}
-          <div className="relative">
-            <MessageCircle className="h-7 w-7 group-hover:scale-110 transition-transform" />
-            <Zap className="h-3 w-3 absolute -top-1 -right-1 text-yellow-300 animate-pulse fill-yellow-300" />
+        <div className="fixed bottom-6 right-6 z-50">
+          {/* Ondas de Pulso */}
+          <div className="absolute inset-0 -m-3">
+            <div className="absolute inset-0 rounded-full bg-cyan-400/20 animate-ping" style={{ animationDuration: '2s' }}></div>
           </div>
-          
-          {/* Badge quando minimizado */}
-          {isMinimized && (
-            <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse">
-              !
+
+          {/* Botão Principal */}
+          <button
+            onClick={() => {
+              setIsOpen(true);
+              setIsMinimized(false);
+            }}
+            className="relative h-16 w-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-2xl hover:shadow-cyan-500/50 transition-all hover:scale-105 flex items-center justify-center group"
+            title="Chat com Ana - Assistente IA"
+          >
+            {/* Ícone de Chat com IA */}
+            <div className="relative flex items-center justify-center">
+              <MessageCircle className="h-8 w-8 text-white" strokeWidth={2.5} />
+              
+              {/* Badge "IA" no canto */}
+              <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-white rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-cyan-600 text-[10px] font-black">IA</span>
+              </div>
             </div>
-          )}
-        </button>
+            
+            {/* Badge quando minimizado */}
+            {isMinimized && (
+              <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse shadow-lg">
+                !
+              </div>
+            )}
+          </button>
+        </div>
       )}
 
       {/* Janela do Chat */}
@@ -144,76 +155,85 @@ export function ChatButton({ lojistaId }: ChatButtonProps) {
           }
         >
           {isMinimized ? (
-            // Estado Minimizado - Mostrar indicador
-            <div className="h-full bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-xl flex items-center justify-between p-4 cursor-pointer hover:shadow-2xl transition-all">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <MessageCircle className="h-8 w-8 text-white" />
-                  <Zap className="h-4 w-4 absolute -top-1 -right-1 text-yellow-300 animate-pulse fill-yellow-300" />
+            // Estado Minimizado - Barra com Gradiente Animado
+            <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 animate-gradient-flow rounded-xl shadow-xl flex items-center justify-between p-3 cursor-pointer hover:shadow-2xl transition-all relative overflow-hidden">
+              {/* Overlay suave */}
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10"></div>
+              
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-lg ring-2 ring-white/30">
+                  <MessageCircle className="h-6 w-6 text-cyan-600" strokeWidth={2.5} />
                 </div>
                 <div className="text-white">
-                  <p className="font-semibold text-sm">Ana está aqui!</p>
-                  <p className="text-xs opacity-90">Clique para abrir</p>
+                  <p className="font-bold text-sm drop-shadow">Ana - Assistente IA</p>
+                  <p className="text-xs opacity-95 drop-shadow">Online • Pronta para ajudar</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 relative z-10">
                 <button
                   onClick={handleToggleMinimize}
-                  className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                  className="p-2 rounded-lg hover:bg-white/20 transition-colors backdrop-blur-sm"
                   title="Expandir"
                 >
-                  <Maximize2 className="h-5 w-5 text-white" />
+                  <Maximize2 className="h-4 w-4 text-white drop-shadow" />
                 </button>
                 <button
                   onClick={handleClose}
-                  className="p-2 rounded-lg hover:bg-white/20 transition-colors"
+                  className="p-2 rounded-lg hover:bg-white/20 transition-colors backdrop-blur-sm"
                   title="Fechar"
                 >
-                  <X className="h-5 w-5 text-white" />
+                  <X className="h-4 w-4 text-white drop-shadow" />
                 </button>
               </div>
             </div>
           ) : (
             // Estado Expandido - Chat Completo
             <div className="h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col">
-              {/* Header com área de arrasto */}
+              {/* Header com área de arrasto e gradiente animado */}
               <div
                 ref={headerRef}
                 onMouseDown={handleMouseDown}
-                className={`flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950 ${
+                className={`flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 relative overflow-hidden ${
                   isDragging ? 'cursor-grabbing' : 'cursor-move'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-                      <MessageCircle className="h-6 w-6 text-white" />
-                    </div>
-                    <Zap className="h-4 w-4 absolute -top-1 -right-1 text-yellow-400 animate-pulse fill-yellow-400" />
+                {/* Fundo com Gradiente Animado */}
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 animate-gradient-flow opacity-100 dark:opacity-90"></div>
+                
+                {/* Camada de Overlay para suavizar */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20 dark:to-black/20"></div>
+                
+                <div className="flex items-center gap-3 relative z-10">
+                  {/* Ícone com Borda Branca */}
+                  <div className="h-11 w-11 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center shadow-lg ring-2 ring-white/50">
+                    <MessageCircle className="h-6 w-6 text-cyan-600 dark:text-cyan-400" strokeWidth={2.5} />
                   </div>
+                  
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-sm font-bold text-white drop-shadow-lg flex items-center gap-2">
                       Ana - Assistente Inteligente
+                      <span className="inline-flex h-2 w-2 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50"></span>
                     </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-white/90 font-medium drop-shadow">
                       Consultoria de Vendas & Onboarding
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                
+                <div className="flex items-center gap-1 relative z-10">
                   <button
                     onClick={handleToggleMinimize}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="p-2 rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-colors backdrop-blur-sm"
                     title="Minimizar"
                   >
-                    <Minimize2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <Minimize2 className="h-4 w-4 text-white drop-shadow" />
                   </button>
                   <button
                     onClick={handleClose}
-                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="p-2 rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-colors backdrop-blur-sm"
                     title="Fechar"
                   >
-                    <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    <X className="h-4 w-4 text-white drop-shadow" />
                   </button>
                 </div>
               </div>

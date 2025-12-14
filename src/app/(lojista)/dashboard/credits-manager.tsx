@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSearchParams } from "next/navigation";
 import { Sparkles, Plus, RefreshCw, AlertCircle, CheckCircle, XCircle, X } from "lucide-react";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
 
 type CreditsManagerProps = {
   lojistaId?: string;
@@ -103,14 +104,14 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
   };
 
   return (
-    <div className="neon-card ai-credits-card p-6 border-indigo-500/60 dark:border-purple-500/60" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03)' }}>
+    <AnimatedCard className="ai-credits-card p-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-purple-500 dark:to-purple-600 p-2 shadow-lg shadow-indigo-500/50 dark:shadow-purple-500/50">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Créditos de IA</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white font-heading">Créditos de IA</h3>
             <p className="text-sm font-medium text-slate-600 dark:text-gray-400">
               Gerencie os créditos para geração de imagens com IA
             </p>
@@ -128,7 +129,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
         </Button>
       </div>
 
-      <div className="mb-6 rounded-lg p-4 border-2 border-indigo-500/60 dark:border-indigo-500/70 bg-white dark:credit-display-dark shadow-md neon-credit-card">
+      <div className="mb-6 rounded-lg p-4 bg-white shadow-md animated-card-border" style={{ border: '1px solid oklch(67.3% 0.182 276.935)' }}>
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-bold text-slate-800 dark:text-white">
             {loadingBalance ? "..." : credits?.toLocaleString("pt-BR") || "0"}
@@ -184,7 +185,8 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               placeholder="Quantidade de créditos"
               value={amountToAdd}
               onChange={(e) => setAmountToAdd(e.target.value)}
-              className="flex-1 bg-white dark:bg-slate-800 border-2 border-indigo-300 dark:border-purple-600 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:focus:ring-purple-500 focus:border-indigo-500 dark:focus:border-purple-500 transition-all duration-200"
+              className="flex-1 bg-white text-slate-900 placeholder:text-slate-400 rounded-lg focus:ring-2 focus:ring-[#4169E1] transition-all duration-200 animated-card-border"
+              style={{ border: '1px solid oklch(67.3% 0.182 276.935)' }}
               disabled={addingCredits}
             />
             <Button
@@ -210,7 +212,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
           </p>
         </div>
       </div>
-    </div>
+    </AnimatedCard>
   );
 }
 

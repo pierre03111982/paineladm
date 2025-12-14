@@ -771,7 +771,7 @@ export function ComposicoesGallery({
       <div className="neon-card -mt-2">
         {/* Título dentro da caixa */}
         <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-          <h2 className="text-lg font-bold text-[var(--text-main)]">Composições</h2>
+          <h2 className="text-lg font-bold text-[var(--text-main)] font-heading">Composições</h2>
           <p className="text-xs text-[var(--text-secondary)] mt-1">
             Visualize e gerencie todas as composições geradas
           </p>

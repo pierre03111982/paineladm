@@ -991,6 +991,16 @@ export async function fetchComposicoesRecentes(
 
       const createdAt = data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date();
 
+      // Buscar URL da imagem da composição (pode estar em vários campos)
+      const imagemUrl = 
+        data.imagemUrl || 
+        data.imageUrl || 
+        data.final_image_url ||
+        data.looks?.[0]?.imagemUrl ||
+        data.looks?.[0]?.imageUrl ||
+        data.generation?.imagemUrl ||
+        null;
+
       composicoes.push({
         id: doc.id,
         customer: data.customerId
@@ -1024,7 +1034,8 @@ export async function fetchComposicoesRecentes(
         metrics: data.metrics || null,
         totalCostBRL: typeof data.totalCostBRL === "number" ? data.totalCostBRL : undefined,
         processingTime: typeof data.processingTime === "number" ? data.processingTime : undefined,
-      });
+        imagemUrl: imagemUrl, // Adicionar campo imagemUrl ao objeto ComposicaoDoc
+      } as any);
     });
 
     return composicoes;
@@ -1204,6 +1215,7 @@ export async function calculateConversionFunnel(lojistaId: string): Promise<{
 export async function getLowStockAlerts(lojistaId: string, lowStockThreshold: number = 10): Promise<Array<{
   produtoId: string;
   produtoNome: string;
+  produtoImagem: string;
   estoqueAtual: number;
   experimentacoes: number;
   prioridade: "alta" | "media" | "baixa";
@@ -1241,6 +1253,7 @@ export async function getLowStockAlerts(lojistaId: string, lowStockThreshold: nu
         return {
           produtoId: produto.id,
           produtoNome: produto.nome,
+          produtoImagem: produto.imagemUrlCatalogo || produto.imagemUrl || '',
           estoqueAtual: estoque,
           experimentacoes,
           prioridade,

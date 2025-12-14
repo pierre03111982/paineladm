@@ -47,10 +47,57 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
     .limit(100)
     .get();
 
-  const orders = ordersSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as any[];
+  const orders = ordersSnapshot.docs.map((doc) => {
+    const data = doc.data();
+    
+    // Tentar extrair nome do cliente de múltiplas fontes possíveis
+    const customerName = 
+      data.customerName ||
+      data.customer?.name ||
+      data.user?.name ||
+      data.buyer?.name ||
+      data.client?.name ||
+      data.payer?.name ||
+      data.payer?.first_name ||
+      data.additional_info?.payer?.first_name ||
+      data.additionalInfo?.payer?.first_name ||
+      data.destinationName ||
+      data.shippingName ||
+      data.userName ||
+      data.name ||
+      null;
+    
+    // Tentar extrair telefone/WhatsApp de múltiplas fontes possíveis
+    const customerWhatsapp = 
+      data.customerWhatsapp ||
+      data.customer?.whatsapp ||
+      data.customer?.phone ||
+      data.customer?.phoneNumber ||
+      data.user?.whatsapp ||
+      data.user?.phone ||
+      data.buyer?.phone ||
+      data.client?.phone ||
+      data.payer?.phone?.number ||
+      data.additional_info?.payer?.phone?.number ||
+      data.additionalInfo?.payer?.phone?.number ||
+      data.whatsapp ||
+      data.phone ||
+      data.phoneNumber ||
+      data.contact ||
+      data.destinationPhone ||
+      data.shippingPhone ||
+      null;
+    
+    // Converter Timestamps do Firestore para strings ISO para permitir serialização
+    return {
+      id: doc.id,
+      ...data,
+      customerName,
+      customerWhatsapp,
+      createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || null,
+      updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt || null,
+    };
+  }) as any[];
 
   // Calcular estatísticas
   const stats = {

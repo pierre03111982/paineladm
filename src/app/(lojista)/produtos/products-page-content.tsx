@@ -6,6 +6,9 @@ import { ProductsTable } from "./products-table";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { ManualProductForm } from "./manual-product-form";
 import { ImportCatalogModal } from "./import-catalog-modal";
+import { PageWrapper } from "@/components/ui/PageWrapper";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { motion } from "framer-motion";
 
 type ProductsPageContentProps = {
   initialProdutos: ProdutoDoc[];
@@ -24,27 +27,29 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
   const draftProducts = initialProdutos.filter(p => p.arquivado);
 
   return (
-    <div className="w-full space-y-8">
-      {/* Seção Produtos */}
-      <div className="neon-card p-6">
+    <PageWrapper>
+      <div className="w-full space-y-8">
+        {/* Seção Produtos */}
+        <AnimatedCard className="p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2">Produtos</h1>
+            <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2 font-heading">Produtos</h1>
             <p className="text-sm text-[var(--text-secondary)]">
               Gerencie o catálogo que alimenta o Provador Virtual. Cadastre novas peças manualmente, importe via planilha ou sincronize com seu e-commerce.
             </p>
           </div>
           <div className="flex gap-3">
-            <button
+            <motion.button
               onClick={() => {
                 console.log("[ProductsPageContent] Abrindo modal manual");
                 setShowManualForm(true);
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+              whileTap={{ scale: 0.95 }}
             >
               <Plus className="h-4 w-4" />
               Adicionar produto
-            </button>
+            </motion.button>
             <button
               onClick={() => {
                 console.log("[ProductsPageContent] Abrindo modal import");
@@ -57,12 +62,12 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
             </button>
           </div>
         </div>
-      </div>
+        </AnimatedCard>
 
-      {/* Seção Inventário */}
-      <div className="neon-card p-6 overflow-hidden">
+        {/* Seção Inventário */}
+        <AnimatedCard className="p-6 overflow-hidden">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-main)]">Inventário</h2>
+          <h2 className="text-lg font-semibold text-[var(--text-main)] font-heading">Inventário</h2>
           <div className="flex items-center gap-2">
             <button className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
               <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
@@ -106,15 +111,15 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           lojistaId={lojistaId}
           initialLojaDiscount={perfil?.descontoRedesSociais ?? null}
         />
-      </div>
+        </AnimatedCard>
 
-      {/* Seção Manual */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="neon-card p-6">
+        {/* Seção Manual */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <AnimatedCard className="p-6">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600">MANUAL</span>
           </div>
-            <h3 className="text-lg font-semibold text-[var(--text-main)] mb-2">Cadastro manual de produto</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-main)] mb-2 font-heading">Cadastro manual de produto</h3>
             <p className="text-sm text-[var(--text-secondary)] mb-4">
             Preencha as informações essenciais do produto, faça upload da foto e disponibilize imediatamente no provador. Ideal para peças exclusivas ou lançamentos rápidos.
           </p>
@@ -129,9 +134,9 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               Ver guia de preenchimento
             </button>
           </div>
-        </div>
+          </AnimatedCard>
 
-        <div className="neon-card p-6">
+          <AnimatedCard className="p-6">
           <h4 className="text-sm font-semibold text-[var(--text-main)] dark:text-white mb-3">Campos sugeridos</h4>
           <ul className="space-y-2 text-sm text-[var(--text-secondary)] dark:text-white/85">
             <li className="flex items-start gap-2">
@@ -157,16 +162,16 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               Dica: produtos com fotos neutras e fundo limpo têm resultado melhor nas combinações inteligentes do provador.
             </p>
           </div>
+          </AnimatedCard>
         </div>
-      </div>
 
-      {/* Seção Importação */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <div className="neon-card p-6">
+        {/* Seção Importação */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <AnimatedCard className="p-6">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">IMPORTAÇÃO</span>
           </div>
-            <h3 className="text-lg font-semibold text-[var(--text-main)] mb-2">Importar produtos em massa</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-main)] mb-2 font-heading">Importar produtos em massa</h3>
             <p className="text-sm text-[var(--text-secondary)] mb-4">
             Suba uma planilha padrão para cadastrar dezenas de produtos em segundos. Ideal para atualizar coleções completas ou trazer o catálogo do e-commerce.
           </p>
@@ -183,9 +188,9 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               Baixar modelo
             </button>
           </div>
-        </div>
+          </AnimatedCard>
 
-        <div className="neon-card p-6" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+          <AnimatedCard className="p-6" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
           <h4 className="text-sm font-semibold text-[var(--text-main)] mb-2">Conecte seu e-commerce</h4>
           <p className="text-sm text-emerald-900 dark:text-emerald-300 mb-4">
             Estamos preparando integrações nativas com Shopify, Nuvemshop e VTEX para que seu catálogo fique sempre sincronizado. Cadastre-se na lista de espera e seja avisado em primeira mão.
@@ -197,11 +202,11 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
             Quero ser avisado
             <ExternalLink className="h-4 w-4" />
           </button>
+          </AnimatedCard>
         </div>
-      </div>
 
-      {/* Modais */}
-      {showManualForm && (
+        {/* Modais */}
+        {showManualForm && (
         <ManualProductForm
           lojistaId={lojistaId}
           onClose={() => {
@@ -225,7 +230,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 sm:pt-12 overflow-y-auto">
           <div className="w-full max-w-md neon-card rounded-xl p-6 mb-8">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[var(--text-main)]">Lista de Espera</h2>
+              <h2 className="text-xl font-semibold text-[var(--text-main)] font-heading">Lista de Espera</h2>
               <button
                 onClick={() => setShowEcommerceWaitlist(false)}
                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
@@ -275,7 +280,8 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PageWrapper>
   );
 }
 

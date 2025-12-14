@@ -1,0 +1,29 @@
+warning: in the working copy of 'src/app/(lojista)/composicoes/composicoes-gallery.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/(lojista)/composicoes/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/(lojista)/crm/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/(lojista)/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/api/ai/chat/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/dashboard/components/DashboardContent.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ai-chat/ChatButton.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ai-chat/ChatInterface.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ai-chat/ChatMessage.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ai-services/gemini-flash-image.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ai-services/tools/customer-analysis.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/ai-services/vertex-agent.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/firestore/crm-queries.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/firestore/generations.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/firestore/server.ts', LF will be replaced by CRLF the next time Git touches it
+src/app/(lojista)/composicoes/composicoes-gallery.tsx
+src/app/(lojista)/composicoes/page.tsx
+src/app/(lojista)/crm/page.tsx
+src/app/(lojista)/layout.tsx
+src/app/api/ai/chat/route.ts
+src/app/dashboard/components/DashboardContent.tsx
+src/components/ai-chat/ChatButton.tsx
+src/components/ai-chat/ChatInterface.tsx
+src/components/ai-chat/ChatMessage.tsx
+src/lib/ai-services/gemini-flash-image.ts
+src/lib/ai-services/tools/customer-analysis.ts
+src/lib/ai-services/vertex-agent.ts
+src/lib/firestore/crm-queries.ts
+src/lib/firestore/server.ts

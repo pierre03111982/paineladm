@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ArrowLeft, 
   User, 
@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ClientStyleProfile } from "@/components/clients/ClientStyleProfile";
+import { ClientSalesCockpitModal } from "@/app/(lojista)/composicoes/ClientSalesCockpitModal";
 // Helper para formatar data relativa
 function formatRelativeTime(date: Date): string {
   const now = new Date();
@@ -49,16 +50,62 @@ type ClienteProfileContentProps = {
 export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileContentProps) {
   const searchParams = useSearchParams();
   const lojistaIdFromUrl = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
+  const viewParam = searchParams?.get("view");
   
   const backHref = lojistaIdFromUrl 
     ? `/clientes?lojistaId=${lojistaIdFromUrl}`
     : "/clientes";
+
+  // Estado para controlar o cockpit modal
+  const [selectedComposition, setSelectedComposition] = useState<any | null>(null);
+  const [isCockpitOpen, setIsCockpitOpen] = useState(false);
 
   // Calcular estatísticas
   const totalComposicoes = cliente.composicoes?.length || 0;
   const totalLikes = cliente.actions?.filter((a: any) => a.type === "like").length || 0;
   const totalDislikes = cliente.actions?.filter((a: any) => a.type === "dislike").length || 0;
   const totalShares = cliente.composicoes?.reduce((sum: number, c: any) => sum + (c.shares || 0), 0) || 0;
+
+  // Abrir cockpit automaticamente se view=cockpit
+  useEffect(() => {
+    if (viewParam === "cockpit" && cliente.composicoes && cliente.composicoes.length > 0) {
+      // Buscar a última composição do cliente
+      const lastComposition = cliente.composicoes
+        .filter((c: any) => c.imagemUrl || c.imageUrl)
+        .sort((a: any, b: any) => {
+          const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt || 0);
+          const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        })[0];
+
+      if (lastComposition) {
+        // Converter para o formato esperado pelo ClientSalesCockpitModal
+        const compositionForModal = {
+          id: lastComposition.id,
+          imagemUrl: lastComposition.imagemUrl || lastComposition.imageUrl || lastComposition.final_image_url || null,
+          createdAt: lastComposition.createdAt?.toDate?.() || new Date(lastComposition.createdAt || Date.now()),
+          customerName: cliente.nome || "Cliente",
+          customerWhatsapp: cliente.whatsapp || null,
+          produtoNome: lastComposition.produtoNome || lastComposition.primaryProductName || "Produto",
+          customerId: cliente.id,
+        };
+
+        setSelectedComposition(compositionForModal);
+        setIsCockpitOpen(true);
+      }
+    }
+  }, [viewParam, cliente.composicoes, cliente.nome, cliente.whatsapp, cliente.id]);
+
+  const closeCockpit = () => {
+    setIsCockpitOpen(false);
+    setSelectedComposition(null);
+    // Remover o parâmetro view da URL sem recarregar a página
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('view');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
   
   // Tags baseadas em comportamento
   const tags: string[] = [];
@@ -93,7 +140,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           Voltar
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Perfil do Cliente</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-heading">Perfil do Cliente</h1>
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Visualize informações e histórico completo</p>
         </div>
       </div>
@@ -112,7 +159,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           <div className="flex-1 min-w-0">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{cliente.nome || "Cliente Anônimo"}</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-heading">{cliente.nome || "Cliente Anônimo"}</h2>
                 <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
                   {cliente.whatsapp && (
                     <div className="flex items-center gap-2">
@@ -369,6 +416,16 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             })}
           </div>
         </div>
+      )}
+
+      {/* Modal Cockpit de Vendas */}
+      {selectedComposition && (
+        <ClientSalesCockpitModal
+          composition={selectedComposition}
+          lojistaId={lojistaId}
+          isOpen={isCockpitOpen}
+          onClose={closeCockpit}
+        />
       )}
     </div>
   );

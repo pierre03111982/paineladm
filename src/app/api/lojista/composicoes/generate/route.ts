@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
     // ============================================
     let payloadRecebido: any = null;
     let rawBodyData: any = body;
-    
+
     if (isFormData && formData) {
       // FormData já foi lido acima - usar produtos normalizados
       formDataEntries = {};
@@ -2142,7 +2142,7 @@ export async function POST(request: NextRequest) {
                 await existingGen.docs[0].ref.update({
                   produtos: composicaoData.produtos,
                   productIds: composicaoData.productIds || productIdsParaSalvar,
-                });
+          });
                 console.log("[API] ✅ Generation atualizada com produtos da composição");
               }
             } catch (updateError) {

@@ -372,49 +372,14 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
           </div>
         )}
 
-        {/* Exibir Search Suggestions (Grounding) */}
-        {!isUser && grounding?.webSearchQueries && grounding.webSearchQueries.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Sugestões de busca:
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {grounding.webSearchQueries.map((query, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSearchSuggestion(query)}
-                  className="px-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-                  title={`Buscar: ${query}`}
-                >
-                  {query}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Exibir Sources (Fontes) */}
-        {!isUser && grounding?.sources && grounding.sources.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Fontes:
-            </div>
-            <div className="space-y-1">
-              {grounding.sources.map((source, index) => {
-                if (!source.uri) return null;
-                return (
-                  <a
-                    key={index}
-                    href={source.uri}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-xs text-blue-600 dark:text-blue-400 hover:underline truncate"
-                    title={source.title || source.uri}
-                  >
-                    {source.title || source.uri}
-                  </a>
-                );
-              })}
+        {/* Indicador simples de pesquisa na internet */}
+        {!isUser && ((grounding?.webSearchQueries?.length ?? 0) > 0 || (grounding?.sources?.length ?? 0) > 0) && (
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Pesquisa realizada na internet
             </div>
           </div>
         )}

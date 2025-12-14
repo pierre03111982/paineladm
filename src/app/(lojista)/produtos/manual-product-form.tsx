@@ -123,15 +123,15 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-5 shadow-lg mt-4 mb-8">
+      <div className="w-full max-w-2xl rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] p-5 shadow-lg mt-4 mb-8">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Cadastro manual de produto</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">
+          <h2 className="text-lg font-semibold text-[var(--text-main)]">Cadastro manual de produto</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="text-xs text-zinc-400 mb-3">
+        <p className="text-xs text-[var(--text-secondary)] mb-3">
           Preencha os campos abaixo para disponibilizar uma nova peça no provador virtual. O envio real será conectado ao Firestore.
         </p>
 
@@ -144,10 +144,10 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Foto Principal */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">FOTO PRINCIPAL</label>
-            <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 flex gap-4 items-start">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">FOTO PRINCIPAL</label>
+            <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 flex gap-4 items-start">
               {/* Área de Preview */}
-              <div className="flex-shrink-0 w-32 h-32 rounded-lg border border-zinc-700 bg-zinc-900/50 flex items-center justify-center overflow-hidden">
+              <div className="flex-shrink-0 w-32 h-32 rounded-lg bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
                 {(formData.imagemUrl || uploadedImageUrl) ? (
                   <img
                     src={formData.imagemUrl || uploadedImageUrl}
@@ -156,8 +156,8 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   />
                 ) : (
                   <div className="text-center">
-                    <Upload className="h-8 w-8 text-zinc-600 mx-auto mb-1" />
-                    <p className="text-xs text-zinc-500">Sem imagem</p>
+                    <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Sem imagem</p>
                   </div>
                 )}
               </div>
@@ -165,11 +165,11 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
               {/* Texto e Botão */}
               <div className="flex-1 flex flex-col justify-between">
                 <div className="space-y-1">
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-[var(--text-secondary)]">
                     Utilize imagens em PNG ou JPG com fundo limpo. O upload é salvo automaticamente no Firebase Storage.
                   </p>
                   {uploadedImageUrl && (
-                    <p className="text-xs text-emerald-400">
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
                       Arquivo pronto para envio junto com o cadastro.
                     </p>
                   )}
@@ -179,7 +179,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={uploadingImage}
-                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition disabled:opacity-50"
                   >
                     <Upload className="h-3.5 w-3.5" />
                     {uploadingImage ? "Enviando..." : "Selecionar Imagem"}
@@ -197,7 +197,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
             
             {/* Campo URL */}
             <div className="mt-2">
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
                 Ou adicione a imagem por URL
               </label>
               <input
@@ -205,44 +205,44 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 value={formData.imagemUrl}
                 onChange={(e) => setFormData({ ...formData, imagemUrl: e.target.value })}
                 placeholder="https://exemplo.com/imagem.jpg"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Nome */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">NOME</label>
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">NOME</label>
             <input
               type="text"
               value={formData.nome}
               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
               placeholder="Ex: Vestido Aurora"
               required
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Preço e Categoria */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">PREÇO (R$)</label>
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">PREÇO (R$)</label>
               <input
                 type="text"
                 value={formData.preco}
                 onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
                 placeholder="Ex: 329,90"
                 required
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">CATEGORIA</label>
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">CATEGORIA</label>
               <select
                 value={formData.categoria}
                 onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                 required
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               >
                 <option value="">Selecione uma categoria</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -257,7 +257,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
           {/* Cores e Tamanhos */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                 CORES (SEPARADAS POR -)
               </label>
               <input
@@ -265,11 +265,11 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 value={formData.cores}
                 onChange={(e) => setFormData({ ...formData, cores: e.target.value })}
                 placeholder="Ex: lilás - grafite"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
                 TAMANHOS (SEPARADOS POR ;)
               </label>
               <input
@@ -277,14 +277,14 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 value={formData.tamanhos}
                 onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
                 placeholder="Ex: P;M;G"
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
 
           {/* Observações para IA */}
           <div>
-            <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
               OBSERVAÇÕES PARA IA
             </label>
             <textarea
@@ -292,15 +292,15 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               placeholder="Ex: tecido em seda, caimento leve, ideal para looks noturnos."
               rows={2}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
             />
           </div>
 
           {/* Info e Botões */}
-          <div className="pt-2 border-t border-zinc-800">
-            <div className="flex items-start gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-2 mb-2">
-              <Info className="h-3.5 w-3.5 mt-0.5 text-indigo-400 flex-shrink-0" />
-              <p className="text-xs text-indigo-200">
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-start gap-2 rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 p-2 mb-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+              <p className="text-xs text-indigo-900 dark:text-indigo-200">
                 Os dados e a imagem são enviados para o Firestore. Em breve, você poderá definir estoque, status e vitrine.
               </p>
             </div>
@@ -309,14 +309,14 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white transition hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-50"
+                className="rounded-lg bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50"
               >
                 {loading ? "Salvando..." : "Salvar produto"}
               </button>

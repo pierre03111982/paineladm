@@ -45,14 +45,55 @@ export async function POST(request: NextRequest) {
     // Buscar clientes ativos (últimas 72h)
     const actionsRef = db.collection("actions");
     const last72h = new Date(Date.now() - 72 * 60 * 60 * 1000);
-    const recentActionsSnapshot = await actionsRef
-      .where("lojista_id", "==", lojistaId)
-      .where("timestamp", ">", last72h)
-      .limit(100)
-      .get();
+    
+    let recentActions: any[] = [];
+    let hotLeads = 0;
+    
+    try {
+      const recentActionsSnapshot = await actionsRef
+        .where("lojista_id", "==", lojistaId)
+        .where("timestamp", ">", last72h)
+        .limit(100)
+        .get();
 
-    const recentActions = recentActionsSnapshot.docs.map((doc) => doc.data());
-    const hotLeads = new Set(recentActions.map((a: any) => a.user_id)).size;
+      recentActions = recentActionsSnapshot.docs.map((doc) => doc.data());
+      hotLeads = new Set(recentActions.map((a: any) => a.user_id)).size;
+    } catch (error: any) {
+      // Se não tiver índice, buscar todas as ações do lojista e filtrar em memória
+      if (error?.code === "failed-precondition") {
+        console.log("[AnalyzeDaily] Índice não encontrado, buscando todas as ações e filtrando em memória");
+        try {
+          const allActionsSnapshot = await actionsRef
+            .where("lojista_id", "==", lojistaId)
+            .limit(1000)
+            .get();
+          
+          const allActions = allActionsSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              ...data,
+              timestamp: data.timestamp?.toDate?.() || data.timestamp || new Date(0),
+            };
+          });
+          
+          // Filtrar por data em memória
+          recentActions = allActions.filter((a: any) => {
+            const actionDate = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
+            return actionDate > last72h;
+          });
+          
+          hotLeads = new Set(recentActions.map((a: any) => a.user_id)).size;
+        } catch (fallbackError) {
+          console.error("[AnalyzeDaily] Erro ao buscar ações (fallback):", fallbackError);
+          // Continuar com hotLeads = 0 se não conseguir buscar
+          hotLeads = 0;
+        }
+      } else {
+        console.error("[AnalyzeDaily] Erro ao buscar ações:", error);
+        // Continuar com hotLeads = 0 se houver outro erro
+        hotLeads = 0;
+      }
+    }
 
     // Buscar produtos com baixa performance
     const produtos = produtosSnapshot.docs.map((doc) => {
@@ -88,7 +129,19 @@ export async function POST(request: NextRequest) {
     };
 
     // Gerar insights usando Gemini
-    const geminiService = getGeminiTextService();
+    let geminiService;
+    try {
+      geminiService = getGeminiTextService();
+    } catch (error) {
+      console.error("[AnalyzeDaily] Erro ao inicializar Gemini:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Serviço de IA não disponível. Verifique as configurações.",
+        },
+        { status: 503 }
+      );
+    }
 
     const insights: Array<{
       type: "opportunity" | "risk" | "trend" | "action";
@@ -101,46 +154,72 @@ export async function POST(request: NextRequest) {
 
     // Insight 1: Hot Leads
     if (hotLeads > 0) {
-      const prompt = `Analise esta oportunidade de venda:
+      try {
+        const prompt = `Analise esta oportunidade de venda:
 
 - ${hotLeads} clientes ativos nas últimas 72 horas
 - ${produtosCount} produtos cadastrados
 
 Gere um insight do tipo "opportunity" sugerindo ações para converter esses leads em vendas.`;
 
-      const result = await geminiService.generateInsight(prompt, contextData);
-      if (result.success && result.data) {
-        insights.push({
-          type: result.data.type as any,
-          title: result.data.title,
-          message: result.data.message,
-          priority: result.data.priority,
-          actionLabel: result.data.actionLabel || "Ver Clientes",
-          actionLink: result.data.actionLink || "/clientes",
-        });
+        const result = await geminiService.generateInsight(prompt, contextData);
+        if (result.success && result.data) {
+          insights.push({
+            type: result.data.type as any,
+            title: result.data.title,
+            message: result.data.message,
+            priority: result.data.priority,
+            actionLabel: result.data.actionLabel || "Ver Clientes",
+            actionLink: result.data.actionLink || "/clientes",
+          });
+        } else {
+          console.warn("[AnalyzeDaily] Falha ao gerar insight de Hot Leads:", result.error);
+        }
+      } catch (error) {
+        console.error("[AnalyzeDaily] Erro ao gerar insight de Hot Leads:", error);
+        // Continuar mesmo se um insight falhar
       }
     }
 
     // Insight 2: Produtos com Problema
     if (produtosComProblema.length > 0) {
-      const prompt = `Analise este risco:
+      try {
+        const prompt = `Analise este risco:
 
 - ${produtosComProblema.length} produtos com baixa performance (alta rejeição ou baixa conversão)
 - Produtos: ${produtosComProblema.map((p: any) => p.nome).join(", ")}
 
 Gere um insight do tipo "risk" alertando sobre esses produtos e sugerindo ações.`;
 
-      const result = await geminiService.generateInsight(prompt, contextData);
-      if (result.success && result.data) {
-        insights.push({
-          type: result.data.type as any,
-          title: result.data.title,
-          message: result.data.message,
-          priority: result.data.priority,
-          actionLabel: result.data.actionLabel || "Ver Produtos",
-          actionLink: result.data.actionLink || "/produtos",
-        });
+        const result = await geminiService.generateInsight(prompt, contextData);
+        if (result.success && result.data) {
+          insights.push({
+            type: result.data.type as any,
+            title: result.data.title,
+            message: result.data.message,
+            priority: result.data.priority,
+            actionLabel: result.data.actionLabel || "Ver Produtos",
+            actionLink: result.data.actionLink || "/produtos",
+          });
+        } else {
+          console.warn("[AnalyzeDaily] Falha ao gerar insight de Produtos:", result.error);
+        }
+      } catch (error) {
+        console.error("[AnalyzeDaily] Erro ao gerar insight de Produtos:", error);
+        // Continuar mesmo se um insight falhar
       }
+    }
+
+    // Se não gerou nenhum insight, criar um insight padrão
+    if (insights.length === 0) {
+      insights.push({
+        type: "action",
+        title: "Bem-vindo ao Cérebro da Loja!",
+        message: `Sua loja tem ${produtosCount} produtos cadastrados. Continue adicionando produtos e gerando composições para receber insights personalizados.`,
+        priority: "low",
+        actionLabel: "Ver Produtos",
+        actionLink: "/produtos",
+      });
     }
 
     // Salvar insights no Firestore
@@ -152,15 +231,30 @@ Gere um insight do tipo "risk" alertando sobre esses produtos e sugerindo açõe
           expiresInDays: 7,
         });
         createdInsights.push(insightId);
+        console.log("[AnalyzeDaily] ✅ Insight criado:", {
+          id: insightId,
+          type: insight.type,
+          title: insight.title,
+        });
       } catch (error) {
-        console.error("[AnalyzeDaily] Erro ao criar insight:", error);
+        console.error("[AnalyzeDaily] ❌ Erro ao criar insight:", error);
+        // Continuar mesmo se um insight falhar ao salvar
       }
     }
+
+    console.log("[AnalyzeDaily] 📊 Resumo:", {
+      insightsGerados: insights.length,
+      insightsSalvos: createdInsights.length,
+      lojistaId,
+    });
 
     return NextResponse.json({
       success: true,
       insightsCreated: createdInsights.length,
       insights,
+      message: createdInsights.length > 0 
+        ? `${createdInsights.length} insight(s) gerado(s) com sucesso!`
+        : "Nenhum insight foi gerado. Verifique os logs para mais detalhes.",
     });
   } catch (error) {
     console.error("[API/AI/AnalyzeDaily] Erro:", error);

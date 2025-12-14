@@ -87,15 +87,15 @@ export async function POST(request: Request) {
             
             // Tentar buscar da composição na subcoleção
             try {
-              const composicaoRef = db
-                .collection("lojas")
-                .doc(lojistaId)
-                .collection("composicoes")
-                .doc(compositionId);
-              const composicaoDoc = await composicaoRef.get();
-              if (composicaoDoc.exists) {
-                const data = composicaoDoc.data();
-                finalProductIds = data?.produtos?.map((p: any) => p.id) || 
+            const composicaoRef = db
+              .collection("lojas")
+              .doc(lojistaId)
+              .collection("composicoes")
+              .doc(compositionId);
+            const composicaoDoc = await composicaoRef.get();
+            if (composicaoDoc.exists) {
+              const data = composicaoDoc.data();
+              finalProductIds = data?.produtos?.map((p: any) => p.id) || 
                                  data?.productIds ||
                                  (data?.primaryProductId ? [data.primaryProductId] : []);
               }
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
                   const data = composicaoDoc.data();
                   finalProductIds = data?.produtos?.map((p: any) => p.id) || 
                                    data?.productIds ||
-                                   (data?.primaryProductId ? [data.primaryProductId] : []);
+                               (data?.primaryProductId ? [data.primaryProductId] : []);
                 }
               } catch (rootError) {
                 console.warn("[api/actions] Erro ao buscar productIds da composição (raiz):", rootError);

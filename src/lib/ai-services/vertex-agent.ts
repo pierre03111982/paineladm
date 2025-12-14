@@ -128,6 +128,45 @@ export class VertexAgent {
   }
 
   /**
+   * Obtém informações de fuso horário e data/hora local
+   */
+  private getTimezoneInfo(): string {
+    try {
+      // Detectar fuso horário do sistema ou usar padrão do Brasil
+      const timezone = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Sao_Paulo';
+      
+      // Criar data no fuso horário local
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: timezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+      
+      const formattedDate = formatter.format(now);
+      
+      // Obter offset do fuso horário
+      const offset = -now.getTimezoneOffset() / 60;
+      const offsetStr = offset >= 0 ? `+${offset}` : `${offset}`;
+      
+      return `Data e hora atual (fuso horário local): ${formattedDate}
+Fuso horário: ${timezone} (UTC${offsetStr})
+IMPORTANTE: Use SEMPRE esta data e hora quando mencionar datas ou horários.`;
+    } catch (error) {
+      console.error("[VertexAgent] Erro ao obter informações de fuso horário:", error);
+      // Fallback para data simples
+      const now = new Date();
+      return `Data e hora atual: ${now.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Fuso horário: America/Sao_Paulo)`;
+    }
+  }
+
+  /**
    * Gera resposta usando Gemini 2.0 Flash com contexto injetado e Google Search
    */
   async sendMessage(
@@ -139,10 +178,19 @@ export class VertexAgent {
     // Se o context já contém um systemPrompt completo (começa com "ROLE:"), use-o diretamente
     const isFullSystemPrompt = context.trim().startsWith('ROLE:');
     
+    // Detectar fuso horário e data atual
+    const timezoneInfo = this.getTimezoneInfo();
+    
     const systemPrompt = isFullSystemPrompt
       ? context
       : `
       VOCÊ É A ANA, A GERENTE COMERCIAL E SUPORTE TÉCNICO DA LOJA.
+
+      === INFORMAÇÕES DE DATA E HORA ===
+      ${timezoneInfo}
+      
+      IMPORTANTE: Sempre use a data e hora local do Brasil (fuso horário ${Intl.DateTimeFormat().resolvedOptions().timeZone}) quando mencionar datas ou horários. 
+      NUNCA use UTC ou outros fusos horários. Se o usuário perguntar sobre data/hora, use a informação acima.
 
       === SEUS DADOS INTERNOS (A VERDADE ABSOLUTA) ===
       ${context}
@@ -384,9 +432,16 @@ export class VertexAgent {
     context: string,
     imageUrl: string
   ): Promise<ChatResponse> {
+    // Detectar fuso horário e data atual
+    const timezoneInfo = this.getTimezoneInfo();
+    
     const systemPrompt = `
       VOCÊ É: Ana, a Inteligência do Painel.
       SUA MISSÃO: Ajudar o lojista a vender mais.
+      
+      === INFORMAÇÕES DE DATA E HORA ===
+      ${timezoneInfo}
+      
       CONTEXTO ATUAL:
       ${context}
       

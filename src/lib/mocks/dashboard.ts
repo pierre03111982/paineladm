@@ -15,6 +15,7 @@ export type ActiveCustomer = {
   avatarInitials: string;
   totalCompositions: number;
   lastActivity: string;
+  lastCompositionImageUrl?: string | null; // URL da imagem da última composição gerada
 };
 
 export type DislikeReason = "garment_style" | "fit_issue" | "ai_distortion" | "other";

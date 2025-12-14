@@ -11,8 +11,11 @@ import {
   Eye,
   Filter,
   Search,
+  User,
+  Phone,
+  Trash2,
 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 type Order = {
   id: string;
@@ -29,6 +32,8 @@ type Order = {
   total: number;
   destinationZip?: string;
   payment_gateway?: string;
+  customerName?: string;
+  customerWhatsapp?: string;
   createdAt: any;
   updatedAt?: any;
 };
@@ -47,10 +52,52 @@ type OrdersContentProps = {
 
 export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContentProps) {
   const searchParams = useSearchParams();
-  const [orders] = useState(initialOrders);
+  const router = useRouter();
+  const [orders, setOrders] = useState(initialOrders);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirmDeleteId || confirmDeleteId !== orderId) {
+      // Primeira vez: pedir confirmação
+      setConfirmDeleteId(orderId);
+      setTimeout(() => setConfirmDeleteId(null), 3000); // Reset após 3s
+      return;
+    }
+
+    // Segunda vez: deletar
+    setDeletingOrderId(orderId);
+    
+    try {
+      const response = await fetch(`/api/lojista/pedidos/${orderId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao excluir pedido");
+      }
+
+      // Remover da lista local
+      setOrders(orders.filter(o => o.id !== orderId));
+      setConfirmDeleteId(null);
+      
+      // Fechar modal se estiver aberto
+      if (viewingOrder?.id === orderId) {
+        setViewingOrder(null);
+      }
+
+      // Recarregar página para atualizar estatísticas
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao excluir pedido:", error);
+      alert("Erro ao excluir pedido. Tente novamente.");
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
@@ -110,7 +157,19 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
 
   const formatDate = (date: any) => {
     if (!date) return "N/A";
-    const d = date.toDate ? date.toDate() : new Date(date);
+    
+    // Aceitar tanto strings ISO quanto objetos Date ou Timestamps
+    let d: Date;
+    if (typeof date === 'string') {
+      d = new Date(date);
+    } else if (date.toDate) {
+      d = date.toDate();
+    } else if (date instanceof Date) {
+      d = date;
+    } else {
+      return "N/A";
+    }
+    
     return d.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -233,6 +292,9 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
                   ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                  Cliente
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
                   Itens
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
@@ -252,7 +314,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
             <tbody className="divide-y divide-white/10">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-600 dark:text-gray-400">
+                  <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-600 dark:text-gray-400">
                     <Package className="mx-auto mb-4 h-12 w-12 text-slate-400 dark:text-gray-500" />
                     Nenhum pedido encontrado.
                   </td>
@@ -264,6 +326,22 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
                       <span className="text-sm font-semibold text-slate-900 dark:text-white">
                         #{order.id.slice(0, 8)}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-start gap-2">
+                        <User className="h-4 w-4 text-slate-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                            {order.customerName || "Cliente não informado"}
+                          </div>
+                          {order.customerWhatsapp && (
+                            <div className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-gray-400 mt-0.5">
+                              <Phone className="h-3 w-3" />
+                              {order.customerWhatsapp}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-slate-900 dark:text-white">
@@ -286,13 +364,28 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
                       {formatDate(order.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => setViewingOrder(order)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        Ver
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setViewingOrder(order)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Ver
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOrder(order.id)}
+                          disabled={deletingOrderId === order.id}
+                          className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm transition-all duration-200 ${
+                            confirmDeleteId === order.id
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700'
+                          } ${deletingOrderId === order.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={confirmDeleteId === order.id ? "Clique novamente para confirmar" : "Excluir pedido"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          {deletingOrderId === order.id ? '...' : confirmDeleteId === order.id ? 'Confirmar?' : ''}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -309,6 +402,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
           onClose={() => setViewingOrder(null)}
           getStatusBadge={getStatusBadge}
           formatDate={formatDate}
+          onDelete={handleDeleteOrder}
         />
       )}
     </div>
@@ -338,6 +432,26 @@ function OrderCard({
         <div className="ml-2">{getStatusBadge(order.status)}</div>
       </div>
       
+      {/* Customer Info */}
+      {(order.customerName || order.customerWhatsapp) && (
+        <div className="mb-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-start gap-2">
+            <User className="h-4 w-4 text-indigo-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {order.customerName || "Cliente não informado"}
+              </p>
+              {order.customerWhatsapp && (
+                <div className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-gray-400 mt-1">
+                  <Phone className="h-3 w-3" />
+                  {order.customerWhatsapp}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Order Details */}
       <div className="space-y-2 mb-4 pb-3 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between text-sm text-slate-600 dark:text-gray-400">
@@ -364,13 +478,15 @@ function OrderCard({
           <p className="text-xs font-medium text-slate-600 dark:text-gray-400">Total</p>
           <p className="text-lg font-bold text-slate-900 dark:text-white">R$ {order.total.toFixed(2)}</p>
         </div>
-        <button
-          onClick={onView}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200"
-        >
-          <Eye className="h-3.5 w-3.5" />
-          Ver
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onView}
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 px-4 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-200"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            Ver
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -382,11 +498,13 @@ function OrderDetailModal({
   onClose,
   getStatusBadge,
   formatDate,
+  onDelete,
 }: {
   order: Order;
   onClose: () => void;
   getStatusBadge: (status: string) => React.ReactElement;
   formatDate: (date: any) => string;
+  onDelete: (orderId: string) => void;
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur">
@@ -413,6 +531,40 @@ function OrderDetailModal({
               <div className="mt-1">{getStatusBadge(order.status)}</div>
             </div>
           </div>
+
+          {/* Customer Info */}
+          {(order.customerName || order.customerWhatsapp) && (
+            <div className="rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-200 dark:border-indigo-800 p-4">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                <User className="h-4 w-4 text-indigo-600 dark:text-purple-400" />
+                Dados do Cliente
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">Nome</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {order.customerName || "Não informado"}
+                  </p>
+                </div>
+                {order.customerWhatsapp && (
+                  <div>
+                    <p className="text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">WhatsApp</p>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <a
+                        href={`https://wa.me/${order.customerWhatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition"
+                      >
+                        {order.customerWhatsapp}
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Items */}
           <div>
@@ -491,7 +643,14 @@ function OrderDetailModal({
           </div>
         </div>
 
-        <div className="sticky bottom-0 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-4 flex justify-end">
+        <div className="sticky bottom-0 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-4 flex justify-between items-center">
+          <button
+            onClick={() => onDelete(order.id)}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200"
+          >
+            <Trash2 className="h-4 w-4" />
+            Excluir Pedido
+          </button>
           <button
             onClick={onClose}
             className="rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200"
