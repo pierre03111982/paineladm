@@ -157,17 +157,19 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
       {/* Profile Card */}
       <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-          {/* Avatar */}
+          {/* Avatar - Formato 9:16 */}
           <div className="flex-shrink-0">
             {firstLikedImage ? (
-              <img
-                src={firstLikedImage}
-                alt={cliente.nome || "Cliente"}
-                className="h-24 w-24 rounded-full object-cover border-4 border-indigo-200 shadow-lg"
-              />
+              <div className="relative w-32 h-56 rounded-2xl overflow-hidden border-4 border-indigo-300 dark:border-indigo-500 shadow-xl" style={{ aspectRatio: '9/16' }}>
+                <img
+                  src={firstLikedImage}
+                  alt={cliente.nome || "Cliente"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-indigo-100 text-2xl font-semibold text-indigo-600 border-4 border-indigo-200 shadow-lg">
-                {cliente.nome ? cliente.nome.charAt(0).toUpperCase() : <User className="h-12 w-12" />}
+              <div className="flex w-32 h-56 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 text-4xl font-bold text-indigo-600 dark:text-indigo-300 border-4 border-indigo-300 dark:border-indigo-500 shadow-xl" style={{ aspectRatio: '9/16' }}>
+                {cliente.nome ? cliente.nome.charAt(0).toUpperCase() : <User className="h-20 w-20" />}
               </div>
             )}
           </div>
@@ -223,40 +225,40 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
       {/* Sales Stats Cards - Top Priority */}
       {cliente.salesStats && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border-2 border-emerald-400 dark:border-emerald-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-2">
-                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="rounded-2xl border-2 border-emerald-300 dark:border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-white dark:bg-emerald-900/40 p-3 shadow-md">
+                <DollarSign className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Total Gasto</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Total Gasto</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
                   R$ {cliente.salesStats.totalSpent.toFixed(2)}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-2">
-                <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <div className="rounded-2xl border-2 border-blue-300 dark:border-blue-400 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-white dark:bg-blue-900/40 p-3 shadow-md">
+                <ShoppingCart className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Total Pedidos</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{cliente.salesStats.orderCount}</p>
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Total Pedidos</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{cliente.salesStats.orderCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border-2 border-indigo-400 dark:border-indigo-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-indigo-50 dark:bg-indigo-950/40 p-2">
-                <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+          <div className="rounded-2xl border-2 border-indigo-300 dark:border-indigo-400 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+            <div className="flex items-center gap-4">
+              <div className="rounded-xl bg-white dark:bg-indigo-900/40 p-3 shadow-md">
+                <TrendingUp className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Ticket Médio</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wide">Ticket Médio</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
                   R$ {cliente.salesStats.averageTicket.toFixed(2)}
                 </p>
               </div>
@@ -267,50 +269,50 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Engagement Stats Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-2">
-              <ImageIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        <div className="rounded-2xl border-2 border-blue-300 dark:border-blue-400 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-white dark:bg-blue-900/40 p-3 shadow-md">
+              <ImageIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Composições</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalComposicoes}</p>
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Composições</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{totalComposicoes}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border-2 border-emerald-400 dark:border-emerald-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-2">
-              <Heart className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <div className="rounded-2xl border-2 border-emerald-300 dark:border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-white dark:bg-emerald-900/40 p-3 shadow-md">
+              <Heart className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Curtidas</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalLikes}</p>
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Curtidas</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{totalLikes}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border-2 border-amber-400 dark:border-amber-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 p-2">
-              <ThumbsDown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-white dark:bg-amber-900/40 p-3 shadow-md">
+              <ThumbsDown className="h-8 w-8 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Rejeições</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalDislikes}</p>
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Rejeições</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{totalDislikes}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-xl border-2 border-purple-400 dark:border-purple-500 bg-white dark:bg-slate-800 p-4 shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-purple-50 dark:bg-purple-950/40 p-2">
-              <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="rounded-2xl border-2 border-purple-300 dark:border-purple-400 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 p-6 shadow-xl hover:shadow-2xl transition-all">
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl bg-white dark:bg-purple-900/40 p-3 shadow-md">
+              <Share2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Compartilhamentos</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalShares}</p>
+              <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">Compartilhamentos</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{totalShares}</p>
             </div>
           </div>
         </div>
