@@ -534,28 +534,28 @@ function OrderDetailModal({
 
           {/* Customer Info */}
           {(order.customerName || order.customerWhatsapp) && (
-            <div className="rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-200 dark:border-indigo-800 p-4">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                <User className="h-4 w-4 text-indigo-600 dark:text-purple-400" />
+            <div className="rounded-xl bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 dark:from-emerald-950/40 dark:via-green-950/40 dark:to-teal-950/40 border-2 border-emerald-400 dark:border-emerald-500 p-5 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-500/20" style={{ boxShadow: '0 4px 6px rgba(16, 185, 129, 0.1), 0 0 20px rgba(16, 185, 129, 0.3), 0 0 40px rgba(16, 185, 129, 0.15)' }}>
+              <h3 className="text-base font-bold text-emerald-900 dark:text-emerald-100 mb-4 flex items-center gap-2">
+                <User className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 Dados do Cliente
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">Nome</p>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white/60 dark:bg-slate-900/40 rounded-lg p-3 border border-emerald-200/50 dark:border-emerald-700/50">
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1.5 uppercase tracking-wide">Nome</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
                     {order.customerName || "Não informado"}
                   </p>
                 </div>
                 {order.customerWhatsapp && (
-                  <div>
-                    <p className="text-xs font-medium text-slate-600 dark:text-gray-400 mb-1">WhatsApp</p>
+                  <div className="bg-white/60 dark:bg-slate-900/40 rounded-lg p-3 border border-emerald-200/50 dark:border-emerald-700/50">
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1.5 uppercase tracking-wide">WhatsApp</p>
                     <div className="flex items-center gap-2">
-                      <Phone className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                       <a
                         href={`https://wa.me/${order.customerWhatsapp.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition"
+                        className="text-sm font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 hover:underline transition-all"
                       >
                         {order.customerWhatsapp}
                       </a>
