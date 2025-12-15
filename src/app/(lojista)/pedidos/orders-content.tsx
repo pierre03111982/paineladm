@@ -573,23 +573,24 @@ function OrderDetailModal({
               {order.items.map((item, index) => (
                 <div
                   key={index}
-                  className="flex gap-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3"
+                  className="flex gap-4 rounded-xl border-2 border-blue-400 dark:border-blue-500 bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/30 dark:to-cyan-950/30 p-4 shadow-md shadow-blue-200/40 dark:shadow-blue-500/20 transition-all hover:shadow-lg hover:shadow-blue-300/50 dark:hover:shadow-blue-400/30"
+                  style={{ boxShadow: '0 4px 6px rgba(59, 130, 246, 0.1), 0 0 15px rgba(59, 130, 246, 0.25), 0 0 30px rgba(59, 130, 246, 0.1)' }}
                 >
                   {item.imageUrl && (
                     <img
                       src={item.imageUrl}
                       alt={item.name}
-                      className="h-16 w-16 rounded-lg object-cover"
+                      className="h-16 w-16 rounded-lg object-cover border-2 border-blue-300 dark:border-blue-600"
                     />
                   )}
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.name}</p>
-                    <p className="text-xs font-medium text-slate-600 dark:text-gray-400 mt-0.5">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{item.name}</p>
+                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mt-1">
                       Quantidade: {item.quantity} × R$ {item.price.toFixed(2)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    <p className="text-base font-bold text-blue-700 dark:text-blue-300">
                       R$ {(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
