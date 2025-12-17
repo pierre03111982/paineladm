@@ -128,14 +128,83 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  // Primeira imagem curtida pelo cliente (para avatar)
-  const firstLikedImage = cliente.composicoes?.find((comp: any) => 
-    comp.imagemUrl || comp.imageUrl || comp.final_image_url
-  )?.imagemUrl || cliente.composicoes?.find((comp: any) => 
-    comp.imagemUrl || comp.imageUrl || comp.final_image_url
-  )?.imageUrl || cliente.composicoes?.find((comp: any) => 
-    comp.imagemUrl || comp.imageUrl || comp.final_image_url
-  )?.final_image_url || null;
+  // Buscar todas as imagens disponíveis das composições - verificar todos os campos possíveis
+  const allImages: string[] = [];
+  
+  if (cliente.composicoes && Array.isArray(cliente.composicoes)) {
+    cliente.composicoes.forEach((comp: any) => {
+      // Verificar todos os campos possíveis de imagem
+      const imageUrl = comp.imagemUrl || comp.imageUrl || comp.final_image_url || 
+                       comp.looks?.[0]?.imagemUrl || comp.image_url || 
+                       comp.url || comp.photoUrl || comp.photo_url;
+      
+      if (imageUrl && typeof imageUrl === 'string' && imageUrl.length > 0 && imageUrl.startsWith('http')) {
+        allImages.push(imageUrl);
+      }
+    });
+  }
+
+  // Ordenar por data (mais recente primeiro) se tiver createdAt
+  const sortedImages = allImages.length > 0 ? [...allImages] : [];
+  if (cliente.composicoes && Array.isArray(cliente.composicoes)) {
+    const imagesWithDates = cliente.composicoes
+      .map((comp: any) => {
+        const imageUrl = comp.imagemUrl || comp.imageUrl || comp.final_image_url || 
+                         comp.looks?.[0]?.imagemUrl || comp.image_url || 
+                         comp.url || comp.photoUrl || comp.photo_url;
+        if (imageUrl && typeof imageUrl === 'string' && imageUrl.length > 0 && imageUrl.startsWith('http')) {
+          const date = comp.createdAt?.toDate?.() || new Date(comp.createdAt || 0);
+          return { imageUrl, date };
+        }
+        return null;
+      })
+      .filter((item: any) => item !== null)
+      .sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
+    
+    if (imagesWithDates.length > 0) {
+      sortedImages.length = 0;
+      sortedImages.push(...imagesWithDates.map((item: any) => item.imageUrl));
+    }
+  }
+
+  // Última imagem (mais recente) para miniatura
+  const thumbnailImage = sortedImages[0] || allImages[0] || null;
+
+  // Últimas 10 imagens geradas pelo cliente para colagem de fundo
+  const recentImages = sortedImages.slice(0, 10);
+
+  // Log quando não há imagem disponível
+  useEffect(() => {
+    if (!thumbnailImage) {
+      console.warn('[ClienteProfile] ⚠️ Nenhuma imagem disponível para miniatura', {
+        totalComposicoes: cliente.composicoes?.length || 0,
+        allImagesCount: allImages.length,
+        sortedImagesCount: sortedImages.length
+      });
+    } else {
+      console.log('[ClienteProfile] 🖼️ Imagem selecionada para miniatura:', {
+        url: thumbnailImage.substring(0, 80) + '...',
+        totalComposicoes: cliente.composicoes?.length || 0
+      });
+    }
+  }, [thumbnailImage]);
+
+  // Debug detalhado
+  console.log('[ClienteProfile] 🔍 Busca de Imagens:', {
+    totalComposicoes: cliente.composicoes?.length || 0,
+    allImagesCount: allImages.length,
+    sortedImagesCount: sortedImages.length,
+    thumbnailImage: thumbnailImage ? `${thumbnailImage.substring(0, 50)}...` : 'NENHUMA',
+    recentImagesCount: recentImages.length,
+    primeiraImagem: allImages[0] ? `${allImages[0].substring(0, 50)}...` : 'NENHUMA',
+    ultimaImagem: sortedImages[0] ? `${sortedImages[0].substring(0, 50)}...` : 'NENHUMA',
+    composicoesSample: cliente.composicoes?.slice(0, 2).map((c: any) => ({
+      hasImagemUrl: !!c.imagemUrl,
+      hasImageUrl: !!c.imageUrl,
+      hasFinalImageUrl: !!c.final_image_url,
+      keys: Object.keys(c).slice(0, 5)
+    }))
+  });
 
   return (
     <div className="space-y-6">
@@ -149,177 +218,223 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           Voltar
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-heading">Perfil do Cliente</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Visualize informações e histórico completo</p>
+          <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-heading">Perfil do Cliente</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 font-medium">Visualize informações e histórico completo</p>
         </div>
       </div>
 
-      {/* Profile Card */}
-      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-md transition-colors">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          {/* Avatar - Formato 9:16 Reduzido */}
-          <div className="flex-shrink-0">
-            {firstLikedImage ? (
-              <div className="relative w-20 h-36 rounded-xl overflow-hidden border-3 border-indigo-300 dark:border-indigo-500 shadow-lg" style={{ aspectRatio: '9/16' }}>
-                <img
-                  src={firstLikedImage}
-                  alt={cliente.nome || "Cliente"}
-                  className="w-full h-full object-cover"
-                />
+      {/* Profile Card Compacto - Estilo similar às Composições */}
+      <div className="group relative overflow-hidden neon-card rounded-xl border-2 border-indigo-400/60 dark:border-indigo-500/60 transition-all hover:-translate-y-1 hover:border-indigo-500/80 dark:hover:border-indigo-400/80" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(99, 102, 241, 0.35), 0 0 60px rgba(99, 102, 241, 0.15)' }}>
+        {/* Colagem de Fundo com últimas 10 imagens - Nítida e Vertical 9:16 */}
+        <div className="relative h-64 w-full overflow-hidden">
+          {recentImages.length > 0 ? (
+            <>
+              {/* Grid de colagem - Imagens verticais 9:16 em linha horizontal */}
+              <div className="absolute inset-0 flex gap-0.5">
+                {recentImages.slice(0, 10).map((imageUrl, index) => (
+                  <div
+                    key={index}
+                    className="relative flex-1 overflow-hidden bg-slate-300 dark:bg-slate-700"
+                    style={{ aspectRatio: '9/16' }}
+                  >
+                    {imageUrl && (
+                      <img
+                        src={imageUrl}
+                        alt={`Composição ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="flex w-20 h-36 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 text-2xl font-bold text-indigo-600 dark:text-indigo-300 border-3 border-indigo-300 dark:border-indigo-500 shadow-lg" style={{ aspectRatio: '9/16' }}>
-                {cliente.nome ? cliente.nome.charAt(0).toUpperCase() : <User className="h-12 w-12" />}
+              {/* Overlay escuro apenas na parte inferior para legibilidade - abaixo da miniatura */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-transparent" 
+                style={{ 
+                  zIndex: 2,
+                  pointerEvents: 'none' // Permitir cliques através do overlay
+                }} 
+              />
+            </>
+          ) : firstLikedImage ? (
+            <>
+              <img
+                src={firstLikedImage}
+                alt={cliente.nome || "Cliente"}
+                className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-transparent" />
+            </>
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="text-5xl font-bold text-white opacity-80">
+                {cliente.nome ? cliente.nome.charAt(0).toUpperCase() : <User className="h-20 w-20 text-white" />}
               </div>
-            )}
-          </div>
-
-          {/* Info Principal */}
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white font-heading">{cliente.nome || "Cliente Anônimo"}</h2>
-                <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
-                  {cliente.whatsapp && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span>{cliente.whatsapp}</span>
-                    </div>
-                  )}
-                  {cliente.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <span>{cliente.email}</span>
-                    </div>
-                  )}
-                  {cliente.createdAt && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        Cliente desde {new Date(cliente.createdAt.toDate?.() || cliente.createdAt).toLocaleDateString("pt-BR")}
+            </div>
+          )}
+          
+          {/* Layout com Miniatura à Esquerda e Dados Verticais */}
+          <div className="absolute inset-0 flex items-start gap-4 p-4 z-30">
+            {/* NOVA MINIATURA - Abordagem Simples e Direta */}
+            <div className="flex-shrink-0">
+              <div className="w-28 h-44 sm:w-32 sm:h-52 rounded-xl overflow-hidden border-4 border-white shadow-2xl" style={{ boxShadow: '0 0 0 2px rgba(255, 255, 255, 1), 0 0 30px rgba(99, 102, 241, 0.8)' }}>
+                {thumbnailImage ? (
+                  <img
+                    src={thumbnailImage}
+                    alt={cliente.nome || "Cliente"}
+                    className="w-full h-full object-cover"
+                    onLoad={() => console.log('[ClienteProfile] ✅ Imagem carregada:', thumbnailImage)}
+                    onError={(e) => {
+                      console.error('[ClienteProfile] ❌ Erro ao carregar:', thumbnailImage);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-4xl font-bold text-white">
+                      {cliente.nome ? cliente.nome.charAt(0).toUpperCase() : <User className="h-12 w-12 text-white" />}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Info Principal - Alinhado Verticalmente à Esquerda */}
+            <div className="flex-1 flex flex-col justify-start min-w-0 pt-2 z-30">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 font-heading" style={{ textShadow: '2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.6)' }}>
+                {cliente.nome || "Cliente Anônimo"}
+              </h2>
+              
+              <div className="flex flex-col gap-2" style={{ zIndex: 35 }}>
+                {cliente.whatsapp && (
+                  <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-white/40">
+                    <Phone className="h-4 w-4 text-white" />
+                    <span className="font-semibold text-white text-sm">{cliente.whatsapp}</span>
+                  </div>
+                )}
+                {cliente.email && (
+                  <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-white/40">
+                    <Mail className="h-4 w-4 text-white" />
+                    <span className="font-semibold text-white text-sm truncate max-w-[200px]">{cliente.email}</span>
+                  </div>
+                )}
+                {cliente.createdAt && (
+                  <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-white/40">
+                    <Calendar className="h-4 w-4 text-white" />
+                    <span className="font-semibold text-white text-sm">
+                      Cliente desde {new Date(cliente.createdAt.toDate?.() || cliente.createdAt).toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                )}
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {tags.slice(0, 2).map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1 rounded-full border border-white/50 bg-black/70 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white"
+                      >
+                        <Tag className="h-3.5 w-3.5" />
+                        {tag}
                       </span>
-                    </div>
-                  )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards - Dentro do mesmo card */}
+        <div className="p-4 bg-white dark:bg-slate-800">
+          {/* Sales Stats - Se existir */}
+          {cliente.salesStats && (
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-50/50 dark:bg-emerald-900/20">
+                <div className="rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 p-1.5 shadow-md text-white">
+                  <DollarSign className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 truncate">Total Gasto</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                    R$ {cliente.salesStats.totalSpent.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-blue-400/60 bg-blue-50/50 dark:bg-blue-900/20">
+                <div className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 p-1.5 shadow-md text-white">
+                  <ShoppingCart className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">Pedidos</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{cliente.salesStats.orderCount}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-400/60 bg-purple-50/50 dark:bg-purple-900/20">
+                <div className="rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 shadow-md text-white">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-purple-700 dark:text-purple-300 truncate">Ticket Médio</p>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                    R$ {cliente.salesStats.averageTicket.toFixed(2)}
+                  </p>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Tags - Flex Wrap para Mobile */}
-            {tags.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                  >
-                    <Tag className="h-3 w-3" />
-                    {tag}
-                  </span>
-                ))}
+          {/* Engagement Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-blue-400/60 bg-blue-50/50 dark:bg-blue-900/20">
+              <div className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 p-1.5 shadow-md text-white">
+                <ImageIcon className="h-4 w-4" />
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Sales Stats Cards - Top Priority */}
-      {cliente.salesStats && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border-2 border-emerald-400 dark:border-emerald-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-100 dark:bg-emerald-900/40 p-2.5">
-                <DollarSign className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Total Gasto</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  R$ {cliente.salesStats.totalSpent.toFixed(2)}
-                </p>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">Composições</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalComposicoes}</p>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-xl border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 dark:bg-blue-900/40 p-2.5">
-                <ShoppingCart className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-50/50 dark:bg-emerald-900/20">
+              <div className="rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 p-1.5 shadow-md text-white">
+                <Heart className="h-4 w-4" />
               </div>
-              <div>
-                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase">Total Pedidos</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{cliente.salesStats.orderCount}</p>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 truncate">Curtidas</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalLikes}</p>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-xl border-2 border-indigo-400 dark:border-indigo-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-indigo-100 dark:bg-indigo-900/40 p-2.5">
-                <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-amber-400/60 bg-amber-50/50 dark:bg-amber-900/20">
+              <div className="rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 p-1.5 shadow-md text-white">
+                <ThumbsDown className="h-4 w-4" />
               </div>
-              <div>
-                <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 uppercase">Ticket Médio</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  R$ {cliente.salesStats.averageTicket.toFixed(2)}
-                </p>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-300 truncate">Rejeições</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalDislikes}</p>
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Engagement Stats Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-100 dark:bg-blue-900/40 p-2.5">
-              <ImageIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase">Composições</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalComposicoes}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border-2 border-emerald-400 dark:border-emerald-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-100 dark:bg-emerald-900/40 p-2.5">
-              <Heart className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase">Curtidas</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalLikes}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border-2 border-amber-400 dark:border-amber-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-amber-100 dark:bg-amber-900/40 p-2.5">
-              <ThumbsDown className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase">Rejeições</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalDislikes}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl border-2 border-purple-400 dark:border-purple-500 bg-white dark:bg-slate-800 p-4 shadow-lg hover:shadow-xl transition-all">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-purple-100 dark:bg-purple-900/40 p-2.5">
-              <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase">Compartilhamentos</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalShares}</p>
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-400/60 bg-purple-50/50 dark:bg-purple-900/20">
+              <div className="rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 shadow-md text-white">
+                <Share2 className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-purple-700 dark:text-purple-300 truncate">Compartilhamentos</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalShares}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* FASE 3: Dossiê do Cliente - Análise de Estilo pela IA */}
-      <ClientStyleProfile cliente={cliente} lojistaId={lojistaId} />
+      <ClientStyleProfile
+        cliente={cliente}
+        lojistaId={lojistaId}
+      />
 
       {/* Produtos Favoritos */}
       {topProducts.length > 0 && (
