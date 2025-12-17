@@ -257,15 +257,6 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 }} 
               />
             </>
-          ) : firstLikedImage ? (
-            <>
-              <img
-                src={firstLikedImage}
-                alt={cliente.nome || "Cliente"}
-                className="h-full w-full object-cover object-center transition duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-transparent" />
-            </>
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
               <div className="text-5xl font-bold text-white opacity-80">
