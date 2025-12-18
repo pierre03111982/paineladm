@@ -539,16 +539,15 @@ export async function getDashboardData(
     // Também contar likes/dislikes diretamente das composições (campo curtido)
     // IMPORTANTE: Filtrar apenas composições que têm like OU dislike (excluir neutras)
     const composicoesComFeedback = composicoes.filter((item) => 
-      Boolean(item.liked) || Boolean(item.curtido) || 
-      Boolean(item.disliked) || Boolean(item.rejeitado) || Boolean(item.dislikeReason)
+      Boolean(item.liked) || Boolean(item.dislikeReason)
     );
     
     const likesFromComposicoes = composicoesComFeedback.filter((item) => 
-      Boolean(item.liked) || Boolean(item.curtido)
+      Boolean(item.liked)
     ).length;
     
     const dislikesFromComposicoes = composicoesComFeedback.filter((item) => 
-      Boolean(item.disliked) || Boolean(item.rejeitado) || Boolean(item.dislikeReason)
+      Boolean(item.dislikeReason)
     ).length;
     
     // Total: usar o maior valor entre generations e composições (para garantir precisão)
