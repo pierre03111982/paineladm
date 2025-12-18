@@ -74,7 +74,40 @@ export async function GET(request: NextRequest) {
       console.error("[Check Vote] Erro ao verificar composição:", error);
     }
 
-    // Verificar na coleção de favoritos se já votou
+    // Verificar na coleção 'generations' (sistema novo que previne duplicidade)
+    try {
+      const generationsRef = db.collection("generations");
+      const generationsSnapshot = await generationsRef
+        .where("compositionId", "==", compositionId)
+        .where("userId", "==", customerId)
+        .where("lojistaId", "==", lojistaId)
+        .limit(1)
+        .get();
+
+      if (!generationsSnapshot.empty) {
+        const generationData = generationsSnapshot.docs[0].data();
+        
+        if (generationData?.status === "liked") {
+          return NextResponse.json({
+            votedType: "like",
+            action: "like",
+            alreadyVoted: true,
+          });
+        }
+        
+        if (generationData?.status === "disliked") {
+          return NextResponse.json({
+            votedType: "dislike",
+            action: "dislike",
+            alreadyVoted: true,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("[Check Vote] Erro ao verificar generations:", error);
+    }
+
+    // Verificar na coleção de favoritos se já votou (sistema antigo - compatibilidade)
     try {
       const favoritosRef = db
         .collection("lojas")

@@ -11,6 +11,7 @@ import {
   Eye
 } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { AIIcon } from "@/components/ui/AIIcon";
 
@@ -120,9 +121,21 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
 
       {/* Lista de Insights */}
       <div className="space-y-3">
-        {mockInsights.map((insight) => (
-          <div
+        {mockInsights.map((insight, index) => (
+          <motion.div
             key={insight.id}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ 
+              duration: 0.4, 
+              delay: index * 0.1,
+              ease: "easeOut"
+            }}
+            whileHover={{ 
+              y: -2, 
+              scale: 1.02,
+              transition: { duration: 0.2 }
+            }}
             className={`${insight.color.bg} border ${insight.color.border} rounded-lg p-3 transition-all hover:shadow-md`}
           >
             <div className="flex items-start gap-3">
@@ -152,7 +165,7 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
                 </Link>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 

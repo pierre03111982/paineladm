@@ -4,6 +4,13 @@ const finalConfig = {
   generateBuildId: async () => {
     return `build-${Date.now()}`;
   },
+  // Configurações de produção para melhorar source maps
+  productionBrowserSourceMaps: false,
+  // Configuração do Turbopack (Next.js 16 usa Turbopack por padrão)
+  turbopack: {
+    // Configurações para melhorar source maps e reduzir erros
+    resolveAlias: {},
+  },
   // Forçar rebuild dinâmico
   // Nota: isrMemoryCacheSize não é mais suportado no Next.js 16
   async headers() {

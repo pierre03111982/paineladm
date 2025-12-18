@@ -77,6 +77,8 @@ export type DashboardMock = {
     experimentWeek: number;
     experimentMonth: number;
     likedTotal: number;
+    dislikedTotal?: number;
+    totalImagensGeradas?: number;
     sharesTotal: number;
     checkoutTotal: number;
     anonymousTotal: number;

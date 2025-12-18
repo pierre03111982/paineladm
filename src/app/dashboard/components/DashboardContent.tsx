@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   ActiveCustomer,
   DashboardMock,
@@ -43,6 +44,7 @@ import {
   Bar,
 } from "recharts";
 import { AIInsightsFeed } from "@/components/dashboard/AIInsightsFeed";
+import { DashboardMiniCharts } from "@/components/dashboard/DashboardMiniCharts";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { StaggeredContainer } from "@/components/ui/StaggeredContainer";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
@@ -226,83 +228,131 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
   return (
     <div className="space-y-3 pb-6">
 
-      {/* FASE 1: Pequenas Caixas Coloridas (KPIs) - Estilo Fintech NO TOPO */}
+      {/* FASE 1: Pequenas Caixas Coloridas (KPIs) - Estilo Neon NO TOPO */}
       <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full">
-        {/* KPI 1: Experimentações Hoje - Roxo */}
-        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 hover:shadow-lg transition-shadow h-28 flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <TrendingUp className="h-6 w-6 text-purple-600" />
+        {/* KPI 1: Experimentações Hoje - Verde */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0, ease: "easeOut" }}
+          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
+          className="neon-card p-4 border-emerald-500/70 dark:border-emerald-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.2)' }}
+        >
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 shadow-lg shadow-emerald-500/30 text-white">
+            <TrendingUp className="h-5 w-5" />
           </div>
-                  <div className="flex-1 min-w-0">
-            <p className="text-3xl font-bold text-purple-900 leading-none mb-1">
-            {data.metrics.experimentToday}
-          </p>
-            <p className="text-xs font-medium text-purple-700 truncate">
+          <div className="flex-1 min-w-0">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+              {data.metrics.experimentToday}
+            </p>
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
               Exp. hoje
-          </p>
+            </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* KPI 2: Últimos 7 Dias - Azul */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 hover:shadow-lg transition-shadow h-28 flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <MonitorSmartphone className="h-6 w-6 text-blue-600" />
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
+          className="neon-card p-4 border-blue-500/70 dark:border-indigo-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2)' }}
+        >
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg shadow-blue-500/30 text-white">
+            <MonitorSmartphone className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-3xl font-bold text-blue-900 leading-none mb-1">
-            {data.metrics.experimentWeek}
-          </p>
-            <p className="text-xs font-medium text-blue-700 truncate">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+              {data.metrics.experimentWeek}
+            </p>
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
               Últimos 7 dias
-          </p>
+            </p>
           </div>
-        </div>
+        </motion.div>
 
-        {/* KPI 3: Curtidas - Verde */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 hover:shadow-lg transition-shadow h-28 flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <Heart className="h-6 w-6 text-emerald-600 fill-current" />
+        {/* KPI 3: Like - Vermelho */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
+          className="neon-card p-4 border-red-500/70 dark:border-red-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(239, 68, 68, 0.4), 0 0 60px rgba(239, 68, 68, 0.2)' }}
+        >
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 p-2.5 shadow-lg shadow-red-500/30 text-white">
+            <Heart className="h-5 w-5 fill-current" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-3xl font-bold text-emerald-900 leading-none mb-1">
-            {data.metrics.likedTotal}
-          </p>
-            <p className="text-xs font-medium text-emerald-700 truncate">
-              Curtidas
-          </p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+              {data.metrics.likedTotal}
+            </p>
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+              Like
+            </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* KPI 4: Compartilhamentos - Ciano */}
-        <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-4 hover:shadow-lg transition-shadow h-28 flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <Share2 className="h-6 w-6 text-cyan-600" />
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
+          className="neon-card p-4 border-cyan-500/70 dark:border-cyan-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(6, 182, 212, 0.4), 0 0 60px rgba(6, 182, 212, 0.2)' }}
+        >
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 p-2.5 shadow-lg shadow-cyan-500/30 text-white">
+            <Share2 className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-3xl font-bold text-cyan-900 leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
               {data.metrics.sharesTotal}
             </p>
-            <p className="text-xs font-medium text-cyan-700 truncate">
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
               Compartilh.
             </p>
           </div>
-          </div>
+        </motion.div>
 
         {/* KPI 5: Checkouts - Âmbar */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 hover:shadow-lg transition-shadow h-28 flex items-center gap-3">
-          <div className="flex-shrink-0 w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <ShoppingCart className="h-6 w-6 text-amber-600" />
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
+          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
+          className="neon-card p-4 border-amber-500/70 dark:border-orange-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.2)' }}
+        >
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 shadow-lg shadow-amber-500/30 text-white">
+            <ShoppingCart className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-3xl font-bold text-amber-900 leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
               {data.metrics.checkoutTotal}
             </p>
-            <p className="text-xs font-medium text-amber-700 truncate">
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
               Checkouts
             </p>
           </div>
-        </div>
+        </motion.div>
       </section>
+
+      {/* Performance Rápida - Mini Gráficos */}
+      <DashboardMiniCharts
+        experimentsTrend={data.experimentsTrend}
+        productBreakdown={data.productBreakdown}
+        metrics={{
+          experimentWeek: data.metrics.experimentWeek,
+          likedTotal: data.metrics.likedTotal,
+          dislikedTotal: data.metrics.dislikedTotal,
+          totalImagensGeradas: data.metrics.totalImagensGeradas,
+          checkoutTotal: data.metrics.checkoutTotal,
+        }}
+      />
 
       {/* FASE 2: Cérebro da Loja - Feed de Insights da IA */}
       {lojistaId && <AIInsightsFeed lojistaId={lojistaId} />}
@@ -330,15 +380,28 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               {/* Lista Visual Rica com Miniaturas 9:16 */}
               <div className="space-y-2 overflow-y-auto flex-1">
                 {data.activeCustomers.length > 0 ? (
-                  data.activeCustomers.slice(0, 5).map((customer) => {
+                  data.activeCustomers.slice(0, 5).map((customer, index) => {
                   const lastCompositionImage = customer.lastCompositionImageUrl || null;
                   const hasComposition = customer.totalCompositions > 0;
                   const isVIP = customer.totalCompositions >= 5;
 
                   return (
-                    <div
+                    <motion.div
                       key={customer.id}
-                      className="group relative bg-white rounded-lg border border-slate-200 p-2.5 hover:border-blue-300 hover:shadow-md transition-all"
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ 
+                        duration: 0.4, 
+                        delay: index * 0.1,
+                        ease: "easeOut"
+                      }}
+                      whileHover={{ 
+                        y: -2, 
+                        scale: 1.02,
+                        transition: { duration: 0.2 }
+                      }}
+                      className="group relative bg-white rounded-lg p-2.5 hover:shadow-md transition-all animated-card-border"
+                      style={{ border: '1px solid oklch(67.3% 0.182 276.935)' }}
                     >
                       <div className="flex items-center gap-2.5">
                         {/* Miniatura 9:16 - Última Composição */}
@@ -409,7 +472,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                           <span className="hidden sm:inline">Cockpit</span>
                         </Link>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                   })
                 ) : (
@@ -439,7 +502,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         {/* CAIXA 2: Alerta de Estoque (4 cols) - Âmbar */}
         <div className="col-span-12 lg:col-span-4 h-full">
-            <AnimatedCard className="p-4 h-full flex flex-col bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+            <div className="p-4 h-full flex flex-col bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm" style={{ border: '1px solid rgb(255, 152, 0)' }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -457,66 +520,83 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               
               <div className="space-y-2 overflow-y-auto flex-1">
                 {lowStockAlerts.length > 0 ? (
-                  lowStockAlerts.slice(0, 5).map((alert) => (
-                    <Link
-                    key={alert.produtoId}
-                    href={`/produtos?edit=${alert.produtoId}`}
-                    className="group flex items-center gap-2.5 bg-white rounded-lg border border-slate-200 p-2.5 hover:border-amber-300 hover:shadow-md transition-all text-left"
-                  >
-                    {/* Miniatura 9:16 - Foto do Produto */}
-                    <div className="flex-shrink-0 w-12 h-20 rounded-md overflow-hidden border border-slate-200 shadow-sm group-hover:scale-105 transition-transform bg-slate-100">
-                      {alert.produtoImagem ? (
-                        <img
-                          src={alert.produtoImagem}
-                          alt={alert.produtoNome}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `
-                                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
-                                  <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                </div>
-                              `;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
-                          <ImageIcon className="h-5 w-5 text-amber-400" />
+                  lowStockAlerts.slice(0, 5).map((alert, index) => (
+                    <motion.div
+                      key={alert.produtoId}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ 
+                        duration: 0.4, 
+                        delay: index * 0.1,
+                        ease: "easeOut"
+                      }}
+                      whileHover={{ 
+                        y: -2, 
+                        scale: 1.02,
+                        transition: { duration: 0.2 }
+                      }}
+                      className="group relative bg-white rounded-lg p-2.5 hover:shadow-md transition-all"
+                      style={{ border: '1px solid rgb(255, 152, 0)' }}
+                    >
+                      <Link
+                        href={`/produtos?edit=${alert.produtoId}`}
+                        className="flex items-center gap-2.5"
+                      >
+                        {/* Miniatura 9:16 - Foto do Produto */}
+                        <div className="flex-shrink-0 w-12 h-20 rounded-md overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-slate-100" style={{ border: '1px solid rgb(255, 152, 0)' }}>
+                          {alert.produtoImagem ? (
+                            <img
+                              src={alert.produtoImagem}
+                              alt={alert.produtoNome}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
+                                      <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    </div>
+                                  `;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
+                              <ImageIcon className="h-5 w-5 text-amber-400" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    
-                    {/* Nome e Estoque */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 group-hover:text-amber-700 transition-colors truncate mb-1.5">
-                        {alert.produtoNome}
-                      </p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                          Restam {alert.estoqueAtual} un
-                        </span>
-                        {alert.experimentacoes > 0 && (
-                          <span className="text-xs text-slate-500 font-medium">
-                            {alert.experimentacoes} exp.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Ícone de Ação Rápida (Hover) */}
-                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
-                        <ExternalLink className="h-4 w-4 text-amber-600" />
-                      </div>
-                    </div>
-                  </Link>
+                        
+                        {/* Nome e Estoque */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 group-hover:text-amber-700 transition-colors truncate mb-1.5">
+                            {alert.produtoNome}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                              Restam {alert.estoqueAtual} un
+                            </span>
+                            {alert.experimentacoes > 0 && (
+                              <span className="text-xs text-slate-500 font-medium">
+                                {alert.experimentacoes} exp.
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Ícone de Ação Rápida (Hover) */}
+                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
+                            <ExternalLink className="h-4 w-4 text-amber-600" />
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
                   ))
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center py-8">
@@ -535,12 +615,13 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               {lowStockAlerts.length > 0 && (
                 <Link
                   href="/produtos?filter=low-stock"
-                  className="mt-3 pt-3 border-t border-amber-200 text-xs text-center text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium block"
+                  className="mt-3 pt-3 text-xs text-center text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium block"
+                  style={{ borderTop: '1px solid rgb(255, 152, 0)' }}
                 >
                   Ver todos os alertas →
                 </Link>
               )}
-            </AnimatedCard>
+            </div>
           </div>
 
         {/* CAIXA 3: Top Produtos (4 cols) - Roxo */}

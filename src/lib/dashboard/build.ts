@@ -11,6 +11,7 @@ import {
   fetchComposicoesRecentes,
   fetchLojaMetrics,
 } from "../firestore/server";
+import { getAdminDb } from "../firebaseAdmin";
 import type { ProdutoDoc, ClienteDoc, ComposicaoDoc, LojaMetrics } from "../firestore/types";
 import { getAPIUsageStats } from "../ai-services/cost-logger";
 import type { AIProvider } from "../ai-services/types";
@@ -117,7 +118,11 @@ async function fetchUsdToBrlRate(): Promise<number> {
     const rate = parseFloat(payload?.USDBRL?.ask ?? "0");
     return Number.isFinite(rate) && rate > 0 ? rate : 5;
   } catch (error) {
-    console.warn("[dashboard] Falha ao buscar câmbio USD-BRL. Usando fallback 5.0", error);
+    // Silenciar erro de fetch - é esperado quando a API externa não está disponível
+    // O fallback de 5.0 é suficiente para o funcionamento do dashboard
+    if (process.env.NODE_ENV === 'development') {
+      console.warn("[dashboard] Falha ao buscar câmbio USD-BRL. Usando fallback 5.0");
+    }
     return 5;
   }
 }
@@ -481,9 +486,74 @@ export async function getDashboardData(
       fetchLojaPerfil(lojistaId),
       fetchProdutos(lojistaId),
       fetchClientes(lojistaId, 10),
-      fetchComposicoesRecentes(lojistaId, 200), // Aumentar limite para garantir que todas as composições sejam buscadas
+      fetchComposicoesRecentes(lojistaId, 1000), // Buscar mais composições para ter dados completos
       fetchLojaMetrics(lojistaId),
     ]);
+
+    // Buscar ações (likes/dislikes) relacionadas às composições
+    // IMPORTANTE: Usar a coleção 'generations' que já previne duplicidade
+    const db = getAdminDb();
+    let totalLikesFromGenerations = 0;
+    let totalDislikesFromGenerations = 0;
+    
+    if (lojistaId) {
+      try {
+        // Buscar na coleção 'generations' que já previne duplicidade por compositionId + userId + lojistaId
+        const generationsRef = db.collection("generations");
+        
+        // Buscar todas as generations da loja
+        const generationsSnapshot = await generationsRef
+          .where("lojistaId", "==", lojistaId)
+          .limit(5000)
+          .get();
+        
+        const allGenerations = generationsSnapshot.docs.map((doc: any) => doc.data());
+        
+        // Contar likes e dislikes únicos (já previne duplicidade por compositionId)
+        // Usar Set para garantir que cada compositionId seja contado apenas uma vez
+        const likedCompositionIds = new Set<string>();
+        const dislikedCompositionIds = new Set<string>();
+        
+        allGenerations.forEach((gen: any) => {
+          if (gen.status === "liked" && gen.compositionId) {
+            likedCompositionIds.add(gen.compositionId);
+          } else if (gen.status === "disliked" && gen.compositionId) {
+            dislikedCompositionIds.add(gen.compositionId);
+          }
+        });
+        
+        totalLikesFromGenerations = likedCompositionIds.size;
+        totalDislikesFromGenerations = dislikedCompositionIds.size;
+        
+        console.log("[getDashboardData] Generations encontradas:", {
+          totalGenerations: allGenerations.length,
+          likes: totalLikesFromGenerations,
+          dislikes: totalDislikesFromGenerations,
+          composicoes: composicoes.length
+        });
+      } catch (error) {
+        console.warn("[getDashboardData] Erro ao buscar generations:", error);
+      }
+    }
+    
+    // Também contar likes/dislikes diretamente das composições (campo curtido)
+    // IMPORTANTE: Filtrar apenas composições que têm like OU dislike (excluir neutras)
+    const composicoesComFeedback = composicoes.filter((item) => 
+      Boolean(item.liked) || Boolean(item.curtido) || 
+      Boolean(item.disliked) || Boolean(item.rejeitado) || Boolean(item.dislikeReason)
+    );
+    
+    const likesFromComposicoes = composicoesComFeedback.filter((item) => 
+      Boolean(item.liked) || Boolean(item.curtido)
+    ).length;
+    
+    const dislikesFromComposicoes = composicoesComFeedback.filter((item) => 
+      Boolean(item.disliked) || Boolean(item.rejeitado) || Boolean(item.dislikeReason)
+    ).length;
+    
+    // Total: usar o maior valor entre generations e composições (para garantir precisão)
+    const totalLikes = Math.max(totalLikesFromGenerations, likesFromComposicoes);
+    const totalDislikes = Math.max(totalDislikesFromGenerations, dislikesFromComposicoes);
 
     console.log("[getDashboardData] Perfil encontrado:", perfil?.nome || "null");
     console.log("[getDashboardData] Produtos:", produtos.length);
@@ -511,7 +581,6 @@ export async function getDashboardData(
     const experimentWeek = countInRange(composicoes, 7);
     const experimentMonth = countInRange(composicoes, 30);
 
-    const computedLiked = composicoes.filter((item) => Boolean(item.liked)).length;
     const computedShares = composicoes.reduce(
       (total, item) => total + (typeof item.shares === "number" ? item.shares : 0),
       0
@@ -526,16 +595,21 @@ export async function getDashboardData(
           : 0;
       return sum + compositionCost;
     }, 0);
-    const compositionsCount =
-      composicoes.length > 0 ? composicoes.length : metrics?.totalComposicoes ?? 0;
+    
+    // Total de imagens geradas = usar o total do banco (metrics) ou contar todas as composições buscadas
+    // Se metrics.totalComposicoes existir e for maior, usar ele (total real do banco)
+    // Caso contrário, usar o número de composições buscadas
+    const totalImagensGeradas = metrics?.totalComposicoes && metrics.totalComposicoes > composicoes.length
+      ? metrics.totalComposicoes
+      : composicoes.length;
+    
     const averageCostBRL =
-      compositionsCount > 0 ? totalCostBRL / compositionsCount : 0;
+      totalImagensGeradas > 0 ? totalCostBRL / totalImagensGeradas : 0;
 
     const breakdown = buildProductBreakdown(composicoes, produtos);
     const activeCustomers = buildActiveCustomers(clientes, composicoes);
     const compositionsCards = buildCompositions(composicoes);
 
-    const totalLiked = metrics?.likedTotal ?? computedLiked;
     const totalShares = metrics?.sharesTotal ?? computedShares;
     const totalCheckouts = metrics?.checkoutTotal ?? 0;
     const totalAnonymous = metrics?.anonymousTotal ?? computedAnonymous;
@@ -607,7 +681,9 @@ export async function getDashboardData(
           metrics?.totalComposicoes && metrics.totalComposicoes > experimentMonth
             ? metrics.totalComposicoes
             : experimentMonth,
-        likedTotal: totalLiked,
+        likedTotal: totalLikes, // Total de likes (ações + composições curtidas)
+        dislikedTotal: totalDislikes, // Total de dislikes (ações + composições rejeitadas)
+        totalImagensGeradas: totalImagensGeradas, // Total de imagens/composições geradas
         sharesTotal: totalShares,
         checkoutTotal: totalCheckouts,
         anonymousTotal: totalAnonymous,
@@ -616,7 +692,7 @@ export async function getDashboardData(
         conversionCheckoutRate:
           totalShares > 0 ? (totalCheckouts / totalShares) * 100 : 0,
         conversionLikeRate:
-          totalLiked > 0 ? (totalCheckouts / totalLiked) * 100 : 0,
+          totalLikes > 0 ? (totalCheckouts / totalLikes) * 100 : 0,
         lastActionLabel: lastSyncLabel,
       },
       experimentsTrend,

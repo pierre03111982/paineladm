@@ -199,6 +199,32 @@ html:not(.lojista-loading) .lojista-content {
   border-color: oklch(67.3% 0.182 276.935) !important;
 }
 
+/* Borda laranja para Alerta de Estoque - Cor lab(60.3514 40.5624 87.1228) */
+.alert-stock-border {
+  border: 1px solid rgb(255, 152, 0) !important;
+  border-color: rgb(255, 152, 0) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+/* Forçar remoção de qualquer borda padrão do Tailwind */
+.alert-stock-border.border-slate-200,
+.alert-stock-border[class*="border-"],
+.alert-stock-border.border,
+.alert-stock-border[class*="border-slate"],
+.alert-stock-border[class*="border-gray"] {
+  border-color: rgb(255, 152, 0) !important;
+  border: 1px solid rgb(255, 152, 0) !important;
+}
+
+/* Suporte para navegadores modernos com lab() - cor exata da imagem */
+@supports (color: lab(0 0 0)) {
+  .alert-stock-border {
+    border-color: lab(60.3514 40.5624 87.1228) !important;
+    border: 1px solid lab(60.3514 40.5624 87.1228) !important;
+  }
+}
+
 .rounded-2xl[class*="bg-white"]:not(.animated-card-border),
 .rounded-2xl[class*="bg-slate"]:not(.animated-card-border),
 .rounded-2xl[class*="bg-gray"]:not(.animated-card-border),
