@@ -1063,7 +1063,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           {/* Foto Principal - Mostrar Original e Catálogo lado a lado */}
           <div>
             <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">FOTO PRINCIPAL</label>
-            <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
+            <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
               {/* Preview lado a lado: Original e Catálogo */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Foto Original */}
