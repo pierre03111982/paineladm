@@ -81,7 +81,7 @@ async function uploadBase64ToStorage(
 
 export async function POST(req: NextRequest) {
   let jobId: string | undefined;
-  let validatedJobId: string; // Declarar como string (não undefined) no escopo externo
+  let validatedJobId: string | undefined; // Pode ser undefined se erro ocorrer antes da validação
   let jobData: any = null;
   
   // Instanciar o orchestrator
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
 
     // Após a validação acima, jobId é garantidamente string
     // Atribuir diretamente (TypeScript entende que é string após a validação)
-    validatedJobId = jobId;
+    validatedJobId = jobId as string; // Type assertion para garantir que é string
     console.log(`[process-job] 📋 VERSAO FINAL BLINDADA - Job: ${validatedJobId}`);
     
     // VALIDAÇÃO: Verificar se o Firestore está acessível
