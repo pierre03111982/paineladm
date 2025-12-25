@@ -1292,11 +1292,11 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 {/* Preview da Imagem Gerada - Agora salva automaticamente */}
                 {generatedCatalogImage && (
                   <div className="space-y-2">
-                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2">
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2">
                       <p className="text-xs text-emerald-300 mb-2 font-semibold">
                         ✅ Imagem salva automaticamente como imagem principal do catálogo!
                       </p>
-                      <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/50 p-2">
+                      <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/50 p-2">
                         <img
                           src={generatedCatalogImage}
                           alt="Imagem de catálogo gerada"
