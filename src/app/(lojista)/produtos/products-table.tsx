@@ -87,12 +87,18 @@ function ProductGridCard({
             <span className="text-[var(--text-secondary)] font-medium">Categoria:</span>
             <span className="text-[var(--text-main)] font-semibold">{produto.categoria}</span>
           </div>
-          <div className="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-800 pt-2">
             <span className="text-[var(--text-secondary)] font-medium">Preço:</span>
             <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">R$ {produto.preco.toFixed(2)}</span>
           </div>
+          <div className="flex items-center justify-between py-1">
+            <span className="text-[var(--text-secondary)] font-medium">Estoque:</span>
+            <span className="text-[var(--text-main)] font-semibold">
+              {produto.estoque !== undefined && produto.estoque !== null ? produto.estoque : "-"}
+            </span>
+          </div>
           {produto.tamanhos && produto.tamanhos.length > 0 && (
-            <div className="flex items-center justify-between py-1">
+            <div className="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-800 pt-2">
               <span className="text-[var(--text-secondary)] font-medium">Tamanhos:</span>
               <span className="text-[var(--text-main)] font-semibold">{produto.tamanhos.join(", ")}</span>
             </div>
