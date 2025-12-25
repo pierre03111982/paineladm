@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Garantir que jobId é string para TypeScript
-    validatedJobId = jobId;
+    // Após a validação acima, jobId é garantidamente string
+    validatedJobId = jobId as string;
     console.log(`[process-job] 📋 VERSAO FINAL BLINDADA - Job: ${validatedJobId}`);
     
     // VALIDAÇÃO: Verificar se o Firestore está acessível
