@@ -526,7 +526,7 @@ export function ProductsTable({
 
   return (
     <>
-      <div className="neon-card rounded-xl">
+      <div className="neon-card rounded-2xl overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-3">
             <div className="text-sm text-[var(--text-secondary)]">
@@ -675,7 +675,7 @@ export function ProductsTable({
           </div>
         )}
 
-        {/* Product Grid - Responsive CSS Grid */}
+        {/* Product Grid - Responsive CSS Grid com Scroll */}
         <div className="p-4 sm:p-6">
           {loading ? (
             <div className="py-14 text-center text-sm text-gray-500">
@@ -689,21 +689,28 @@ export function ProductsTable({
                 : "Nenhum produto corresponde aos filtros aplicados."}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredProdutos.map((produto) => (
-                <ProductGridCard
-                  key={produto.id}
-                  produto={produto}
-                  selectedProducts={selectedProducts}
-                  toggleProductSelection={toggleProductSelection}
-                  handleArchive={handleArchive}
-                  setViewingProduto={setViewingProduto}
-                  setEditingProduto={setEditingProduto}
-                  handleDelete={handleDelete}
-                  isAdminView={isAdminView}
-                  loading={loading}
-                />
-              ))}
+            <div 
+              className="overflow-y-auto overflow-x-hidden pr-2 products-grid-scroll" 
+              style={{ 
+                maxHeight: 'calc((24rem + 1rem) * 2)'
+              }}
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {filteredProdutos.map((produto) => (
+                  <ProductGridCard
+                    key={produto.id}
+                    produto={produto}
+                    selectedProducts={selectedProducts}
+                    toggleProductSelection={toggleProductSelection}
+                    handleArchive={handleArchive}
+                    setViewingProduto={setViewingProduto}
+                    setEditingProduto={setEditingProduto}
+                    handleDelete={handleDelete}
+                    isAdminView={isAdminView}
+                    loading={loading}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
