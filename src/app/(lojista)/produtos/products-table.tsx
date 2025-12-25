@@ -1069,7 +1069,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 {/* Foto Original */}
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Foto Original</label>
-                  <div className="w-full h-32 rounded-lg bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-32 rounded-xl bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
                     {(formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl) ? (
                       <img
                         src={formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl}
@@ -1090,7 +1090,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                     Foto Catálogo (IA) {formData.imagemUrlCatalogo && <span className="text-emerald-400">✓</span>}
                   </label>
-                  <div className="w-full h-32 rounded-lg bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-32 rounded-xl bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
                     {(formData.imagemUrlCatalogo || generatedCatalogImage) ? (
                       <img
                         src={formData.imagemUrlCatalogo || generatedCatalogImage || ""}
@@ -1370,7 +1370,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
 
           {/* Descontos e Valor Final Calculado */}
-          <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
+          <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
             <label className="block text-xs font-medium text-zinc-300 mb-2">
               💰 DESCONTOS E PREÇO FINAL
             </label>
@@ -1535,7 +1535,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
           {/* Info e Botões */}
           <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-start gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/10 p-2 mb-2">
+            <div className="flex items-start gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2 mb-2">
               <Info className="h-3.5 w-3.5 mt-0.5 text-indigo-400 flex-shrink-0" />
               <p className="text-xs text-indigo-200">
                 Os dados e a imagem são enviados para o Firestore. Em breve, você poderá definir estoque, status e vitrine.
