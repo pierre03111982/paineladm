@@ -116,21 +116,22 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
                 console.log("[ProductsPageContent] Abrindo modal manual");
                 setShowManualForm(true);
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 hover:from-indigo-500 hover:via-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-indigo-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+              style={{ color: '#FFFFFF' }}
               whileTap={{ scale: 0.95 }}
             >
-              <Plus className="h-4 w-4" />
-              Adicionar produto
+              <Plus className="h-4 w-4 text-white" style={{ color: '#FFFFFF' }} />
+              <span className="text-white" style={{ color: '#FFFFFF' }}>Adicionar produto</span>
             </motion.button>
             <button
               onClick={() => {
                 console.log("[ProductsPageContent] Abrindo modal import");
                 setShowImportModal(true);
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 backdrop-blur-sm px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 hover:border-white/50"
             >
-              <Upload className="h-4 w-4" />
-              Importar catálogo
+              <Upload className="h-4 w-4 text-white" />
+              <span className="text-white">Importar catálogo</span>
             </button>
           </div>
         </div>

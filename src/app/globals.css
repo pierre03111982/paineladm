@@ -589,6 +589,147 @@ textarea::placeholder {
   background: rgba(99, 102, 241, 0.5);
 }
 
+/* Card de produto com gradiente preto-azul-preto - VERTICAL */
+.product-card-gradient {
+  background: linear-gradient(180deg, #000000 0%, #1e3a8a 50%, #000000 100%) !important;
+  border: 2px solid rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 4px 6px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(30, 58, 138, 0.4),
+    0 0 40px rgba(30, 58, 138, 0.2) !important;
+}
+
+/* FORÇA BRUTA VIA DATA ATTRIBUTES - PRIORIDADE MÁXIMA */
+[data-metrics-container] {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  gap: 8px !important;
+}
+
+[data-metric-card] {
+  width: 16% !important;
+  min-width: 120px !important;
+  flex-shrink: 0 !important;
+}
+
+[data-product-card],
+[data-product-card] *,
+[data-product-card] h3,
+[data-product-card] span,
+[data-product-card] div,
+[data-product-card] p {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Botões com texto preto - APENAS botões antigos */
+[data-product-card] button:not([style*="linear-gradient"]),
+[data-product-card] button:not([style*="linear-gradient"]) *,
+[data-product-card] button:not([style*="linear-gradient"]) span,
+[data-product-card] button:not([style*="linear-gradient"]) svg,
+[data-product-card] button:not([style*="linear-gradient"]) path {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  stroke: #000000 !important;
+  fill: #000000 !important;
+}
+
+/* Botões novos com gradiente - texto branco */
+[data-product-card] button[style*="linear-gradient"] *,
+[data-product-card] button[style*="linear-gradient"] span,
+[data-product-card] button[style*="linear-gradient"] svg {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+[data-product-card] span[style*="#4ade80"],
+[data-product-card] span[style*="color: #4ade80"],
+[data-product-card] span[style*="4ade80"],
+[data-product-card] h3[style*="#facc15"],
+[data-product-card] h3[style*="color: #facc15"],
+[data-product-card] h3 {
+  color: #facc15 !important;
+  -webkit-text-fill-color: #facc15 !important;
+}
+
+/* Preço em verde claro */
+[data-product-card] span[style*="#4ade80"],
+[data-product-card] span[style*="color: #4ade80"] {
+  color: #4ade80 !important;
+  -webkit-text-fill-color: #4ade80 !important;
+}
+
+/* Forçar texto branco em TODOS os elementos dentro de product-card-gradient */
+.product-card-gradient,
+.product-card-gradient *,
+.product-card-gradient h3,
+.product-card-gradient span,
+.product-card-gradient div,
+.product-card-gradient p {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Botões com texto preto - APENAS botões antigos */
+.product-card-gradient button:not([style*="linear-gradient"]),
+.product-card-gradient button:not([style*="linear-gradient"]) *,
+.product-card-gradient button:not([style*="linear-gradient"]) span,
+.product-card-gradient button:not([style*="linear-gradient"]) svg,
+.product-card-gradient button:not([style*="linear-gradient"]) path {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  stroke: #000000 !important;
+  fill: #000000 !important;
+}
+
+/* Botões novos com gradiente - texto branco */
+.product-card-gradient button[style*="linear-gradient"] *,
+.product-card-gradient button[style*="linear-gradient"] span,
+.product-card-gradient button[style*="linear-gradient"] svg {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.product-card-gradient span[style*="#4ade80"],
+.product-card-gradient span[style*="color: #4ade80"],
+.product-card-gradient h3 {
+  color: #facc15 !important;
+  -webkit-text-fill-color: #facc15 !important;
+}
+
+/* Preço em verde claro */
+.product-card-gradient span[style*="#4ade80"],
+.product-card-gradient span[style*="color: #4ade80"] {
+  color: #4ade80 !important;
+  -webkit-text-fill-color: #4ade80 !important;
+}
+
+/* FORÇA BRUTA COM DATA ATTRIBUTE - PRIORIDADE MÁXIMA */
+[data-force-white="true"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+[data-force-white="true"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* NEUTRALIZAR QUALQUER REGRA QUE APLIQUE #0F172A (slate-900) */
+span[data-force-white="true"],
+h4[data-force-white="true"],
+h3[data-force-white="true"],
+p[data-force-white="true"],
+div[data-force-white="true"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
 /* ============================================
    BOTÕES E TEXTOS
    ============================================ */
@@ -917,4 +1058,16 @@ body > div {
 .animate-gradient-flow {
   background-size: 200% 200%;
   animation: gradient-flow 4s ease-in-out infinite;
+}
+
+/* ============================================
+   ANIMAÇÃO SHIMMER PARA BOTÕES
+   ============================================ */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
 }

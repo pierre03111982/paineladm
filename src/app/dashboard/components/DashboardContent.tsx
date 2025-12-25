@@ -181,6 +181,62 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
   const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
 
+  // FORÇA BRUTA: Aplicar estilos diretamente no DOM para garantir que funcionem
+  useEffect(() => {
+    const forceStyles = () => {
+      // Forçar container das métricas a não quebrar linha
+      const metricsContainer = document.querySelector('[data-metrics-container]') as HTMLElement
+      if (metricsContainer) {
+        metricsContainer.style.setProperty('display', 'flex', 'important')
+        metricsContainer.style.setProperty('flex-wrap', 'nowrap', 'important')
+        metricsContainer.style.setProperty('flex-direction', 'row', 'important')
+        metricsContainer.style.setProperty('width', '100%', 'important')
+        metricsContainer.style.setProperty('gap', '8px', 'important')
+      }
+
+      // Forçar largura dos cards de métrica
+      const metricCards = document.querySelectorAll('[data-metric-card]') as NodeListOf<HTMLElement>
+      metricCards.forEach((card) => {
+        card.style.setProperty('width', '16%', 'important')
+        card.style.setProperty('min-width', '120px', 'important')
+        card.style.setProperty('flex-shrink', '0', 'important')
+      })
+
+      // Forçar texto branco nos cards de produto
+      const productCards = document.querySelectorAll('[data-product-card]') as NodeListOf<HTMLElement>
+      productCards.forEach((card) => {
+        const allTextElements = card.querySelectorAll('h3, span, p, div, button')
+        allTextElements.forEach((el) => {
+          const htmlEl = el as HTMLElement
+          // Não aplicar em elementos com preço (amarelo)
+          if (!htmlEl.textContent?.includes('R$') || htmlEl.style.color === '#facc15') {
+            if (htmlEl.style.color !== '#facc15') {
+              htmlEl.style.setProperty('color', '#FFFFFF', 'important')
+              htmlEl.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
+            }
+          }
+        })
+      })
+
+      // Forçar texto branco em elementos com data-force-white
+      const forceWhiteElements = document.querySelectorAll('[data-force-white="true"]') as NodeListOf<HTMLElement>
+      forceWhiteElements.forEach((el) => {
+        el.style.setProperty('color', '#FFFFFF', 'important')
+        el.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
+      })
+    }
+
+    // Executar imediatamente e após delays
+    forceStyles()
+    const timeout = setTimeout(forceStyles, 100)
+    const timeout2 = setTimeout(forceStyles, 500)
+
+    return () => {
+      clearTimeout(timeout)
+      clearTimeout(timeout2)
+    }
+  }, [])
+
   // Auto-refresh do dashboard a cada 20 segundos
   useEffect(() => {
     if (!lojistaId) return;
@@ -229,15 +285,25 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     <div className="space-y-3 pb-6">
 
       {/* FASE 1: Pequenas Caixas Coloridas (KPIs) - Estilo Neon NO TOPO */}
-      <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full">
+      <section 
+        data-metrics-container
+        style={{ display: 'flex', flexWrap: 'nowrap', gap: '8px', width: '100%' }}
+        className="w-full"
+      >
         {/* KPI 1: Experimentações Hoje - Verde */}
         <motion.div 
+          data-metric-card
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
           className="neon-card p-4 border-emerald-500/70 dark:border-emerald-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.2)' }}
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.2)',
+            width: '16%',
+            minWidth: '120px',
+            flexShrink: 0
+          }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 shadow-lg shadow-emerald-500/30 text-white">
             <TrendingUp className="h-5 w-5" />
@@ -254,12 +320,18 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         {/* KPI 2: Últimos 7 Dias - Azul */}
         <motion.div 
+          data-metric-card
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
           className="neon-card p-4 border-blue-500/70 dark:border-indigo-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2)' }}
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2)',
+            width: '16%',
+            minWidth: '120px',
+            flexShrink: 0
+          }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg shadow-blue-500/30 text-white">
             <MonitorSmartphone className="h-5 w-5" />
@@ -276,12 +348,18 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         {/* KPI 3: Like - Vermelho */}
         <motion.div 
+          data-metric-card
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
           className="neon-card p-4 border-red-500/70 dark:border-red-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(239, 68, 68, 0.4), 0 0 60px rgba(239, 68, 68, 0.2)' }}
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(239, 68, 68, 0.4), 0 0 60px rgba(239, 68, 68, 0.2)',
+            width: '16%',
+            minWidth: '120px',
+            flexShrink: 0
+          }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 p-2.5 shadow-lg shadow-red-500/30 text-white">
             <Heart className="h-5 w-5 fill-current" />
@@ -298,12 +376,18 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         {/* KPI 4: Compartilhamentos - Ciano */}
         <motion.div 
+          data-metric-card
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
           className="neon-card p-4 border-cyan-500/70 dark:border-cyan-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(6, 182, 212, 0.4), 0 0 60px rgba(6, 182, 212, 0.2)' }}
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(6, 182, 212, 0.4), 0 0 60px rgba(6, 182, 212, 0.2)',
+            width: '16%',
+            minWidth: '120px',
+            flexShrink: 0
+          }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 p-2.5 shadow-lg shadow-cyan-500/30 text-white">
             <Share2 className="h-5 w-5" />
@@ -320,12 +404,18 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         {/* KPI 5: Checkouts - Âmbar */}
         <motion.div 
+          data-metric-card
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
           className="neon-card p-4 border-amber-500/70 dark:border-orange-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.2)' }}
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.2)',
+            width: '16%',
+            minWidth: '120px',
+            flexShrink: 0
+          }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 shadow-lg shadow-amber-500/30 text-white">
             <ShoppingCart className="h-5 w-5" />
@@ -336,6 +426,34 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             </p>
             <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
               Checkouts
+            </p>
+          </div>
+        </motion.div>
+
+        {/* KPI 6: Total de Produtos - Roxo/Violeta */}
+        <motion.div 
+          data-metric-card
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
+          className="neon-card p-4 border-purple-500/70 dark:border-purple-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2)',
+            width: '16%',
+            minWidth: '120px',
+            flexShrink: 0
+          }}
+        >
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 p-2.5 shadow-lg shadow-purple-500/30 text-white">
+            <Package className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+              {data.metrics.totalProdutos || 0}
+            </p>
+            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+              Produtos
             </p>
           </div>
         </motion.div>

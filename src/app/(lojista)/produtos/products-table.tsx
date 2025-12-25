@@ -3,7 +3,8 @@
 import { ProductPerformanceAI } from "@/components/products/ProductPerformanceAI";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2 } from "lucide-react";
+import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, Settings } from "lucide-react";
+import { motion } from "framer-motion";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
@@ -33,7 +34,10 @@ function ProductGridCard({
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
 
   return (
-    <div className="group relative neon-card rounded-xl overflow-hidden hover:shadow-lg transition-all bg-white dark:bg-[var(--bg-card)]">
+    <div 
+      data-product-card
+      className="group relative product-card-gradient rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col"
+    >
       {/* Checkbox - Top Left - Simplificado */}
       <button
         onClick={(e) => {
@@ -46,7 +50,7 @@ function ProductGridCard({
         className={`absolute top-2 left-2 z-20 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
           selectedProducts.has(produto.id)
             ? "bg-indigo-600 border-indigo-600"
-            : "bg-white dark:bg-[var(--bg-card)] border-gray-300 dark:border-gray-600 hover:border-indigo-400"
+            : "bg-white/90 backdrop-blur-sm border-white/50 hover:border-indigo-400"
         } shadow-sm hover:shadow-md`}
         aria-label={selectedProducts.has(produto.id) ? "Desmarcar produto" : "Selecionar produto"}
       >
@@ -75,52 +79,141 @@ function ProductGridCard({
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-3 bg-white dark:bg-[var(--bg-card)]">
-        <div>
-          <h3 className="font-semibold text-[var(--text-main)] text-sm line-clamp-2 min-h-[2.5rem]">
-            {produto.nome}
-          </h3>
+      <div className="p-4 space-y-3 flex flex-col flex-1">
+        {/* Nome do produto - no topo, acima da categoria */}
+        <div className="flex justify-center items-center w-full mb-2">
+          <div
+            style={{ 
+              color: '#facc15',
+              backgroundColor: 'rgba(250, 204, 21, 0.15)',
+              border: '1px solid rgba(250, 204, 21, 0.3)',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'default',
+              width: '100%',
+              textAlign: 'center'
+            }}
+            className="font-semibold text-yellow-400 text-sm"
+          >
+            <h3 
+              style={{ 
+                color: '#facc15', 
+                margin: 0, 
+                padding: 0,
+                textAlign: 'center',
+                width: '100%',
+                lineHeight: '1.4'
+              }}
+              className="font-semibold text-yellow-400 text-sm line-clamp-2"
+            >
+              {produto.nome}
+            </h3>
+          </div>
         </div>
 
-        <div className="space-y-2 text-xs">
-          <div className="flex items-center justify-between py-1">
-            <span className="text-[var(--text-secondary)] font-medium">Categoria:</span>
-            <span className="text-[var(--text-main)] font-semibold">{produto.categoria}</span>
+        <div className="space-y-2 text-xs flex-1">
+          <div className="flex flex-col items-center justify-center py-1 border-b border-white/20 pb-2 text-center">
+            <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Categoria:</span>
+            <span data-force-white="true" style={{ color: 'white' }} className="text-white font-semibold">{produto.categoria}</span>
           </div>
-          <div className="flex items-center justify-between py-1.5 border-t border-gray-100 dark:border-gray-800 pt-2">
-            <span className="text-[var(--text-secondary)] font-medium">Preço:</span>
-            <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">R$ {produto.preco.toFixed(2)}</span>
+          <div className="flex flex-col items-center justify-center py-1.5 border-b border-white/20 pb-2 text-center">
+            <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Preço:</span>
+            <span style={{ color: '#4ade80' }} className="text-lg font-bold">R$ {produto.preco.toFixed(2)}</span>
           </div>
-          <div className="flex items-center justify-between py-1">
-            <span className="text-[var(--text-secondary)] font-medium">Estoque:</span>
-            <span className="text-[var(--text-main)] font-semibold">
+          <div className="flex flex-col items-center justify-center py-1 text-center">
+            <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Estoque:</span>
+            <span data-force-white="true" style={{ color: 'white' }} className="text-white font-semibold">
               {produto.estoque !== undefined && produto.estoque !== null ? produto.estoque : "-"}
             </span>
           </div>
           {produto.tamanhos && produto.tamanhos.length > 0 && (
-            <div className="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-800 pt-2">
-              <span className="text-[var(--text-secondary)] font-medium">Tamanhos:</span>
-              <span className="text-[var(--text-main)] font-semibold">{produto.tamanhos.join(", ")}</span>
+            <div className="flex flex-col items-center justify-center py-1 border-t border-white/20 pt-2 text-center">
+              <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Tamanhos:</span>
+              <span data-force-white="true" style={{ color: 'white' }} className="text-white font-semibold">{produto.tamanhos.join(", ")}</span>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-          <button
+        <div className="flex gap-3 pt-3 border-t border-white/20">
+          <motion.button
             onClick={() => setViewingProduto(produto)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-gray-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-400"
+            className="group relative flex-1 inline-flex items-center justify-center rounded-xl px-5 py-2 text-xs font-bold overflow-hidden"
+            style={{ 
+              background: 'linear-gradient(135deg, #047857 0%, #065f46 50%, #047857 100%)',
+              backgroundSize: '200% 200%',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 15px rgba(4, 120, 87, 0.4), 0 0 20px rgba(6, 95, 70, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+            whileHover={{ 
+              scale: 1.05,
+              boxShadow: '0 6px 25px rgba(4, 120, 87, 0.6), 0 0 40px rgba(6, 95, 70, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+              backgroundPosition: '100% 50%'
+            }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
-            <Eye className="h-3.5 w-3.5" />
-            Ver
-          </button>
-          <button
+            {/* Efeito de brilho animado no hover */}
+            <motion.div 
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)',
+                x: '-100%'
+              }}
+              animate={{
+                x: ['-100%', '200%']
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 1,
+                ease: 'linear'
+              }}
+            />
+            <span className="relative z-10 drop-shadow-sm tracking-wide" style={{ color: '#FFFFFF', textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>Ver</span>
+          </motion.button>
+          
+          <motion.button
             onClick={() => setEditingProduto(produto)}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 px-3 py-2 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-all hover:bg-indigo-100 dark:hover:bg-indigo-500/30 hover:border-indigo-500"
+            className="group relative flex-1 inline-flex items-center justify-center rounded-xl px-5 py-2 text-xs font-bold overflow-hidden"
+            style={{ 
+              background: 'linear-gradient(135deg, #b45309 0%, #92400e 50%, #b45309 100%)',
+              backgroundSize: '200% 200%',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 15px rgba(180, 83, 9, 0.4), 0 0 20px rgba(146, 64, 14, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+            whileHover={{ 
+              scale: 1.05,
+              boxShadow: '0 6px 25px rgba(180, 83, 9, 0.6), 0 0 40px rgba(146, 64, 14, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+              backgroundPosition: '100% 50%'
+            }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.2 }}
           >
-            <Edit className="h-3.5 w-3.5" />
-            Editar
-          </button>
+            {/* Efeito de brilho animado no hover */}
+            <motion.div 
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)',
+                x: '-100%'
+              }}
+              animate={{
+                x: ['-100%', '200%']
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatDelay: 1,
+                ease: 'linear'
+              }}
+            />
+            <span className="relative z-10 drop-shadow-sm tracking-wide" style={{ color: '#FFFFFF', textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>Editar</span>
+          </motion.button>
         </div>
       </div>
     </div>
@@ -242,6 +335,115 @@ export function ProductsTable({
 
     return filtered;
   }, [produtos, searchTerm, categoryFilter, showArchived]);
+
+  // FORÇA BRUTA: Aplicar estilos diretamente no DOM para garantir texto branco nos cards
+  useEffect(() => {
+    const forceProductCardStyles = () => {
+      // Forçar texto branco nos cards de produto (exceto nome do produto e preço que são amarelos)
+      const productCards = document.querySelectorAll('[data-product-card]') as NodeListOf<HTMLElement>
+      productCards.forEach((card) => {
+        const allTextElements = card.querySelectorAll('span, p, div, button, svg')
+        allTextElements.forEach((el) => {
+          const htmlEl = el as HTMLElement
+          // Não aplicar em elementos com preço (verde claro)
+          const textContent = htmlEl.textContent || ''
+          const hasPrice = textContent.includes('R$') || htmlEl.style.color === '#4ade80' || htmlEl.style.color === '#facc15'
+          
+          if (!hasPrice && htmlEl.style.color !== '#4ade80' && htmlEl.style.color !== '#facc15') {
+            htmlEl.style.setProperty('color', '#FFFFFF', 'important')
+            htmlEl.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
+          }
+        })
+        
+        // Forçar preço em verde claro
+        const priceElements = card.querySelectorAll('span')
+        priceElements.forEach((span) => {
+          const spanEl = span as HTMLElement
+          const textContent = spanEl.textContent || ''
+          if (textContent.includes('R$')) {
+            spanEl.style.setProperty('color', '#4ade80', 'important')
+            spanEl.style.setProperty('-webkit-text-fill-color', '#4ade80', 'important')
+          }
+        })
+        
+        // Forçar nome do produto (h3) em amarelo
+        const productNames = card.querySelectorAll('h3')
+        productNames.forEach((h3) => {
+          const h3El = h3 as HTMLElement
+          h3El.style.setProperty('color', '#facc15', 'important')
+          h3El.style.setProperty('-webkit-text-fill-color', '#facc15', 'important')
+        })
+        
+        // Forçar botões antigos em preto (apenas os que não têm gradiente)
+        const buttons = card.querySelectorAll('button')
+        buttons.forEach((button) => {
+          const buttonEl = button as HTMLElement
+          const hasGradient = buttonEl.style.background?.includes('linear-gradient') || 
+                              buttonEl.style.background?.includes('gradient')
+          
+          // Apenas aplicar preto em botões sem gradiente
+          if (!hasGradient) {
+            buttonEl.style.setProperty('color', '#000000', 'important')
+            buttonEl.style.setProperty('-webkit-text-fill-color', '#000000', 'important')
+            
+            // Forçar também nos filhos dos botões (spans, svg e paths)
+            const buttonChildren = button.querySelectorAll('span, svg, path')
+            buttonChildren.forEach((child) => {
+              const childEl = child as HTMLElement
+              childEl.style.setProperty('color', '#000000', 'important')
+              childEl.style.setProperty('-webkit-text-fill-color', '#000000', 'important')
+              // Para SVGs, também forçar stroke e fill
+              if (child.tagName === 'svg' || child.tagName === 'path') {
+                childEl.style.setProperty('stroke', '#000000', 'important')
+                childEl.style.setProperty('fill', '#000000', 'important')
+              }
+            })
+          } else {
+            // Botões com gradiente - garantir texto branco
+            buttonEl.style.setProperty('color', '#FFFFFF', 'important')
+            const buttonChildren = button.querySelectorAll('span, svg, path')
+            buttonChildren.forEach((child) => {
+              const childEl = child as HTMLElement
+              childEl.style.setProperty('color', '#FFFFFF', 'important')
+              childEl.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
+              if (child.tagName === 'svg' || child.tagName === 'path') {
+                childEl.style.setProperty('stroke', '#FFFFFF', 'important')
+              }
+            })
+          }
+        })
+      })
+
+      // Forçar texto branco em elementos com data-force-white
+      const forceWhiteElements = document.querySelectorAll('[data-force-white="true"]') as NodeListOf<HTMLElement>
+      forceWhiteElements.forEach((el) => {
+        el.style.setProperty('color', '#FFFFFF', 'important')
+        el.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
+        
+        // Forçar também nos filhos
+        const children = el.querySelectorAll('*')
+        children.forEach((child) => {
+          const childEl = child as HTMLElement
+          if (childEl.style.color !== '#facc15') {
+            childEl.style.setProperty('color', '#FFFFFF', 'important')
+            childEl.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
+          }
+        })
+      })
+    }
+
+    // Executar imediatamente e após delays
+    forceProductCardStyles()
+    const timeout = setTimeout(forceProductCardStyles, 100)
+    const timeout2 = setTimeout(forceProductCardStyles, 500)
+    const timeout3 = setTimeout(forceProductCardStyles, 1000)
+
+    return () => {
+      clearTimeout(timeout)
+      clearTimeout(timeout2)
+      clearTimeout(timeout3)
+    }
+  }, [filteredProdutos])
 
   const handleArchive = async (produto: ProdutoDoc, archive: boolean) => {
     try {
@@ -694,26 +896,27 @@ export function ProductsTable({
             </div>
           ) : (
             <div 
-              className="overflow-y-auto overflow-x-hidden pr-2 products-grid-scroll" 
+              className="overflow-y-auto products-grid-scroll"
               style={{ 
-                maxHeight: 'calc((24rem + 1rem) * 2)'
+                maxHeight: 'calc(2 * (400px + 1rem))',
+                height: 'calc(2 * (400px + 1rem))'
               }}
             >
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredProdutos.map((produto) => (
-                  <ProductGridCard
-                    key={produto.id}
-                    produto={produto}
-                    selectedProducts={selectedProducts}
-                    toggleProductSelection={toggleProductSelection}
-                    handleArchive={handleArchive}
-                    setViewingProduto={setViewingProduto}
-                    setEditingProduto={setEditingProduto}
-                    handleDelete={handleDelete}
-                    isAdminView={isAdminView}
-                    loading={loading}
-                  />
-                ))}
+                  {filteredProdutos.map((produto) => (
+                    <ProductGridCard
+                      key={produto.id}
+                      produto={produto}
+                      selectedProducts={selectedProducts}
+                      toggleProductSelection={toggleProductSelection}
+                      handleArchive={handleArchive}
+                      setViewingProduto={setViewingProduto}
+                      setEditingProduto={setEditingProduto}
+                      handleDelete={handleDelete}
+                      isAdminView={isAdminView}
+                      loading={loading}
+                    />
+                  ))}
               </div>
             </div>
           )}
@@ -1046,18 +1249,22 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 sm:pt-12 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-2xl rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] p-5 shadow-lg mb-8">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-main)]">Editar produto</h2>
-          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-4xl rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-[var(--text-main)]">Editar produto</h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              Atualize os campos abaixo para modificar o produto. O envio real será conectado ao Firestore.
+            </p>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
-
-        <p className="text-xs text-[var(--text-secondary)] mb-3">
-          Atualize os campos abaixo para modificar o produto. O envio real será conectado ao Firestore.
-        </p>
 
         {error && (
           <div className="mb-2 rounded-xl border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-xs text-red-200">

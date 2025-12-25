@@ -682,6 +682,7 @@ export async function getDashboardData(
             : experimentMonth,
         likedTotal: totalLikes, // Total de likes (ações + composições curtidas)
         dislikedTotal: totalDislikes, // Total de dislikes (ações + composições rejeitadas)
+        totalProdutos: produtos.length, // Total de produtos cadastrados
         totalImagensGeradas: totalImagensGeradas, // Total de imagens/composições geradas
         sharesTotal: totalShares,
         checkoutTotal: totalCheckouts,
