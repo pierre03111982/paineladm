@@ -655,7 +655,7 @@ export function ProductsTable({
               </div>
             )}
             {selectedDiscountOption !== "custom" && (
-              <div className="rounded-lg border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-4 py-2 text-center">
+              <div className="rounded-xl border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-4 py-2 text-center">
                 <p className="text-xs text-gray-600 dark:text-gray-400">Atual</p>
                 <p className="text-base font-bold text-indigo-900 dark:text-indigo-300">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
               </div>
@@ -665,12 +665,12 @@ export function ProductsTable({
       </div>
 
         {error && (
-          <div className="mx-4 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6">
+          <div className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6">
             {error}
           </div>
         )}
         {success && (
-          <div className="mx-4 mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 sm:mx-6">
+          <div className="mx-4 mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 sm:mx-6">
             {success}
           </div>
         )}
@@ -1049,12 +1049,12 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
         </p>
 
         {error && (
-          <div className="mb-2 rounded-lg border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-xs text-red-200">
+          <div className="mb-2 rounded-xl border border-red-500/60 bg-red-500/10 px-3 py-1.5 text-xs text-red-200">
             {error}
           </div>
         )}
         {success && (
-          <div className="mb-2 rounded-lg border border-emerald-500/60 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">
+          <div className="mb-2 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200">
             {success}
           </div>
         )}
@@ -1164,7 +1164,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               <label className="block text-xs font-medium text-zinc-300 mb-2">
                 ✨ ESTÚDIO VIRTUAL & DISPLAY
               </label>
-              <div className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
+              <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
                 {/* Seletor de Cor do Manequim */}
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
@@ -1315,7 +1315,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 )}
 
                 {/* Info */}
-                <div className="flex items-start gap-2 rounded-lg border border-purple-500/20 bg-purple-500/10 p-2">
+                <div className="flex items-start gap-2 rounded-xl border border-purple-500/20 bg-purple-500/10 p-2">
                   <Info className="h-3.5 w-3.5 mt-0.5 text-purple-400 flex-shrink-0" />
                   <p className="text-xs text-purple-200">
                     Gere uma imagem profissional de catálogo com etiqueta de preço integrada, ideal para exibição na TV da loja sem riscos de direitos de imagem.

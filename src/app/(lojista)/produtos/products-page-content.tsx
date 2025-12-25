@@ -160,7 +160,7 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               <span>Observações para IA (ex: materiais, detalhes)</span>
             </li>
           </ul>
-          <div className="mt-4 rounded-lg border border-indigo-100 dark:border-white/15 bg-indigo-50 dark:bg-white/5 p-3 shadow-sm text-xs text-indigo-900 dark:text-white/85">
+          <div className="mt-4 rounded-xl border border-indigo-100 dark:border-white/15 bg-indigo-50 dark:bg-white/5 p-3 shadow-sm text-xs text-indigo-900 dark:text-white/85">
             <p>
               <Info className="inline h-3.5 w-3.5 mr-1" />
               Dica: produtos com fotos neutras e fundo limpo têm resultado melhor nas combinações inteligentes do provador.
