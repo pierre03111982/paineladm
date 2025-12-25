@@ -107,12 +107,14 @@ export async function POST(req: NextRequest) {
     
     jobId = body.jobId;
 
-    if (!jobId) {
+    if (!jobId || typeof jobId !== 'string') {
       console.error("[process-job] ❌ JobId não fornecido no body");
       return NextResponse.json({ error: "Job ID required" }, { status: 400 });
     }
 
-    console.log(`[process-job] 📋 VERSAO FINAL BLINDADA - Job: ${jobId}`);
+    // Garantir que jobId é string para TypeScript
+    const validatedJobId: string = jobId;
+    console.log(`[process-job] 📋 VERSAO FINAL BLINDADA - Job: ${validatedJobId}`);
     
     // VALIDAÇÃO: Verificar se o Firestore está acessível
     if (!db) {
@@ -123,11 +125,11 @@ export async function POST(req: NextRequest) {
     const jobsRef = db.collection("generation_jobs");
     
     // VALIDAÇÃO: Verificar se o job existe antes de atualizar
-    const jobDocCheck = await jobsRef.doc(jobId).get();
+    const jobDocCheck = await jobsRef.doc(validatedJobId).get();
     if (!jobDocCheck.exists) {
-      console.error(`[process-job] ❌ Job não encontrado: ${jobId}`);
+      console.error(`[process-job] ❌ Job não encontrado: ${validatedJobId}`);
       return NextResponse.json({ 
-        error: `Job não encontrado: ${jobId}` 
+        error: `Job não encontrado: ${validatedJobId}` 
       }, { status: 404 });
     }
     
@@ -137,21 +139,21 @@ export async function POST(req: NextRequest) {
     
     // Se já tem compositionId salvo, significa que o job já foi processado
     if (existingCompositionId) {
-      console.warn(`[process-job] ⚠️ Job ${jobId} já foi processado com compositionId ${existingCompositionId}. Ignorando processamento duplicado.`);
+      console.warn(`[process-job] ⚠️ Job ${validatedJobId} já foi processado com compositionId ${existingCompositionId}. Ignorando processamento duplicado.`);
       return NextResponse.json({ 
         message: `Job já foi processado`,
         status: currentStatus || "COMPLETED",
         compositionId: existingCompositionId,
-        jobId 
+        jobId: validatedJobId 
       }, { status: 200 });
     }
     
     if (currentStatus === "PROCESSING" || currentStatus === "COMPLETED" || currentStatus === "FAILED") {
-      console.warn(`[process-job] ⚠️ Job ${jobId} já está com status ${currentStatus}. Ignorando processamento duplicado.`);
+      console.warn(`[process-job] ⚠️ Job ${validatedJobId} já está com status ${currentStatus}. Ignorando processamento duplicado.`);
       return NextResponse.json({ 
         message: `Job já foi processado ou está em processamento`,
         status: currentStatus,
-        jobId 
+        jobId: validatedJobId 
       }, { status: 200 });
     }
     
@@ -159,7 +161,7 @@ export async function POST(req: NextRequest) {
     // Usamos toISOString() para garantir compatibilidade total
     try {
       await db.runTransaction(async (transaction) => {
-        const jobRef = jobsRef.doc(jobId);
+        const jobRef = jobsRef.doc(validatedJobId);
         const jobSnapshot = await transaction.get(jobRef);
         
         if (!jobSnapshot.exists) {
@@ -187,7 +189,7 @@ export async function POST(req: NextRequest) {
         console.warn(`[process-job] ⚠️ ${updateError.message}. Ignorando processamento duplicado.`);
         return NextResponse.json({ 
           message: "Job já está sendo processado",
-          jobId 
+          jobId: validatedJobId 
         }, { status: 200 });
       }
       
@@ -201,9 +203,9 @@ export async function POST(req: NextRequest) {
     // Buscar dados do job
     jobData = jobDocCheck.data();
     if (!jobData) {
-      console.error(`[process-job] ❌ Job data vazio para: ${jobId}`);
+      console.error(`[process-job] ❌ Job data vazio para: ${validatedJobId}`);
       return NextResponse.json({ 
-        error: `Job data não encontrado: ${jobId}` 
+        error: `Job data não encontrado: ${validatedJobId}` 
       }, { status: 404 });
     }
     
@@ -476,7 +478,7 @@ export async function POST(req: NextRequest) {
       if (personImageUrl.startsWith("data:image/")) {
         try {
         console.log("[process-job] 🔄 Detectado data:image/ para personImageUrl, fazendo upload...");
-          personImageUrl = await uploadBase64ToStorage(personImageUrl, jobData.lojistaId, jobId);
+          personImageUrl = await uploadBase64ToStorage(personImageUrl, jobData.lojistaId, validatedJobId);
         console.log("[process-job] ✅ Upload de personImageUrl concluído:", personImageUrl.substring(0, 100) + "...");
         } catch (uploadError: any) {
         console.error("[process-job] ❌ Erro ao fazer upload de personImageUrl:", uploadError);
@@ -584,7 +586,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // Gerar compositionId ANTES de chamar o orchestrator, baseado no jobId
     // Isso garante que o mesmo job sempre gere o mesmo ID, mesmo se processado duas vezes
-    const preGeneratedCompositionId = `comp_${jobId}_${Date.now()}`;
+    const preGeneratedCompositionId = `comp_${validatedJobId}_${Date.now()}`;
     
     // Verificar se já existe uma generation com este compositionId (proteção adicional)
     try {
@@ -600,7 +602,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ 
           message: `Job já foi processado`,
           compositionId: preGeneratedCompositionId,
-          jobId 
+          jobId: validatedJobId 
         }, { status: 200 });
       }
     } catch (checkError: any) {
@@ -713,12 +715,12 @@ export async function POST(req: NextRequest) {
           console.error("[process-job] ❌ ERRO 429 - Resource Exhausted na API do Gemini");
           console.error("[process-job] 📋 Detalhes:", {
             message: errorMessage,
-            jobId,
+            jobId: validatedJobId,
             lojistaId: jobData.lojistaId,
           });
           
           // Atualizar job com erro 429
-          await db.collection("generation_jobs").doc(jobId).update({
+          await db.collection("generation_jobs").doc(validatedJobId).update({
             status: "FAILED",
             error: "Limite de requisições atingido (429). Aguarde 1 minuto antes de tentar novamente.",
             failedAt: new Date().toISOString(),
@@ -744,7 +746,7 @@ export async function POST(req: NextRequest) {
             error: "Limite de requisições atingido",
             details: "Muitas requisições foram feitas muito rápido. Por favor, aguarde pelo menos 1 minuto antes de tentar gerar outro look.",
             errorType: "429_RATE_LIMIT",
-            jobId,
+            jobId: validatedJobId,
           }, { status: 429 });
         }
         
@@ -810,8 +812,7 @@ export async function POST(req: NextRequest) {
     // FIX: Se for base64, fazer upload para Storage
     if (imageUrl.startsWith("data:image/")) {
       console.log("[process-job] 🔄 Detectado base64, fazendo upload para Storage...");
-      if (!jobId) throw new Error("JobId não disponível para upload");
-      finalUrl = await uploadBase64ToStorage(imageUrl, lojistaId, jobId);
+      finalUrl = await uploadBase64ToStorage(imageUrl, lojistaId, validatedJobId);
     } else {
       finalUrl = imageUrl;
     }
@@ -826,8 +827,7 @@ export async function POST(req: NextRequest) {
     // Processar sceneImageUrls também se houver
     let processedSceneUrls: string[] = [];
     if (Array.isArray(finalResult.sceneImageUrls) && finalResult.sceneImageUrls.length > 0) {
-      if (!jobId) throw new Error("JobId não disponível para upload de sceneImageUrls");
-      const validJobId = jobId; // TypeScript guard
+      const validJobId = validatedJobId; // TypeScript guard
       processedSceneUrls = await Promise.all(
         finalResult.sceneImageUrls.map(async (url: string) => {
           if (url && url.startsWith("data:image/")) {
@@ -900,7 +900,7 @@ export async function POST(req: NextRequest) {
     // Limpar undefined values
         const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
         
-        await jobsRef.doc(jobId).update(cleanUpdateData);
+        await jobsRef.doc(validatedJobId).update(cleanUpdateData);
 
     // ============================================
     // SALVAR GENERATION COM PRODUTOS (CRÍTICO)
@@ -922,7 +922,7 @@ export async function POST(req: NextRequest) {
           lojistaId: jobData.lojistaId,
           userId: jobData.customerId || "unknown",
           compositionId: finalResult.compositionId,
-          jobId: jobId,
+          jobId: validatedJobId,
           imagemUrl: finalUrl,
           uploadImageUrl: jobData.params?.personImageUrl || null,
           productIds: productIdsParaGeneration,
@@ -970,7 +970,7 @@ export async function POST(req: NextRequest) {
               createdAt: new Date(),
               updatedAt: new Date(),
               status: "completed",
-              jobId: jobId || null,
+              jobId: validatedJobId || null,
               sceneImageUrls: processedSceneUrls.length > 0 ? processedSceneUrls : null,
             };
             
@@ -1023,7 +1023,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, jobId });
+    return NextResponse.json({ success: true, jobId: validatedJobId });
     } catch (error: any) {
     console.error("[process-job] ❌ ERRO FATAL NO PROCESS-JOB:", {
       message: error?.message || "Erro desconhecido",
@@ -1034,7 +1034,7 @@ export async function POST(req: NextRequest) {
     
     // Tenta salvar o erro no Job e fazer rollback do crédito
     try {
-        const jobIdFromBody = jobId || (await req.clone().json().catch(() => ({}))).jobId;
+        const jobIdFromBody = validatedJobId || (await req.clone().json().catch(() => ({}))).jobId;
         
         if(jobIdFromBody) {
             console.log("[process-job] 🔄 Tentando atualizar job e fazer rollback:", { jobId: jobIdFromBody });
@@ -1094,7 +1094,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       error: errorMessage,
       errorType: error?.name,
-      jobId: jobId || "unknown"
+      jobId: validatedJobId || "unknown"
     }, { status: 500 });
   }
 }
