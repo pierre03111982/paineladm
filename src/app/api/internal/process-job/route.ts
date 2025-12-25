@@ -482,7 +482,7 @@ export async function POST(req: NextRequest) {
       if (personImageUrl.startsWith("data:image/")) {
         try {
         console.log("[process-job] 🔄 Detectado data:image/ para personImageUrl, fazendo upload...");
-          personImageUrl = await uploadBase64ToStorage(personImageUrl, jobData.lojistaId, validatedJobId);
+          personImageUrl = await uploadBase64ToStorage(personImageUrl, jobData.lojistaId, validatedJobId!);
         console.log("[process-job] ✅ Upload de personImageUrl concluído:", personImageUrl.substring(0, 100) + "...");
         } catch (uploadError: any) {
         console.error("[process-job] ❌ Erro ao fazer upload de personImageUrl:", uploadError);
@@ -816,7 +816,7 @@ export async function POST(req: NextRequest) {
     // FIX: Se for base64, fazer upload para Storage
     if (imageUrl.startsWith("data:image/")) {
       console.log("[process-job] 🔄 Detectado base64, fazendo upload para Storage...");
-      finalUrl = await uploadBase64ToStorage(imageUrl, lojistaId, validatedJobId);
+      finalUrl = await uploadBase64ToStorage(imageUrl, lojistaId, validatedJobId!);
     } else {
       finalUrl = imageUrl;
     }
@@ -904,7 +904,7 @@ export async function POST(req: NextRequest) {
     // Limpar undefined values
         const cleanUpdateData = JSON.parse(JSON.stringify(updateData));
         
-        await jobsRef.doc(validatedJobId).update(cleanUpdateData);
+        await jobsRef.doc(validatedJobId!).update(cleanUpdateData);
 
     // ============================================
     // SALVAR GENERATION COM PRODUTOS (CRÍTICO)
