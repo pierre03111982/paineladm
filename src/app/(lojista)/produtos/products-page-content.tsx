@@ -29,40 +29,6 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
   return (
     <PageWrapper>
       <div className="w-full space-y-6">
-        {/* Seção Produtos */}
-        <AnimatedCard className="p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex-1">
-            <h1 className="text-2xl font-semibold text-[var(--text-main)] mb-2 font-heading">Produtos</h1>
-            <p className="text-sm text-[var(--text-secondary)]">
-              Gerencie o catálogo que alimenta o Provador Virtual. Cadastre novas peças manualmente, importe via planilha ou sincronize com seu e-commerce.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <motion.button
-              onClick={() => {
-                console.log("[ProductsPageContent] Abrindo modal manual");
-                setShowManualForm(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
-              whileTap={{ scale: 0.95 }}
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar produto
-            </motion.button>
-            <button
-              onClick={() => {
-                console.log("[ProductsPageContent] Abrindo modal import");
-                setShowImportModal(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
-            >
-              <Upload className="h-4 w-4" />
-              Importar catálogo
-            </button>
-          </div>
-        </div>
-        </AnimatedCard>
 
         {/* Seção Importação, Campos Sugeridos e E-commerce - Lado a lado */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -137,8 +103,39 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
 
         {/* Seção Inventário */}
         <AnimatedCard className="p-6 overflow-hidden">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-[var(--text-main)] font-heading mb-2">Inventário</h2>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Gerencie o catálogo que alimenta o Provador Virtual. Cadastre novas peças manualmente, importe via planilha ou sincronize com seu e-commerce.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <motion.button
+              onClick={() => {
+                console.log("[ProductsPageContent] Abrindo modal manual");
+                setShowManualForm(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+              whileTap={{ scale: 0.95 }}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar produto
+            </motion.button>
+            <button
+              onClick={() => {
+                console.log("[ProductsPageContent] Abrindo modal import");
+                setShowImportModal(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
+            >
+              <Upload className="h-4 w-4" />
+              Importar catálogo
+            </button>
+          </div>
+        </div>
+
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-main)] font-heading">Inventário</h2>
           <div className="flex items-center gap-2">
             <button className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
               <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
