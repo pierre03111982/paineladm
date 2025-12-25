@@ -81,7 +81,7 @@ async function uploadBase64ToStorage(
 
 export async function POST(req: NextRequest) {
   let jobId: string | undefined;
-  let validatedJobId: string | undefined; // Declarar no escopo externo para uso no catch
+  let validatedJobId: string; // Declarar como string (não undefined) no escopo externo
   let jobData: any = null;
   
   // Instanciar o orchestrator
@@ -113,9 +113,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Job ID required" }, { status: 400 });
     }
 
-    // Garantir que jobId é string para TypeScript
     // Após a validação acima, jobId é garantidamente string
-    validatedJobId = jobId as string;
+    // Atribuir diretamente (TypeScript entende que é string após a validação)
+    validatedJobId = jobId;
     console.log(`[process-job] 📋 VERSAO FINAL BLINDADA - Job: ${validatedJobId}`);
     
     // VALIDAÇÃO: Verificar se o Firestore está acessível
