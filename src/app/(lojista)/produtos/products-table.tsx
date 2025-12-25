@@ -33,7 +33,7 @@ function ProductGridCard({
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
 
   return (
-    <div className="group relative neon-card rounded-lg overflow-hidden hover:shadow-lg transition-all">
+    <div className="group relative neon-card rounded-xl overflow-hidden hover:shadow-lg transition-all">
       {/* Status Badge - Top Right Overlay */}
       <div className="absolute top-2 right-2 z-10">
         <span
