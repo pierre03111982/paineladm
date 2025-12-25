@@ -64,76 +64,76 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
         </div>
         </AnimatedCard>
 
-        {/* Seção Importação e Campos Sugeridos - Topo */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Seção Importação, Campos Sugeridos e E-commerce - Lado a lado */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* Importação */}
-          <AnimatedCard className="p-6 lg:col-span-2">
+          <AnimatedCard className="p-5">
             <div className="mb-2 flex items-center gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600">IMPORTAÇÃO</span>
             </div>
-            <h3 className="text-lg font-semibold text-[var(--text-main)] mb-2 font-heading">Importar produtos em massa</h3>
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
+            <h3 className="text-base font-semibold text-[var(--text-main)] mb-2 font-heading">Importar produtos em massa</h3>
+            <p className="text-xs text-[var(--text-secondary)] mb-3 line-clamp-3">
               Suba uma planilha padrão para cadastrar dezenas de produtos em segundos. Ideal para atualizar coleções completas ou trazer o catálogo do e-commerce.
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => setShowImportModal(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg shadow-emerald-500/30 px-4 py-2 text-sm font-medium transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white shadow-lg shadow-emerald-500/30 px-3 py-2 text-xs font-medium transition-all duration-300"
               >
-                <Upload className="h-4 w-4" />
+                <Upload className="h-3.5 w-3.5" />
                 Enviar arquivo CSV
               </button>
-              <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-4 py-2 text-sm font-medium text-slate-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80">
-                <Download className="h-4 w-4" />
+              <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-slate-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80">
+                <Download className="h-3.5 w-3.5" />
                 Baixar modelo
               </button>
             </div>
           </AnimatedCard>
 
           {/* Campos Sugeridos */}
-          <AnimatedCard className="p-6">
-            <h4 className="text-sm font-semibold text-[var(--text-main)] dark:text-white mb-3">Campos sugeridos</h4>
-            <ul className="space-y-2 text-sm text-[var(--text-secondary)] dark:text-white/85">
+          <AnimatedCard className="p-5">
+            <h4 className="text-sm font-semibold text-[var(--text-main)] dark:text-white mb-2">Campos sugeridos</h4>
+            <ul className="space-y-1.5 text-xs text-[var(--text-secondary)] dark:text-white/85">
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 text-indigo-600 dark:text-indigo-300 flex-shrink-0" />
-                <span>Foto em alta resolução (PNG ou JPG)</span>
+                <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-indigo-600 dark:text-indigo-300 flex-shrink-0" />
+                <span className="leading-tight">Foto em alta resolução (PNG ou JPG)</span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 text-indigo-300 flex-shrink-0" />
-                <span>Nome, preço, categoria e coleção</span>
+                <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-indigo-300 flex-shrink-0" />
+                <span className="leading-tight">Nome, preço, categoria e coleção</span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 text-indigo-300 flex-shrink-0" />
-                <span>Cores, tamanhos e estoque disponível</span>
+                <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-indigo-300 flex-shrink-0" />
+                <span className="leading-tight">Cores, tamanhos e estoque disponível</span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 mt-0.5 text-indigo-300 flex-shrink-0" />
-                <span>Observações para IA (ex: materiais, detalhes)</span>
+                <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-indigo-300 flex-shrink-0" />
+                <span className="leading-tight">Observações para IA (ex: materiais, detalhes)</span>
               </li>
             </ul>
-            <div className="mt-4 rounded-xl border border-indigo-100 dark:border-white/15 bg-indigo-50 dark:bg-white/5 p-3 shadow-sm text-xs text-indigo-900 dark:text-white/85">
-              <p>
-                <Info className="inline h-3.5 w-3.5 mr-1" />
+            <div className="mt-3 rounded-lg border border-indigo-100 dark:border-white/15 bg-indigo-50 dark:bg-white/5 p-2 shadow-sm text-xs text-indigo-900 dark:text-white/85">
+              <p className="leading-tight">
+                <Info className="inline h-3 w-3 mr-1" />
                 Dica: produtos com fotos neutras e fundo limpo têm resultado melhor nas combinações inteligentes do provador.
               </p>
             </div>
           </AnimatedCard>
-        </div>
 
-        {/* Conecte seu e-commerce */}
-        <AnimatedCard className="p-6" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
-          <h4 className="text-sm font-semibold text-[var(--text-main)] mb-2">Conecte seu e-commerce</h4>
-          <p className="text-sm text-emerald-900 dark:text-emerald-300 mb-4">
-            Estamos preparando integrações nativas com Shopify, Nuvemshop e VTEX para que seu catálogo fique sempre sincronizado. Cadastre-se na lista de espera e seja avisado em primeira mão.
-          </p>
-          <button
-            onClick={() => setShowEcommerceWaitlist(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 dark:border-emerald-500 bg-emerald-100 dark:bg-emerald-500/20 px-4 py-2 text-sm font-medium text-emerald-900 dark:text-emerald-300 transition-all hover:bg-emerald-200 dark:hover:bg-emerald-500/30"
-          >
-            Quero ser avisado
-            <ExternalLink className="h-4 w-4" />
-          </button>
-        </AnimatedCard>
+          {/* Conecte seu e-commerce */}
+          <AnimatedCard className="p-5" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)' }}>
+            <h4 className="text-sm font-semibold text-[var(--text-main)] mb-2">Conecte seu e-commerce</h4>
+            <p className="text-xs text-emerald-900 dark:text-emerald-300 mb-3 line-clamp-3">
+              Estamos preparando integrações nativas com Shopify, Nuvemshop e VTEX para que seu catálogo fique sempre sincronizado. Cadastre-se na lista de espera e seja avisado em primeira mão.
+            </p>
+            <button
+              onClick={() => setShowEcommerceWaitlist(true)}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300 dark:border-emerald-500 bg-emerald-100 dark:bg-emerald-500/20 px-3 py-2 text-xs font-medium text-emerald-900 dark:text-emerald-300 transition-all hover:bg-emerald-200 dark:hover:bg-emerald-500/30"
+            >
+              Quero ser avisado
+              <ExternalLink className="h-3.5 w-3.5" />
+            </button>
+          </AnimatedCard>
+        </div>
 
         {/* Seção Inventário */}
         <AnimatedCard className="p-6 overflow-hidden">
