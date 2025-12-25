@@ -3,7 +3,7 @@
 import { ProductPerformanceAI } from "@/components/products/ProductPerformanceAI";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, CheckSquare, Square } from "lucide-react";
+import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2 } from "lucide-react";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
@@ -33,9 +33,9 @@ function ProductGridCard({
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
 
   return (
-    <div className="group relative neon-card rounded-xl overflow-hidden hover:shadow-lg transition-all">
+    <div className="group relative neon-card rounded-xl overflow-hidden hover:shadow-lg transition-all bg-white dark:bg-[var(--bg-card)]">
       {/* Status Badge - Top Right Overlay */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-2 right-2 z-20">
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
             produto.arquivado
@@ -47,21 +47,31 @@ function ProductGridCard({
         </span>
       </div>
 
-      {/* Checkbox - Top Left */}
+      {/* Checkbox - Top Left - Simplificado */}
       <button
-        onClick={() => !loading && toggleProductSelection(produto.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!loading) {
+            toggleProductSelection(produto.id);
+          }
+        }}
         disabled={loading}
-        className="absolute top-2 left-2 z-10 p-1 rounded bg-white dark:bg-[var(--bg-card)] border border-gray-200 dark:border-gray-700 shadow-md hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80 transition"
+        className={`absolute top-2 left-2 z-20 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+          selectedProducts.has(produto.id)
+            ? "bg-indigo-600 border-indigo-600"
+            : "bg-white dark:bg-[var(--bg-card)] border-gray-300 dark:border-gray-600 hover:border-indigo-400"
+        } shadow-sm hover:shadow-md`}
+        aria-label={selectedProducts.has(produto.id) ? "Desmarcar produto" : "Selecionar produto"}
       >
-        {selectedProducts.has(produto.id) ? (
-          <CheckSquare className="h-4 w-4 text-indigo-600" />
-        ) : (
-          <Square className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+        {selectedProducts.has(produto.id) && (
+          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
         )}
       </button>
 
       {/* Product Image - Hero */}
-      <div className="aspect-square w-full overflow-hidden bg-gray-100 dark:bg-gray-900">
+      <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative">
         {imagemPrincipal ? (
           <img
             src={imagemPrincipal}
@@ -69,50 +79,52 @@ function ProductGridCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="h-full w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="h-full w-full flex items-center justify-center">
             <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
           </div>
         )}
+        {/* Overlay gradient no hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 bg-white dark:bg-[var(--bg-card)]">
         <div>
-          <h3 className="font-semibold text-[var(--text-main)] text-sm line-clamp-2 min-h-[2.5rem]">
+          <h3 className="font-semibold text-[var(--text-main)] text-sm line-clamp-2 min-h-[2.5rem] mb-1">
             {produto.nome}
           </h3>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">ID {produto.id.slice(0, 6)}</p>
+          <p className="text-xs text-[var(--text-secondary)] font-mono">ID {produto.id.slice(0, 6)}</p>
         </div>
 
-        <div className="space-y-1.5 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--text-secondary)]">Categoria:</span>
-            <span className="text-[var(--text-main)] font-medium">{produto.categoria}</span>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between py-1">
+            <span className="text-[var(--text-secondary)] font-medium">Categoria:</span>
+            <span className="text-[var(--text-main)] font-semibold">{produto.categoria}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--text-secondary)]">Preço:</span>
-            <span className="text-lg font-bold text-[var(--text-main)]">R$ {produto.preco.toFixed(2)}</span>
+          <div className="flex items-center justify-between py-1 border-t border-gray-100 dark:border-gray-800">
+            <span className="text-[var(--text-secondary)] font-medium">Preço:</span>
+            <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">R$ {produto.preco.toFixed(2)}</span>
           </div>
           {produto.tamanhos && produto.tamanhos.length > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-secondary)]">Tamanhos:</span>
-              <span className="text-[var(--text-main)] font-medium">{produto.tamanhos.join(", ")}</span>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-[var(--text-secondary)] font-medium">Tamanhos:</span>
+              <span className="text-[var(--text-main)] font-semibold">{produto.tamanhos.join(", ")}</span>
             </div>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setViewingProduto(produto)}
-            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-2 py-1.5 text-xs font-medium text-gray-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs font-medium text-gray-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-400"
           >
             <Eye className="h-3.5 w-3.5" />
             Ver
           </button>
           <button
             onClick={() => setEditingProduto(produto)}
-            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg border border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 px-2 py-1.5 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-all hover:bg-indigo-100 dark:hover:bg-indigo-500/30"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 px-3 py-2 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-all hover:bg-indigo-100 dark:hover:bg-indigo-500/30 hover:border-indigo-500"
           >
             <Edit className="h-3.5 w-3.5" />
             Editar
