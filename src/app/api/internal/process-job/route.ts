@@ -127,7 +127,8 @@ export async function POST(req: NextRequest) {
     const jobsRef = db.collection("generation_jobs");
     
     // VALIDAÇÃO: Verificar se o job existe antes de atualizar
-    const jobDocCheck = await jobsRef.doc(validatedJobId).get();
+    // validatedJobId é garantidamente string neste ponto após a validação
+    const jobDocCheck = await jobsRef.doc(validatedJobId!).get();
     if (!jobDocCheck.exists) {
       console.error(`[process-job] ❌ Job não encontrado: ${validatedJobId}`);
       return NextResponse.json({ 
@@ -161,9 +162,10 @@ export async function POST(req: NextRequest) {
     
     // Atualiza status para PROCESSING usando transação para evitar race condition
     // Usamos toISOString() para garantir compatibilidade total
+    // validatedJobId é garantidamente string neste ponto após a validação
     try {
       await db.runTransaction(async (transaction) => {
-        const jobRef = jobsRef.doc(validatedJobId);
+        const jobRef = jobsRef.doc(validatedJobId!); // Non-null assertion: validado acima
         const jobSnapshot = await transaction.get(jobRef);
         
         if (!jobSnapshot.exists) {
@@ -588,7 +590,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // Gerar compositionId ANTES de chamar o orchestrator, baseado no jobId
     // Isso garante que o mesmo job sempre gere o mesmo ID, mesmo se processado duas vezes
-    const preGeneratedCompositionId = `comp_${validatedJobId}_${Date.now()}`;
+    const preGeneratedCompositionId = `comp_${validatedJobId!}_${Date.now()}`;
     
     // Verificar se já existe uma generation com este compositionId (proteção adicional)
     try {
@@ -722,7 +724,7 @@ export async function POST(req: NextRequest) {
           });
           
           // Atualizar job com erro 429
-          await db.collection("generation_jobs").doc(validatedJobId).update({
+          await db.collection("generation_jobs").doc(validatedJobId!).update({
             status: "FAILED",
             error: "Limite de requisições atingido (429). Aguarde 1 minuto antes de tentar novamente.",
             failedAt: new Date().toISOString(),
