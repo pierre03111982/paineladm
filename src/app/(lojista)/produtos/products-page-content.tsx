@@ -135,36 +135,6 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           </div>
         </div>
 
-        <div className="mb-4">
-            <p className="text-sm text-[var(--text-secondary)] mb-3">
-            {activeProducts.length} produto(s) disponível(is) no provador.
-          </p>
-          <div className="relative group">
-            {/* Ícone: Camada de cima, não clicável */}
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
-              <svg 
-                className="h-4 w-4 text-blue-300 group-hover:text-white transition-colors" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            {/* Input: Padding forçado na esquerda */}
-            <input
-              type="text"
-              placeholder="Buscar por nome, categoria, tag ou ID..."
-              className="block w-full rounded-full border border-blue-700/50 bg-blue-900/30 py-2 !pl-10 pr-4 leading-5 text-white placeholder-blue-300/70 focus:border-blue-500 focus:bg-blue-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm transition-all duration-300 indent-0"
-            />
-          </div>
-        </div>
-
         <ProductsTable
           initialProdutos={initialProdutos}
           lojistaId={lojistaId}
