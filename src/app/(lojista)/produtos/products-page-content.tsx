@@ -135,19 +135,6 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
           </div>
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-              <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-              Ativo
-            </button>
-            <button className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-              <div className="h-2 w-2 rounded-full bg-gray-500"></div>
-              Rascunho
-            </button>
-          </div>
-        </div>
-
         <div className="mb-4">
             <p className="text-sm text-[var(--text-secondary)] mb-3">
             {activeProducts.length} produto(s) disponível(is) no provador.
