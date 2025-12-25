@@ -34,19 +34,6 @@ function ProductGridCard({
 
   return (
     <div className="group relative neon-card rounded-xl overflow-hidden hover:shadow-lg transition-all bg-white dark:bg-[var(--bg-card)]">
-      {/* Status Badge - Top Right Overlay */}
-      <div className="absolute top-2 right-2 z-20">
-        <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shadow-sm ${
-            produto.arquivado
-              ? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600"
-              : "bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30"
-          }`}
-        >
-          {produto.arquivado ? "Arquivado" : "Ativo"}
-        </span>
-      </div>
-
       {/* Checkbox - Top Left - Simplificado */}
       <button
         onClick={(e) => {
