@@ -90,10 +90,9 @@ function ProductGridCard({
       {/* Content */}
       <div className="p-4 space-y-3 bg-white dark:bg-[var(--bg-card)]">
         <div>
-          <h3 className="font-semibold text-[var(--text-main)] text-sm line-clamp-2 min-h-[2.5rem] mb-1">
+          <h3 className="font-semibold text-[var(--text-main)] text-sm line-clamp-2 min-h-[2.5rem]">
             {produto.nome}
           </h3>
-          <p className="text-xs text-[var(--text-secondary)] font-mono">ID {produto.id.slice(0, 6)}</p>
         </div>
 
         <div className="space-y-2 text-xs">
