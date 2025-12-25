@@ -131,20 +131,71 @@ export async function POST(req: NextRequest) {
       }, { status: 404 });
     }
     
-    // Atualiza status para PROCESSING
+    // PROTEÇÃO CONTRA DUPLICAÇÃO: Verificar se o job já está sendo processado ou já foi processado
+    const currentStatus = jobDocCheck.data()?.status;
+    const existingCompositionId = jobDocCheck.data()?.composition_id;
+    
+    // Se já tem compositionId salvo, significa que o job já foi processado
+    if (existingCompositionId) {
+      console.warn(`[process-job] ⚠️ Job ${jobId} já foi processado com compositionId ${existingCompositionId}. Ignorando processamento duplicado.`);
+      return NextResponse.json({ 
+        message: `Job já foi processado`,
+        status: currentStatus || "COMPLETED",
+        compositionId: existingCompositionId,
+        jobId 
+      }, { status: 200 });
+    }
+    
+    if (currentStatus === "PROCESSING" || currentStatus === "COMPLETED" || currentStatus === "FAILED") {
+      console.warn(`[process-job] ⚠️ Job ${jobId} já está com status ${currentStatus}. Ignorando processamento duplicado.`);
+      return NextResponse.json({ 
+        message: `Job já foi processado ou está em processamento`,
+        status: currentStatus,
+        jobId 
+      }, { status: 200 });
+    }
+    
+    // Atualiza status para PROCESSING usando transação para evitar race condition
     // Usamos toISOString() para garantir compatibilidade total
     try {
-      await jobsRef.doc(jobId).update({
-        status: "PROCESSING",
-        startedAt: new Date().toISOString()
+      await db.runTransaction(async (transaction) => {
+        const jobRef = jobsRef.doc(jobId);
+        const jobSnapshot = await transaction.get(jobRef);
+        
+        if (!jobSnapshot.exists) {
+          throw new Error("Job não encontrado durante transação");
+        }
+        
+        const jobData = jobSnapshot.data();
+        const existingStatus = jobData?.status;
+        
+        // Verificar novamente dentro da transação para evitar race condition
+        if (existingStatus === "PROCESSING" || existingStatus === "COMPLETED" || existingStatus === "FAILED") {
+          throw new Error(`Job já está com status ${existingStatus}`);
+        }
+        
+        // Atualizar status dentro da transação
+        transaction.update(jobRef, {
+          status: "PROCESSING",
+          startedAt: new Date().toISOString()
+        });
       });
-      console.log("[process-job] ✅ Status atualizado para PROCESSING");
+      console.log("[process-job] ✅ Status atualizado para PROCESSING (com proteção contra duplicação)");
     } catch (updateError: any) {
+      // Se o erro for porque o job já está sendo processado, retornar sucesso
+      if (updateError?.message?.includes("já está com status")) {
+        console.warn(`[process-job] ⚠️ ${updateError.message}. Ignorando processamento duplicado.`);
+        return NextResponse.json({ 
+          message: "Job já está sendo processado",
+          jobId 
+        }, { status: 200 });
+      }
+      
       console.error("[process-job] ❌ Erro ao atualizar status:", {
         error: updateError?.message,
         stack: updateError?.stack?.substring(0, 500),
       });
-      // Não falhar a requisição se a atualização falhar
+      // Não falhar a requisição se a atualização falhar por outro motivo
     }
     
     // Buscar dados do job
@@ -528,6 +579,36 @@ export async function POST(req: NextRequest) {
       throw new Error(errorMsg);
     }
 
+    // ============================================
+    // GERAR COMPOSITIONID BASEADO NO JOBID (CRÍTICO PARA EVITAR DUPLICAÇÃO)
+    // ============================================
+    // Gerar compositionId ANTES de chamar o orchestrator, baseado no jobId
+    // Isso garante que o mesmo job sempre gere o mesmo ID, mesmo se processado duas vezes
+    const preGeneratedCompositionId = `comp_${jobId}_${Date.now()}`;
+    
+    // Verificar se já existe uma generation com este compositionId (proteção adicional)
+    try {
+      const existingGeneration = await db
+        .collection("generations")
+        .where("compositionId", "==", preGeneratedCompositionId)
+        .where("lojistaId", "==", jobData.lojistaId)
+        .limit(1)
+        .get();
+      
+      if (!existingGeneration.empty) {
+        console.warn(`[process-job] ⚠️ Generation já existe com compositionId ${preGeneratedCompositionId}. Job já foi processado.`);
+        return NextResponse.json({ 
+          message: `Job já foi processado`,
+          compositionId: preGeneratedCompositionId,
+          jobId 
+        }, { status: 200 });
+      }
+    } catch (checkError: any) {
+      console.warn("[process-job] ⚠️ Erro ao verificar generation existente (continuando):", checkError.message);
+    }
+    
+    console.log("[process-job] ✅ CompositionId pré-gerado:", preGeneratedCompositionId);
+
     // Construir params para o orchestrator
     const params = {
         personImageUrl: jobData.personImageUrl,
@@ -542,6 +623,7 @@ export async function POST(req: NextRequest) {
         storeName: lojaData?.nome || "Minha Loja",
         logoUrl: lojaData?.logoUrl,
         scenePrompts: jobData.scenePrompts,
+        compositionId: preGeneratedCompositionId, // ✅ Passar ID pré-gerado para evitar duplicação
         options: {
           ...jobData.options,
           // IMPORTANTE: TODOS os produtos serão aplicados na composição

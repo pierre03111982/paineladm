@@ -36,6 +36,7 @@ export interface CreateCompositionParams {
   storeName: string;
   logoUrl?: string;
   scenePrompts?: string[];
+  compositionId?: string; // ID pré-gerado para evitar duplicação
   options?: {
     skipWatermark?: boolean;
     quality?: "low" | "medium" | "high";
@@ -104,10 +105,12 @@ export class CompositionOrchestrator {
     params: CreateCompositionParams
   ): Promise<CompositionResult> {
     const startTime = Date.now();
-    const compositionId = `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Usar compositionId fornecido ou gerar um novo
+    const compositionId = params.compositionId || `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     console.log("[Orchestrator] Iniciando criação de composição", {
       compositionId,
+      isPreGenerated: !!params.compositionId,
       lojistaId: params.lojistaId,
       productId: params.productId,
       personImageUrl: params.personImageUrl ? params.personImageUrl.substring(0, 100) + "..." : "❌ NÃO FORNECIDA",

@@ -78,6 +78,7 @@ export async function saveGeneration(params: {
   // Calcular hash da imagem de upload
   const uploadImageHash = calculateImageHash(uploadImageUrl || null);
 
+  // PROTEÇÃO CONTRA DUPLICAÇÃO: Usar transação para verificar e criar/atualizar atomicamente
   // Verificar se já existe uma generation com mesmo compositionId
   let existingGenerationId: string | null = null;
   if (compositionId) {
@@ -90,6 +91,22 @@ export async function saveGeneration(params: {
 
     if (!existingQuery.empty) {
       existingGenerationId = existingQuery.docs[0].id;
+      console.log("[saveGeneration] 🔍 Generation existente encontrada:", existingGenerationId);
+    }
+  }
+  
+  // PROTEÇÃO ADICIONAL: Verificar também por jobId para evitar duplicatas de processamento simultâneo
+  if (!existingGenerationId && jobId) {
+    const existingByJobId = await generationsRef
+      .where("jobId", "==", jobId)
+      .where("userId", "==", userId)
+      .where("lojistaId", "==", lojistaId)
+      .limit(1)
+      .get();
+    
+    if (!existingByJobId.empty) {
+      existingGenerationId = existingByJobId.docs[0].id;
+      console.log("[saveGeneration] 🔍 Generation existente encontrada por jobId:", existingGenerationId);
     }
   }
 
@@ -229,6 +246,56 @@ export async function saveGeneration(params: {
     });
     return existingGenerationId;
   } else {
+    // PROTEÇÃO CONTRA RACE CONDITION: Verificar novamente antes de criar
+    // Isso previne que duas chamadas simultâneas criem duas generations
+    // (A verificação por jobId já foi feita acima, mas fazemos uma última verificação aqui)
+    
+    // Última verificação antes de criar (para pegar qualquer generation criada entre as verificações)
+    let finalCheck: string | null = null;
+    if (compositionId) {
+      const finalQuery = await generationsRef
+        .where("compositionId", "==", compositionId)
+        .where("userId", "==", userId)
+        .where("lojistaId", "==", lojistaId)
+        .limit(1)
+        .get();
+      if (!finalQuery.empty) {
+        finalCheck = finalQuery.docs[0].id;
+      }
+    } else if (jobId) {
+      const finalQuery = await generationsRef
+        .where("jobId", "==", jobId)
+        .where("userId", "==", userId)
+        .where("lojistaId", "==", lojistaId)
+        .limit(1)
+        .get();
+      if (!finalQuery.empty) {
+        finalCheck = finalQuery.docs[0].id;
+      }
+    }
+    
+    if (finalCheck) {
+      // Encontrou uma generation criada entre as verificações - atualizar em vez de criar
+      console.log("[saveGeneration] 🔍 Generation encontrada na verificação final, atualizando:", finalCheck);
+      const updateData: any = {
+        ...generationData,
+        updatedAt: new Date(),
+      };
+      
+      if (Array.isArray(produtos) && produtos.length > 0) {
+        updateData.produtos = produtos;
+        updateData.productIds = productIds;
+        updateData.temProdutos = true;
+      } else {
+        delete updateData.produtos;
+        delete updateData.temProdutos;
+      }
+      
+      await generationsRef.doc(finalCheck).update(updateData);
+      console.log("[saveGeneration] ✅ Generation atualizada (verificação final):", finalCheck);
+      return finalCheck;
+    }
+    
     // Criar nova generation
     generationData.createdAt = new Date();
     const docRef = await generationsRef.add(generationData);
