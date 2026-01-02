@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Image as ImageIcon, Instagram, MessageCircle, ShoppingCart, Loader2, Facebook } from "lucide-react";
+import { Upload, X, Image as ImageIcon, MessageCircle, ShoppingCart, Loader2 } from "lucide-react";
 import { ModeloAppSelector } from "./components/modelo-app-selector";
 
 type LojaPerfil = {
@@ -83,9 +83,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
     return {
       nome: perfil?.nome || "",
       descricao: perfil?.descricao || "",
-      instagram: perfil?.instagram || "",
-      facebook: perfil?.facebook || "",
-      tiktok: perfil?.tiktok || "",
       appModel: normalizedAppModel,
       salesChannel: (perfil?.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
       salesWhatsapp: perfil?.salesConfig?.salesWhatsapp || perfil?.whatsapp || "",
@@ -115,9 +112,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       setFormData({
         nome: perfil.nome || "",
         descricao: perfil.descricao || "",
-        instagram: perfil.instagram || "",
-        facebook: perfil.facebook || "",
-        tiktok: perfil.tiktok || "",
         appModel: normalizedAppModel,
         salesChannel: (perfil.salesConfig?.channel as "checkout" | "whatsapp") || "whatsapp",
         salesWhatsapp: perfil.salesConfig?.salesWhatsapp || perfil.whatsapp || "",
@@ -329,9 +323,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         lojistaId,
         nome: formData.nome || "",
         descricao: formData.descricao || "",
-        instagram: formData.instagram || "",
-        facebook: formData.facebook || "",
-        tiktok: formData.tiktok || "",
         appModel: formData.appModel, // Sem fallback hardcoded
       };
 
@@ -567,79 +558,6 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         </div>
       </div>
 
-      {/* Redes Sociais e Desconto */}
-      <div className="neon-card rounded-2xl p-6">
-        <div className="flex items-start gap-4 mb-6">
-          <div className="rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 p-3 shadow-lg shadow-purple-500/30 text-white">
-            <Instagram className="h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">Redes Sociais e Desconto</h3>
-            <p className="text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
-              Configure suas redes sociais e defina um desconto para clientes que seguirem sua loja.
-            </p>
-          </div>
-        </div>
-        
-        <div className="mb-6 neon-card rounded-xl border-2 border-indigo-400/60 dark:border-indigo-500/60 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/30 p-4 shadow-lg shadow-indigo-500/20">
-          <p className="text-sm font-medium text-indigo-900 dark:text-indigo-300">
-            O desconto por seguir suas redes agora é configurado na tela <span className="font-bold">Produtos &gt; Inventário</span>.
-            Lá você escolhe rapidamente entre 1% e 20% ou define outro valor para aplicar automaticamente em todo o catálogo.
-          </p>
-          <p className="mt-2 text-xs font-medium text-indigo-700 dark:text-indigo-400">
-            Precisa de um incentivo maior para um item específico? Abra o produto e use o campo <span className="font-bold">Desconto Especial</span>.
-          </p>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)] mb-2">
-              <Instagram className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-              Instagram
-            </label>
-            <input
-              type="text"
-              value={formData.instagram}
-              onChange={(e) =>
-                setFormData({ ...formData, instagram: e.target.value })
-              }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
-              placeholder="@sualoja ou https://instagram.com/sualoja"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)] mb-2">
-              <Facebook className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              Facebook
-            </label>
-            <input
-              type="text"
-              value={formData.facebook}
-              onChange={(e) =>
-                setFormData({ ...formData, facebook: e.target.value })
-              }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
-              placeholder="@sualoja ou https://facebook.com/sualoja"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)] mb-2">
-              <MessageCircle className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
-              TikTok
-            </label>
-            <input
-              type="text"
-              value={formData.tiktok}
-              onChange={(e) =>
-                setFormData({ ...formData, tiktok: e.target.value })
-              }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
-              placeholder="@sualoja ou https://tiktok.com/@sualoja"
-            />
-          </div>
-        </div>
-      </div>
 
       {/* Configurações de Venda */}
       <div className="neon-card rounded-2xl p-6">

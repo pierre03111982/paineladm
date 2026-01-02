@@ -1,9 +1,11 @@
 import { headers } from "next/headers";
-import { PageHeader } from "../components/page-header";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
 import { DisplayLinkPanel } from "./display-link-panel";
 import { DisplayPageClient } from "./display-page-client";
 import { DisplayDiscovery } from "./display-discovery";
 import { buildClientAppDisplayUrl } from "@/lib/client-app";
+import { Monitor } from "lucide-react";
 
 function resolveDisplayUrl(
   lojistaId: string | null,
@@ -74,12 +76,17 @@ export default async function DisplayPage({ searchParams }: DisplayPageProps) {
     null;
 
   const displayUrl = resolveDisplayUrl(lojistaId, panelBaseUrl);
+  const colors = getPageHeaderColors('/display');
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <IconPageHeader
+        icon={Monitor}
         title="Display da Loja"
         description="Projete o provador virtual em monitores e tablets na loja física. O display acompanha as últimas composições e destaca as chamadas para compra."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
       />
 
       <DisplayDiscovery lojistaId={lojistaId} />

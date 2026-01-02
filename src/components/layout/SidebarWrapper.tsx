@@ -23,30 +23,29 @@ export function SidebarWrapper({}: SidebarWrapperProps = {}) {
       }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
-          {/* Header da Sidebar com apenas o Toggle */}
-          <div className={cn(
-            "h-16 flex items-center justify-center border-b border-blue-900/50",
-            isCollapsed ? "px-2" : "px-4"
-          )}>
-            {/* Botão Toggle - centralizado */}
-            <motion.button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 hover:bg-blue-900/50 rounded-lg transition-colors text-white"
-              whileTap={{ scale: 0.95 }}
-              aria-label={isCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
-            >
-              {isCollapsed ? (
-                <Menu className="h-5 w-5" />
-              ) : (
-                <ChevronLeft className="h-5 w-5" />
-              )}
-            </motion.button>
-          </div>
+      {/* Botão Toggle - Topo */}
+      <div className={cn(
+        "flex-shrink-0 z-30 flex pt-2 pb-1.5 border-b border-blue-900/30",
+        isCollapsed ? "justify-center" : "justify-end pr-3"
+      )}>
+        <motion.button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-2 hover:bg-blue-900/50 rounded-lg transition-colors text-white bg-blue-900/30 backdrop-blur-sm shadow-lg border border-blue-800/30"
+          whileTap={{ scale: 0.95 }}
+          aria-label={isCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
+        >
+          {isCollapsed ? (
+            <Menu className="h-5 w-5" />
+          ) : (
+            <ChevronLeft className="h-5 w-5" />
+          )}
+        </motion.button>
+      </div>
 
       {/* Navegação */}
       <div 
         className={cn(
-          "flex-1 pt-0 pb-4 relative",
+          "flex-1 pt-1 pb-1 relative",
           isCollapsed ? "px-2" : "px-4"
         )}
         style={{ overflowY: 'auto', overflowX: 'visible' }}

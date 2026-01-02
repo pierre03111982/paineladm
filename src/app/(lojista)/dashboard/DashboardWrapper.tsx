@@ -32,3 +32,8 @@ export function DashboardWrapper({ data, lojistaId }: DashboardWrapperProps) {
 
 
 
+
+
+
+
+

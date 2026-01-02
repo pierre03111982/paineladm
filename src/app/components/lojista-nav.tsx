@@ -18,8 +18,8 @@ export default function LojistaNav({ collapsed = false }: LojistaNavProps) {
 
   return (
     <nav className={cn(
-      "flex flex-col gap-1 relative",
-      collapsed ? "px-0 mt-4" : "px-0 mt-8" // Padding removido, controlado pelo SidebarWrapper
+      "flex flex-col gap-0 relative",
+      collapsed ? "px-0 mt-0" : "px-0 mt-0" // Padding removido, controlado pelo SidebarWrapper
     )} style={{ position: 'relative' }}>
       {NAV_ITEMS.map((item) => {
         const Icon = item.icon;
@@ -63,8 +63,8 @@ export default function LojistaNav({ collapsed = false }: LojistaNavProps) {
               className={cn(
                 "relative flex items-center text-sm font-medium transition-all duration-300 w-full",
                 collapsed 
-                  ? "justify-center px-0 py-2.5" // Centralizado quando collapsed
-                  : "gap-3 px-4 py-2.5", // Normal quando expandido
+                  ? "justify-center px-0 py-1.5" // Centralizado quando collapsed
+                  : "gap-2.5 px-3 py-1.5", // Normal quando expandido - ajustado para caber todas as abas
                 active
                   ? collapsed 
                     ? "text-white font-bold" // Branco quando collapsed e ativo
@@ -75,29 +75,18 @@ export default function LojistaNav({ collapsed = false }: LojistaNavProps) {
             >
               {/* Container do ícone com largura fixa para evitar layout shift */}
               <div className={cn(
-                "flex items-center justify-center shrink-0 relative",
-                collapsed ? "w-10 h-10" : "w-5 h-5"
+                "flex items-center justify-start shrink-0 relative",
+                collapsed ? "w-10 h-5 justify-center" : "w-5 h-5"
               )}>
-                <div className="relative flex flex-col items-center">
-                  <Icon className={cn(
-                    "transition-colors relative z-10",
-                    collapsed ? "h-5 w-5" : "h-5 w-5",
-                    active 
-                      ? collapsed 
-                        ? "text-white" // Branco quando collapsed e ativo
-                        : "text-[#113574]" // Azul escuro quando expandido e ativo
-                      : "text-blue-200"
-                  )} />
-                  {/* Linha abaixo do ícone quando collapsed e ativo */}
-                  {active && collapsed && (
-                    <motion.div
-                      className="absolute bottom-[-8px] w-8 h-0.5 bg-white rounded-full"
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ duration: 0.2 }}
-                    />
-                  )}
-                </div>
+                <Icon className={cn(
+                  "transition-colors relative z-10",
+                  "h-5 w-5",
+                  active 
+                    ? collapsed 
+                      ? "text-white" // Branco quando collapsed e ativo
+                      : "text-[#113574]" // Azul escuro quando expandido e ativo
+                    : "text-blue-200"
+                )} />
               </div>
               
               {/* Texto - oculto quando collapsed */}

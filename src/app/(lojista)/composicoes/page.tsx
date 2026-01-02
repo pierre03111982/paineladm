@@ -2,6 +2,9 @@ import { ComposicoesVisualHistory } from "./composicoes-visual-history";
 import { fetchAllCompositionsWithLike, type CompositionForVisualHistory } from "./fetch-all-compositions-with-like";
 import { countAllCompositions } from "./count-compositions";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
+import { Image } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Sempre buscar dados atualizados
@@ -83,13 +86,25 @@ export default async function ComposicoesPage({
     console.error("[ComposicoesPage] ❌ Erro ao buscar composições:", error);
   }
 
+  const colors = getPageHeaderColors('/composicoes');
+
   return (
-    <div className="space-y-6 p-6">
-      <ComposicoesVisualHistory
-        initialCompositions={compositions}
-        lojistaId={lojistaId}
-        totalInDatabase={totalCount}
+    <div className="space-y-6">
+      <IconPageHeader
+        icon={Image}
+        title="Composições"
+        description="Visualize todas as composições criadas pelos seus clientes no provador virtual."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
       />
+      <div className="p-6">
+        <ComposicoesVisualHistory
+          initialCompositions={compositions}
+          lojistaId={lojistaId}
+          totalInDatabase={totalCount}
+        />
+      </div>
     </div>
   );
 }

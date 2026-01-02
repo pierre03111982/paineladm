@@ -1,7 +1,9 @@
 import { ClientesTable } from "./clientes-table";
 import { fetchClientes } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
-import { PageHeader } from "../components/page-header";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
+import { Users } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +28,17 @@ export default async function ClientesPage({ searchParams }: ClientesPageProps) 
   const includeArchived = params.includeArchived === "true";
   const clientes = await fetchClientes(lojistaId, 1000, includeArchived);
 
+  const colors = getPageHeaderColors('/clientes');
+
   return (
     <div className="space-y-6">
-      <PageHeader
+      <IconPageHeader
+        icon={Users}
         title="Clientes"
         description="Gerencie seus clientes e visualize o histórico de composições de cada um."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
       />
       <ClientesTable initialClientes={clientes} />
     </div>

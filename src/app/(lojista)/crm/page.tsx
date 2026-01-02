@@ -1,7 +1,9 @@
 import { fetchActiveClients } from "@/lib/firestore/crm-queries"
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth"
-import { PageHeader } from "../components/page-header"
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
 import { CRMTable } from "./crm-table"
+import { Radar } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
@@ -22,12 +24,17 @@ export default async function CRMPage({ searchParams }: CRMPageProps) {
     ""
 
   const activeClients = lojistaId ? await fetchActiveClients(lojistaId, 168) : []
+  const colors = getPageHeaderColors('/crm');
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <IconPageHeader
+        icon={Radar}
         title="Radar de Oportunidades"
         description={`${activeClients.length} cliente${activeClients.length !== 1 ? "s" : ""} ativo${activeClients.length !== 1 ? "s" : ""} na última semana`}
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
       />
       <CRMTable activeClients={activeClients} />
     </div>

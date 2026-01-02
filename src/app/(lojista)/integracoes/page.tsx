@@ -1,18 +1,19 @@
-import { ConfiguracoesForm } from "./settings-form";
-import { IconPageHeader } from "../components/icon-page-header";
-import { getPageHeaderColors } from "../components/page-header-colors";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
-import { Settings } from "lucide-react";
+import { SalesSettingsForm } from "@/components/admin/SalesSettingsForm";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
+import { Plug } from "lucide-react";
+import { EcommerceIntegrationCard } from "./ecommerce-integration-card";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0; // Sempre buscar dados atualizados
 
-type ConfiguracoesPageProps = {
+type IntegracoesPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesPageProps) {
+export default async function IntegracoesPage({ searchParams }: IntegracoesPageProps) {
   const params = await searchParams;
   // Tentar ler tanto lojistaId quanto lojistald (para compatibilidade com typos)
   const lojistaIdFromQuery = (params.lojistaId || params.lojistald) as string | undefined;
@@ -27,19 +28,24 @@ export default async function ConfiguracoesPage({ searchParams }: ConfiguracoesP
     "";
 
   const perfil = await fetchLojaPerfil(lojistaId);
-  const colors = getPageHeaderColors('/configuracoes');
+  const colors = getPageHeaderColors('/integracoes');
 
   return (
     <div className="space-y-6">
       <IconPageHeader
-        icon={Settings}
-        title="Configurações"
-        description="Configure o perfil da sua loja."
+        icon={Plug}
+        title="Integrações"
+        description="Configure as integrações com Mercado Pago, Melhor Envio e outras plataformas de pagamento e envio."
         gradientFrom={colors.from}
         gradientTo={colors.to}
         shadowColor={colors.shadow}
       />
-      <ConfiguracoesForm lojistaId={lojistaId} perfil={perfil} />
+      <EcommerceIntegrationCard />
+      <SalesSettingsForm 
+        lojistaId={lojistaId} 
+        initialConfig={perfil?.salesConfig as any} 
+      />
     </div>
   );
 }
+

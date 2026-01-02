@@ -285,33 +285,33 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
       {/* Desktop: Table View */}
       <div className="hidden md:block neon-card overflow-hidden border-indigo-500/60 dark:border-purple-500/60" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(99, 102, 241, 0.35), 0 0 60px rgba(99, 102, 241, 0.15)' }}>
         <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-white/10">
-            <thead className="bg-white/60 dark:bg-white/5">
+          <table className="w-full">
+            <thead className="bg-white/60 dark:bg-white/5 border-b border-gray-200/50 dark:border-gray-700/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-left text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-left text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-left text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   Itens
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-left text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-left text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-left text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   Data
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-gray-400">
+                <th className="px-6 py-3 text-right text-sm uppercase tracking-wider text-slate-700 dark:text-gray-300" style={{ fontWeight: '700' }}>
                   Ações
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/10">
+            <tbody>
               {filteredOrders.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-600 dark:text-gray-400">
@@ -321,7 +321,7 @@ export function OrdersContent({ initialOrders, stats, lojistaId }: OrdersContent
                 </tr>
               ) : (
                 filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-white/40 dark:hover:bg-white/5 transition">
+                  <tr key={order.id} className="border-b border-gray-200/50 dark:border-gray-700/50 hover:bg-white/40 dark:hover:bg-white/5 transition">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm font-semibold text-slate-900 dark:text-white">
                         #{order.id.slice(0, 8)}

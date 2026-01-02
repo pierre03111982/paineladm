@@ -199,30 +199,104 @@ html:not(.lojista-loading) .lojista-content {
   border-color: oklch(67.3% 0.182 276.935) !important;
 }
 
-/* Borda laranja para Alerta de Estoque - Cor lab(60.3514 40.5624 87.1228) */
-.alert-stock-border {
-  border: 1px solid rgb(255, 152, 0) !important;
-  border-color: rgb(255, 152, 0) !important;
-  border-width: 1px !important;
-  border-style: solid !important;
+/* Regras removidas - não são mais necessárias pois seguimos o padrão de "Últimas Atividades" */
+
+/* Borda laranja apenas para o container principal AnimatedCard */
+.AnimatedCard.border-amber-200 {
+  border-color: #FDE68A !important;
+  border: 1px solid #FDE68A !important;
 }
 
-/* Forçar remoção de qualquer borda padrão do Tailwind */
-.alert-stock-border.border-slate-200,
-.alert-stock-border[class*="border-"],
-.alert-stock-border.border,
-.alert-stock-border[class*="border-slate"],
-.alert-stock-border[class*="border-gray"] {
-  border-color: rgb(255, 152, 0) !important;
-  border: 1px solid rgb(255, 152, 0) !important;
+/* FORÇA BRUTA: Borda laranja para TODOS os cards dentro do Alerta de Estoque */
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white[style*="#FDE68A"],
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white[style*="FDE68A"],
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white.rounded-lg,
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white[class*="rounded-lg"] {
+  border: 1px solid #FDE68A !important;
+  border-color: #FDE68A !important;
+  border-top-color: #FDE68A !important;
+  border-right-color: #FDE68A !important;
+  border-bottom-color: #FDE68A !important;
+  border-left-color: #FDE68A !important;
 }
 
-/* Suporte para navegadores modernos com lab() - cor exata da imagem */
-@supports (color: lab(0 0 0)) {
-  .alert-stock-border {
-    border-color: lab(60.3514 40.5624 87.1228) !important;
-    border: 1px solid lab(60.3514 40.5624 87.1228) !important;
-  }
+/* FORÇA BRUTA: Borda laranja para TODAS as miniaturas dentro do Alerta de Estoque */
+[class*="from-amber-50"][class*="to-orange-50"] .border-amber-200,
+[class*="from-amber-50"][class*="to-orange-50"] [class*="border-amber-200"],
+[class*="from-amber-50"][class*="to-orange-50"] .w-12.h-20[class*="border"] {
+  border-color: #FDE68A !important;
+  border: 1px solid #FDE68A !important;
+  border-top-color: #FDE68A !important;
+  border-right-color: #FDE68A !important;
+  border-bottom-color: #FDE68A !important;
+  border-left-color: #FDE68A !important;
+}
+
+/* SOBRESCREVER qualquer borda azul/cinza que possa estar sendo aplicada */
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white[class*="animated-card-border"],
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white[style*="oklch"],
+[class*="from-amber-50"][class*="to-orange-50"] .bg-white[style*="oklch"] * {
+  border: 1px solid #FDE68A !important;
+  border-color: #FDE68A !important;
+}
+
+/* SOBRESCREVER border-slate em miniaturas (mas NÃO no rodapé) */
+[class*="from-amber-50"][class*="to-orange-50"] [class*="border-slate"]:not([class*="border-t"]),
+[class*="from-amber-50"][class*="to-orange-50"] .border-slate-200:not([class*="border-t"]) {
+  border-color: #FDE68A !important;
+  border: 1px solid #FDE68A !important;
+}
+
+/* GARANTIR que a borda do rodapé seja sempre slate-200 (neutra) */
+[class*="from-amber-50"][class*="to-orange-50"] .border-t.border-slate-200,
+[class*="from-amber-50"][class*="to-orange-50"] [class*="border-t"][class*="border-slate-200"] {
+  border-top-color: #E2E8F0 !important;
+  border-top: 1px solid #E2E8F0 !important;
+}
+
+/* ============================================
+   BORDAS ROXAS PARA TOP PRODUTOS (ROXO FORTE)
+   ============================================ */
+
+/* Borda roxa forte para o container principal AnimatedCard */
+.AnimatedCard.border-purple-400 {
+  border-color: #C4B5FD !important;
+  border: 1px solid #C4B5FD !important;
+}
+
+/* FORÇA BRUTA: Borda roxa forte para TODOS os cards dentro do Top Produtos */
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white.rounded-lg,
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white[class*="rounded-lg"],
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white[class*="border"] {
+  border: 1px solid #C4B5FD !important;
+  border-color: #C4B5FD !important;
+  border-top-color: #C4B5FD !important;
+  border-right-color: #C4B5FD !important;
+  border-bottom-color: #C4B5FD !important;
+  border-left-color: #C4B5FD !important;
+}
+
+/* SOBRESCREVER qualquer borda preta/cinza que possa estar sendo aplicada */
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white[class*="border-slate"],
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white.border-slate-200,
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white[class*="border-gray"],
+[class*="from-purple-50"][class*="to-indigo-50"] .bg-white[class*="border-black"] {
+  border-color: #C4B5FD !important;
+  border: 1px solid #C4B5FD !important;
+}
+
+/* GARANTIR que a borda do rodapé seja sempre slate-200 (neutra) - Top Produtos */
+[class*="from-purple-50"][class*="to-indigo-50"] .border-t.border-slate-200,
+[class*="from-purple-50"][class*="to-indigo-50"] [class*="border-t"][class*="border-slate-200"] {
+  border-top-color: #E2E8F0 !important;
+  border-top: 1px solid #E2E8F0 !important;
+}
+
+/* GARANTIR que a borda do rodapé seja sempre slate-200 (neutra) - Últimas Atividades */
+[class*="from-blue-50"][class*="to-indigo-50"] .border-t.border-slate-200,
+[class*="from-blue-50"][class*="to-indigo-50"] [class*="border-t"][class*="border-slate-200"] {
+  border-top-color: #E2E8F0 !important;
+  border-top: 1px solid #E2E8F0 !important;
 }
 
 .rounded-2xl[class*="bg-white"]:not(.animated-card-border),
@@ -363,6 +437,11 @@ header[class*="bg-\[#"] {
 .neon-card table th,
 .neon-card table td {
   color: var(--text-main);
+}
+
+/* Garantir que os títulos das colunas fiquem em negrito */
+.neon-card table thead th {
+  font-weight: 700 !important;
 }
 
 /* ============================================
@@ -589,15 +668,19 @@ textarea::placeholder {
   background: rgba(99, 102, 241, 0.5);
 }
 
-/* Card de produto com gradiente preto-azul-preto - VERTICAL */
+/* Card de produto com fundo branco */
 .product-card-gradient {
-  background: linear-gradient(180deg, #000000 0%, #1e3a8a 50%, #000000 100%) !important;
-  border: 2px solid rgba(99, 102, 241, 0.3) !important;
+  background: #FFFFFF !important;
+  border: 3px solid #60a5fa !important;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    0 4px 6px rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(30, 58, 138, 0.4),
-    0 0 40px rgba(30, 58, 138, 0.2) !important;
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 4px 6px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Tabela dentro do card com degradê cinza claro/branco */
+.product-card-gradient [data-product-info-grid] {
+  background: linear-gradient(180deg, #f3f4f6 0%, #ffffff 50%, #f3f4f6 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
 }
 
 /* FORÇA BRUTA VIA DATA ATTRIBUTES - PRIORIDADE MÁXIMA */
@@ -615,15 +698,13 @@ textarea::placeholder {
   flex-shrink: 0 !important;
 }
 
-[data-product-card],
-[data-product-card] *,
-[data-product-card] h3,
-[data-product-card] span,
-[data-product-card] div,
-[data-product-card] p {
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
+/* Remover regra que força texto branco em todo o card - agora o card tem fundo branco */
+[data-product-card] {
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
 }
+
+/* Texto preto dentro da tabela - regra removida, usando regras específicas abaixo */
 
 /* Botões com texto preto - APENAS botões antigos */
 [data-product-card] button:not([style*="linear-gradient"]),
@@ -648,12 +729,8 @@ textarea::placeholder {
 
 [data-product-card] span[style*="#4ade80"],
 [data-product-card] span[style*="color: #4ade80"],
-[data-product-card] span[style*="4ade80"],
-[data-product-card] h3[style*="#facc15"],
-[data-product-card] h3[style*="color: #facc15"],
-[data-product-card] h3 {
-  color: #facc15 !important;
-  -webkit-text-fill-color: #facc15 !important;
+[data-product-card] span[style*="4ade80"] {
+  /* Preço verde - manter cor específica */
 }
 
 /* Preço em verde claro */
@@ -663,15 +740,72 @@ textarea::placeholder {
   -webkit-text-fill-color: #4ade80 !important;
 }
 
-/* Forçar texto branco em TODOS os elementos dentro de product-card-gradient */
-.product-card-gradient,
-.product-card-gradient *,
-.product-card-gradient h3,
-.product-card-gradient span,
-.product-card-gradient div,
-.product-card-gradient p {
+/* Nome do produto - texto branco */
+[data-product-card] h3 {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Texto escuro no card geral (fundo branco) */
+.product-card-gradient {
+  color: #1f2937 !important;
+  -webkit-text-fill-color: #1f2937 !important;
+}
+
+/* Texto preto na tabela com degradê cinza claro/branco, exceto preços que mantêm cores específicas */
+.product-card-gradient [data-product-info-grid] {
+  color: #111827 !important;
+}
+
+/* Labels da tabela em cinza escuro */
+.product-card-gradient [data-product-info-grid] > div > span:first-child {
+  color: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
+}
+
+/* Valores da tabela em preto, mas preços mantêm cores específicas inline */
+.product-card-gradient [data-product-info-grid] > div > span:not(:first-child):not([data-price-original]):not([data-price-discounted]):not([data-price-percentage]):not([data-price-normal]) {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* FORÇAR texto preto em TODOS os elementos dentro da tabela, exceto preços */
+.product-card-gradient [data-product-info-grid] * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Labels em cinza escuro - maior especificidade */
+.product-card-gradient [data-product-info-grid] > div > span:first-child {
+  color: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
+}
+
+/* Valores em preto - maior especificidade */
+.product-card-gradient [data-product-info-grid] > div > span:not(:first-child) {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Preços mantêm suas cores específicas */
+.product-card-gradient [data-product-info-grid] [data-price-original] {
+  color: #f87171 !important;
+  -webkit-text-fill-color: #f87171 !important;
+}
+
+.product-card-gradient [data-product-info-grid] [data-price-discounted] {
+  color: #22c55e !important;
+  -webkit-text-fill-color: #22c55e !important;
+}
+
+.product-card-gradient [data-product-info-grid] [data-price-percentage] {
+  color: #facc15 !important;
+  -webkit-text-fill-color: #facc15 !important;
+}
+
+.product-card-gradient [data-product-info-grid] [data-price-normal] {
+  color: #4ade80 !important;
+  -webkit-text-fill-color: #4ade80 !important;
 }
 
 /* Botões com texto preto - APENAS botões antigos */
@@ -695,14 +829,13 @@ textarea::placeholder {
   stroke: #FFFFFF !important;
 }
 
-.product-card-gradient span[style*="#4ade80"],
-.product-card-gradient span[style*="color: #4ade80"],
+/* Nome do produto - texto branco */
 .product-card-gradient h3 {
-  color: #facc15 !important;
-  -webkit-text-fill-color: #facc15 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
 }
 
-/* Preço em verde claro */
+/* Preço em verde claro - manter cor específica quando definida inline */
 .product-card-gradient span[style*="#4ade80"],
 .product-card-gradient span[style*="color: #4ade80"] {
   color: #4ade80 !important;
@@ -710,24 +843,55 @@ textarea::placeholder {
 }
 
 /* FORÇA BRUTA COM DATA ATTRIBUTE - PRIORIDADE MÁXIMA */
-[data-force-white="true"] {
+/* Removido para permitir texto preto na tabela */
+[data-force-white="true"]:not([data-product-info-grid] *):not([data-product-info-grid] *) {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
 }
 
-[data-force-white="true"] * {
-  color: #FFFFFF !important;
-  -webkit-text-fill-color: #FFFFFF !important;
+/* Dentro da tabela, FORÇAR texto preto sempre, ignorando qualquer outra regra */
+[data-product-info-grid] * {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Labels dentro da tabela em cinza escuro */
+[data-product-info-grid] > div > span:first-child {
+  color: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
+}
+
+/* Valores dentro da tabela em preto */
+[data-product-info-grid] > div > span:not(:first-child) {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
 }
 
 /* NEUTRALIZAR QUALQUER REGRA QUE APLIQUE #0F172A (slate-900) */
-span[data-force-white="true"],
-h4[data-force-white="true"],
-h3[data-force-white="true"],
-p[data-force-white="true"],
-div[data-force-white="true"] {
+/* Mas dentro da tabela, usar preto */
+span[data-force-white="true"]:not([data-product-info-grid] *),
+h4[data-force-white="true"]:not([data-product-info-grid] *),
+h3[data-force-white="true"]:not([data-product-info-grid] *),
+p[data-force-white="true"]:not([data-product-info-grid] *),
+div[data-force-white="true"]:not([data-product-info-grid] *) {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Dentro da tabela, forçar preto mesmo com data-force-white */
+[data-product-info-grid] span[data-force-white="true"],
+[data-product-info-grid] h4[data-force-white="true"],
+[data-product-info-grid] h3[data-force-white="true"],
+[data-product-info-grid] p[data-force-white="true"],
+[data-product-info-grid] div[data-force-white="true"] {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Labels dentro da tabela em cinza */
+[data-product-info-grid] > div > span:first-child[data-force-white="true"] {
+  color: #374151 !important;
+  -webkit-text-fill-color: #374151 !important;
 }
 
 /* ============================================

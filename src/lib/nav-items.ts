@@ -9,6 +9,9 @@ import {
   QrCode,
   Radar,
   ShoppingCart,
+  Instagram,
+  Plug,
+  Smartphone,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -52,7 +55,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/simulador",
     label: "Simulador",
-    icon: Monitor,
+    icon: Smartphone,
   },
   {
     href: "/display",
@@ -68,6 +71,16 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/compartilhamento",
     label: "Compartilhar",
     icon: Share2,
+  },
+  {
+    href: "/redes-sociais",
+    label: "Redes Sociais",
+    icon: Instagram,
+  },
+  {
+    href: "/integracoes",
+    label: "Integrações",
+    icon: Plug,
   },
   {
     href: "/configuracoes",

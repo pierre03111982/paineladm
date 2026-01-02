@@ -1,6 +1,9 @@
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
 import { AppClienteContent } from "./app-cliente-content";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
+import { QrCode } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +21,18 @@ export default async function AppClientePage() {
     );
   }
 
+  const colors = getPageHeaderColors('/app-cliente');
+
   return (
     <div className="space-y-8">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-indigo-300/70">
-            Aplicativo Cliente
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold text-white">
-            Link e QR Code para seus clientes
-          </h1>
-          <p className="mt-2 text-sm text-zinc-400 max-w-xl">
-            Aqui estão os links e QR codes para os 3 modelos disponíveis do seu provador virtual. 
-            Quando o cliente abrir pela primeira vez, o app solicitará nome e WhatsApp para continuar.
-          </p>
-        </div>
-      </header>
+      <IconPageHeader
+        icon={QrCode}
+        title="Aplicativo Cliente"
+        description="Aqui estão os links e QR codes para os 3 modelos disponíveis do seu provador virtual. Quando o cliente abrir pela primeira vez, o app solicitará nome e WhatsApp para continuar."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
+      />
 
       {/* Componente Client-Side com a lógica nova */}
       <AppClienteContent lojistaId={lojistaId} perfil={perfil} />

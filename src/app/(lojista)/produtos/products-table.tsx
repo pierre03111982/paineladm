@@ -4,7 +4,6 @@ import { ProductPerformanceAI } from "@/components/products/ProductPerformanceAI
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, Settings } from "lucide-react";
-import { motion } from "framer-motion";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { useSearchParams } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
@@ -20,6 +19,7 @@ function ProductGridCard({
   handleDelete,
   isAdminView,
   loading,
+  descontoRedesSociais = 0,
 }: {
   produto: ProdutoDoc;
   selectedProducts: Set<string>;
@@ -30,13 +30,69 @@ function ProductGridCard({
   handleDelete: (produto: ProdutoDoc) => Promise<void>;
   isAdminView: boolean;
   loading: boolean;
+  descontoRedesSociais?: number;
 }) {
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Calcular desconto total e preço com desconto
+  const descontoRedes = descontoRedesSociais || 0;
+  const descontoEspecial = produto.descontoProduto || 0;
+  const descontoTotal = descontoRedes + descontoEspecial;
+  const precoOriginal = produto.preco;
+  const precoComDesconto = descontoTotal > 0 && precoOriginal > 0
+    ? precoOriginal * (1 - descontoTotal / 100)
+    : precoOriginal;
+  const temDesconto = descontoTotal > 0;
+
+  // Forçar estilos dos botões cyber/modernos diretamente no DOM
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    const applyButtonStyles = () => {
+      const viewButton = cardRef.current?.querySelector('[data-cyber-button="view"]') as HTMLElement;
+      const editButton = cardRef.current?.querySelector('[data-cyber-button="edit"]') as HTMLElement;
+
+      if (viewButton) {
+        viewButton.style.setProperty('background', 'linear-gradient(to right, #2563eb, #9333ea)', 'important');
+        viewButton.style.setProperty('color', '#ffffff', 'important');
+        const viewSpans = viewButton.querySelectorAll('span, svg, path');
+        viewSpans.forEach(el => {
+          (el as HTMLElement).style.setProperty('color', '#ffffff', 'important');
+          (el as HTMLElement).style.setProperty('stroke', '#ffffff', 'important');
+        });
+      }
+
+      if (editButton) {
+        editButton.style.setProperty('background', 'linear-gradient(to right, #0d9488, #10b981)', 'important');
+        editButton.style.setProperty('color', '#ffffff', 'important');
+        const editSpans = editButton.querySelectorAll('span, svg, path');
+        editSpans.forEach(el => {
+          (el as HTMLElement).style.setProperty('color', '#ffffff', 'important');
+          (el as HTMLElement).style.setProperty('stroke', '#ffffff', 'important');
+        });
+      }
+    };
+
+    // Aplicar imediatamente
+    applyButtonStyles();
+
+    // Aplicar após um pequeno delay para garantir
+    const timeout = setTimeout(applyButtonStyles, 10);
+    const timeout2 = setTimeout(applyButtonStyles, 100);
+
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+    };
+  }, [produto.id]);
 
   return (
     <div 
+      ref={cardRef}
       data-product-card
-      className="group relative product-card-gradient rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col"
+      className="group relative product-card-gradient rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col min-h-[500px]"
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '500px', border: '3px solid #60a5fa' }}
     >
       {/* Checkbox - Top Left - Simplificado */}
       <button
@@ -62,12 +118,13 @@ function ProductGridCard({
       </button>
 
       {/* Product Image - Hero */}
-      <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative">
+      <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
         {imagemPrincipal ? (
           <img
             src={imagemPrincipal}
             alt={produto.nome}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+            style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center">
@@ -78,15 +135,15 @@ function ProductGridCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
-      {/* Content */}
-      <div className="p-4 space-y-3 flex flex-col flex-1">
-        {/* Nome do produto - no topo, acima da categoria */}
-        <div className="flex justify-center items-center w-full mb-2">
+      {/* Content - Container Flexível com altura mínima */}
+      <div className="p-4 flex flex-col flex-1" style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '0' }}>
+        {/* Nome do produto - Limitado a 2 linhas */}
+        <div className="flex justify-center items-center w-full mb-3" style={{ flexShrink: 0 }}>
           <div
             style={{ 
-              color: '#facc15',
-              backgroundColor: 'rgba(250, 204, 21, 0.15)',
-              border: '1px solid rgba(250, 204, 21, 0.3)',
+              background: 'linear-gradient(to right, #4f46e5, #2563eb, #4f46e5)',
+              color: '#FFFFFF',
+              border: 'none',
               borderRadius: '8px',
               padding: '8px 16px',
               display: 'flex',
@@ -94,126 +151,231 @@ function ProductGridCard({
               justifyContent: 'center',
               cursor: 'default',
               width: '100%',
-              textAlign: 'center'
+              textAlign: 'center',
+              minHeight: '48px',
+              boxShadow: '0 4px 6px rgba(79, 70, 229, 0.3)'
             }}
-            className="font-semibold text-yellow-400 text-sm"
+            className="font-semibold text-sm"
           >
             <h3 
               style={{ 
-                color: '#facc15', 
+                color: '#FFFFFF', 
                 margin: 0, 
                 padding: 0,
                 textAlign: 'center',
                 width: '100%',
-                lineHeight: '1.4'
+                lineHeight: '1.4',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                fontWeight: '600'
               }}
-              className="font-semibold text-yellow-400 text-sm line-clamp-2"
+              className="font-semibold text-sm text-white"
             >
               {produto.nome}
             </h3>
           </div>
         </div>
 
-        <div className="space-y-2 text-xs flex-1">
-          <div className="flex flex-col items-center justify-center py-1 border-b border-white/20 pb-2 text-center">
-            <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Categoria:</span>
-            <span data-force-white="true" style={{ color: 'white' }} className="text-white font-semibold">{produto.categoria}</span>
+        {/* TABELA 2X2 - GRID CSS PADRONIZADO com altura mínima */}
+        <div 
+          data-product-info-grid
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 1fr', 
+            gridTemplateRows: 'minmax(60px, 1fr) minmax(60px, 1fr)',
+            gap: '0',
+            border: '1px solid rgba(0, 0, 0, 0.15)',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            width: '100%',
+            flexShrink: 0,
+            minHeight: '120px',
+            background: 'linear-gradient(180deg, #f3f4f6 0%, #ffffff 50%, #f3f4f6 100%)'
+          }}
+        >
+          {/* Linha 1, Coluna 1: Categoria */}
+          <div style={{ 
+            padding: '10px 8px',
+            borderRight: '1px solid rgba(0, 0, 0, 0.15)',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            minHeight: '60px'
+          }}>
+            <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Categoria:</span>
+            <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>{produto.categoria}</span>
           </div>
-          <div className="flex flex-col items-center justify-center py-1.5 border-b border-white/20 pb-2 text-center">
-            <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Preço:</span>
-            <span style={{ color: '#4ade80' }} className="text-lg font-bold">R$ {produto.preco.toFixed(2)}</span>
+          {/* Linha 1, Coluna 2: Preço */}
+          <div style={{ 
+            padding: '10px 8px',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            minHeight: '60px'
+          }}>
+            <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Preço:</span>
+            {temDesconto ? (
+              <>
+                <span 
+                  data-price-original="true"
+                  style={{ 
+                    color: '#f87171', 
+                    fontSize: '11px', 
+                    fontWeight: '400', 
+                    textDecoration: 'line-through',
+                    marginBottom: '2px'
+                  }}
+                >
+                  R$ {precoOriginal.toFixed(2)}
+                </span>
+                <span 
+                  data-price-discounted="true"
+                  style={{ color: '#22c55e', fontSize: '14px', fontWeight: '700' }}
+                >
+                  R$ {precoComDesconto.toFixed(2)}
+                </span>
+                <span 
+                  data-price-percentage="true"
+                  style={{ 
+                    color: '#facc15', 
+                    fontSize: '10px', 
+                    fontWeight: '600',
+                    marginTop: '2px'
+                  }}
+                >
+                  {descontoTotal.toFixed(0).replace('.0', '')}% OFF
+                </span>
+              </>
+            ) : (
+              <span 
+                data-price-normal="true"
+                style={{ color: '#4ade80', fontSize: '14px', fontWeight: '700' }}
+              >
+                R$ {precoOriginal.toFixed(2)}
+              </span>
+            )}
           </div>
-          <div className="flex flex-col items-center justify-center py-1 text-center">
-            <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Estoque:</span>
-            <span data-force-white="true" style={{ color: 'white' }} className="text-white font-semibold">
+          {/* Linha 2, Coluna 1: Estoque - Altura mínima garantida */}
+          <div style={{ 
+            padding: '10px 8px',
+            borderRight: '1px solid rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            minHeight: '60px'
+          }}>
+            <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Estoque:</span>
+            <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>
               {produto.estoque !== undefined && produto.estoque !== null ? produto.estoque : "-"}
             </span>
           </div>
-          {produto.tamanhos && produto.tamanhos.length > 0 && (
-            <div className="flex flex-col items-center justify-center py-1 border-t border-white/20 pt-2 text-center">
-              <span data-force-white="true" style={{ color: 'white' }} className="text-white/80 font-medium mb-1">Tamanhos:</span>
-              <span data-force-white="true" style={{ color: 'white' }} className="text-white font-semibold">{produto.tamanhos.join(", ")}</span>
-            </div>
-          )}
+          {/* Linha 2, Coluna 2: Tamanhos - Altura mínima garantida */}
+          <div style={{ 
+            padding: '10px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            minHeight: '60px'
+          }}>
+            <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Tamanhos:</span>
+            <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>
+              {produto.tamanhos && produto.tamanhos.length > 0 ? produto.tamanhos.join(", ") : "-"}
+            </span>
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-3 border-t border-white/20">
-          <motion.button
+        {/* Actions - Botões sempre no rodapé */}
+        <div 
+          style={{ 
+            marginTop: 'auto', 
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '8px',
+            paddingTop: '12px',
+            width: '100%'
+          }}
+        >
+          <button
             onClick={() => setViewingProduto(produto)}
-            className="group relative flex-1 inline-flex items-center justify-center rounded-xl px-5 py-2 text-xs font-bold overflow-hidden"
-            style={{ 
-              background: 'linear-gradient(135deg, #047857 0%, #065f46 50%, #047857 100%)',
-              backgroundSize: '200% 200%',
-              color: '#FFFFFF',
-              boxShadow: '0 4px 15px rgba(4, 120, 87, 0.4), 0 0 20px rgba(6, 95, 70, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+            data-cyber-button="view"
+            type="button"
+            style={{
+              background: 'linear-gradient(to right, #2563eb, #9333ea)',
+              color: '#ffffff',
+              borderRadius: '6px',
+              padding: '10px 16px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              flex: '1 1 0%',
+              fontSize: '12px',
+              fontWeight: '600',
+              minWidth: 0
             }}
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: '0 6px 25px rgba(4, 120, 87, 0.6), 0 0 40px rgba(6, 95, 70, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-              backgroundPosition: '100% 50%'
-            }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
           >
-            {/* Efeito de brilho animado no hover */}
-            <motion.div 
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)',
-                x: '-100%'
-              }}
-              animate={{
-                x: ['-100%', '200%']
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatDelay: 1,
-                ease: 'linear'
-              }}
+            <Eye 
+              style={{ 
+                width: '16px', 
+                height: '16px', 
+                color: '#ffffff', 
+                stroke: '#ffffff',
+                flexShrink: 0
+              }} 
             />
-            <span className="relative z-10 drop-shadow-sm tracking-wide" style={{ color: '#FFFFFF', textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>Ver</span>
-          </motion.button>
+            <span style={{ color: '#ffffff', whiteSpace: 'nowrap' }}>Ver</span>
+          </button>
           
-          <motion.button
+          <button
             onClick={() => setEditingProduto(produto)}
-            className="group relative flex-1 inline-flex items-center justify-center rounded-xl px-5 py-2 text-xs font-bold overflow-hidden"
-            style={{ 
-              background: 'linear-gradient(135deg, #b45309 0%, #92400e 50%, #b45309 100%)',
-              backgroundSize: '200% 200%',
-              color: '#FFFFFF',
-              boxShadow: '0 4px 15px rgba(180, 83, 9, 0.4), 0 0 20px rgba(146, 64, 14, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+            data-cyber-button="edit"
+            type="button"
+            style={{
+              background: 'linear-gradient(to right, #0d9488, #10b981)',
+              color: '#ffffff',
+              borderRadius: '6px',
+              padding: '10px 16px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              flex: '1 1 0%',
+              fontSize: '12px',
+              fontWeight: '600',
+              minWidth: 0
             }}
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: '0 6px 25px rgba(180, 83, 9, 0.6), 0 0 40px rgba(146, 64, 14, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-              backgroundPosition: '100% 50%'
-            }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
           >
-            {/* Efeito de brilho animado no hover */}
-            <motion.div 
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%)',
-                x: '-100%'
-              }}
-              animate={{
-                x: ['-100%', '200%']
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatDelay: 1,
-                ease: 'linear'
-              }}
+            <Edit 
+              style={{ 
+                width: '16px', 
+                height: '16px', 
+                color: '#ffffff', 
+                stroke: '#ffffff',
+                flexShrink: 0
+              }} 
             />
-            <span className="relative z-10 drop-shadow-sm tracking-wide" style={{ color: '#FFFFFF', textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)' }}>Editar</span>
-          </motion.button>
+            <span style={{ color: '#ffffff', whiteSpace: 'nowrap' }}>Editar</span>
+          </button>
         </div>
       </div>
     </div>
@@ -253,36 +415,7 @@ export function ProductsTable({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  const [lojaDiscount, setLojaDiscount] = useState<number>(initialLojaDiscount ?? 0);
-  const [selectedDiscountOption, setSelectedDiscountOption] = useState<string>(() => {
-    if (!initialLojaDiscount) return "0";
-    if (initialLojaDiscount >= 1 && initialLojaDiscount <= 20) {
-      return initialLojaDiscount.toString();
-    }
-    return "custom";
-  });
-  const [customDiscount, setCustomDiscount] = useState<string>(
-    initialLojaDiscount && initialLojaDiscount > 20 ? String(initialLojaDiscount) : ""
-  );
-  const [isUpdatingGlobalDiscount, setIsUpdatingGlobalDiscount] = useState(false);
-  const discountOptions = useMemo(() => Array.from({ length: 20 }, (_, index) => (index + 1).toString()), []);
-
-  useEffect(() => {
-    const fallback = initialLojaDiscount ?? 0;
-    setLojaDiscount(fallback);
-    if (!initialLojaDiscount) {
-      setSelectedDiscountOption("0");
-      setCustomDiscount("");
-      return;
-    }
-    if (initialLojaDiscount >= 1 && initialLojaDiscount <= 20) {
-      setSelectedDiscountOption(initialLojaDiscount.toString());
-      setCustomDiscount("");
-    } else {
-      setSelectedDiscountOption("custom");
-      setCustomDiscount(String(initialLojaDiscount));
-    }
-  }, [initialLojaDiscount]);
+  const [lojaDiscount] = useState<number>(initialLojaDiscount ?? 0);
 
   // Recarregar produtos quando showArchived mudar
   useEffect(() => {
@@ -338,6 +471,64 @@ export function ProductsTable({
 
   // FORÇA BRUTA: Aplicar estilos diretamente no DOM para garantir texto branco nos cards
   useEffect(() => {
+    // Injetar CSS global para proteger botões cyber/modernos
+    const styleId = 'cyber-buttons-protection'
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style')
+      style.id = styleId
+      style.textContent = `
+        button[data-cyber-button="view"] {
+          background: linear-gradient(to right, #2563eb, #9333ea) !important;
+          color: #ffffff !important;
+          border-radius: 6px !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+        }
+        button[data-cyber-button="view"]:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        button[data-cyber-button="view"] *,
+        button[data-cyber-button="view"] span {
+          color: #ffffff !important;
+        }
+        button[data-cyber-button="view"] svg,
+        button[data-cyber-button="view"] path {
+          stroke: #ffffff !important;
+          fill: none !important;
+        }
+        button[data-cyber-button="edit"] {
+          background: linear-gradient(to right, #0d9488, #10b981) !important;
+          color: #ffffff !important;
+          border-radius: 6px !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+        }
+        button[data-cyber-button="edit"]:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+        }
+        button[data-cyber-button="edit"] *,
+        button[data-cyber-button="edit"] span {
+          color: #ffffff !important;
+        }
+        button[data-cyber-button="edit"] svg,
+        button[data-cyber-button="edit"] path {
+          stroke: #ffffff !important;
+          fill: none !important;
+        }
+      `
+      document.head.appendChild(style)
+    }
+
+    // Função auxiliar para verificar se elemento está dentro de botão cyber/moderno
+    const isInsideCyberButton = (el: HTMLElement): boolean => {
+      let current: HTMLElement | null = el
+      while (current && current !== document.body) {
+        if (current.hasAttribute && current.hasAttribute('data-cyber-button')) {
+          return true
+        }
+        current = current.parentElement
+      }
+      return false
+    }
+
     const forceProductCardStyles = () => {
       // Forçar texto branco nos cards de produto (exceto nome do produto e preço que são amarelos)
       const productCards = document.querySelectorAll('[data-product-card]') as NodeListOf<HTMLElement>
@@ -345,6 +536,20 @@ export function ProductsTable({
         const allTextElements = card.querySelectorAll('span, p, div, button, svg')
         allTextElements.forEach((el) => {
           const htmlEl = el as HTMLElement
+          
+          // PULAR COMPLETAMENTE elementos dentro de botões cyber/modernos
+          if (isInsideCyberButton(htmlEl)) {
+            return
+          }
+          
+          // PULAR elementos de preço com data-attributes específicos
+          if (htmlEl.hasAttribute('data-price-original') || 
+              htmlEl.hasAttribute('data-price-discounted') || 
+              htmlEl.hasAttribute('data-price-percentage') ||
+              htmlEl.hasAttribute('data-price-normal')) {
+            return
+          }
+          
           // Não aplicar em elementos com preço (verde claro)
           const textContent = htmlEl.textContent || ''
           const hasPrice = textContent.includes('R$') || htmlEl.style.color === '#4ade80' || htmlEl.style.color === '#facc15'
@@ -355,10 +560,24 @@ export function ProductsTable({
           }
         })
         
-        // Forçar preço em verde claro
+        // Forçar preço em verde claro (apenas se não tiver data-attributes específicos)
         const priceElements = card.querySelectorAll('span')
         priceElements.forEach((span) => {
           const spanEl = span as HTMLElement
+          
+          // PULAR se estiver dentro de botão cyber/moderno
+          if (isInsideCyberButton(spanEl)) {
+            return
+          }
+          
+          // PULAR se tiver data-attributes de preço específicos (já têm cores definidas)
+          if (spanEl.hasAttribute('data-price-original') || 
+              spanEl.hasAttribute('data-price-discounted') || 
+              spanEl.hasAttribute('data-price-percentage') ||
+              spanEl.hasAttribute('data-price-normal')) {
+            return
+          }
+          
           const textContent = spanEl.textContent || ''
           if (textContent.includes('R$')) {
             spanEl.style.setProperty('color', '#4ade80', 'important')
@@ -366,40 +585,72 @@ export function ProductsTable({
           }
         })
         
+        // Proteger cores dos preços com data-attributes
+        const originalPrice = card.querySelector('[data-price-original="true"]') as HTMLElement
+        if (originalPrice) {
+          originalPrice.style.setProperty('color', '#f87171', 'important')
+          originalPrice.style.setProperty('-webkit-text-fill-color', '#f87171', 'important')
+        }
+        
+        const discountedPrice = card.querySelector('[data-price-discounted="true"]') as HTMLElement
+        if (discountedPrice) {
+          discountedPrice.style.setProperty('color', '#22c55e', 'important')
+          discountedPrice.style.setProperty('-webkit-text-fill-color', '#22c55e', 'important')
+          discountedPrice.style.setProperty('font-weight', '700', 'important')
+        }
+        
+        const pricePercentage = card.querySelector('[data-price-percentage="true"]') as HTMLElement
+        if (pricePercentage) {
+          pricePercentage.style.setProperty('color', '#facc15', 'important')
+          pricePercentage.style.setProperty('-webkit-text-fill-color', '#facc15', 'important')
+        }
+        
+        const normalPrice = card.querySelector('[data-price-normal="true"]') as HTMLElement
+        if (normalPrice) {
+          normalPrice.style.setProperty('color', '#4ade80', 'important')
+          normalPrice.style.setProperty('-webkit-text-fill-color', '#4ade80', 'important')
+        }
+        
         // Forçar nome do produto (h3) em amarelo
         const productNames = card.querySelectorAll('h3')
         productNames.forEach((h3) => {
           const h3El = h3 as HTMLElement
-          h3El.style.setProperty('color', '#facc15', 'important')
-          h3El.style.setProperty('-webkit-text-fill-color', '#facc15', 'important')
+          // Manter texto branco como definido no style inline
+          h3El.style.setProperty('color', '#FFFFFF', 'important')
+          h3El.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
         })
         
-        // Forçar botões antigos em preto (apenas os que não têm gradiente)
+        // NÃO forçar estilos nos botões cyber/modernos (eles já têm estilos inline)
         const buttons = card.querySelectorAll('button')
         buttons.forEach((button) => {
           const buttonEl = button as HTMLElement
+          // Verificar se é um botão cyber/moderno pelo data-attribute
+          const isCyberButton = buttonEl.hasAttribute('data-cyber-button')
+          
+          // Se for botão cyber/moderno, NÃO aplicar estilos forçados
+          if (isCyberButton) {
+            return // Pular este botão, manter seus estilos inline
+          }
+          
+          // Para botões antigos (sem fundo customizado), aplicar lógica antiga
           const hasGradient = buttonEl.style.background?.includes('linear-gradient') || 
                               buttonEl.style.background?.includes('gradient')
           
-          // Apenas aplicar preto em botões sem gradiente
           if (!hasGradient) {
             buttonEl.style.setProperty('color', '#000000', 'important')
             buttonEl.style.setProperty('-webkit-text-fill-color', '#000000', 'important')
             
-            // Forçar também nos filhos dos botões (spans, svg e paths)
             const buttonChildren = button.querySelectorAll('span, svg, path')
             buttonChildren.forEach((child) => {
               const childEl = child as HTMLElement
               childEl.style.setProperty('color', '#000000', 'important')
               childEl.style.setProperty('-webkit-text-fill-color', '#000000', 'important')
-              // Para SVGs, também forçar stroke e fill
               if (child.tagName === 'svg' || child.tagName === 'path') {
                 childEl.style.setProperty('stroke', '#000000', 'important')
                 childEl.style.setProperty('fill', '#000000', 'important')
               }
             })
           } else {
-            // Botões com gradiente - garantir texto branco
             buttonEl.style.setProperty('color', '#FFFFFF', 'important')
             const buttonChildren = button.querySelectorAll('span, svg, path')
             buttonChildren.forEach((child) => {
@@ -414,8 +665,35 @@ export function ProductsTable({
         })
       })
 
-      // Forçar texto branco em elementos com data-force-white
-      const forceWhiteElements = document.querySelectorAll('[data-force-white="true"]') as NodeListOf<HTMLElement>
+      // Forçar texto preto em TODOS os elementos dentro da tabela
+      const infoGrids = document.querySelectorAll('[data-product-info-grid]') as NodeListOf<HTMLElement>
+      infoGrids.forEach((grid) => {
+        const allSpans = grid.querySelectorAll('span') as NodeListOf<HTMLElement>
+        allSpans.forEach((span) => {
+          // Pular preços que têm cores específicas
+          if (span.hasAttribute('data-price-original') || 
+              span.hasAttribute('data-price-discounted') || 
+              span.hasAttribute('data-price-percentage') || 
+              span.hasAttribute('data-price-normal')) {
+            return // Manter cor específica do preço
+          }
+          
+          // Verificar se é label (primeiro span da div)
+          const parent = span.parentElement
+          if (parent && parent.querySelector('span:first-child') === span) {
+            // Label em cinza escuro
+            span.style.setProperty('color', '#374151', 'important')
+            span.style.setProperty('-webkit-text-fill-color', '#374151', 'important')
+          } else {
+            // Valor em preto
+            span.style.setProperty('color', '#111827', 'important')
+            span.style.setProperty('-webkit-text-fill-color', '#111827', 'important')
+          }
+        })
+      })
+      
+      // Forçar texto branco em elementos com data-force-white (fora da tabela)
+      const forceWhiteElements = document.querySelectorAll('[data-force-white="true"]:not([data-product-info-grid] *)') as NodeListOf<HTMLElement>
       forceWhiteElements.forEach((el) => {
         el.style.setProperty('color', '#FFFFFF', 'important')
         el.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important')
@@ -432,16 +710,102 @@ export function ProductsTable({
       })
     }
 
-    // Executar imediatamente e após delays
-    forceProductCardStyles()
-    const timeout = setTimeout(forceProductCardStyles, 100)
-    const timeout2 = setTimeout(forceProductCardStyles, 500)
-    const timeout3 = setTimeout(forceProductCardStyles, 1000)
+    // Função para proteger estilos dos botões cyber/modernos
+    const protectCyberButtons = () => {
+      const cyberButtons = document.querySelectorAll('[data-cyber-button]') as NodeListOf<HTMLElement>
+      cyberButtons.forEach((button) => {
+        const buttonEl = button as HTMLElement
+        
+        // Restaurar gradientes baseado no tipo de botão
+        if (buttonEl.getAttribute('data-cyber-button') === 'view') {
+          buttonEl.style.setProperty('background', 'linear-gradient(to right, #2563eb, #9333ea)', 'important')
+          buttonEl.style.setProperty('color', '#ffffff', 'important')
+        } else if (buttonEl.getAttribute('data-cyber-button') === 'edit') {
+          buttonEl.style.setProperty('background', 'linear-gradient(to right, #0d9488, #10b981)', 'important')
+          buttonEl.style.setProperty('color', '#ffffff', 'important')
+        }
+        
+        buttonEl.style.setProperty('border-radius', '6px', 'important')
+        buttonEl.style.setProperty('transition', 'opacity 0.2s ease', 'important')
+        
+        // Restaurar estilos dos filhos (span, svg, path)
+        const children = button.querySelectorAll('span, svg, path, *')
+        children.forEach((child) => {
+          const childEl = child as HTMLElement
+          if (child.tagName === 'SPAN') {
+            childEl.style.setProperty('color', '#ffffff', 'important')
+            childEl.style.setProperty('-webkit-text-fill-color', '#ffffff', 'important')
+          } else if (child.tagName === 'SVG' || child.tagName === 'svg') {
+            childEl.style.setProperty('color', '#ffffff', 'important')
+            childEl.style.setProperty('stroke', '#ffffff', 'important')
+            childEl.style.setProperty('fill', 'none', 'important')
+          } else if (child.tagName === 'PATH' || child.tagName === 'path') {
+            childEl.style.setProperty('stroke', '#ffffff', 'important')
+            childEl.style.setProperty('fill', 'none', 'important')
+          }
+        })
+      })
+    }
+
+    // Função para proteger estilos dos preços
+    const protectPriceStyles = () => {
+      const productCards = document.querySelectorAll('[data-product-card]') as NodeListOf<HTMLElement>
+      productCards.forEach((card) => {
+        const originalPrice = card.querySelector('[data-price-original="true"]') as HTMLElement
+        if (originalPrice) {
+          originalPrice.style.setProperty('color', '#f87171', 'important')
+          originalPrice.style.setProperty('-webkit-text-fill-color', '#f87171', 'important')
+          originalPrice.style.setProperty('text-decoration', 'line-through', 'important')
+        }
+        
+        const discountedPrice = card.querySelector('[data-price-discounted="true"]') as HTMLElement
+        if (discountedPrice) {
+          discountedPrice.style.setProperty('color', '#22c55e', 'important')
+          discountedPrice.style.setProperty('-webkit-text-fill-color', '#22c55e', 'important')
+          discountedPrice.style.setProperty('font-weight', '700', 'important')
+        }
+        
+        const pricePercentage = card.querySelector('[data-price-percentage="true"]') as HTMLElement
+        if (pricePercentage) {
+          pricePercentage.style.setProperty('color', '#facc15', 'important')
+          pricePercentage.style.setProperty('-webkit-text-fill-color', '#facc15', 'important')
+        }
+        
+        const normalPrice = card.querySelector('[data-price-normal="true"]') as HTMLElement
+        if (normalPrice) {
+          normalPrice.style.setProperty('color', '#4ade80', 'important')
+          normalPrice.style.setProperty('-webkit-text-fill-color', '#4ade80', 'important')
+        }
+      })
+    }
+
+    // Executar com requestAnimationFrame para garantir renderização
+    const applyStyles = () => {
+      requestAnimationFrame(() => {
+        protectCyberButtons()
+        forceProductCardStyles()
+        protectPriceStyles()
+        requestAnimationFrame(() => {
+          protectCyberButtons()
+          protectPriceStyles()
+        })
+      })
+    }
+    
+    // Executar imediatamente
+    applyStyles()
+    
+    // Executar após delays
+    const timeout = setTimeout(applyStyles, 50)
+    const timeout2 = setTimeout(applyStyles, 200)
+    const timeout3 = setTimeout(applyStyles, 500)
+    const timeout4 = setTimeout(applyStyles, 1000)
 
     return () => {
       clearTimeout(timeout)
       clearTimeout(timeout2)
       clearTimeout(timeout3)
+      clearTimeout(timeout4)
     }
   }, [filteredProdutos])
 
@@ -631,73 +995,6 @@ export function ProductsTable({
     }
   };
 
-  const updateGlobalDiscount = async (value: number) => {
-    if (!lojistaIdParam) {
-      setError("ID da loja não disponível para atualizar o desconto.");
-      setTimeout(() => setError(null), 4000);
-      return;
-    }
-    try {
-      setIsUpdatingGlobalDiscount(true);
-      setError(null);
-      const response = await fetch("/api/lojista/perfil", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lojistaId: lojistaIdParam,
-          descontoRedesSociais: value,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Erro ao atualizar desconto");
-      }
-
-      setLojaDiscount(value);
-      setSuccess(
-        value > 0
-          ? `Desconto aplicado: ${value.toFixed(1).replace(".0", "")}%`
-          : "Desconto das redes removido"
-      );
-      setTimeout(() => setSuccess(null), 4000);
-    } catch (err: any) {
-      console.error("[ProductsTable] Erro ao atualizar desconto global:", err);
-      setError(err.message || "Erro ao atualizar desconto");
-      setTimeout(() => setError(null), 4000);
-    } finally {
-      setIsUpdatingGlobalDiscount(false);
-    }
-  };
-
-  const handleDiscountSelection = (value: string) => {
-    setSelectedDiscountOption(value);
-    if (value === "custom") {
-      return;
-    }
-    const numeric = parseFloat(value);
-    if (isNaN(numeric)) {
-      updateGlobalDiscount(0);
-      return;
-    }
-    updateGlobalDiscount(numeric);
-  };
-
-  const handleApplyCustomDiscount = () => {
-    const numeric = parseFloat(customDiscount.replace(",", "."));
-    if (isNaN(numeric)) {
-      setError("Informe um percentual válido para o desconto.");
-      setTimeout(() => setError(null), 4000);
-      return;
-    }
-    if (numeric < 0 || numeric > 80) {
-      setError("Use valores entre 0% e 80%.");
-      setTimeout(() => setError(null), 4000);
-      return;
-    }
-    updateGlobalDiscount(numeric);
-  };
-
   const handleSaveEdit = async (data: Partial<ProdutoDoc>) => {
     if (!editingProduto) return;
 
@@ -801,75 +1098,6 @@ export function ProductsTable({
           </div>
         </div>
 
-      {/* Controle de desconto global */}
-      <div className="mx-4 mt-4 neon-card rounded-xl p-4 sm:mx-6" style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.3)' }}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">Desconto Redes Sociais</p>
-            <p className="text-xs text-indigo-700 dark:text-indigo-300">
-              Quando o cliente seguir suas redes, este percentual será aplicado em todos os produtos automaticamente.
-            </p>
-            <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
-              Use o campo <span className="font-semibold">Desconto Especial</span> dentro do formulário do produto para bonificar itens específicos.
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end md:w-auto">
-            <div className="w-full sm:w-48">
-              <label className="block text-xs font-medium text-indigo-900 dark:text-indigo-200 mb-1">
-                Percentual padrão
-              </label>
-              <select
-                value={selectedDiscountOption}
-                onChange={(e) => handleDiscountSelection(e.target.value)}
-                className="w-full rounded-lg border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                disabled={isUpdatingGlobalDiscount}
-              >
-                <option value="0">Sem desconto</option>
-                {discountOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}%
-                  </option>
-                ))}
-                <option value="custom">Outro valor…</option>
-              </select>
-            </div>
-            {selectedDiscountOption === "custom" && (
-              <div className="flex flex-1 items-end gap-2">
-                <div className="w-full">
-                  <label className="block text-xs font-medium text-indigo-900 dark:text-indigo-200 mb-1">
-                    Informe o percentual
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={80}
-                    step={0.1}
-                    value={customDiscount}
-                    onChange={(e) => setCustomDiscount(e.target.value)}
-                    className="w-full rounded-lg border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder="Ex: 25"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleApplyCustomDiscount}
-                  disabled={isUpdatingGlobalDiscount}
-                  className="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/30 px-4 py-2 text-sm font-semibold transition-all duration-300 disabled:opacity-50"
-                >
-                  {isUpdatingGlobalDiscount ? "Aplicando..." : "Aplicar"}
-                </button>
-              </div>
-            )}
-            {selectedDiscountOption !== "custom" && (
-              <div className="rounded-xl border border-indigo-300 dark:border-indigo-500 bg-white dark:bg-[var(--bg-card)] px-4 py-2 text-center">
-                <p className="text-xs text-gray-600 dark:text-gray-400">Atual</p>
-                <p className="text-base font-bold text-indigo-900 dark:text-indigo-300">{lojaDiscount?.toFixed(1).replace(".0", "") || 0}%</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
         {error && (
           <div className="mx-4 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:mx-6">
             {error}
@@ -915,6 +1143,7 @@ export function ProductsTable({
                       handleDelete={handleDelete}
                       isAdminView={isAdminView}
                       loading={loading}
+                      descontoRedesSociais={lojaDiscount}
                     />
                   ))}
               </div>

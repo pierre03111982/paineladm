@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { X, Upload, Info } from "lucide-react";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
 import { useSearchParams } from "next/navigation";
@@ -14,6 +14,43 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
   const searchParams = useSearchParams();
   const lojistaIdFromUrl = searchParams?.get("lojistaId") || searchParams?.get("lojistald") || lojistaId;
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(256); // Padrão: sidebar aberta (256px)
+  
+  // Detectar largura do sidebar observando o elemento
+  useEffect(() => {
+    const checkSidebarWidth = () => {
+      // Em mobile, sidebar não está visível, então width = 0
+      if (window.innerWidth < 768) {
+        setSidebarWidth(0);
+        return;
+      }
+      
+      const sidebar = document.querySelector('aside[style*="width"]') as HTMLElement;
+      if (sidebar) {
+        const width = sidebar.offsetWidth || parseInt(getComputedStyle(sidebar).width) || 256;
+        setSidebarWidth(width);
+      } else {
+        // Se não encontrar, assume sidebar aberta (256px) em desktop
+        setSidebarWidth(window.innerWidth >= 768 ? 256 : 0);
+      }
+    };
+    
+    checkSidebarWidth();
+    const interval = setInterval(checkSidebarWidth, 100);
+    const observer = new MutationObserver(checkSidebarWidth);
+    const sidebar = document.querySelector('aside');
+    if (sidebar) {
+      observer.observe(sidebar, { attributes: true, attributeFilter: ['style'] });
+    }
+    
+    window.addEventListener('resize', checkSidebarWidth);
+    
+    return () => {
+      clearInterval(interval);
+      observer.disconnect();
+      window.removeEventListener('resize', checkSidebarWidth);
+    };
+  }, []);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
   const [generatedCatalogImage, setGeneratedCatalogImage] = useState<string | null>(null);
@@ -159,8 +196,14 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-4xl rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex bg-black/70 backdrop-blur-sm overflow-y-auto">
+      <div 
+        className="w-full h-full rounded-none border-0 bg-white dark:bg-[var(--bg-card)] p-4 md:p-6 shadow-2xl overflow-y-auto"
+        style={{
+          left: `${sidebarWidth}px`,
+          width: `calc(100% - ${sidebarWidth}px)`,
+        }}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[var(--text-main)]">Cadastro manual de produto</h2>

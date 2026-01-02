@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
-import { PageHeader } from "../components/page-header";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
 import { buildClientAppUrl } from "@/lib/client-app";
 import { SimulatorPanel } from "./simulator-panel";
+import { Monitor } from "lucide-react";
 
 function resolveSimulatorUrl(
   lojistaId: string | null,
@@ -93,12 +95,17 @@ export default async function SimulatorPage({ searchParams }: SimulatorPageProps
   console.log("[Simulator] URL completa:", simulatorUrl.href);
 
   const simulatorUrlString = simulatorUrl.toString();
+  const colors = getPageHeaderColors('/simulador');
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <IconPageHeader
+        icon={Monitor}
         title="Simulador do App Cliente"
         description="Acesse sua vitrine virtual e teste a experiência completa do provador virtual. Disponível para desktop e mobile."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
       />
 
       <SimulatorPanel simulatorUrl={simulatorUrlString} initialLojistaId={lojistaId} />

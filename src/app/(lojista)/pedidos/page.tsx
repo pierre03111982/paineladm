@@ -1,7 +1,9 @@
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { OrdersContent } from "./orders-content";
-import { PageHeader } from "../components/page-header";
+import { IconPageHeader } from "../components/icon-page-header";
+import { getPageHeaderColors } from "../components/page-header-colors";
+import { ShoppingCart } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +23,18 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
     process.env.LOJISTA_ID ||
     "";
 
+  const colors = getPageHeaderColors('/pedidos');
+
   if (!lojistaId) {
     return (
       <div className="space-y-6">
-        <PageHeader
+        <IconPageHeader
+          icon={ShoppingCart}
           title="Pedidos"
           description="Visualize e gerencie todos os pedidos da sua loja."
+          gradientFrom={colors.from}
+          gradientTo={colors.to}
+          shadowColor={colors.shadow}
         />
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-gray-500 shadow-md">
           ID da loja não encontrado.
@@ -112,9 +120,13 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <IconPageHeader
+        icon={ShoppingCart}
         title="Pedidos"
         description="Visualize e gerencie todos os pedidos da sua loja."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
       />
       <OrdersContent initialOrders={orders} stats={stats} lojistaId={lojistaId} />
     </div>

@@ -23,7 +23,10 @@ import {
   Image as ImageIcon,
   ExternalLink,
   Package,
+  LayoutDashboard,
 } from "lucide-react";
+import { IconPageHeader } from "@/app/(lojista)/components/icon-page-header";
+import { getPageHeaderColors } from "@/app/(lojista)/components/page-header-colors";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -281,8 +284,18 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     return () => clearInterval(metricsInterval);
   }, []);
 
+  const colors = getPageHeaderColors('/dashboard');
+
   return (
     <div className="space-y-3 pb-6">
+      <IconPageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description="Acompanhe métricas, estatísticas e insights sobre o desempenho da sua loja no provador virtual."
+        gradientFrom={colors.from}
+        gradientTo={colors.to}
+        shadowColor={colors.shadow}
+      />
 
       {/* FASE 1: Pequenas Caixas Coloridas (KPIs) - Estilo Neon NO TOPO */}
       <section 
@@ -306,7 +319,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 shadow-lg shadow-emerald-500/30 text-white">
-            <TrendingUp className="h-5 w-5" />
+            <TrendingUp className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
@@ -334,7 +347,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg shadow-blue-500/30 text-white">
-            <MonitorSmartphone className="h-5 w-5" />
+            <MonitorSmartphone className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
@@ -362,7 +375,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 p-2.5 shadow-lg shadow-red-500/30 text-white">
-            <Heart className="h-5 w-5 fill-current" />
+            <Heart className="h-5 w-5" style={{ color: '#FFFFFF', fill: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
@@ -390,7 +403,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 p-2.5 shadow-lg shadow-cyan-500/30 text-white">
-            <Share2 className="h-5 w-5" />
+            <Share2 className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
@@ -418,7 +431,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 shadow-lg shadow-amber-500/30 text-white">
-            <ShoppingCart className="h-5 w-5" />
+            <ShoppingCart className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
@@ -446,7 +459,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           }}
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 p-2.5 shadow-lg shadow-purple-500/30 text-white">
-            <Package className="h-5 w-5" />
+            <Package className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
@@ -495,7 +508,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                 </Link>
               </div>
               
-              {/* Lista Visual Rica com Miniaturas 9:16 */}
+              {/* Lista Visual Rica com Miniaturas Quadradas */}
               <div className="space-y-2 overflow-y-auto flex-1">
                 {data.activeCustomers.length > 0 ? (
                   data.activeCustomers.slice(0, 5).map((customer, index) => {
@@ -504,35 +517,20 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   const isVIP = customer.totalCompositions >= 5;
 
                   return (
-                    <motion.div
+                    <Link
                       key={customer.id}
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ 
-                        duration: 0.4, 
-                        delay: index * 0.1,
-                        ease: "easeOut"
-                      }}
-                      whileHover={{ 
-                        y: -2, 
-                        scale: 1.02,
-                        transition: { duration: 0.2 }
-                      }}
-                      className="group relative bg-white rounded-lg p-2.5 hover:shadow-md transition-all animated-card-border"
-                      style={{ border: '1px solid oklch(67.3% 0.182 276.935)' }}
+                      href={`/clientes/${customer.id}`}
+                      className="group block bg-white rounded-lg p-2.5 hover:shadow-md transition-all"
                     >
                       <div className="flex items-center gap-2.5">
-                        {/* Miniatura 9:16 - Última Composição */}
-                        <Link
-                          href={`/clientes/${customer.id}`}
-                          className="flex-shrink-0"
-                        >
-                          <div className="w-12 h-20 rounded-md overflow-hidden border border-slate-200 shadow-sm group-hover:scale-105 transition-transform bg-slate-100 relative">
+                        {/* Miniatura Quadrada - Última Composição */}
+                        <div className="flex-shrink-0">
+                          <div className="w-16 h-16 rounded-md overflow-hidden border border-slate-200 shadow-sm group-hover:scale-105 transition-transform bg-slate-100 relative">
                             {lastCompositionImage ? (
                               <img
                                 src={lastCompositionImage}
                                 alt={`Última composição de ${customer.name}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                                 loading="lazy"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
@@ -558,17 +556,14 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                               </div>
                             )}
                           </div>
-                        </Link>
+                        </div>
                         
                         {/* Informações */}
                         <div className="flex-1 min-w-0">
-                          <Link
-                            href={`/clientes/${customer.id}`}
-                            className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-colors block truncate"
-                          >
+                          <span className="text-sm font-semibold text-blue-600 group-hover:text-blue-700 transition-colors block truncate">
                             {customer.name}
                             {isVIP && <span className="ml-1.5 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">VIP</span>}
-                          </Link>
+                          </span>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="text-xs text-slate-600">
                               {customer.totalCompositions} {customer.totalCompositions === 1 ? 'composição' : 'composições'}
@@ -582,15 +577,12 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                         </div>
                         
                         {/* Botão Cockpit */}
-                        <Link
-                          href={`/clientes/${customer.id}?view=cockpit`}
-                          className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-xs font-medium group-hover:shadow-sm"
-                        >
+                        <div className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-xs font-medium group-hover:shadow-sm">
                           <MonitorSmartphone className="h-3.5 w-3.5" />
                           <span className="hidden sm:inline">Cockpit</span>
-                        </Link>
+                        </div>
                       </div>
-                    </motion.div>
+                    </Link>
                   );
                   })
                 ) : (
@@ -610,7 +602,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               {data.activeCustomers.length > 0 && (
                 <Link
                   href="/radar-oportunidades"
-                  className="mt-3 pt-3 border-t border-blue-200 text-xs text-center text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium block"
+                  className="mt-3 pt-3 border-t border-slate-200 text-xs text-center text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium block"
                 >
                   Ver radar de oportunidades →
                 </Link>
@@ -620,7 +612,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
 
         {/* CAIXA 2: Alerta de Estoque (4 cols) - Âmbar */}
         <div className="col-span-12 lg:col-span-4 h-full">
-            <div className="p-4 h-full flex flex-col bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm" style={{ border: '1px solid rgb(255, 152, 0)' }}>
+            <AnimatedCard className="p-4 h-full flex flex-col bg-gradient-to-br from-amber-50 to-orange-50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -636,85 +628,69 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                 </Link>
               </div>
               
+              {/* Lista Visual Rica com Miniaturas Quadradas */}
               <div className="space-y-2 overflow-y-auto flex-1">
                 {lowStockAlerts.length > 0 ? (
                   lowStockAlerts.slice(0, 5).map((alert, index) => (
-                    <motion.div
+                    <Link
                       key={alert.produtoId}
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ 
-                        duration: 0.4, 
-                        delay: index * 0.1,
-                        ease: "easeOut"
-                      }}
-                      whileHover={{ 
-                        y: -2, 
-                        scale: 1.02,
-                        transition: { duration: 0.2 }
-                      }}
-                      className="group relative bg-white rounded-lg p-2.5 hover:shadow-md transition-all"
-                      style={{ border: '1px solid rgb(255, 152, 0)' }}
+                      href={`/produtos?edit=${alert.produtoId}`}
+                      className="group block bg-white rounded-lg p-2.5 hover:shadow-md transition-all"
                     >
-                      <Link
-                        href={`/produtos?edit=${alert.produtoId}`}
-                        className="flex items-center gap-2.5"
-                      >
-                        {/* Miniatura 9:16 - Foto do Produto */}
-                        <div className="flex-shrink-0 w-12 h-20 rounded-md overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-slate-100" style={{ border: '1px solid rgb(255, 152, 0)' }}>
-                          {alert.produtoImagem ? (
-                            <img
-                              src={alert.produtoImagem}
-                              alt={alert.produtoNome}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `
-                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
-                                      <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
-                                    </div>
-                                  `;
-                                }
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
-                              <ImageIcon className="h-5 w-5 text-amber-400" />
-                            </div>
-                          )}
+                      <div className="flex items-center gap-2.5">
+                        {/* Miniatura Quadrada - Foto do Produto */}
+                        <div className="flex-shrink-0">
+                          <div className="w-16 h-16 rounded-md overflow-hidden shadow-sm group-hover:scale-105 transition-transform bg-slate-100 relative">
+                            {alert.produtoImagem ? (
+                              <img
+                                src={alert.produtoImagem}
+                                alt={alert.produtoNome}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent && !parent.querySelector('.fallback-image')) {
+                                    const fallback = document.createElement('div');
+                                    fallback.className = 'fallback-image w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50';
+                                    fallback.innerHTML = `<svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`;
+                                    parent.appendChild(fallback);
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
+                                <ImageIcon className="h-5 w-5 text-amber-400" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                         
-                        {/* Nome e Estoque */}
+                        {/* Informações */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 group-hover:text-amber-700 transition-colors truncate mb-1.5">
+                          <span className="text-sm font-semibold text-amber-600 group-hover:text-amber-700 transition-colors block truncate">
                             {alert.produtoNome}
-                          </p>
-                          <div className="flex items-center gap-2 flex-wrap">
+                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
                               Restam {alert.estoqueAtual} un
                             </span>
                             {alert.experimentacoes > 0 && (
-                              <span className="text-xs text-slate-500 font-medium">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium">
                                 {alert.experimentacoes} exp.
                               </span>
                             )}
                           </div>
                         </div>
                         
-                        {/* Ícone de Ação Rápida (Hover) */}
-                        <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 group-hover:bg-amber-100 transition-colors">
-                            <ExternalLink className="h-4 w-4 text-amber-600" />
-                          </div>
+                        {/* Botão Editar */}
+                        <div className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 group-hover:bg-amber-100 text-amber-600 rounded-lg transition-colors text-xs font-medium group-hover:shadow-sm">
+                          <MonitorSmartphone className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Editar</span>
                         </div>
-                      </Link>
-                    </motion.div>
+                      </div>
+                    </Link>
                   ))
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center py-8">
@@ -733,18 +709,17 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               {lowStockAlerts.length > 0 && (
                 <Link
                   href="/produtos?filter=low-stock"
-                  className="mt-3 pt-3 text-xs text-center text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium block"
-                  style={{ borderTop: '1px solid rgb(255, 152, 0)' }}
+                  className="mt-3 pt-3 border-t border-slate-200 text-xs text-center text-amber-600 hover:text-amber-700 hover:underline transition-colors font-medium block"
                 >
                   Ver todos os alertas →
                 </Link>
               )}
-            </div>
+            </AnimatedCard>
           </div>
 
         {/* CAIXA 3: Top Produtos (4 cols) - Roxo */}
         <div className="col-span-12 lg:col-span-4 h-full">
-            <AnimatedCard className="p-4 h-full flex flex-col bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+            <AnimatedCard className="p-4 h-full flex flex-col bg-gradient-to-br from-purple-50 to-indigo-50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-purple-600" />
@@ -772,7 +747,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                     <Link
                       key={product.name}
                       href={`/produtos?view=${encodeURIComponent(product.name)}`}
-                      className="group block bg-white rounded-lg border border-slate-200 p-2.5 hover:border-purple-300 hover:shadow-md transition-all"
+                      className="group block bg-white rounded-lg p-2.5 hover:shadow-md transition-all"
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-sm font-semibold text-slate-900 group-hover:text-purple-700 transition-colors truncate flex-1">
@@ -821,7 +796,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
               {data.productBreakdown.length > 0 && (
                 <Link
                   href="/produtos"
-                  className="mt-3 pt-3 border-t border-purple-200 text-xs text-center text-purple-600 hover:text-purple-700 hover:underline transition-colors font-medium block"
+                  className="mt-3 pt-3 border-t border-slate-200 text-xs text-center text-purple-600 hover:text-purple-700 hover:underline transition-colors font-medium block"
                 >
                   Ver catálogo completo →
                 </Link>
