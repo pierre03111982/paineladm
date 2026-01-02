@@ -177,14 +177,14 @@ export function RedesSociaisForm({ lojistaId, perfil }: RedesSociaisFormProps) {
   useEffect(() => {
     if (buttonRef.current) {
       buttonRef.current.style.setProperty('color', '#FFFFFF', 'important');
-      const icon = buttonRef.current.querySelector('svg');
-      const text = buttonRef.current.querySelector('span');
+      const icon = buttonRef.current.querySelector('svg') as SVGSVGElement | null;
+      const text = buttonRef.current.querySelector('span') as HTMLSpanElement | null;
       if (icon) {
-        (icon as HTMLElement).style.setProperty('color', '#FFFFFF', 'important');
-        (icon as HTMLElement).style.setProperty('stroke', '#FFFFFF', 'important');
+        icon.style.setProperty('color', '#FFFFFF', 'important');
+        icon.style.setProperty('stroke', '#FFFFFF', 'important');
       }
       if (text) {
-        (text as HTMLElement).style.setProperty('color', '#FFFFFF', 'important');
+        text.style.setProperty('color', '#FFFFFF', 'important');
       }
     }
   }, [isLoading]);
@@ -337,26 +337,26 @@ export function RedesSociaisForm({ lojistaId, perfil }: RedesSociaisFormProps) {
             } as React.CSSProperties}
             onMouseEnter={(e) => {
               e.currentTarget.style.setProperty('color', '#FFFFFF', 'important');
-              const icon = e.currentTarget.querySelector('svg');
-              const text = e.currentTarget.querySelector('span');
+              const icon = e.currentTarget.querySelector('svg') as SVGSVGElement | null;
+              const text = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
               if (icon) {
-                (icon as HTMLElement).style.setProperty('color', '#FFFFFF', 'important');
-                (icon as HTMLElement).style.setProperty('stroke', '#FFFFFF', 'important');
+                icon.style.setProperty('color', '#FFFFFF', 'important');
+                icon.style.setProperty('stroke', '#FFFFFF', 'important');
               }
               if (text) {
-                (text as HTMLElement).style.setProperty('color', '#FFFFFF', 'important');
+                text.style.setProperty('color', '#FFFFFF', 'important');
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.setProperty('color', '#FFFFFF', 'important');
-              const icon = e.currentTarget.querySelector('svg');
-              const text = e.currentTarget.querySelector('span');
+              const icon = e.currentTarget.querySelector('svg') as SVGSVGElement | null;
+              const text = e.currentTarget.querySelector('span') as HTMLSpanElement | null;
               if (icon) {
-                (icon as HTMLElement).style.setProperty('color', '#FFFFFF', 'important');
-                (icon as HTMLElement).style.setProperty('stroke', '#FFFFFF', 'important');
+                icon.style.setProperty('color', '#FFFFFF', 'important');
+                icon.style.setProperty('stroke', '#FFFFFF', 'important');
               }
               if (text) {
-                (text as HTMLElement).style.setProperty('color', '#FFFFFF', 'important');
+                text.style.setProperty('color', '#FFFFFF', 'important');
               }
             }}
           >
