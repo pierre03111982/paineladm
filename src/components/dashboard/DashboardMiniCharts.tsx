@@ -29,6 +29,7 @@ type DashboardMiniChartsProps = {
     totalImagensGeradas?: number;
     checkoutTotal?: number;
   };
+  inlineMode?: boolean;
 };
 
 // Cores vibrantes e tecnológicas para o Donut
