@@ -48,6 +48,7 @@ import {
 } from "recharts";
 import { AIInsightsFeed } from "@/components/dashboard/AIInsightsFeed";
 import { DashboardMiniCharts } from "@/components/dashboard/DashboardMiniCharts";
+import { FinancialWidget } from "@/components/dashboard/FinancialWidget";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { StaggeredContainer } from "@/components/ui/StaggeredContainer";
 import { StaggeredItem } from "@/components/ui/StaggeredItem";
@@ -472,23 +473,32 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
         </motion.div>
       </section>
 
-      {/* Performance Rápida - Mini Gráficos */}
-      <DashboardMiniCharts
-        experimentsTrend={data.experimentsTrend}
-        productBreakdown={data.productBreakdown}
-        metrics={{
-          experimentWeek: data.metrics.experimentWeek,
-          likedTotal: data.metrics.likedTotal,
-          dislikedTotal: data.metrics.dislikedTotal,
-          totalImagensGeradas: data.metrics.totalImagensGeradas,
-          checkoutTotal: data.metrics.checkoutTotal,
-        }}
-      />
+      {/* FASE 2: Novo Widget Financeiro + Performance Rápida - Todas alinhadas em 4 colunas */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Widget Financeiro */}
+        <div className="h-56">
+          {lojistaId && <FinancialWidget lojistaId={lojistaId} />}
+        </div>
+
+        {/* Performance Rápida - Mini Gráficos (3 cards individuais renderizados diretamente) */}
+        <DashboardMiniCharts
+          experimentsTrend={data.experimentsTrend}
+          productBreakdown={data.productBreakdown}
+          metrics={{
+            experimentWeek: data.metrics.experimentWeek,
+            likedTotal: data.metrics.likedTotal,
+            dislikedTotal: data.metrics.dislikedTotal,
+            totalImagensGeradas: data.metrics.totalImagensGeradas,
+            checkoutTotal: data.metrics.checkoutTotal,
+          }}
+          inlineMode={true}
+        />
+      </section>
 
       {/* FASE 2: Cérebro da Loja - Feed de Insights da IA */}
       {lojistaId && <AIInsightsFeed lojistaId={lojistaId} />}
 
-      {/* FASE 3: Grid 3 Caixas Lado a Lado - 4-4-4 colunas */}
+      {/* FASE 2: Grid 3 Caixas Lado a Lado - 4-4-4 colunas */}
       <section className="grid grid-cols-12 gap-3 h-[500px]">
         {/* CAIXA 1: Últimas Atividades (4 cols) - Azul */}
         <div className="col-span-12 lg:col-span-4 h-full">
@@ -519,7 +529,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
                   return (
                     <Link
                       key={customer.id}
-                      href={`/clientes/${customer.id}`}
+                      href={`/clientes/${customer.id}?view=cockpit`}
                       className="group block bg-white rounded-lg p-2.5 hover:shadow-md transition-all"
                     >
                       <div className="flex items-center gap-2.5">

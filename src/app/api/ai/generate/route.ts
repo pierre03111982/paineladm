@@ -12,6 +12,8 @@ import { getAdminDb } from "@/lib/firebaseAdmin";
 import { getStorage } from "firebase-admin/storage";
 import { getAdminApp } from "@/lib/firebaseAdmin";
 import { logger } from "@/lib/logger";
+import { deductCredits, checkCreditsAvailable } from "@/lib/financials/deduct-credits";
+import { getOrCreateUser } from "@/lib/firestore/users";
 
 const db = getAdminDb();
 
@@ -129,97 +131,48 @@ function addCorsHeaders(response: NextResponse, origin: string | null): NextResp
 }
 
 /**
- * Valida se o lojista tem saldo suficiente
+ * FASE 1: Validação de créditos usando novo sistema de prioridades
+ * Substitui a função antiga validateBalance
  */
-async function validateBalance(lojistaId: string): Promise<boolean> {
+async function validateBalanceWithPriorities(
+  lojistaId: string,
+  customerId?: string,
+  customerWhatsapp?: string
+): Promise<{ available: boolean; source: string; message: string }> {
   try {
-    let lojistaDoc = await db.collection("lojistas").doc(lojistaId).get();
+    // Buscar lojista de origem do cliente (se fornecido)
+    let customerLojistaId: string | undefined;
     
-    // Se não existe em lojistas, tentar criar a partir de lojas
-    if (!lojistaDoc.exists) {
-      const lojaDoc = await db.collection("lojas").doc(lojistaId).get();
-      if (lojaDoc.exists) {
-        // Criar documento em lojistas baseado nos dados de lojas
-        const lojaData = lojaDoc.data();
-        await db.collection("lojistas").doc(lojistaId).set({
-          lojistaId: lojistaId,
-          nome: lojaData?.nome || lojaData?.name || "",
-          email: lojaData?.email || "",
-          aiCredits: 0,
-          saldo: 0,
-          totalCreditsAdded: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        // Buscar novamente após criar
-        lojistaDoc = await db.collection("lojistas").doc(lojistaId).get();
-      } else {
-        return false;
+    if (customerId && customerWhatsapp) {
+      try {
+        // Buscar cliente em todas as lojas para encontrar a loja de origem
+        // Por enquanto, assumir que customerId já contém informação suficiente
+        // TODO: Melhorar busca de lojista de origem na Fase 3
+        customerLojistaId = undefined; // Será implementado na Fase 3
+      } catch (e) {
+        // Ignorar erro
       }
     }
 
-    const lojistaData = lojistaDoc.data();
-    const credits = lojistaData?.aiCredits || lojistaData?.saldo || 0;
-
-    return credits >= COST_PER_GENERATION;
-  } catch (error) {
-    console.error("[API/AI/Generate] Erro ao validar saldo:", error);
-    return false;
-  }
-}
-
-/**
- * Desconta créditos do lojista
- */
-async function deductCredits(lojistaId: string, amount: number): Promise<void> {
-  try {
-    const lojistaRef = db.collection("lojistas").doc(lojistaId);
-    const lojaRef = db.collection("lojas").doc(lojistaId);
-    
-    await db.runTransaction(async (transaction) => {
-      let lojistaDoc = await transaction.get(lojistaRef);
-      
-      // Se não existe em lojistas, tentar criar a partir de lojas
-      if (!lojistaDoc.exists) {
-        const lojaDoc = await transaction.get(lojaRef);
-        if (lojaDoc.exists) {
-          // Criar documento em lojistas baseado nos dados de lojas
-          const lojaData = lojaDoc.data();
-          transaction.set(lojistaRef, {
-            lojistaId: lojistaId,
-            nome: lojaData?.nome || lojaData?.name || "",
-            email: lojaData?.email || "",
-            aiCredits: 0,
-            saldo: 0,
-            totalCreditsAdded: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-          // Buscar novamente após criar
-          lojistaDoc = await transaction.get(lojistaRef);
-        } else {
-          throw new Error("Lojista não encontrado");
-        }
-      }
-
-      const lojistaData = lojistaDoc.data();
-      const currentCredits = lojistaData?.aiCredits || lojistaData?.saldo || 0;
-
-      if (currentCredits < amount) {
-        throw new Error("Saldo insuficiente");
-      }
-
-      const newCredits = currentCredits - amount;
-      
-      transaction.update(lojistaRef, {
-        aiCredits: newCredits,
-        saldo: newCredits, // Manter compatibilidade
-        lastCreditUpdate: new Date().toISOString(),
-      });
+    const checkResult = await checkCreditsAvailable({
+      lojistaId,
+      customerId,
+      customerLojistaId,
+      amount: COST_PER_GENERATION,
     });
-  } catch (error) {
-    console.error("[API/AI/Generate] Erro ao descontar créditos:", error);
-    throw error;
+
+    return {
+      available: checkResult.available,
+      source: checkResult.source || "unknown",
+      message: checkResult.message,
+    };
+  } catch (error: any) {
+    console.error("[API/AI/Generate] Erro ao validar saldo:", error);
+    return {
+      available: false,
+      source: "error",
+      message: error.message || "Erro ao validar créditos",
+    };
   }
 }
 
@@ -401,9 +354,24 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // Validar saldo
-    const hasBalance = await validateBalance(lojistaId);
-    if (!hasBalance) {
+    // FASE 1: Validar saldo com sistema de prioridades
+    // Buscar WhatsApp do cliente se customerId fornecido (para verificar VIP)
+    let customerWhatsapp: string | undefined;
+    if (customerId) {
+      try {
+        // Buscar cliente para obter WhatsApp
+        const clienteDoc = await db.collection("lojas").doc(lojistaId).collection("clientes").doc(customerId).get();
+        if (clienteDoc.exists) {
+          customerWhatsapp = clienteDoc.data()?.whatsapp;
+        }
+      } catch (e) {
+        // Ignorar erro
+      }
+    }
+
+    const balanceCheck = await validateBalanceWithPriorities(lojistaId, customerId, customerWhatsapp);
+    
+    if (!balanceCheck.available) {
       // Log evento de saldo insuficiente
       await logger.logCreditEvent(
         lojistaId,
@@ -411,15 +379,20 @@ export async function POST(request: NextRequest) {
         0,
         0,
         0,
-        { customerId }
+        { customerId, source: balanceCheck.source }
       );
 
       const response = NextResponse.json(
-        { error: "Saldo insuficiente. Recarregue seus créditos." },
+        { error: balanceCheck.message || "Saldo insuficiente. Recarregue seus créditos." },
         { status: 402 }
       );
       return addCorsHeaders(response, origin);
     }
+
+    console.log("[API/AI/Generate] ✅ Créditos disponíveis:", {
+      source: balanceCheck.source,
+      message: balanceCheck.message,
+    });
 
     console.log("[API/AI/Generate] Iniciando geração", {
       lojistaId,
@@ -513,34 +486,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // PASSO 3: Descontar créditos
-    console.log("[API/AI/Generate] Passo 3: Descontando créditos...");
+    // FASE 1: PASSO 3: Descontar créditos com sistema de prioridades
+    console.log("[API/AI/Generate] Passo 3: Descontando créditos (sistema de prioridades)...");
     
-    // Buscar saldo antes para log
-    let balanceBefore = 0;
-    try {
-      const lojistaDoc = await db.collection("lojistas").doc(lojistaId).get();
-      if (lojistaDoc.exists) {
-        const data = lojistaDoc.data();
-        balanceBefore = data?.aiCredits || data?.saldo || 0;
-      }
-    } catch (e) {
-      // Ignorar erro ao buscar saldo
+    // Buscar lojista de origem do cliente (para verificar VIP)
+    let customerLojistaId: string | undefined;
+    if (customerId && customerWhatsapp) {
+      // TODO: Implementar busca de lojista de origem na Fase 3
+      // Por enquanto, assumir que está na mesma loja
+      customerLojistaId = lojistaId;
     }
     
-    await deductCredits(lojistaId, COST_PER_GENERATION);
+    const deductResult = await deductCredits({
+      lojistaId,
+      customerId,
+      customerLojistaId: customerLojistaId !== lojistaId ? customerLojistaId : undefined,
+      amount: COST_PER_GENERATION,
+    });
     
-    // Buscar saldo depois para log
-    let balanceAfter = 0;
-    try {
-      const lojistaDoc = await db.collection("lojistas").doc(lojistaId).get();
-      if (lojistaDoc.exists) {
-        const data = lojistaDoc.data();
-        balanceAfter = data?.aiCredits || data?.saldo || 0;
-      }
-    } catch (e) {
-      // Ignorar erro ao buscar saldo
+    if (!deductResult.success) {
+      // Log evento de erro ao debitar
+      await logger.logCreditEvent(
+        lojistaId,
+        "deduct_failed",
+        0,
+        0,
+        0,
+        { customerId, error: deductResult.message }
+      );
+
+      const response = NextResponse.json(
+        { error: deductResult.message || "Erro ao debitar créditos" },
+        { status: 402 }
+      );
+      return addCorsHeaders(response, origin);
     }
+
+    console.log("[API/AI/Generate] ✅ Créditos debitados:", {
+      debitedFrom: deductResult.debitedFrom,
+      remainingBalance: deductResult.remainingBalance,
+      message: deductResult.message,
+    });
 
     // PASSO 4: Salvar no Firestore
     console.log("[API/AI/Generate] Passo 4: Salvando composição no Firestore...");

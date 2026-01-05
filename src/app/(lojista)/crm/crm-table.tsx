@@ -38,11 +38,11 @@ export function CRMTable({ activeClients }: CRMTableProps) {
     const hoursSinceActivity = (Date.now() - client.lastActivity.getTime()) / (1000 * 60 * 60)
     
     if (hoursSinceActivity < 1) {
-      return { label: "🔥 Quente", color: "bg-red-500/20 text-red-300 border-red-500/50" }
+      return { label: "🔥 Quente", color: "bg-red-100 text-red-700 border-red-300" }
     } else if (hoursSinceActivity < 6) {
-      return { label: "🟡 Morno", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/50" }
+      return { label: "🟡 Morno", color: "bg-amber-100 text-amber-700 border-amber-300" }
     } else {
-      return { label: "❄️ Frio", color: "bg-blue-500/20 text-blue-300 border-blue-500/50" }
+      return { label: "❄️ Frio", color: "bg-blue-100 text-blue-700 border-blue-300" }
     }
   }
 
@@ -171,12 +171,12 @@ export function CRMTable({ activeClients }: CRMTableProps) {
 
   if (activeClients.length === 0) {
     return (
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
-        <Radar className="mx-auto h-12 w-12 text-zinc-600 mb-4" />
-        <h3 className="text-lg font-semibold text-zinc-300 mb-2">
+      <div className="neon-card rounded-2xl p-12 text-center">
+        <Radar className="mx-auto h-12 w-12 text-blue-400 mb-4" />
+        <h3 className="text-lg font-semibold text-slate-900 mb-2">
           Nenhum cliente ativo
         </h3>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-slate-600">
           Quando clientes usarem o app, eles aparecerão aqui.
         </p>
       </div>
@@ -187,54 +187,54 @@ export function CRMTable({ activeClients }: CRMTableProps) {
     <>
       {/* Botão de Refresh */}
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-zinc-400">
+        <div className="text-sm text-slate-600">
           Atualiza automaticamente a cada 20 segundos
         </div>
         <button
           onClick={refreshData}
           disabled={isRefreshing}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 hover:bg-indigo-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 text-white border border-blue-700 hover:bg-blue-700 transition-all text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 icon-animate-once ${isRefreshing ? 'animate-spin' : ''}`} />
           {isRefreshing ? 'Atualizando...' : 'Atualizar Agora'}
         </button>
       </div>
 
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+      <div className="neon-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-zinc-800/50 border-b border-zinc-700">
+            <thead className="bg-blue-50 border-b border-blue-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">
                   Cliente
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">
                   Última Ação
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">
                   Composições
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-blue-900 uppercase tracking-wider">
                   Ação
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800">
+            <tbody className="divide-y divide-blue-100 bg-white">
               {activeClients.map((client) => {
                 const status = getStatusBadge(client)
                 return (
                   <tr
                     key={client.customerId}
-                    className="hover:bg-zinc-800/30 cursor-pointer transition-colors"
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
                     onClick={() => setSelectedClient(client)}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {client.avatar ? (
-                          <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-indigo-500/30">
+                          <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-blue-200">
                             <Image
                               src={client.avatar}
                               alt={client.nome}
@@ -244,15 +244,15 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                             />
                           </div>
                         ) : (
-                          <div className="h-10 w-10 rounded-full bg-indigo-500/20 flex items-center justify-center border-2 border-indigo-500/30">
-                            <span className="text-sm font-semibold text-indigo-300">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                            <span className="text-sm font-semibold text-blue-700">
                               {getInitials(client.nome)}
                             </span>
                           </div>
                         )}
                         <div>
-                          <div className="font-medium text-white">{client.nome}</div>
-                          <div className="text-sm text-zinc-400">{client.whatsapp}</div>
+                          <div className="font-medium text-slate-900">{client.nome}</div>
+                          <div className="text-sm text-slate-500">{client.whatsapp}</div>
                         </div>
                       </div>
                     </td>
@@ -264,19 +264,19 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-zinc-300">
-                        <Clock className="h-4 w-4 text-zinc-500" />
+                      <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <Clock className="h-4 w-4 text-slate-400 icon-animate-once" />
                         <span>{formatTimeAgo(client.lastActivity)}</span>
                       </div>
                       {client.lastProductName && (
-                        <div className="text-xs text-zinc-500 mt-1">
+                        <div className="text-xs text-slate-500 mt-1">
                           {client.lastProductName}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-zinc-300">
-                        <ImageIcon className="h-4 w-4 text-zinc-500" />
+                      <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <ImageIcon className="h-4 w-4 text-slate-400 icon-animate-once" />
                         <span>{client.compositionCount}</span>
                       </div>
                     </td>
@@ -286,9 +286,9 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 text-green-300 border border-green-500/50 hover:bg-green-500/30 transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500 text-white border border-green-600 hover:bg-green-600 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
                       >
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageCircle className="h-4 w-4 icon-animate-once" />
                         Chamar no WhatsApp
                       </a>
                     </td>
@@ -307,13 +307,13 @@ export function CRMTable({ activeClients }: CRMTableProps) {
           onClick={() => setSelectedClient(null)}
         >
           <div
-            className="w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-4xl neon-card rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-4">
                 {selectedClient.avatar ? (
-                  <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-indigo-500/30">
+                  <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-blue-200">
                     <Image
                       src={selectedClient.avatar}
                       alt={selectedClient.nome}
@@ -323,42 +323,42 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                     />
                   </div>
                 ) : (
-                  <div className="h-16 w-16 rounded-full bg-indigo-500/20 flex items-center justify-center border-2 border-indigo-500/30">
-                    <span className="text-xl font-semibold text-indigo-300">
+                  <div className="h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-200">
+                    <span className="text-xl font-semibold text-blue-700">
                       {getInitials(selectedClient.nome)}
                     </span>
                   </div>
                 )}
                 <div>
-                  <h2 className="text-2xl font-bold text-white font-heading">{selectedClient.nome}</h2>
-                  <p className="text-zinc-400">{selectedClient.whatsapp}</p>
+                  <h2 className="text-2xl font-bold text-slate-900 font-heading">{selectedClient.nome}</h2>
+                  <p className="text-slate-600">{selectedClient.whatsapp}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedClient(null)}
-                className="rounded-lg p-2 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="rounded-lg p-2 hover:bg-blue-50 text-slate-400 hover:text-slate-700 transition-colors"
               >
                 ✕
               </button>
             </div>
 
             <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white mb-4">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">
                 Histórico Visual ({selectedClient.compositions.length} composições)
               </h3>
               {selectedClient.compositions.length === 0 ? (
-                <p className="text-zinc-500">Nenhuma composição encontrada.</p>
+                <p className="text-slate-500">Nenhuma composição encontrada.</p>
               ) : (
                 <div className="space-y-6">
                   {organizeCompositionsByDate(selectedClient.compositions).map((group, groupIndex) => (
                     <div key={groupIndex} className="space-y-3">
                       {/* Cabeçalho do grupo de data */}
                       <div className="flex items-center gap-3">
-                        <div className="h-px flex-1 bg-zinc-700"></div>
-                        <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider px-3">
+                        <div className="h-px flex-1 bg-blue-200"></div>
+                        <h4 className="text-sm font-semibold text-blue-700 uppercase tracking-wider px-3">
                           {group.label}
                         </h4>
-                        <div className="h-px flex-1 bg-zinc-700"></div>
+                        <div className="h-px flex-1 bg-blue-200"></div>
                       </div>
                       
                       {/* Grid de composições do grupo */}
@@ -366,7 +366,7 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                         {group.compositions.map((comp) => (
                           <div
                             key={comp.id}
-                            className="relative aspect-square rounded-lg overflow-hidden border border-zinc-800 bg-zinc-800/50 group hover:border-indigo-500/50 transition-colors"
+                            className="relative aspect-square rounded-lg overflow-hidden border border-blue-200 bg-blue-50 group hover:border-blue-400 transition-colors"
                           >
                             <Image
                               src={comp.imagemUrl}
@@ -377,7 +377,7 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                             {/* Overlay com informações */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                               <div className="absolute bottom-0 left-0 right-0 p-2">
-                                <p className="text-xs text-zinc-300">
+                                <p className="text-xs text-white">
                                   {formatCompositionDate(comp.createdAt)}
                                 </p>
                               </div>
@@ -402,7 +402,7 @@ export function CRMTable({ activeClients }: CRMTableProps) {
                 href={generateWhatsAppLink(selectedClient)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-green-500/20 text-green-300 border border-green-500/50 hover:bg-green-500/30 transition-colors font-medium"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-green-500 text-white border border-green-600 hover:bg-green-600 transition-colors font-medium shadow-sm hover:shadow-md"
               >
                 <MessageCircle className="h-5 w-5" />
                 Chamar no WhatsApp

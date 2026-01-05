@@ -13,10 +13,12 @@ export const PAGE_HEADER_COLORS: Record<string, { from: string; to: string; shad
   '/redes-sociais': { from: '#a855f7', to: '#9333ea', shadow: '#a855f7' }, // Roxo
   '/integracoes': { from: '#f97316', to: '#ea580c', shadow: '#f97316' }, // Laranja
   '/configuracoes': { from: '#64748b', to: '#475569', shadow: '#64748b' }, // Slate
+  '/configuracoes/assinatura': { from: '#6366f1', to: '#4f46e5', shadow: '#6366f1' }, // Índigo
 };
 
 // Função helper para obter cores com fallback - pode ser usada no servidor e no cliente
 export function getPageHeaderColors(route: string): { from: string; to: string; shadow: string } {
   return PAGE_HEADER_COLORS[route] || { from: '#6366f1', to: '#4f46e5', shadow: '#6366f1' }; // Fallback índigo
 }
+
 

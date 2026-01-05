@@ -27,8 +27,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar insights não lidos
-    const insights = await getUnreadInsights(lojistaId, 10);
+    // Buscar insights não lidos (com limite configurável)
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam, 10) : 10;
+    const insights = await getUnreadInsights(lojistaId, limit);
+
+    console.log("[API/AI/Insights] Resposta:", {
+      lojistaId,
+      limit,
+      insightsCount: insights.length,
+      insights: insights.map(i => ({ id: i.id, type: i.type, title: i.title }))
+    });
 
     return NextResponse.json({
       success: true,

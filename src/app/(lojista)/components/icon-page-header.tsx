@@ -30,7 +30,7 @@ export function IconPageHeader({
             boxShadow: `0 4px 6px rgba(0, 0, 0, 0.1), 0 0 20px ${shadowColor}40, 0 0 40px ${shadowColor}20`,
           }}
         >
-          <Icon className="h-6 w-6" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
+          <Icon className="h-6 w-6 icon-animate-once" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
         </div>
         <div className="flex-1 flex items-start justify-between gap-4">
           <div className="flex-1">

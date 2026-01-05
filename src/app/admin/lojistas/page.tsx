@@ -19,11 +19,24 @@ async function fetchLojistas() {
       // Buscar perfil para obter logoUrl e nome atualizado
       const perfil = await fetchLojaPerfil(lojistaId);
       
+      // FASE 3: Buscar subscription e usageMetrics para auditoria
+      const subscription = data.subscription || {
+        planId: "start",
+        status: "active",
+        adSlotsLimit: 0,
+        clientType: "standard",
+      };
+      const usageMetrics = data.usageMetrics || {
+        totalGenerated: 0,
+        creditsUsed: 0,
+        creditsRemaining: 0,
+      };
+
       return {
         id: lojistaId,
         nome: perfil?.nome || data.nome || "Loja sem nome",
         email: data.email || "",
-        planoAtual: data.planoAtual || "free",
+        planoAtual: subscription.planId || data.planoAtual || "start",
         statusPagamento: data.statusPagamento || "pendente",
         dataVencimento: data.dataVencimento?.toDate?.() || null,
         createdAt: data.createdAt?.toDate?.() || new Date(),
@@ -31,6 +44,9 @@ async function fetchLojistas() {
         logoUrl: perfil?.logoUrl || data.logoUrl || null,
         limiteImagens: data.limiteImagens || 0,
         imagensGeradasMes: data.imagensGeradasMes || 0,
+        // FASE 3: Auditoria de GPU
+        totalGenerated: usageMetrics.totalGenerated || 0,
+        clientType: subscription.clientType || "standard",
       };
     });
     

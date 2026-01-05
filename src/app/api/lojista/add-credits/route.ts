@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { isSuperAdmin, requireSuperAdmin } from "@/lib/auth/admin-auth";
 
 const db = getAdminDb();
 
@@ -9,15 +10,35 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/lojista/add-credits
  * Adiciona créditos de IA para um lojista
- * Body: { lojistaId?: string, amount: number }
+ * Body: { lojistaId?: string, amount: number, source?: 'webhook' | 'admin_panel' }
  * 
- * Se lojistaId não for fornecido, usa o lojista logado
+ * SEGURANÇA: Apenas super_admin pode adicionar créditos.
+ * Esta rota deve ser chamada apenas via:
+ * - Webhook de pagamento (Stripe/Asaas) com validação de assinatura
+ * - Painel Super Admin
+ * 
+ * Lojistas NÃO podem chamar esta rota diretamente.
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { lojistaId: lojistaIdFromBody, amount } = body;
+    // FASE 0.1: VALIDAÇÃO DE SEGURANÇA - Apenas super_admin
+    try {
+      await requireSuperAdmin();
+    } catch (error: any) {
+      console.error("[API Add Credits] ❌ Acesso negado - não é super_admin:", error.message);
+      return NextResponse.json(
+        { 
+          error: "FORBIDDEN: Apenas super_admin pode adicionar créditos. Esta rota deve ser chamada via Webhook de Pagamento ou Painel Super Admin.",
+          code: "FORBIDDEN"
+        },
+        { status: 403 }
+      );
+    }
 
+    const body = await request.json();
+    const { lojistaId: lojistaIdFromBody, amount, source } = body;
+
+    // Validar amount
     if (!amount || typeof amount !== 'number' || amount <= 0) {
       return NextResponse.json(
         { error: "amount deve ser um número positivo" },
@@ -25,31 +46,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prioridade: body > usuário logado
-    let lojistaIdFromAuth = null;
-    if (!lojistaIdFromBody) {
-      try {
-        lojistaIdFromAuth = await getCurrentLojistaId();
-        console.log("[API Add Credits] lojistaIdFromAuth:", lojistaIdFromAuth);
-      } catch (authError: any) {
-        console.error("[API Add Credits] Erro ao buscar lojista logado:", authError);
-      }
+    // Validar source (opcional, mas recomendado para auditoria)
+    const validSources = ['webhook', 'admin_panel', undefined];
+    if (source && !validSources.includes(source)) {
+      console.warn("[API Add Credits] ⚠️ Source inválido:", source);
     }
-    
-    const lojistaId = lojistaIdFromBody || lojistaIdFromAuth;
-    
-    console.log("[API Add Credits] lojistaId final:", lojistaId, {
-      fromBody: lojistaIdFromBody,
-      fromAuth: lojistaIdFromAuth,
-    });
 
-    if (!lojistaId) {
-      console.error("[API Add Credits] lojistaId não encontrado. Body:", body);
+    // FASE 0.1: lojistaId é OBRIGATÓRIO no body quando chamado por admin
+    // Não permitir que admin adicione créditos para si mesmo sem especificar lojistaId
+    if (!lojistaIdFromBody) {
       return NextResponse.json(
-        { error: "lojistaId não encontrado. Faça login ou forneça o lojistaId no corpo da requisição." },
+        { error: "lojistaId é obrigatório no corpo da requisição quando chamado por admin" },
         { status: 400 }
       );
     }
+    
+    const lojistaId = lojistaIdFromBody;
+    
+    console.log("[API Add Credits] ✅ Super Admin autorizado. Adicionando créditos:", {
+      lojistaId,
+      amount,
+      source: source || 'admin_panel',
+    });
 
     const lojistaRef = db.collection("lojistas").doc(lojistaId);
     const lojaRef = db.collection("lojas").doc(lojistaId);
@@ -122,34 +140,49 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/lojista/add-credits
  * Retorna o saldo atual de créditos do lojista
+ * 
+ * SEGURANÇA: Lojistas podem consultar apenas seu próprio saldo.
+ * Super Admin pode consultar qualquer lojista.
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const lojistaIdFromQuery = searchParams.get("lojistaId");
 
-    // Prioridade: query string > usuário logado
-    let lojistaIdFromAuth = null;
-    if (!lojistaIdFromQuery) {
+    // Verificar se é super_admin
+    const isSuper = await isSuperAdmin();
+    
+    let lojistaId: string | null = null;
+
+    if (isSuper) {
+      // Super Admin pode consultar qualquer lojista
+      lojistaId = lojistaIdFromQuery;
+    } else {
+      // Lojista comum só pode consultar seu próprio saldo
       try {
-        lojistaIdFromAuth = await getCurrentLojistaId();
-        console.log("[API Add Credits GET] lojistaIdFromAuth:", lojistaIdFromAuth);
+        lojistaId = await getCurrentLojistaId();
+        console.log("[API Add Credits GET] Lojista consultando próprio saldo:", lojistaId);
+        
+        // Se tentou consultar outro lojista, negar
+        if (lojistaIdFromQuery && lojistaIdFromQuery !== lojistaId) {
+          return NextResponse.json(
+            { error: "FORBIDDEN: Você só pode consultar seu próprio saldo de créditos" },
+            { status: 403 }
+          );
+        }
       } catch (authError: any) {
         console.error("[API Add Credits GET] Erro ao buscar lojista logado:", authError);
+        return NextResponse.json(
+          { error: "Não autenticado. Faça login para consultar seu saldo." },
+          { status: 401 }
+        );
       }
     }
     
-    const lojistaId = lojistaIdFromQuery || lojistaIdFromAuth;
-    
-    console.log("[API Add Credits GET] lojistaId final:", lojistaId, {
-      fromQuery: lojistaIdFromQuery,
-      fromAuth: lojistaIdFromAuth,
-    });
-
     if (!lojistaId) {
       console.error("[API Add Credits GET] lojistaId não encontrado");
       return NextResponse.json(
-        { error: "lojistaId não encontrado. Faça login ou forneça o lojistaId na query string." },
+        { error: "lojistaId não encontrado. Faça login ou forneça o lojistaId na query string (apenas para super_admin)." },
         { status: 400 }
       );
     }

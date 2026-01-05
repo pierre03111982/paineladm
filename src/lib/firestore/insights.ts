@@ -54,6 +54,7 @@ export async function createInsight(
 /**
  * Obtém insights não lidos de um lojista
  * Simplificado para não precisar de índice composto - toda filtragem em memória
+ * Se não houver insights não lidos, retorna os mais recentes (mesmo que lidos)
  */
 export async function getUnreadInsights(
   lojistaId: string,
@@ -70,43 +71,78 @@ export async function getUnreadInsights(
     const now = new Date();
     const snapshot = await insightsRef
       .orderBy("createdAt", "desc")
-      .limit(limit * 3) // Buscar mais para filtrar isRead e expirados depois
+      .limit(limit * 5) // Buscar mais para filtrar isRead e expirados depois
       .get();
 
-    const insights: InsightDoc[] = [];
+    const unreadInsights: InsightDoc[] = [];
+    const allValidInsights: InsightDoc[] = [];
+    
     snapshot.forEach((doc) => {
       const data = doc.data();
       const expiresAt = data.expiresAt?.toDate() || new Date();
       const isRead = data.isRead || false;
       
-      // Filtrar insights não lidos E não expirados em memória
-      if (!isRead && expiresAt > now) {
-        insights.push({
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          expiresAt,
-        } as InsightDoc);
+      // Ignorar insights expirados
+      if (expiresAt <= now) return;
+      
+      const insight: InsightDoc = {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        expiresAt,
+      } as InsightDoc;
+      
+      // Separar não lidos e todos válidos
+      if (!isRead) {
+        unreadInsights.push(insight);
       }
+      allValidInsights.push(insight);
     });
 
-    // Ordenar por expiresAt (mais próximo primeiro) e limitar
-    insights.sort((a, b) => {
-      const expiresDiff = a.expiresAt.getTime() - b.expiresAt.getTime();
-      if (expiresDiff !== 0) return expiresDiff;
-      // Se expiresAt igual, ordenar por createdAt (mais recente primeiro)
-      return b.createdAt.getTime() - a.createdAt.getTime();
-    });
+    // Se houver insights não lidos, retornar eles
+    if (unreadInsights.length > 0) {
+      // Ordenar por expiresAt (mais próximo primeiro) e limitar
+      unreadInsights.sort((a, b) => {
+        const expiresDiff = a.expiresAt.getTime() - b.expiresAt.getTime();
+        if (expiresDiff !== 0) return expiresDiff;
+        // Se expiresAt igual, ordenar por createdAt (mais recente primeiro)
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
 
-    const limitedInsights = insights.slice(0, limit);
+      const limitedInsights = unreadInsights.slice(0, limit);
 
-    console.log("[Insights] 📊 Insights não lidos encontrados:", {
-      count: limitedInsights.length,
+      console.log("[Insights] 📊 Insights não lidos encontrados:", {
+        count: limitedInsights.length,
+        lojistaId,
+        totalBuscados: snapshot.size,
+      });
+
+      return limitedInsights;
+    }
+
+    // Se não houver insights não lidos, retornar os mais recentes (mesmo que lidos)
+    if (allValidInsights.length > 0) {
+      allValidInsights.sort((a, b) => {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+
+      const limitedInsights = allValidInsights.slice(0, limit);
+
+      console.log("[Insights] 📊 Nenhum insight não lido, retornando mais recentes:", {
+        count: limitedInsights.length,
+        lojistaId,
+        totalBuscados: snapshot.size,
+      });
+
+      return limitedInsights;
+    }
+
+    console.log("[Insights] ⚠️ Nenhum insight encontrado:", {
       lojistaId,
       totalBuscados: snapshot.size,
     });
 
-    return limitedInsights;
+    return [];
   } catch (error) {
     console.error("[Insights] ❌ Erro ao buscar insights:", error);
     throw error;

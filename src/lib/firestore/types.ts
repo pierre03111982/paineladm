@@ -121,6 +121,50 @@ export type LojaMetrics = {
   atualizadoEm: Date;
 };
 
+/**
+ * FASE 1: Tipos para Subscription e Client Type
+ */
+export type PlanId = "start" | "pro" | "elite";
+export type PlanStatus = "active" | "blocked" | "trial";
+export type ClientType = "standard" | "test_unlimited";
+
+export interface SubscriptionData {
+  planId: PlanId;
+  status: PlanStatus;
+  adSlotsLimit: number;
+  clientType: ClientType;
+  startedAt?: Date;
+  expiresAt?: Date;
+  scheduledDowngrade?: {
+    planId: PlanId;
+    effectiveAt: Date;
+  };
+}
+
+export interface UsageMetrics {
+  totalGenerated: number; // Total de imagens geradas (para controle de custo interno)
+  creditsUsed: number; // Créditos consumidos no período
+  creditsRemaining: number; // Créditos restantes
+  lastResetAt?: Date; // Data da última renovação de créditos
+}
+
+/**
+ * FASE 1: Tipo para Usuário Final (App Cliente)
+ * Coleção: users (global, não por loja)
+ */
+export interface UserDoc {
+  id: string;
+  whatsapp: string;
+  email?: string;
+  nome?: string;
+  globalCredits: number; // Saldo bônus para usar em qualquer loja
+  vipStatus: boolean; // True se comprou nos últimos 30 dias
+  vipExpiration?: Date;
+  accumulatedBalance: number; // Teto de 300 créditos acumulados
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 
 
 

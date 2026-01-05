@@ -21,7 +21,11 @@ import {
   Star,
   DollarSign,
   ShoppingCart,
-  Receipt
+  Receipt,
+  Edit,
+  Save,
+  X,
+  KeyRound
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -59,6 +63,17 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
   // Estado para controlar o cockpit modal
   const [selectedComposition, setSelectedComposition] = useState<any | null>(null);
   const [isCockpitOpen, setIsCockpitOpen] = useState(false);
+  
+  // Estado para edição - sempre habilitado por padrão
+  const [isEditing, setIsEditing] = useState(true);
+  const [editData, setEditData] = useState({
+    nome: cliente.nome || "",
+    status: cliente.arquivado ? "inativo" : "ativo",
+    observacoes: (cliente as any).observacoes || (cliente as any).obs || "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Calcular estatísticas
   const totalComposicoes = cliente.composicoes?.length || 0;
@@ -104,6 +119,78 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
       const url = new URL(window.location.href);
       url.searchParams.delete('view');
       window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const url = lojistaIdFromUrl
+        ? `/api/lojista/clientes/${cliente.id}?lojistaId=${lojistaIdFromUrl}`
+        : `/api/lojista/clientes/${cliente.id}`;
+      
+      const updateData: any = {
+        nome: editData.nome,
+        arquivado: editData.status === "inativo",
+      };
+      
+      if (editData.observacoes) {
+        updateData.observacoes = editData.observacoes;
+      }
+      
+      const response = await fetch(url, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) throw new Error("Erro ao atualizar cliente");
+
+      setSuccess("Cliente atualizado com sucesso!");
+      setIsEditing(false);
+      // Atualizar dados locais
+      cliente.nome = editData.nome;
+      cliente.arquivado = editData.status === "inativo";
+      (cliente as any).observacoes = editData.observacoes;
+      
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Erro ao atualizar cliente");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!confirm("Tem certeza que deseja resetar a senha deste cliente? Uma nova senha será gerada e enviada.")) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const url = lojistaIdFromUrl
+        ? `/api/lojista/clientes/${cliente.id}/reset-password?lojistaId=${lojistaIdFromUrl}`
+        : `/api/lojista/clientes/${cliente.id}/reset-password`;
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) throw new Error("Erro ao resetar senha");
+
+      setSuccess("Senha resetada com sucesso! Nova senha foi gerada.");
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err: any) {
+      setError(err.message || "Erro ao resetar senha");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -418,6 +505,129 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <p className="text-lg font-bold text-slate-900 dark:text-white">{totalShares}</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Seção de Edição */}
+      <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm transition-colors">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+            <Edit className="h-3.5 w-3.5 text-indigo-500" />
+            Editar Informações
+          </h3>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                setEditData({
+                  nome: cliente.nome || "",
+                  status: cliente.arquivado ? "inativo" : "ativo",
+                  observacoes: (cliente as any).observacoes || (cliente as any).obs || "",
+                });
+              }}
+              className="inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+            >
+              <X className="h-3 w-3" />
+              Cancelar
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={loading}
+              className="inline-flex items-center gap-1 rounded-md bg-indigo-500 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="h-3 w-3" />
+              {loading ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-2 rounded border border-red-500/60 bg-red-500/10 px-2 py-1 text-[11px] text-red-200">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-2 rounded border border-emerald-500/60 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-200">
+            {success}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {/* Primeira linha: ID e Nome lado a lado */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* ID do Cliente (somente leitura) */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+                ID (não alterável)
+              </label>
+              <input
+                type="text"
+                value={cliente.id}
+                disabled
+                className="w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              />
+            </div>
+
+            {/* Nome */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                Nome *
+              </label>
+              <input
+                type="text"
+                required
+                value={editData.nome}
+                onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
+                className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Segunda linha: Status e Resetar Senha lado a lado */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Status */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                Status
+              </label>
+              <select
+                value={editData.status}
+                onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+              >
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+
+            {/* Resetar Senha */}
+            <div>
+              <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                Senha
+              </label>
+              <button
+                onClick={handleResetPassword}
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded border-2 border-red-500 bg-white dark:bg-white px-2 py-1 text-[11px] font-medium text-red-600 dark:text-red-600 hover:bg-red-50 dark:hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <KeyRound className="h-3 w-3 text-red-600" />
+                Resetar Senha
+              </button>
+            </div>
+          </div>
+
+          {/* Terceira linha: Observações (largura total) */}
+          <div>
+            <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+              Observações
+            </label>
+            <textarea
+              value={editData.observacoes}
+              onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+              rows={2}
+              className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+              placeholder="Adicione observações sobre o cliente..."
+            />
           </div>
         </div>
       </div>

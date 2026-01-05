@@ -94,7 +94,7 @@ function ProductGridCard({
       className="group relative product-card-gradient rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col min-h-[500px]"
       style={{ display: 'flex', flexDirection: 'column', minHeight: '500px', border: '3px solid #60a5fa' }}
     >
-      {/* Checkbox - Top Left - Simplificado */}
+      {/* Checkbox - Top Left - Reescrito do zero com cor azul */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -103,16 +103,43 @@ function ProductGridCard({
           }
         }}
         disabled={loading}
-        className={`absolute top-2 left-2 z-20 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-          selectedProducts.has(produto.id)
-            ? "bg-indigo-600 border-indigo-600"
-            : "bg-white/90 backdrop-blur-sm border-white/50 hover:border-indigo-400"
-        } shadow-sm hover:shadow-md`}
+        className="absolute top-2 left-2 z-20 flex items-center justify-center transition-all shadow-sm hover:shadow-md"
+        style={{
+          width: '20px',
+          height: '20px',
+          borderRadius: '4px',
+          border: selectedProducts.has(produto.id) ? '2px solid #4f46e5' : '2px solid #60a5fa',
+          backgroundColor: selectedProducts.has(produto.id) ? '#4f46e5' : 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(4px)',
+          cursor: loading ? 'not-allowed' : 'pointer',
+        }}
+        onMouseEnter={(e) => {
+          if (!loading && !selectedProducts.has(produto.id)) {
+            e.currentTarget.style.borderColor = '#3b82f6';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!selectedProducts.has(produto.id)) {
+            e.currentTarget.style.borderColor = '#60a5fa';
+            e.currentTarget.style.transform = 'scale(1)';
+          }
+        }}
         aria-label={selectedProducts.has(produto.id) ? "Desmarcar produto" : "Selecionar produto"}
       >
         {selectedProducts.has(produto.id) && (
-          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          <svg 
+            width="12" 
+            height="12" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="white" 
+            strokeWidth="3" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            style={{ pointerEvents: 'none' }}
+          >
+            <path d="M5 13l4 4L19 7" />
           </svg>
         )}
       </button>

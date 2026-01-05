@@ -1,6 +1,55 @@
 @import "tailwindcss";
 
 /* ============================================
+   ANIMAÇÃO DE ÍCONES - INICIA E PAUSA
+   ============================================ */
+@keyframes iconPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 0px currentColor);
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.9;
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 0px currentColor);
+  }
+}
+
+.icon-animate-once {
+  animation: iconPulse 1.5s ease-in-out 1;
+  animation-fill-mode: forwards;
+}
+
+/* Forçar texto branco no botão Cadastrar Cliente */
+button[class*="from-blue-600"][class*="to-indigo-600"] span,
+button[class*="from-blue-600"][class*="to-indigo-600"] {
+  color: #ffffff !important;
+}
+
+button[class*="from-blue-600"][class*="to-indigo-600"] svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Animação fadeInUp para cards - Efeito Cascata */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================
    VARIÁVEIS CSS - TEMA CLARO
    ============================================ */
 :root {
@@ -299,14 +348,41 @@ html:not(.lojista-loading) .lojista-content {
   border-top: 1px solid #E2E8F0 !important;
 }
 
-.rounded-2xl[class*="bg-white"]:not(.animated-card-border),
-.rounded-2xl[class*="bg-slate"]:not(.animated-card-border),
-.rounded-2xl[class*="bg-gray"]:not(.animated-card-border),
-.rounded-xl[class*="bg-white"]:not(.animated-card-border),
-[class*="bg-white"][class*="shadow"]:not(.animated-card-border) {
+.rounded-2xl[class*="bg-white"]:not(.animated-card-border):not(button),
+.rounded-2xl[class*="bg-slate"]:not(.animated-card-border):not(button),
+.rounded-2xl[class*="bg-gray"]:not(.animated-card-border):not(button),
+.rounded-xl[class*="bg-white"]:not(.animated-card-border):not(button),
+[class*="bg-white"][class*="shadow"]:not(.animated-card-border):not(button) {
   background-color: var(--card-bg) !important;
   border-color: var(--card-border) !important;
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Permitir que botões com estilo inline mantenham suas bordas coloridas */
+button.rounded-2xl[style*="borderColor"],
+button.rounded-2xl[style*="border-color"],
+button.rounded-2xl[style*="border"] {
+  border-color: inherit !important;
+}
+
+/* Forçar cores específicas para botões de ação do cliente */
+button[title="Visualizar Perfil"] {
+  border-color: #3b82f6 !important;
+}
+button[title="Editar Perfil"] {
+  border-color: #9333ea !important;
+}
+button[title="Cockpit de Vendas"] {
+  border-color: #6366f1 !important;
+}
+button[title="Desbloquear"] {
+  border-color: #10b981 !important;
+}
+button[title="Bloquear"] {
+  border-color: #ef4444 !important;
+}
+button[title="Excluir"] {
+  border-color: #ef4444 !important;
 }
 
 .rounded-2xl[class*="bg-white"] * {

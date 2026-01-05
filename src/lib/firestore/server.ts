@@ -44,6 +44,21 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
   } | null;
   planTier?: "micro" | "growth" | "enterprise" | string | null;
   planBillingStatus?: string | null;
+  // FASE 1: Novos campos de subscription
+  subscription?: {
+    planId?: "start" | "pro" | "elite" | string | null;
+    status?: "active" | "blocked" | "trial" | string | null;
+    adSlotsLimit?: number;
+    clientType?: "standard" | "test_unlimited" | string | null;
+    startedAt?: Date | null;
+    expiresAt?: Date | null;
+  } | null;
+  usageMetrics?: {
+    totalGenerated?: number;
+    creditsUsed?: number;
+    creditsRemaining?: number;
+    lastResetAt?: Date | null;
+  } | null;
   // Debug fields
   _debugSource?: string;
   _rawAppModel?: any;
@@ -78,6 +93,8 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         salesConfig: data?.salesConfig || null,
         planTier: data?.financials?.plan_tier || data?.planTier || null,
         planBillingStatus: data?.financials?.billing_status || data?.planBillingStatus || null,
+        subscription: data?.subscription || null,
+        usageMetrics: data?.usageMetrics || null,
         _debugSource: "perfil/dados",
         _rawAppModel: data?.appModel
       };
@@ -102,11 +119,13 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
           descontoRedesSociais: lojaData?.descontoRedesSociais || null,
           appModel: lojaData?.appModel || lojaData?.modeloApp || "modelo-1",
           displayOrientation: lojaData?.displayOrientation || "horizontal",
-          salesConfig: lojaData?.salesConfig || null,
-          planTier: lojaData?.financials?.plan_tier || lojaData?.planTier || null,
-          planBillingStatus: lojaData?.financials?.billing_status || lojaData?.planBillingStatus || null,
-          _debugSource: "lojas/{id}",
-          _rawAppModel: lojaData?.appModel
+        salesConfig: lojaData?.salesConfig || null,
+        planTier: lojaData?.financials?.plan_tier || lojaData?.planTier || null,
+        planBillingStatus: lojaData?.financials?.billing_status || lojaData?.planBillingStatus || null,
+        subscription: lojaData?.subscription || null,
+        usageMetrics: lojaData?.usageMetrics || null,
+        _debugSource: "lojas/{id}",
+        _rawAppModel: lojaData?.appModel
         };
       }
     }
@@ -132,6 +151,8 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         salesConfig: data?.salesConfig || null,
         planTier: data?.financials?.plan_tier || data?.planTier || null,
         planBillingStatus: data?.financials?.billing_status || data?.planBillingStatus || null,
+        subscription: data?.subscription || null,
+        usageMetrics: data?.usageMetrics || null,
         _debugSource: "perfil/publico",
         _rawAppModel: data?.appModel
       };

@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Image as ImageIcon, MessageCircle, ShoppingCart, Loader2 } from "lucide-react";
+import { Upload, X, Image as ImageIcon, MessageCircle, ShoppingCart, Loader2, CreditCard, ArrowRight } from "lucide-react";
 import { ModeloAppSelector } from "./components/modelo-app-selector";
+import Link from "next/link";
 
 type LojaPerfil = {
   nome?: string | null;
@@ -655,6 +656,30 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           )}
         </div>
       </div>
+
+      {/* FASE 5: Card de Assinatura */}
+      <Link href="/configuracoes/assinatura">
+        <div className="neon-card rounded-2xl p-6 hover:shadow-lg transition-all cursor-pointer border-2 border-indigo-200 hover:border-indigo-400">
+          <div className="flex items-start gap-6">
+            <div className="flex-shrink-0">
+              <div className="rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-3 shadow-lg shadow-indigo-500/30 text-white">
+                <CreditCard className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">Assinatura e Planos</h3>
+                  <p className="text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
+                    Gerencie seu plano atual, faça upgrade ou downgrade. Visualize seus créditos e benefícios.
+                  </p>
+                </div>
+                <ArrowRight className="h-5 w-5 text-indigo-600 flex-shrink-0" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Link>
 
       {/* Botão Salvar */}
       <div className="flex justify-end gap-3">

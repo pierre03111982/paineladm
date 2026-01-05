@@ -30,6 +30,9 @@ type Lojista = {
   logoUrl: string | null;
   limiteImagens: number;
   imagensGeradasMes: number;
+  // FASE 3: Auditoria de GPU para lojas teste
+  totalGenerated?: number; // usageMetrics.totalGenerated
+  clientType?: "standard" | "test_unlimited";
 };
 
 type LojistasTableProps = {
@@ -131,6 +134,7 @@ export function LojistasTable({ initialLojistas }: LojistasTableProps) {
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3">Pagamento</th>
               <th className="px-6 py-3">Uso</th>
+              <th className="px-6 py-3">GPU (Auditoria)</th>
               <th className="px-6 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -138,7 +142,7 @@ export function LojistasTable({ initialLojistas }: LojistasTableProps) {
             {lojistas.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-6 py-14 text-center text-sm text-zinc-500"
                 >
                   <Users className="mx-auto mb-4 h-10 w-10 text-zinc-700" />
@@ -231,6 +235,24 @@ export function LojistasTable({ initialLojistas }: LojistasTableProps) {
                           }}
                         />
                       </div>
+                    </div>
+                  </td>
+                  {/* FASE 3: Coluna de Auditoria GPU */}
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      {lojista.clientType === "test_unlimited" && lojista.totalGenerated !== undefined ? (
+                        <>
+                          <p className="text-sm font-semibold text-amber-300">
+                            {lojista.totalGenerated.toLocaleString("pt-BR")}
+                          </p>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-200">
+                            <AlertCircle className="h-3 w-3" />
+                            Teste Ilimitado
+                          </span>
+                        </>
+                      ) : (
+                        <p className="text-sm text-zinc-500">—</p>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">

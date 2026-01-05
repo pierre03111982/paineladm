@@ -140,3 +140,72 @@ export async function checkAdminAccess(): Promise<boolean> {
   return adminEmail !== null;
 }
 
+/**
+ * Verifica se o usuário tem role super_admin via custom claims do Firebase
+ * Esta é a validação mais segura para operações críticas como adicionar créditos
+ */
+export async function isSuperAdmin(): Promise<boolean> {
+  try {
+    // Durante o build, não há cookies, então retornar false
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return false;
+    }
+
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token")?.value;
+
+    if (!token) {
+      console.log("[isSuperAdmin] Token não encontrado nos cookies");
+      return false;
+    }
+
+    // Verificar token no Firebase Admin
+    const auth = getAuth(getAdminApp());
+    const decodedToken = await auth.verifyIdToken(token);
+
+    // Verificar custom claims - Firebase retorna claims diretamente no token
+    // Custom claims são acessados via decodedToken.role ou decodedToken['role']
+    const role = (decodedToken as any).role || (decodedToken as any).claims?.role;
+    const isSuper = role === "super_admin";
+
+    // Fallback: Verificar também se é admin via email (compatibilidade)
+    const email = decodedToken.email;
+    const isAdminByEmail = email ? isAdminEmail(email) : false;
+
+    const isAuthorized = isSuper || isAdminByEmail;
+
+    console.log("[isSuperAdmin] Verificação:", {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role,
+      isSuper,
+      isAdminEmail,
+      isAuthorized,
+    });
+
+    return isAuthorized;
+  } catch (error) {
+    console.error("[isSuperAdmin] Erro ao verificar super_admin:", error);
+    return false;
+  }
+}
+
+/**
+ * Requer que o usuário seja super_admin
+ * Retorna 403 se não for
+ */
+export async function requireSuperAdmin(): Promise<void> {
+  const isSuper = await isSuperAdmin();
+  if (!isSuper) {
+    throw new Error("FORBIDDEN: Apenas super_admin pode executar esta operação");
+  }
+}
+
+/**
+ * Verifica se o usuário tem permissão de super_admin (sem lançar erro)
+ * Útil para verificações condicionais
+ */
+export async function checkSuperAdminAccess(): Promise<boolean> {
+  return await isSuperAdmin();
+}
+

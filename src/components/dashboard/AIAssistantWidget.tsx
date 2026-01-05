@@ -94,7 +94,7 @@ export function AIAssistantWidget({ lojistaId }: AIAssistantWidgetProps) {
 
           {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 text-[#4169E1] animate-spin" />
+            <Loader2 className="h-6 w-6 text-[#4169E1] animate-spin icon-animate-once" />
             <span className="ml-2 text-sm font-medium text-slate-700">
               Analisando dados...
             </span>
