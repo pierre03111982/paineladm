@@ -182,7 +182,7 @@ export async function aggregateStoreData(lojistaId: string): Promise<ProcessedSt
   const productMetricsMap = new Map<string, ProductMetrics>();
 
   composicoes.forEach((comp: any) => {
-    const produtos = comp.produtos || comp.products || [];
+    const produtos = (comp as any).produtos || (comp as any).products || [];
     
     produtos.forEach((produto: any) => {
       const produtoId = produto.id || produto;
@@ -233,7 +233,7 @@ export async function aggregateStoreData(lojistaId: string): Promise<ProcessedSt
     const actionType = action.action_type || action.actionType;
 
     produtos.forEach((produto: any) => {
-      const produtoId = produto.id || produto || comp.primaryProductId;
+      const produtoId = produto.id || produto || (comp as any).primaryProductId;
       if (!produtoId || typeof produtoId !== 'string' || !productMetricsMap.has(produtoId)) return;
 
       const metrics = productMetricsMap.get(produtoId)!;
