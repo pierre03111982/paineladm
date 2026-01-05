@@ -59,9 +59,9 @@ export async function GET(
 
       // Processar composições: encontrar a mais recente com imagem (mesma lógica do dashboard)
       type CompositionWithImage = { imageUrl: string; createdAt: Date };
-      let lastCompositionWithImage: CompositionWithImage | null = null;
-
-      composicoesDoCliente.forEach((comp) => {
+      
+      // Usar reduce para encontrar a composição mais recente com imagem (mais type-safe)
+      const lastCompositionWithImage: CompositionWithImage | null = composicoesDoCliente.reduce<CompositionWithImage | null>((latest, comp) => {
         // Buscar URL da imagem da composição (pode estar em vários campos) - MESMA LÓGICA DO DASHBOARD
         const imageUrl = 
           comp.imagemUrl || 
@@ -72,25 +72,27 @@ export async function GET(
           (comp as any).generation?.imagemUrl ||
           null;
         
-        // Se não tem imagem, pular
-        if (!imageUrl) {
-          return;
+        // Se não tem imagem, retornar o latest atual
+        if (!imageUrl || typeof imageUrl !== 'string') {
+          return latest;
         }
 
         // Usar createdAt da composição
         const createdAt = comp.createdAt instanceof Date ? comp.createdAt : new Date();
 
-        // Se não existe ou esta é mais recente, atualizar
-        if (!lastCompositionWithImage || createdAt.getTime() > lastCompositionWithImage.createdAt.getTime()) {
-          lastCompositionWithImage = {
-            imageUrl: imageUrl as string,
+        // Se não existe latest ou esta é mais recente, retornar esta
+        if (!latest || createdAt.getTime() > latest.createdAt.getTime()) {
+          console.log("[API/Clientes/LastCompositionImage] ✅ Imagem encontrada:", imageUrl.substring(0, 100));
+          return {
+            imageUrl: imageUrl,
             createdAt,
           };
-          console.log("[API/Clientes/LastCompositionImage] ✅ Imagem encontrada:", imageUrl.substring(0, 100));
         }
-      });
 
-      const finalImageUrl: string | null = lastCompositionWithImage ? lastCompositionWithImage.imageUrl : null;
+        return latest;
+      }, null);
+
+      const finalImageUrl: string | null = lastCompositionWithImage?.imageUrl ?? null;
       console.log("[API/Clientes/LastCompositionImage] Resultado final:", finalImageUrl ? "✅ Tem imagem" : "❌ Sem imagem");
 
       return NextResponse.json({ 
