@@ -290,7 +290,7 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
               <div className="flex items-start gap-3">
                 {/* Ícone à esquerda */}
                 <div className={`flex-shrink-0 ${insight.color.icon} mt-0.5`}>
-                  {getIcon(insight.icon, insight.title)}
+                  {getIcon(insight.icon)}
                 </div>
 
                 {/* Conteúdo */}
