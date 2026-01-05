@@ -504,14 +504,18 @@ export async function POST(request: NextRequest) {
       amount: COST_PER_GENERATION,
     });
     
+    // Capturar saldo antes e depois da dedução
+    const balanceBefore = deductResult.balanceBefore ?? deductResult.remainingBalance ?? 0;
+    const balanceAfter = deductResult.balanceAfter ?? deductResult.remainingBalance ?? 0;
+    
     if (!deductResult.success) {
       // Log evento de erro ao debitar
       await logger.logCreditEvent(
         lojistaId,
         "insufficient",
         0,
-        0,
-        0,
+        balanceBefore,
+        balanceAfter,
         { customerId, error: deductResult.message }
       );
 

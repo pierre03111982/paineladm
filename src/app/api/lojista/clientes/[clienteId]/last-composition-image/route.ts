@@ -58,7 +58,8 @@ export async function GET(
       }
 
       // Processar composições: encontrar a mais recente com imagem (mesma lógica do dashboard)
-      let lastCompositionWithImage: { imageUrl: string; createdAt: Date } | null = null;
+      type CompositionWithImage = { imageUrl: string; createdAt: Date };
+      let lastCompositionWithImage: CompositionWithImage | null = null;
 
       composicoesDoCliente.forEach((comp) => {
         // Buscar URL da imagem da composição (pode estar em vários campos) - MESMA LÓGICA DO DASHBOARD
@@ -82,14 +83,14 @@ export async function GET(
         // Se não existe ou esta é mais recente, atualizar
         if (!lastCompositionWithImage || createdAt.getTime() > lastCompositionWithImage.createdAt.getTime()) {
           lastCompositionWithImage = {
-            imageUrl,
+            imageUrl: imageUrl as string,
             createdAt,
           };
           console.log("[API/Clientes/LastCompositionImage] ✅ Imagem encontrada:", imageUrl.substring(0, 100));
         }
       });
 
-      const finalImageUrl = lastCompositionWithImage?.imageUrl || null;
+      const finalImageUrl: string | null = lastCompositionWithImage ? lastCompositionWithImage.imageUrl : null;
       console.log("[API/Clientes/LastCompositionImage] Resultado final:", finalImageUrl ? "✅ Tem imagem" : "❌ Sem imagem");
 
       return NextResponse.json({ 

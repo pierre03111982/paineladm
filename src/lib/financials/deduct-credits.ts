@@ -24,6 +24,8 @@ export interface DeductCreditsResult {
   debitedFrom: "vip_global" | "lojista_test" | "lojista_standard" | null;
   message?: string;
   remainingBalance?: number;
+  balanceBefore?: number;
+  balanceAfter?: number;
 }
 
 /**
@@ -88,6 +90,8 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
           debitedFrom: "lojista_test",
           message: "Geração permitida (Modo Teste Ilimitado)",
           remainingBalance: Infinity, // Ilimitado
+          balanceBefore: Infinity,
+          balanceAfter: Infinity,
         };
       }
 
@@ -101,6 +105,7 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
 
         if (userDoc.exists) {
           const userData = userDoc.data() as UserDoc;
+          const balanceBefore = userData.globalCredits || 0;
           
           if (userData.globalCredits && userData.globalCredits >= amount) {
             console.log("[deductCredits] ✅ Cliente VIP - Debitando créditos globais:", {
@@ -110,6 +115,7 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
             });
 
             // Debitar do cliente VIP
+            const balanceAfter = balanceBefore - amount;
             transaction.update(userRef, {
               globalCredits: FieldValue.increment(-amount),
               updatedAt: FieldValue.serverTimestamp(),
@@ -119,7 +125,9 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
               success: true,
               debitedFrom: "vip_global",
               message: `Crédito bônus usado (Passaporte Fashion VIP)`,
-              remainingBalance: userData.globalCredits - amount,
+              remainingBalance: balanceAfter,
+              balanceBefore,
+              balanceAfter,
             };
           }
         }
@@ -130,6 +138,7 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
       // ========================================
       // Verificar saldo da loja
       const credits = lojaData.aiCredits || lojaData.saldo || 0;
+      const balanceBefore = credits;
 
       if (credits < amount) {
         return {
@@ -137,11 +146,14 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
           debitedFrom: null,
           message: "Saldo Insuficiente. Recarregue seus créditos para continuar gerando imagens.",
           remainingBalance: credits,
+          balanceBefore,
+          balanceAfter: credits,
         };
       }
 
       // Debitar créditos da loja
       const newCredits = credits - amount;
+      const balanceAfter = newCredits;
       
       transaction.update(lojaRef, {
         aiCredits: newCredits,
@@ -174,6 +186,8 @@ export async function deductCredits(params: DeductCreditsParams): Promise<Deduct
         debitedFrom: "lojista_standard",
         message: "Créditos debitados com sucesso",
         remainingBalance: newCredits,
+        balanceBefore,
+        balanceAfter,
       };
     });
   } catch (error: any) {
