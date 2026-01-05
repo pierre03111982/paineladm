@@ -508,7 +508,7 @@ export async function POST(request: NextRequest) {
       // Log evento de erro ao debitar
       await logger.logCreditEvent(
         lojistaId,
-        "deduct_failed",
+        "insufficient",
         0,
         0,
         0,
