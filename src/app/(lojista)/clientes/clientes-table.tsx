@@ -82,7 +82,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
           // Buscar stats de compartilhamento em paralelo
           const lojistaId = lojistaIdFromUrl || "";
           if (lojistaId) {
-            const statsPromises = data.clientes.map(async (cliente) => {
+            const statsPromises = data.clientes.map(async (cliente: ClienteDoc) => {
               try {
                 const statsUrl = `/api/lojista/clientes/${cliente.id}/shares?lojistaId=${encodeURIComponent(lojistaId)}`;
                 const statsResponse = await fetch(statsUrl);
