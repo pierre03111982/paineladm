@@ -11,6 +11,7 @@ import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getPlanConfig } from "@/lib/plans-config";
 import type { MarketplaceAd, AdStatus } from "@/lib/firestore/marketplace-types";
 import { FieldValue } from "firebase-admin/firestore";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 const db = getAdminDb();
 
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await query.orderBy("priority", "desc").orderBy("createdAt", "desc").get();
 
-    const ads: MarketplaceAd[] = snapshot.docs.map((doc) => {
+    const ads: MarketplaceAd[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
       const data = doc.data();
       return {
         id: doc.id,
