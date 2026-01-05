@@ -77,10 +77,13 @@ export async function GET(
       }
 
       // Processar composições: priorizar as com like, mas aceitar qualquer uma com imagem
-      let lastCompositionWithLike: { imageUrl: string; createdAt: Date } | null = null;
-      let lastCompositionWithImage: { imageUrl: string; createdAt: Date } | null = null;
-
-      composicoesSnapshot.docs.forEach((doc) => {
+      type CompositionWithImage = { imageUrl: string; createdAt: Date };
+      
+      // Usar reduce para garantir type safety
+      const result = composicoesSnapshot.docs.reduce<{
+        lastCompositionWithLike: CompositionWithImage | null;
+        lastCompositionWithImage: CompositionWithImage | null;
+      }>((acc, doc) => {
         const comp = doc.data();
         
         // Verificar se tem like (pode estar em 'liked' ou 'curtido')
@@ -96,9 +99,9 @@ export async function GET(
           (comp as any).generation?.imagemUrl ||
           null;
         
-        // Se não tem imagem, pular
-        if (!imageUrl) {
-          return;
+        // Se não tem imagem, retornar acc sem alterações
+        if (!imageUrl || typeof imageUrl !== 'string') {
+          return acc;
         }
 
         // Converter createdAt para Date
@@ -107,29 +110,34 @@ export async function GET(
 
         // Se tem like e é mais recente que a última com like, atualizar
         if (hasLike) {
-          if (!lastCompositionWithLike || createdAt.getTime() > lastCompositionWithLike.createdAt.getTime()) {
-            lastCompositionWithLike = {
+          if (!acc.lastCompositionWithLike || createdAt.getTime() > acc.lastCompositionWithLike.createdAt.getTime()) {
+            console.log(`[LastLikedImage] ✅ Composição com LIKE encontrada:`, imageUrl.substring(0, 80));
+            acc.lastCompositionWithLike = {
               imageUrl,
               createdAt,
             };
-            console.log(`[LastLikedImage] ✅ Composição com LIKE encontrada:`, imageUrl.substring(0, 80));
           }
         }
 
         // Se é mais recente que a última com imagem, atualizar (fallback)
-        if (!lastCompositionWithImage || createdAt.getTime() > lastCompositionWithImage.createdAt.getTime()) {
-          lastCompositionWithImage = {
+        if (!acc.lastCompositionWithImage || createdAt.getTime() > acc.lastCompositionWithImage.createdAt.getTime()) {
+          acc.lastCompositionWithImage = {
             imageUrl,
             createdAt,
           };
         }
+
+        return acc;
+      }, {
+        lastCompositionWithLike: null,
+        lastCompositionWithImage: null,
       });
 
       // Priorizar composição com like, mas usar qualquer composição com imagem como fallback
-      const finalImageUrl = lastCompositionWithLike?.imageUrl || lastCompositionWithImage?.imageUrl || null;
+      const finalImageUrl = result.lastCompositionWithLike?.imageUrl || result.lastCompositionWithImage?.imageUrl || null;
 
       if (finalImageUrl) {
-        const source = lastCompositionWithLike ? "com LIKE" : "qualquer composição";
+        const source = result.lastCompositionWithLike ? "com LIKE" : "qualquer composição";
         console.log(`[LastLikedImage] ✅ Imagem encontrada (${source}):`, finalImageUrl.substring(0, 100));
         return NextResponse.json({ imageUrl: finalImageUrl });
       } else {
