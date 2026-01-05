@@ -117,7 +117,7 @@ export async function aggregateStoreData(lojistaId: string): Promise<ProcessedSt
   const composicoes = composicoesSnapshot.docs.map(doc => ({
     id: doc.id,
     ...doc.data(),
-  }));
+  })) as any[];
 
   // 2. Buscar ações relacionadas às composições
   const actionsRef = db.collection("actions");
@@ -218,16 +218,16 @@ export async function aggregateStoreData(lojistaId: string): Promise<ProcessedSt
     if (!composicaoId) return;
 
     // Encontrar composição e produtos relacionados
-    const comp = composicoes.find(c => c.id === composicaoId);
+    const comp = composicoes.find((c: any) => c.id === composicaoId) as any;
     if (!comp) return;
 
     // Produtos podem estar em comp.produtos, comp.products, ou como array de objetos
-    const produtosArray = comp.produtos || comp.products || [];
+    const produtosArray = (comp as any).produtos || (comp as any).products || [];
     let produtos: any[] = [];
     if (Array.isArray(produtosArray) && produtosArray.length > 0) {
       produtos = produtosArray;
-    } else if (comp.primaryProductId) {
-      produtos = [{ id: comp.primaryProductId }];
+    } else if ((comp as any).primaryProductId) {
+      produtos = [{ id: (comp as any).primaryProductId }];
     }
     
     const actionType = action.action_type || action.actionType;
