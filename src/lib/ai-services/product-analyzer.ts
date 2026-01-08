@@ -659,13 +659,13 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
         analysisResult.descricao_seo = analysisResult.descricao_seo.slice(0, 500).trim();
       }
 
-    const processingTime = Date.now() - startTime;
-    console.log("[ProductAnalyzer] ✅ Análise concluída em", processingTime, "ms");
+    const executionTime = Date.now() - startTime;
+    console.log("[ProductAnalyzer] ✅ Análise concluída em", executionTime, "ms");
 
     return {
       success: true,
       data: analysisResult,
-      processingTime,
+      executionTime,
     };
   }
 }

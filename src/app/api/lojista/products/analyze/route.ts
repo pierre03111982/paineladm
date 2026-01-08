@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: analysisResult.data,
-      processingTime: analysisResult.processingTime,
+      executionTime: analysisResult.executionTime,
     });
   } catch (error: any) {
     console.error("[api/products/analyze] Erro inesperado:", error);
