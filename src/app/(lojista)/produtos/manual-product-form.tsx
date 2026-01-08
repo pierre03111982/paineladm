@@ -481,7 +481,9 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                   Nome *
                   {aiFilledFields.has("nome") && (
-                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                    <span title="Preenchido automaticamente pela IA">
+                      <Sparkles className="h-4 w-4 text-indigo-500" />
+                    </span>
                   )}
                 </label>
                 <input
@@ -508,7 +510,9 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                   Categoria *
                   {aiFilledFields.has("categoria") && (
-                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                    <span title="Preenchido automaticamente pela IA">
+                      <Sparkles className="h-4 w-4 text-indigo-500" />
+                    </span>
                   )}
                 </label>
                 <select
@@ -540,7 +544,9 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                   Cores (separadas por -)
                   {aiFilledFields.has("cores") && (
-                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                    <span title="Preenchido automaticamente pela IA">
+                      <Sparkles className="h-4 w-4 text-indigo-500" />
+                    </span>
                   )}
                 </label>
                 <input
@@ -566,7 +572,9 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                   Tags (separadas por ,)
                   {aiFilledFields.has("tags") && (
-                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                    <span title="Preenchido automaticamente pela IA">
+                      <Sparkles className="h-4 w-4 text-indigo-500" />
+                    </span>
                   )}
                 </label>
                 <input
@@ -597,7 +605,9 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
                   Descrição SEO
                   {aiFilledFields.has("observacoes") && (
-                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                    <span title="Preenchido automaticamente pela IA">
+                      <Sparkles className="h-4 w-4 text-indigo-500" />
+                    </span>
                   )}
                 </label>
                 <textarea
