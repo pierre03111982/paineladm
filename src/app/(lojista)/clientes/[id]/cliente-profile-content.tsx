@@ -524,7 +524,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Top Cores Preferidas</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.coresPreferidas)
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .slice(0, 5)
                     .map(([cor, score]) => (
                       <div
@@ -550,7 +550,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                           }}
                         />
                         <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{cor}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">({score})</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -563,7 +563,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tecidos Favoritos</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.tecidosPreferidos)
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .slice(0, 5)
                     .map(([tecido, score]) => (
                       <div
@@ -571,7 +571,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                         className="rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5"
                       >
                         <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 capitalize">{tecido}</span>
-                        <span className="text-xs text-indigo-500 dark:text-indigo-400 ml-2">({score})</span>
+                        <span className="text-xs text-indigo-500 dark:text-indigo-400 ml-2">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -584,7 +584,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Nuvem de Interesse</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.tagsInteresse)
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .slice(0, 10)
                     .map(([tag, score]) => (
                       <div
@@ -592,7 +592,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                         className="rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 px-3 py-1.5"
                       >
                         <span className="text-sm font-medium text-purple-700 dark:text-purple-300 capitalize">{tag}</span>
-                        <span className="text-xs text-purple-500 dark:text-purple-400 ml-2">({score})</span>
+                        <span className="text-xs text-purple-500 dark:text-purple-400 ml-2">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -615,14 +615,14 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tamanhos Mais Provados</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.tamanhosProvados)
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .map(([tamanho, score]) => (
                       <div
                         key={tamanho}
                         className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-700 px-3 py-1.5"
                       >
                         <span className="text-sm font-medium text-gray-900 dark:text-white">{tamanho}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({score})</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -635,17 +635,17 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               <p className="text-sm text-indigo-800 dark:text-indigo-200">
                 {(() => {
                   const cores = Object.entries(cliente.dnaEstilo.coresPreferidas || {})
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .slice(0, 2)
-                    .map(([cor]) => cor);
+                    .map(([cor]) => String(cor));
                   const tecidos = Object.entries(cliente.dnaEstilo.tecidosPreferidos || {})
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .slice(0, 2)
-                    .map(([tecido]) => tecido);
+                    .map(([tecido]) => String(tecido));
                   const tags = Object.entries(cliente.dnaEstilo.tagsInteresse || {})
-                    .sort((a, b) => b[1] - a[1])
+                    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .slice(0, 3)
-                    .map(([tag]) => tag);
+                    .map(([tag]) => String(tag));
                   
                   let sugestao = "Este cliente ";
                   if (cores.length > 0) {
