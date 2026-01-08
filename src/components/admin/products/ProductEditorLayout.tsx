@@ -418,7 +418,7 @@ export function ProductEditorLayout({
 
     try {
       setGeneratingCombined(true);
-      console.log(`[ProductEditor] 🎨 Gerando look combinado automático com ${numCombinedProducts} produto(s)...`);
+      console.log(`[ProductEditor] 🎨 Gerando look combinado automático (IA decide quantidade)...`);
 
       // 1. Buscar produtos do estoque
       const productsResponse = await fetch(`/api/lojista/products?lojistaId=${lojistaId}`);
