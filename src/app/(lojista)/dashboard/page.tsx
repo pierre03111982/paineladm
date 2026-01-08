@@ -27,9 +27,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   if (!lojistaId) {
     console.error("[DashboardPage] ERRO: lojistaId está vazio!");
+    // Retornar página de erro ao invés de quebrar
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Erro: ID da loja não encontrado</h1>
+        <p className="text-gray-600">Por favor, faça login novamente ou forneça o lojistaId na URL.</p>
+      </div>
+    );
   }
 
-  const data = await getDashboardData(lojistaId);
-
-  return <DashboardWrapper data={data} lojistaId={lojistaId} />;
+  try {
+    const data = await getDashboardData(lojistaId);
+    return <DashboardWrapper data={data} lojistaId={lojistaId} />;
+  } catch (error: any) {
+    console.error("[DashboardPage] Erro ao carregar dados:", error);
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Erro ao carregar dashboard</h1>
+        <p className="text-gray-600">{error.message || "Erro desconhecido"}</p>
+      </div>
+    );
+  }
 }

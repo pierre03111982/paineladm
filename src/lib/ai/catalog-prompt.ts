@@ -91,7 +91,16 @@ Analise a foto anexada milímetro por milímetro. Memorize: Categoria, Material 
                 1. Exiba apenas ${PRECO_FINAL_ATUAL} em tamanho de destaque padrão.`}
         * Linha Final: ${TAMANHOS_DISPONIVEIS} em texto menor.
     * **Linha Conectora:** Uma linha fina conectando a etiqueta ao produto.
-* **ILUMINAÇÃO:** Luz de estúdio para realçar texturas.`
+* **ILUMINAÇÃO:** Luz de estúdio para realçar texturas.
+
+**CRITICAL FRAMING INSTRUCTIONS:**
+Generate a vertical image with a strictly 2:3 aspect ratio (aspect ratio 2:3 vertical).
+The mannequin must be a FULL BODY shot, fully visible from the top of the head to the feet within the frame.
+Perfectly framed, subject fills the frame entirely, no borders, no padding, edge to edge composition.
+The subject must be centered.
+No letterboxing, no black bars, no white borders, no pillarboxing, no blurred borders, no extra background filler.
+The image must fill the entire canvas from edge to edge.
+High-resolution fashion photography style.`
 
   return prompt
 }

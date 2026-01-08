@@ -437,20 +437,20 @@ export class GeminiFlashImageService {
         ],
       };
 
-      // PHASE 28: Forçar proporção 9:16 (Mobile First)
+      // Forçar proporção 2:3 (Look Completo) - Aspect ratio padrão para imagens de catálogo
       // NOTA: A API Gemini 2.5 Flash Image não suporta aspectRatio diretamente no generationConfig,
-      // mas podemos instruir via prompt. O aspectRatio será sempre 9:16 para mobile.
+      // mas podemos instruir via prompt. O aspectRatio será sempre 2:3 para looks completos.
       // A instrução de crop já está no prompt do orchestrator.
-      const forcedAspectRatio = "9:16"; // PHASE 28: Sempre vertical para mobile
+      const forcedAspectRatio = "2:3"; // Aspect ratio padrão para looks completos (full body)
       
       // Adicionar instrução de proporção no prompt se não estiver presente
       // (O orchestrator já adiciona isso, mas garantimos aqui também)
       if (params.aspectRatio && params.aspectRatio !== forcedAspectRatio) {
-        console.warn(`[GeminiFlashImage] PHASE 28: aspectRatio ${params.aspectRatio} solicitado, mas forçando 9:16 (Mobile First)`);
+        console.warn(`[GeminiFlashImage] aspectRatio ${params.aspectRatio} solicitado, mas forçando 2:3 (Look Completo)`);
       }
       
       // Log para debug
-      console.log("[GeminiFlashImage] PHASE 28: Proporção forçada para 9:16 (Mobile First)", {
+      console.log("[GeminiFlashImage] Proporção forçada para 2:3 (Look Completo)", {
         requestedAspectRatio: params.aspectRatio,
         forcedAspectRatio: forcedAspectRatio,
         note: "Instrução de crop já está no prompt do orchestrator",

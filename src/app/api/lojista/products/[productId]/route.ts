@@ -63,6 +63,19 @@ export async function PATCH(
       displayReady,
       catalogImageUrl,
       catalogGeneratedAt,
+      // Novos campos da análise IA
+      product_type,
+      detected_fabric,
+      dominant_colors,
+      // Campos adicionais da análise IA
+      analiseIA,
+      nome_sugerido,
+      descricao_seo,
+      suggested_category,
+      categoria_sugerida,
+      cor_predominante,
+      tecido_estimado,
+      detalhes,
     } = body;
 
     // Converter imagem de link para PNG se necessário
@@ -133,6 +146,46 @@ export async function PATCH(
     }
     if (catalogGeneratedAt) {
       updateData.catalogGeneratedAt = catalogGeneratedAt;
+    }
+
+    // Novos campos da análise IA
+    if (product_type !== undefined) {
+      updateData.product_type = product_type ? String(product_type).trim() : null;
+    }
+    if (detected_fabric !== undefined) {
+      updateData.detected_fabric = detected_fabric ? String(detected_fabric).trim() : null;
+    }
+    if (dominant_colors !== undefined) {
+      updateData.dominant_colors = Array.isArray(dominant_colors) ? dominant_colors : null;
+    }
+
+    // Atualizar o objeto analiseIA COMPLETO
+    if (analiseIA || product_type || detected_fabric || dominant_colors || nome_sugerido || descricao_seo) {
+      const analiseIABase = analiseIA || {};
+      updateData.analiseIA = {
+        ...analiseIABase,
+        // Nome e descrição
+        ...(nome_sugerido && { nome_sugerido: String(nome_sugerido).trim() }),
+        ...(descricao_seo && { descricao_seo: String(descricao_seo).trim() }),
+        // Categoria e tipo
+        ...(suggested_category && { suggested_category: String(suggested_category).trim() }),
+        ...(categoria_sugerida && { categoria_sugerida: String(categoria_sugerida).trim() }),
+        ...(product_type && { product_type: String(product_type).trim() }),
+        // Tecido
+        ...(detected_fabric && { 
+          detected_fabric: String(detected_fabric).trim(),
+          tecido_estimado: String(detected_fabric).trim()
+        }),
+        ...(tecido_estimado && { tecido_estimado: String(tecido_estimado).trim() }),
+        // Cores
+        ...(dominant_colors && Array.isArray(dominant_colors) && { dominant_colors }),
+        ...(cor_predominante && { cor_predominante: String(cor_predominante).trim() }),
+        // Detalhes
+        ...(detalhes && Array.isArray(detalhes) && { detalhes }),
+        ...(tags && Array.isArray(tags) && { tags }),
+        // Metadados
+        ultimaAtualizacao: new Date().toISOString(),
+      };
     }
 
     // Remover campos undefined

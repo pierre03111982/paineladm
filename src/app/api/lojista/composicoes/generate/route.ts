@@ -1884,6 +1884,30 @@ export async function POST(request: NextRequest) {
         })) || [],
       });
 
+      // PHASE 29: Atualizar DNA de Estilo do cliente (Try-on)
+      if (customerId && lojistaId && primaryProduct) {
+        try {
+          const { updateClientDNA } = await import("@/lib/firestore/client-profiling");
+          
+          // Buscar dados completos do produto do Firestore
+          const produtoDoc = await db
+            .collection("lojas")
+            .doc(lojistaId)
+            .collection("produtos")
+            .doc(primaryProduct.id)
+            .get();
+          
+          if (produtoDoc.exists) {
+            const produtoData = produtoDoc.data();
+            await updateClientDNA(lojistaId, customerId, "try-on", produtoData as any);
+            console.log("[API] ✅ DNA de Estilo atualizado (Try-on)");
+          }
+        } catch (profilingError) {
+          console.error("[API] ⚠️ Erro ao atualizar DNA de Estilo:", profilingError);
+          // Não falhar a requisição se o profiling falhar
+        }
+      }
+
       // NOVO: Registrar produtos no ProductRegistry
       if (composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
         try {

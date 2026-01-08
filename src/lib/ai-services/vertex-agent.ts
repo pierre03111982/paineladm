@@ -37,14 +37,14 @@ export interface ChatResponse {
 
 /**
  * Serviço do Agente Ana usando Vertex AI
- * Modelo: Gemini 2.0 Flash
+ * Modelo: Gemini 2.5 Flash (GA - General Availability)
  * Arquitetura: Contexto Injetado + Google Search Nativo
  */
 export class VertexAgent {
   private vertexAI: VertexAI;
   private project: string;
   private location: string;
-  private modelName = "gemini-2.0-flash-001";
+  private modelName = "gemini-2.5-flash";
 
   constructor() {
     // ID CONFIRMADO PELOS PRINTS DO USUÁRIO
@@ -167,7 +167,7 @@ IMPORTANTE: Use SEMPRE esta data e hora quando mencionar datas ou horários.`;
   }
 
   /**
-   * Gera resposta usando Gemini 2.0 Flash com contexto injetado e Google Search
+   * Gera resposta usando Gemini 2.5 Flash com contexto injetado e Google Search
    */
   async sendMessage(
     userMessage: string, 
@@ -233,7 +233,7 @@ IMPORTANTE: Use SEMPRE esta data e hora quando mencionar datas ou horários.`;
     `;
 
     try {
-      console.log(`[VertexAgent] 📤 Enviando mensagem para Gemini 2.0 Flash...`);
+      console.log(`[VertexAgent] 📤 Enviando mensagem para Gemini 2.5 Flash...`);
 
       // Habilitar Google Search (grounding) explicitamente
       const model = this.vertexAI.preview.getGenerativeModel({ 
@@ -425,7 +425,7 @@ IMPORTANTE: Use SEMPRE esta data e hora quando mencionar datas ou horários.`;
   }
 
   /**
-   * Gera resposta usando Gemini 2.0 Flash com suporte a imagem (multimodal)
+   * Gera resposta usando Gemini 2.5 Flash com suporte a imagem (multimodal)
    */
   async sendMessageWithImage(
     userMessage: string,

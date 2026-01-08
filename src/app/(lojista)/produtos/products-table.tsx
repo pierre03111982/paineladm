@@ -5,7 +5,7 @@ import { ProductPerformanceAI } from "@/components/products/ProductPerformanceAI
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, Settings } from "lucide-react";
 import type { ProdutoDoc } from "@/lib/firestore/types";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
 
 // ProductGridCard Component - Responsive Grid Card
@@ -20,6 +20,7 @@ function ProductGridCard({
   isAdminView,
   loading,
   descontoRedesSociais = 0,
+  lojistaIdParam,
 }: {
   produto: ProdutoDoc;
   selectedProducts: Set<string>;
@@ -31,7 +32,9 @@ function ProductGridCard({
   isAdminView: boolean;
   loading: boolean;
   descontoRedesSociais?: number;
+  lojistaIdParam?: string | null;
 }) {
+  const router = useRouter();
   const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -65,9 +68,13 @@ function ProductGridCard({
 
       if (editButton) {
         editButton.style.setProperty('background', 'linear-gradient(to right, #0d9488, #10b981)', 'important');
-        editButton.style.setProperty('color', '#ffffff', 'important');
-        const editSpans = editButton.querySelectorAll('span, svg, path');
+        editButton.style.setProperty('color', '#DC2626', 'important');
+        const editSpans = editButton.querySelectorAll('span');
         editSpans.forEach(el => {
+          (el as HTMLElement).style.setProperty('color', '#DC2626', 'important');
+        });
+        const editSvgs = editButton.querySelectorAll('svg, path');
+        editSvgs.forEach(el => {
           (el as HTMLElement).style.setProperty('color', '#ffffff', 'important');
           (el as HTMLElement).style.setProperty('stroke', '#ffffff', 'important');
         });
@@ -371,7 +378,12 @@ function ProductGridCard({
           </button>
           
           <button
-            onClick={() => setEditingProduto(produto)}
+            onClick={() => {
+              const url = lojistaIdParam
+                ? `/produtos/${produto.id}/editar?lojistaId=${lojistaIdParam}`
+                : `/produtos/${produto.id}/editar`;
+              router.push(url);
+            }}
             data-cyber-button="edit"
             type="button"
             style={{
@@ -401,7 +413,7 @@ function ProductGridCard({
                 flexShrink: 0
               }} 
             />
-            <span style={{ color: '#ffffff', whiteSpace: 'nowrap' }}>Editar</span>
+            <span style={{ color: '#DC2626', whiteSpace: 'nowrap' }}>Editar</span>
           </button>
         </div>
       </div>
@@ -1171,6 +1183,7 @@ export function ProductsTable({
                       isAdminView={isAdminView}
                       loading={loading}
                       descontoRedesSociais={lojaDiscount}
+                      lojistaIdParam={lojistaIdParam}
                     />
                   ))}
               </div>
@@ -1338,17 +1351,6 @@ export function ProductsTable({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Modal de Edição */}
-      {editingProduto && (
-        <EditProdutoModal
-          produto={editingProduto}
-          lojistaId={lojistaIdParam || undefined}
-          descontoRedesSociais={lojaDiscount}
-          onClose={() => setEditingProduto(null)}
-          onSave={handleSaveEdit}
-        />
       )}
 
     </>

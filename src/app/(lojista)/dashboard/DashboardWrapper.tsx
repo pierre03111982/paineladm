@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTransition } from "@/components/ui/PageTransition";
-import { DashboardContent } from "../../dashboard/components/DashboardContent";
+import { DashboardContent } from "@/app/dashboard/components/DashboardContent";
 import type { DashboardMock } from "@/lib/mocks/dashboard";
 
 type DashboardWrapperProps = {
@@ -16,26 +16,3 @@ export function DashboardWrapper({ data, lojistaId }: DashboardWrapperProps) {
     </PageTransition>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

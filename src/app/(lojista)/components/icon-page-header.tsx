@@ -21,8 +21,8 @@ export function IconPageHeader({
   actions,
 }: IconPageHeaderProps) {
   return (
-    <div className="neon-card rounded-2xl p-6 mb-6">
-      <div className="flex items-start gap-4">
+    <div className="neon-card rounded-2xl p-6 mb-6 w-full">
+      <div className="flex items-start gap-4 w-full">
         <div 
           className="rounded-xl p-3 shadow-lg text-white flex-shrink-0"
           style={{
@@ -32,7 +32,7 @@ export function IconPageHeader({
         >
           <Icon className="h-6 w-6 icon-animate-once" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
         </div>
-        <div className="flex-1 flex items-start justify-between gap-4">
+        <div className="flex-1 flex items-center justify-between gap-4">
           <div className="flex-1">
             <h1 className="text-xl font-bold text-[var(--text-main)] mb-2 font-heading">{title}</h1>
             {description && (
@@ -41,7 +41,7 @@ export function IconPageHeader({
               </p>
             )}
           </div>
-          {actions && <div className="flex items-center gap-3">{actions}</div>}
+          {actions && <div className="flex items-center gap-3 flex-shrink-0">{actions}</div>}
         </div>
       </div>
     </div>

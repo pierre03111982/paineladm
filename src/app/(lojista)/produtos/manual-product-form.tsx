@@ -1,75 +1,29 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { X, Upload, Info } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowLeft, Upload, Info, Save, X, Package, Sparkles, Loader2 } from "lucide-react";
 import { PRODUCT_CATEGORY_OPTIONS } from "./category-options";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ProductStudioInline } from "@/components/admin/products/ProductStudioInline";
 
 type ManualProductFormProps = {
   lojistaId: string;
-  onClose: () => void;
+  onClose?: () => void;
 };
 
 export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const lojistaIdFromUrl = searchParams?.get("lojistaId") || searchParams?.get("lojistald") || lojistaId;
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(256); // Padrão: sidebar aberta (256px)
   
-  // Detectar largura do sidebar observando o elemento
-  useEffect(() => {
-    const checkSidebarWidth = () => {
-      // Em mobile, sidebar não está visível, então width = 0
-      if (window.innerWidth < 768) {
-        setSidebarWidth(0);
-        return;
-      }
-      
-      const sidebar = document.querySelector('aside[style*="width"]') as HTMLElement;
-      if (sidebar) {
-        const width = sidebar.offsetWidth || parseInt(getComputedStyle(sidebar).width) || 256;
-        setSidebarWidth(width);
-      } else {
-        // Se não encontrar, assume sidebar aberta (256px) em desktop
-        setSidebarWidth(window.innerWidth >= 768 ? 256 : 0);
-      }
-    };
-    
-    checkSidebarWidth();
-    const interval = setInterval(checkSidebarWidth, 100);
-    const observer = new MutationObserver(checkSidebarWidth);
-    const sidebar = document.querySelector('aside');
-    if (sidebar) {
-      observer.observe(sidebar, { attributes: true, attributeFilter: ['style'] });
-    }
-    
-    window.addEventListener('resize', checkSidebarWidth);
-    
-    return () => {
-      clearInterval(interval);
-      observer.disconnect();
-      window.removeEventListener('resize', checkSidebarWidth);
-    };
-  }, []);
+  const backHref = lojistaIdFromUrl 
+    ? `/produtos?lojistaId=${lojistaIdFromUrl}`
+    : "/produtos";
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
   const [generatedCatalogImage, setGeneratedCatalogImage] = useState<string | null>(null);
-  const [generatingCatalog, setGeneratingCatalog] = useState(false);
-  const [corManequim, setCorManequim] = useState<string>("branco fosco");
-  const [cenarioEscolhido, setCenarioEscolhido] = useState<string>("1");
-  
-  const cenarios = [
-    { id: "1", titulo: "Apartamento Parisiense", descricao: "Crie um fundo extremamente desfocado (bokeh cremoso) que sugira um apartamento parisiense clássico, com painéis de parede brancos ornamentados (boiserie), piso de madeira chevron e luz natural suave entrando por uma janela alta distante." },
-    { id: "2", titulo: "Villa Minimalista", descricao: "O fundo deve ser uma sugestão fortemente desfocada de arquitetura contemporânea de concreto polido e grandes painéis de vidro. Use uma luz fria e sofisticada que crie reflexos suaves e difusos no piso, sugerindo um ambiente de design exclusivo." },
-    { id: "3", titulo: "Boutique de Luxo", descricao: "Gere um fundo que evoque o interior de uma loja de alta costura, mas mantenha-o completamente fora de foco. Use tons quentes de madeira escura, reflexos sutis de latão dourado e luzes de prateleira distantes transformadas em um bokeh suave e rico." },
-    { id: "4", titulo: "Hotel Lobby", descricao: "O cenário deve sugerir o saguão de um hotel cinco estrelas histórico. O fundo extremamente desfocado deve apresentar tons de mármore quente, brilhos distantes de lustres de cristal e uma atmosfera dourada e envolvente." },
-    { id: "5", titulo: "Galeria de Arte", descricao: "Use um fundo de galeria minimalista e etéreo. Paredes brancas imaculadas e piso de cimento claro, com formas indistintas e suaves de esculturas modernas ao longe, mantidas em um desfoque limpo com luz difusa de claraboia." },
-    { id: "6", titulo: "Rooftop Urbano", descricao: "O fundo deve capturar a atmosfera de um rooftop sofisticado durante a \"hora azul\". Crie um bokeh dramático com as luzes da cidade distante e tons profundos de azul e laranja no céu, sugerindo um evento noturno de luxo." },
-    { id: "7", titulo: "Parede Veneziana", descricao: "Crie um fundo focado na textura de uma parede de gesso veneziano (stucco) artesanal em um tom neutro e quente (como areia ou terracota pálida). Mantenha a textura extremamente desfocada para criar um pano de fundo orgânico, rico e tátil." },
-    { id: "8", titulo: "Jardim Privado", descricao: "Sugira um jardim manicurado em uma propriedade privada logo após o pôr do sol. O fundo deve ser um mix de tons de verde escuro da folhagem e o azul profundo do céu, com pequenas luzes quentes (fairy lights) criando um bokeh cintilante e romântico ao longe." },
-    { id: "9", titulo: "Villa Toscana", descricao: "O fundo deve evocar um pátio de pedra antigo e ensolarado na Itália. Use paredes de pedra rústica bege e a sugestão de luz solar filtrada por oliveiras ou pérgolas, criando sombras suaves e um ambiente quente e desfocado." },
-    { id: "10", titulo: "Estúdio Arquitetônico", descricao: "Use um fundo de estúdio ciclorama em tom off-white. Adicione profundidade projetando uma grande sombra arquitetônica suave e difusa (como a forma de um arco ou janela grande) na parede de fundo curva, mantendo tudo em um desfoque artístico." },
-  ];
   
   const [formData, setFormData] = useState({
     nome: "",
@@ -90,9 +44,18 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set());
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {
+    let file: File | null = null;
+    
+    if (fileOrEvent instanceof File) {
+      file = fileOrEvent;
+    } else {
+      file = fileOrEvent.target.files?.[0] || null;
+    }
+    
     if (!file) return;
 
     try {
@@ -116,7 +79,20 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
       const result = await response.json();
       
       setUploadedImageUrl(result.imageUrl);
-      setFormData({ ...formData, imagemUrlOriginal: result.imageUrl });
+      const newFormData = { ...formData, imagemUrlOriginal: result.imageUrl, imagemUrl: result.imageUrl };
+      setFormData(newFormData);
+
+      // PHASE 28: Análise automática após upload bem-sucedido
+      console.log("[ManualProductForm] 📤 Upload concluído:", result.imageUrl.substring(0, 50) + "...");
+      console.log("[ManualProductForm] 🔍 Iniciando análise automática...");
+      
+      // Chamar análise automaticamente após upload
+      try {
+        await analyzeProductImage(result.imageUrl);
+      } catch (analysisError) {
+        console.error("[ManualProductForm] Erro na análise automática após upload:", analysisError);
+        // Não bloquear o fluxo - o usuário pode preencher manualmente
+      }
     } catch (err) {
       console.error("[ManualProductForm] Erro ao fazer upload:", err);
       setError("Erro ao fazer upload da imagem");
@@ -125,6 +101,122 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
       if (imageInputRef.current) {
         imageInputRef.current.value = '';
       }
+    }
+  };
+
+  // PHASE 28: Função para analisar produto com IA
+  const analyzeProductImage = async (imageUrl: string) => {
+    if (!imageUrl || (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://"))) {
+      return; // Não analisar se não for URL válida
+    }
+
+    try {
+      setIsAnalyzing(true);
+      setError(null);
+
+      console.log("[ManualProductForm] 🔍 Iniciando análise automática de produto...");
+
+      const url = lojistaIdFromUrl
+        ? `/api/lojista/products/analyze?lojistaId=${lojistaIdFromUrl}`
+        : `/api/lojista/products/analyze`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        console.error("[ManualProductForm] ⚠️ Análise automática falhou:", errorMessage);
+        setError(`Análise automática falhou: ${errorMessage}`);
+        // Não bloquear o usuário - permitir preenchimento manual
+        return;
+      }
+
+      const result = await response.json();
+      console.log("[ManualProductForm] 📥 Resposta da análise recebida:", {
+        success: result.success,
+        hasData: !!result.data,
+        dataKeys: result.data ? Object.keys(result.data) : []
+      });
+
+      if (result.success && result.data) {
+        const analysis = result.data;
+        console.log("[ManualProductForm] 📊 Dados da análise recebidos:", {
+          nome_sugerido: analysis.nome_sugerido,
+          categoria_sugerida: analysis.categoria_sugerida,
+          tags: analysis.tags,
+          cor_predominante: analysis.cor_predominante,
+          tem_descricao: !!analysis.descricao_seo
+        });
+        
+        const newAiFilledFields = new Set<string>();
+
+        // Preencher campos automaticamente
+        if (analysis.nome_sugerido) {
+          setFormData(prev => ({ ...prev, nome: analysis.nome_sugerido }));
+          newAiFilledFields.add("nome");
+        }
+
+        if (analysis.descricao_seo) {
+          setFormData(prev => ({ ...prev, observacoes: analysis.descricao_seo }));
+          newAiFilledFields.add("observacoes");
+        }
+
+        if (analysis.categoria_sugerida) {
+          setFormData(prev => ({ ...prev, categoria: analysis.categoria_sugerida }));
+          newAiFilledFields.add("categoria");
+        }
+
+        if (analysis.tags && Array.isArray(analysis.tags) && analysis.tags.length > 0) {
+          setFormData(prev => ({ ...prev, tags: analysis.tags.join(", ") }));
+          newAiFilledFields.add("tags");
+        }
+
+        if (analysis.cor_predominante) {
+          setFormData(prev => ({ 
+            ...prev, 
+            cores: prev.cores ? `${prev.cores} - ${analysis.cor_predominante}` : analysis.cor_predominante 
+          }));
+          newAiFilledFields.add("cores");
+        }
+
+        // Adicionar detalhes ao campo observações se já houver conteúdo
+        if (analysis.detalhes && Array.isArray(analysis.detalhes) && analysis.detalhes.length > 0) {
+          const detalhesText = analysis.detalhes.join(", ");
+          setFormData(prev => ({ 
+            ...prev, 
+            observacoes: prev.observacoes 
+              ? `${prev.observacoes}\n\nDetalhes: ${detalhesText}` 
+              : `Detalhes: ${detalhesText}` 
+          }));
+        }
+
+        // Adicionar tecido ao campo observações
+        if (analysis.tecido_estimado) {
+          setFormData(prev => ({ 
+            ...prev, 
+            observacoes: prev.observacoes 
+              ? `${prev.observacoes}\n\nTecido: ${analysis.tecido_estimado}` 
+              : `Tecido: ${analysis.tecido_estimado}` 
+          }));
+        }
+
+            setAiFilledFields(newAiFilledFields);
+            setSuccess("✨ Produto analisado automaticamente pela IA! Campos preenchidos.");
+            setTimeout(() => setSuccess(null), 5000);
+
+            console.log("[ManualProductForm] ✅ Análise automática concluída com sucesso!");
+            console.log("[ManualProductForm] 📊 Campos preenchidos:", Array.from(newAiFilledFields));
+      }
+    } catch (err: any) {
+      console.error("[ManualProductForm] ❌ Erro na análise automática:", err);
+      setError(`Erro na análise automática: ${err.message || "Erro desconhecido"}`);
+      // Não bloquear o usuário - permitir preenchimento manual
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -184,8 +276,12 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
       
       setSuccess("Produto cadastrado com sucesso!");
       setTimeout(() => {
-        onClose();
-        window.location.reload();
+        if (lojistaIdFromUrl) {
+          router.push(`/produtos?lojistaId=${lojistaIdFromUrl}`);
+        } else {
+          router.push("/produtos");
+        }
+        router.refresh();
       }, 1500);
     } catch (err: any) {
       console.error("[ManualProductForm] Erro ao criar:", err);
@@ -196,469 +292,369 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-black/70 backdrop-blur-sm overflow-y-auto">
-      <div 
-        className="w-full h-full rounded-none border-0 bg-white dark:bg-[var(--bg-card)] p-4 md:p-6 shadow-2xl overflow-y-auto"
-        style={{
-          left: `${sidebarWidth}px`,
-          width: `calc(100% - ${sidebarWidth}px)`,
-        }}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-[var(--text-main)]">Cadastro manual de produto</h2>
-            <p className="text-xs text-[var(--text-secondary)] mt-1">
-              Preencha os campos abaixo para disponibilizar uma nova peça no provador virtual. O envio real será conectado ao Firestore.
-            </p>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+    <div className="space-y-6">
+      {/* Header com botão voltar */}
+      <div className="flex items-center gap-4">
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Link>
+        <div className="flex items-center gap-3">
+          <div 
+            className="rounded-xl p-3 shadow-lg text-white flex-shrink-0"
+            style={{
+              background: 'linear-gradient(to bottom right, #4f46e5, #6366f1)',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 0 20px rgba(99, 102, 241, 0.4), 0 0 40px rgba(99, 102, 241, 0.2)',
+            }}
           >
-            <X className="h-5 w-5" />
-          </button>
+            <Package className="h-6 w-6 icon-animate-once" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-heading">Adicionar Produto</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 font-medium">Preencha os campos abaixo para cadastrar uma nova peça no catálogo</p>
+          </div>
         </div>
+      </div>
 
-        {error && (
-          <div className="mb-3 rounded-xl border border-red-500/60 bg-red-500/10 px-3 py-2 text-xs text-red-200">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-3 rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-            {success}
-          </div>
-        )}
+      {error && (
+        <div className="rounded-lg border border-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="rounded-lg border border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          {success}
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Foto Principal - Mostrar Original e Catálogo lado a lado */}
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">FOTO PRINCIPAL</label>
-            <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
-              {/* Preview lado a lado: Original e Catálogo */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Foto Original */}
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Foto Original</label>
-                  <div className="w-full h-32 rounded-xl bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
-                    {(formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl) ? (
-                      <img
-                        src={formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl}
-                        alt="Foto Original"
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Sem imagem</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Foto Catálogo (IA) */}
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                    Foto Catálogo (IA) {formData.imagemUrlCatalogo && <span className="text-emerald-400">✓</span>}
-                  </label>
-                  <div className="w-full h-32 rounded-xl bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
-                    {(formData.imagemUrlCatalogo || generatedCatalogImage) ? (
-                      <img
-                        src={formData.imagemUrlCatalogo || generatedCatalogImage || ""}
-                        alt="Foto Catálogo IA"
-                        className="max-w-full max-h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Gere com IA</p>
-                        <p className="text-[10px] text-gray-400 mt-1">Esta será exibida em todos os lugares</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Estúdio de Criação IA (Inline) */}
+        <ProductStudioInline
+          produtoId={undefined}
+          imagemUrlOriginal={formData.imagemUrl || uploadedImageUrl || formData.imagemUrlOriginal || ""}
+          nomeProduto={formData.nome || "Produto"}
+          categoria={formData.categoria}
+          preco={parseFloat(formData.preco.replace(",", ".")) || 0}
+          lojistaId={lojistaIdFromUrl}
+          uploadingImage={uploadingImage}
+          isAnalyzing={isAnalyzing}
+          onImageUpload={async (file) => {
+            await handleImageUpload(file);
+          }}
+          onImageUrlChange={(url) => {
+            setFormData({ 
+              ...formData, 
+              imagemUrl: url,
+              imagemUrlOriginal: url || formData.imagemUrlOriginal
+            });
+          }}
+          onAnalyzeImage={async (imageUrl) => {
+            await analyzeProductImage(imageUrl);
+          }}
+          onImageGenerated={(type, imageUrl) => {
+            setFormData({
+              ...formData,
+              imagemUrlCatalogo: imageUrl,
+              imagemUrlOriginal: formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl,
+            });
+            setGeneratedCatalogImage(imageUrl);
+            setSuccess(`Imagem de ${type === "catalog" ? "catálogo" : "look combinado"} gerada com sucesso!`);
+            setTimeout(() => setSuccess(null), 5000);
+          }}
+        />
+
+        {/* Grid com duas colunas: Dados Manuais e Análise IA */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* COLUNA ESQUERDA: DADOS DO LOJISTA (Manuais - Obrigatórios) */}
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-l-4 border-gray-800 dark:border-gray-600">
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 uppercase text-sm tracking-wider">
+              1. Dados do Lojista
+            </h3>
+            <div className="space-y-4">
+              {/* Preço */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Preço (R$) *
+                </label>
+                <input
+                  type="text"
+                  value={formData.preco}
+                  onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
+                  placeholder="Ex: 329,90"
+                  required
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                />
               </div>
-              
-              {/* Botão de Upload e Campo URL */}
-              <div className="space-y-2">
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Utilize imagens em PNG ou JPG com fundo limpo. O upload é salvo automaticamente no Firebase Storage.
+
+              {/* Desconto Especial */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Desconto Especial (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={formData.descontoProduto}
+                  onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
+                  placeholder="Ex: 10"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Desconto adicional específico para este produto
                 </p>
-                {uploadedImageUrl && (
-                  <p className="text-xs text-emerald-400">
-                    Arquivo pronto para envio junto com o cadastro.
-                  </p>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:opacity-50"
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                    {uploadingImage ? "Enviando..." : "Selecionar Imagem"}
-                  </button>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                </div>
-                {/* Campo URL */}
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1">
-                    Ou adicione a imagem por URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.imagemUrl}
-                    onChange={(e) => {
-                      setFormData({ 
-                        ...formData, 
-                        imagemUrl: e.target.value,
-                        imagemUrlOriginal: e.target.value || formData.imagemUrlOriginal
-                      });
-                    }}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-                  />
-                </div>
+              </div>
+
+              {/* Tamanhos */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Tamanhos (separados por ;) *
+                </label>
+                <input
+                  type="text"
+                  value={formData.tamanhos}
+                  onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
+                  placeholder="Ex: P;M;G"
+                  required
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+
+              {/* Estoque */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Estoque
+                </label>
+                <input
+                  type="text"
+                  value={formData.estoque}
+                  onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
+                  placeholder="Ex: 10"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+
+              {/* Medidas */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Medidas
+                </label>
+                <input
+                  type="text"
+                  value={formData.medidas}
+                  onChange={(e) => setFormData({ ...formData, medidas: e.target.value })}
+                  placeholder="Ex: Altura: 150cm, Largura: 80cm"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                />
               </div>
             </div>
           </div>
 
-          {/* Estúdio Virtual & Display */}
-          {(formData.imagemUrl || uploadedImageUrl) && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-2">
-                ✨ ESTÚDIO VIRTUAL & DISPLAY
-              </label>
-              <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
-                {/* Seletor de Cor do Manequim */}
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                    Cor do Manequim
-                  </label>
-                  <select
-                    value={corManequim}
-                    onChange={(e) => setCorManequim(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-                  >
-                    <option value="branco fosco">Branco Fosco</option>
-                    <option value="preto fosco">Preto Fosco</option>
-                    <option value="invisível">Invisível</option>
-                  </select>
-                </div>
-
-                {/* Seletor de Cenário */}
-                <div>
-                  <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
-                    Cenário de Fundo
-                  </label>
-                  <select
-                    value={cenarioEscolhido}
-                    onChange={(e) => setCenarioEscolhido(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-                  >
-                    {cenarios.map((cenario) => (
-                      <option key={cenario.id} value={cenario.id}>
-                        {cenario.id}. {cenario.titulo}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-1">
-                    Escolha o ambiente visual para o fundo da imagem
-                  </p>
-                </div>
-
-                {/* Botão Gerar */}
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const imagemUrlParaUsar = formData.imagemUrl || uploadedImageUrl;
-                    if (!imagemUrlParaUsar || !lojistaIdFromUrl) {
-                      setError("Imagem e ID da loja são necessários");
-                      return;
-                    }
-
-                    try {
-                      setGeneratingCatalog(true);
-                      setError(null);
-
-                      const preco = parseFloat(formData.preco.replace(",", ".")) || 0;
-                      const descontoEspecial = parseFloat(formData.descontoProduto || "0") || 0;
-                      const precoPromocional = descontoEspecial > 0 && preco > 0
-                        ? preco * (1 - descontoEspecial / 100)
-                        : null;
-
-                      const cenarioSelecionado = cenarios.find(c => c.id === cenarioEscolhido);
-                      const descricaoCenario = cenarioSelecionado?.descricao || cenarios[0].descricao;
-
-                      const response = await fetch("/api/ai/catalog", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          imagemUrl: imagemUrlParaUsar,
-                          corManequim,
-                          cenario: descricaoCenario,
-                          lojistaId: lojistaIdFromUrl,
-                          preco,
-                          precoPromocional,
-                          descontoEspecial,
-                        }),
-                      });
-
-                      if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || "Erro ao gerar imagem");
-                      }
-
-                      const data = await response.json();
-                      
-                      if (data.savedAsMain) {
-                        setSuccess("Imagem de catálogo gerada e salva automaticamente!");
-                        setTimeout(() => setSuccess(null), 5000);
-                        
-                        setFormData({
-                          ...formData,
-                          imagemUrlCatalogo: data.imageUrl,
-                          imagemUrlOriginal: formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl,
-                        });
-                      }
-                      
-                      setGeneratedCatalogImage(data.imageUrl);
-                    } catch (err: any) {
-                      console.error("[ManualProductForm] Erro ao gerar catálogo:", err);
-                      setError(err.message || "Erro ao gerar imagem de catálogo");
-                    } finally {
-                      setGeneratingCatalog(false);
-                    }
-                  }}
-                  disabled={generatingCatalog || !formData.imagemUrl && !uploadedImageUrl}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-purple-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-purple-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {generatingCatalog ? (
-                    <>
-                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                      Gerando...
-                    </>
-                  ) : (
-                    <>
-                      ✨ Gerar Imagem de Catálogo
-                    </>
-                  )}
-                </button>
-
-                {/* Preview da Imagem Gerada */}
-                {generatedCatalogImage && (
-                  <div className="space-y-2">
-                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-2">
-                      <p className="text-xs text-emerald-300 mb-2 font-semibold">
-                        ✅ Imagem salva automaticamente como imagem principal do catálogo!
-                      </p>
-                      <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/50 p-2">
-                        <img
-                          src={generatedCatalogImage}
-                          alt="Imagem de catálogo gerada"
-                          className="w-full rounded-lg object-contain max-h-64"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setGeneratedCatalogImage(null)}
-                      className="w-full rounded-lg bg-gray-700 px-3 py-2 text-xs font-medium text-gray-300 transition hover:bg-gray-600"
-                    >
-                      Fechar Preview
-                    </button>
-                  </div>
-                )}
-
-                {/* Info */}
-                <div className="flex items-start gap-2 rounded-xl border border-purple-500/20 bg-purple-500/10 p-2">
-                  <Info className="h-3.5 w-3.5 mt-0.5 text-purple-400 flex-shrink-0" />
-                  <p className="text-xs text-purple-200">
-                    Gere uma imagem profissional de catálogo com etiqueta de preço integrada, ideal para exibição na TV da loja sem riscos de direitos de imagem.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Nome */}
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">NOME</label>
-            <input
-              type="text"
-              value={formData.nome}
-              onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-              placeholder="Ex: Vestido Aurora"
-              required
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
-
-          {/* Preço e Categoria */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">PREÇO (R$)</label>
-              <input
-                type="text"
-                value={formData.preco}
-                onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
-                placeholder="Ex: 329,90"
-                required
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">CATEGORIA</label>
-              <select
-                value={formData.categoria}
-                onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
-                required
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-              >
-                <option value="">Selecione uma categoria</option>
-                {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Desconto Especial */}
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
-              DESCONTO ESPECIAL (%)
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={formData.descontoProduto}
-              onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
-              placeholder="Ex: 10"
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-            />
-            <p className="text-[10px] text-[var(--text-secondary)] mt-1">
-              Desconto adicional específico para este produto
-            </p>
-          </div>
-
-          {/* Cores e Tamanhos */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
-                CORES (SEPARADAS POR -)
-              </label>
-              <input
-                type="text"
-                value={formData.cores}
-                onChange={(e) => setFormData({ ...formData, cores: e.target.value })}
-                placeholder="Ex: lilás - grafite"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
-                TAMANHOS (SEPARADOS POR ;)
-              </label>
-              <input
-                type="text"
-                value={formData.tamanhos}
-                onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
-                placeholder="Ex: P;M;G"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Estoque e Tags */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">ESTOQUE</label>
-              <input
-                type="text"
-                value={formData.estoque}
-                onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
-                placeholder="Ex: 10"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
-                TAGS (SEPARADAS POR ,)
-              </label>
-              <input
-                type="text"
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                placeholder="Ex: promoção, novo, destaque"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Medidas */}
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">MEDIDAS</label>
-            <input
-              type="text"
-              value={formData.medidas}
-              onChange={(e) => setFormData({ ...formData, medidas: e.target.value })}
-              placeholder="Ex: Altura: 150cm, Largura: 80cm"
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
-
-          {/* Observações para IA */}
-          <div>
-            <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">
-              OBSERVAÇÕES PARA IA
-            </label>
-            <textarea
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              placeholder="Ex: tecido em seda, caimento leve, ideal para looks noturnos."
-              rows={2}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
-            />
-          </div>
-
-          {/* Info e Botões */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-start gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2 mb-2">
-              <Info className="h-3.5 w-3.5 mt-0.5 text-indigo-400 flex-shrink-0" />
-              <p className="text-xs text-indigo-200">
-                Os dados e a imagem são enviados para o Firestore. Você pode gerar uma imagem de catálogo com IA após fazer upload da foto original.
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-2">
+          {/* COLUNA DIREITA: ANÁLISE AUTOMÁTICA (IA - Sugestões) */}
+          <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-800 p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-indigo-500/20 relative">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-indigo-700 dark:text-indigo-300 uppercase text-sm tracking-wider flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                2. Análise Automática
+              </h3>
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white transition hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
+                onClick={async () => {
+                  const imagemUrlParaUsar = formData.imagemUrl || uploadedImageUrl;
+                  if (imagemUrlParaUsar) {
+                    await analyzeProductImage(imagemUrlParaUsar);
+                  }
+                }}
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 underline"
               >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="rounded-lg bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition disabled:opacity-50"
-              >
-                {loading ? "Salvando..." : "Salvar produto"}
+                Regenerar Análise
               </button>
             </div>
+
+            <div className="space-y-4">
+              {/* Nome */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                  Nome *
+                  {aiFilledFields.has("nome") && (
+                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={formData.nome}
+                  onChange={(e) => {
+                    setFormData({ ...formData, nome: e.target.value });
+                    if (aiFilledFields.has("nome")) {
+                      setAiFilledFields(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete("nome");
+                        return newSet;
+                      });
+                    }
+                  }}
+                  placeholder="Ex: Vestido Aurora"
+                  required
+                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                />
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                  Categoria *
+                  {aiFilledFields.has("categoria") && (
+                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                  )}
+                </label>
+                <select
+                  value={formData.categoria}
+                  onChange={(e) => {
+                    setFormData({ ...formData, categoria: e.target.value });
+                    if (aiFilledFields.has("categoria")) {
+                      setAiFilledFields(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete("categoria");
+                        return newSet;
+                      });
+                    }
+                  }}
+                  required
+                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Cores */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                  Cores (separadas por -)
+                  {aiFilledFields.has("cores") && (
+                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={formData.cores}
+                  onChange={(e) => {
+                    setFormData({ ...formData, cores: e.target.value });
+                    if (aiFilledFields.has("cores")) {
+                      setAiFilledFields(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete("cores");
+                        return newSet;
+                      });
+                    }
+                  }}
+                  placeholder="Ex: lilás - grafite"
+                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                />
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                  Tags (separadas por ,)
+                  {aiFilledFields.has("tags") && (
+                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={formData.tags}
+                  onChange={(e) => {
+                    setFormData({ ...formData, tags: e.target.value });
+                    if (aiFilledFields.has("tags")) {
+                      setAiFilledFields(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete("tags");
+                        return newSet;
+                      });
+                    }
+                  }}
+                  placeholder="Ex: promoção, novo, destaque"
+                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                />
+                {aiFilledFields.has("tags") && (
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                    ✨ Tags geradas automaticamente para ativar cenários corretos
+                  </p>
+                )}
+              </div>
+
+              {/* Observações para IA */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                  Descrição SEO
+                  {aiFilledFields.has("observacoes") && (
+                    <Sparkles className="h-4 w-4 text-indigo-500" title="Preenchido automaticamente pela IA" />
+                  )}
+                </label>
+                <textarea
+                  value={formData.observacoes}
+                  onChange={(e) => {
+                    setFormData({ ...formData, observacoes: e.target.value });
+                    if (aiFilledFields.has("observacoes")) {
+                      setAiFilledFields(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete("observacoes");
+                        return newSet;
+                      });
+                    }
+                  }}
+                  placeholder="Ex: tecido em seda, caimento leve, ideal para looks noturnos."
+                  rows={3}
+                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                />
+                {aiFilledFields.has("observacoes") && (
+                  <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">
+                    ✨ Descrição SEO gerada automaticamente pela IA
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* Card de Ações */}
+        <div className="neon-card rounded-2xl p-6">
+          <div className="flex items-start gap-2 rounded-lg border border-indigo-300 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-3 mb-4">
+            <Info className="h-4 w-4 mt-0.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+            <p className="text-sm text-indigo-800 dark:text-indigo-300">
+              Os dados e a imagem são enviados para o Firestore. Você pode gerar uma imagem de catálogo com IA após fazer upload da foto original.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Link
+              href={backHref}
+              className="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-slate-700 border-2 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-2 text-sm font-semibold transition shadow-lg shadow-red-500/20"
+              style={{ color: '#DC2626' }}
+            >
+              <X className="h-4 w-4" style={{ color: '#DC2626', stroke: '#DC2626', fill: 'none' }} />
+              <span style={{ color: '#DC2626' }}>Cancelar</span>
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-600 hover:from-indigo-500 hover:via-blue-500 hover:to-indigo-500 px-4 py-2 text-sm font-semibold text-white transition shadow-lg shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:via-blue-600 disabled:hover:to-indigo-600"
+            >
+              <Save className="h-4 w-4" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
+              {loading ? "Salvando..." : "Salvar Produto"}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }

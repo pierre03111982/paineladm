@@ -97,6 +97,10 @@ export async function POST(request: NextRequest) {
       tags,
       observacoes,
       medidas,
+      // Novos campos da análise IA
+      product_type,
+      detected_fabric,
+      dominant_colors,
     } = body;
 
     if (!nome || !categoria || preco === undefined) {
@@ -166,6 +170,27 @@ export async function POST(request: NextRequest) {
       observacoes: observacoes ? String(observacoes).trim() : "",
       medidas: medidas ? String(medidas).trim() : "",
     };
+
+    // Adicionar campos da análise IA se existirem
+    if (product_type) {
+      produtoData.product_type = String(product_type).trim();
+    }
+    if (detected_fabric) {
+      produtoData.detected_fabric = String(detected_fabric).trim();
+    }
+    if (dominant_colors && Array.isArray(dominant_colors)) {
+      produtoData.dominant_colors = dominant_colors;
+    }
+
+    // Salvar também no objeto analiseIA para compatibilidade
+    if (product_type || detected_fabric || dominant_colors) {
+      produtoData.analiseIA = {
+        ...(product_type && { product_type: String(product_type).trim() }),
+        ...(detected_fabric && { detected_fabric: String(detected_fabric).trim(), tecido_estimado: String(detected_fabric).trim() }),
+        ...(dominant_colors && Array.isArray(dominant_colors) && { dominant_colors }),
+        ultimaAtualizacao: new Date().toISOString(),
+      };
+    }
 
     // Só adiciona estoque se for um número válido (não undefined/null/vazio)
     if (estoque !== undefined && estoque !== null && estoque !== "") {

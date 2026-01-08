@@ -158,6 +158,34 @@ export async function POST(request: Request) {
             compositionId,
           });
 
+          // PHASE 29: Atualizar DNA de Estilo do cliente (Like)
+          if (lojistaId && customerId && finalProductIds.length > 0) {
+            try {
+              const { updateClientDNA } = await import("@/lib/firestore/client-profiling");
+              const { getAdminDb } = await import("@/lib/firebaseAdmin");
+              const db = getAdminDb();
+              
+              // Atualizar DNA para cada produto curtido
+              for (const productId of finalProductIds) {
+                const produtoDoc = await db
+                  .collection("lojas")
+                  .doc(lojistaId)
+                  .collection("produtos")
+                  .doc(productId)
+                  .get();
+                
+                if (produtoDoc.exists) {
+                  const produtoData = produtoDoc.data();
+                  await updateClientDNA(lojistaId, customerId, "like", produtoData as any);
+                }
+              }
+              console.log("[api/actions] ✅ DNA de Estilo atualizado (Like)");
+            } catch (profilingError) {
+              console.error("[api/actions] ⚠️ Erro ao atualizar DNA de Estilo (Like):", profilingError);
+              // Não falhar a requisição se o profiling falhar
+            }
+          }
+
           // MANTER COMPATIBILIDADE: Registrar também como favorito (sistema antigo)
           try {
             await registerFavoriteLook({
@@ -201,6 +229,10 @@ export async function POST(request: Request) {
             generationId,
             compositionId,
           });
+
+          // PHASE 29: Atualizar DNA de Estilo do cliente (Dislike - peso menor, mas ainda registra)
+          // Nota: Dislike não atualiza DNA, mas poderia ser usado para filtrar preferências futuras
+          // Por enquanto, não atualizamos DNA em dislikes para não poluir o perfil
 
           // MANTER COMPATIBILIDADE: Registrar também como favorito (sistema antigo)
           try {

@@ -509,6 +509,167 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
         </div>
       </div>
 
+      {/* PHASE 29: Seção de DNA de Estilo */}
+      {cliente.dnaEstilo && (
+        <div className="neon-card rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-[var(--text-main)] mb-4 flex items-center gap-2">
+            <Star className="h-5 w-5 text-indigo-500" />
+            DNA de Estilo (IA)
+          </h3>
+          
+          <div className="space-y-6">
+            {/* Top Cores */}
+            {cliente.dnaEstilo.coresPreferidas && Object.keys(cliente.dnaEstilo.coresPreferidas).length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Top Cores Preferidas</h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(cliente.dnaEstilo.coresPreferidas)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([cor, score]) => (
+                      <div
+                        key={cor}
+                        className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-700 px-3 py-2"
+                      >
+                        <div
+                          className="h-4 w-4 rounded-full border border-gray-300 dark:border-gray-600"
+                          style={{
+                            backgroundColor: cor.toLowerCase() === "preto" ? "#000000" :
+                                           cor.toLowerCase() === "branco" ? "#ffffff" :
+                                           cor.toLowerCase() === "azul" ? "#3b82f6" :
+                                           cor.toLowerCase() === "vermelho" ? "#ef4444" :
+                                           cor.toLowerCase() === "verde" ? "#10b981" :
+                                           cor.toLowerCase() === "amarelo" ? "#fbbf24" :
+                                           cor.toLowerCase() === "rosa" ? "#ec4899" :
+                                           cor.toLowerCase() === "roxo" ? "#a855f7" :
+                                           cor.toLowerCase() === "bege" ? "#f5f5dc" :
+                                           cor.toLowerCase() === "marrom" ? "#8b4513" :
+                                           cor.toLowerCase() === "cinza" ? "#6b7280" :
+                                           cor.toLowerCase() === "laranja" ? "#f97316" :
+                                           "#9ca3af",
+                          }}
+                        />
+                        <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{cor}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({score})</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tecidos Favoritos */}
+            {cliente.dnaEstilo.tecidosPreferidos && Object.keys(cliente.dnaEstilo.tecidosPreferidos).length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tecidos Favoritos</h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(cliente.dnaEstilo.tecidosPreferidos)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5)
+                    .map(([tecido, score]) => (
+                      <div
+                        key={tecido}
+                        className="rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5"
+                      >
+                        <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 capitalize">{tecido}</span>
+                        <span className="text-xs text-indigo-500 dark:text-indigo-400 ml-2">({score})</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Nuvem de Interesse (Tags) */}
+            {cliente.dnaEstilo.tagsInteresse && Object.keys(cliente.dnaEstilo.tagsInteresse).length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Nuvem de Interesse</h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(cliente.dnaEstilo.tagsInteresse)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10)
+                    .map(([tag, score]) => (
+                      <div
+                        key={tag}
+                        className="rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 px-3 py-1.5"
+                      >
+                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300 capitalize">{tag}</span>
+                        <span className="text-xs text-purple-500 dark:text-purple-400 ml-2">({score})</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Faixa de Preço Média */}
+            {cliente.dnaEstilo.faixaPrecoMedia > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Faixa de Preço Média</h4>
+                <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                  R$ {cliente.dnaEstilo.faixaPrecoMedia.toFixed(2)}
+                </p>
+              </div>
+            )}
+
+            {/* Tamanhos Provados */}
+            {cliente.dnaEstilo.tamanhosProvados && Object.keys(cliente.dnaEstilo.tamanhosProvados).length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tamanhos Mais Provados</h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(cliente.dnaEstilo.tamanhosProvados)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([tamanho, score]) => (
+                      <div
+                        key={tamanho}
+                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-700 px-3 py-1.5"
+                      >
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{tamanho}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({score})</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sugestão de Abordagem (IA Gerada) */}
+            <div className="rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 p-4">
+              <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2">💡 Sugestão de Abordagem</h4>
+              <p className="text-sm text-indigo-800 dark:text-indigo-200">
+                {(() => {
+                  const cores = Object.entries(cliente.dnaEstilo.coresPreferidas || {})
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 2)
+                    .map(([cor]) => cor);
+                  const tecidos = Object.entries(cliente.dnaEstilo.tecidosPreferidos || {})
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 2)
+                    .map(([tecido]) => tecido);
+                  const tags = Object.entries(cliente.dnaEstilo.tagsInteresse || {})
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([tag]) => tag);
+                  
+                  let sugestao = "Este cliente ";
+                  if (cores.length > 0) {
+                    sugestao += `prefere tons de ${cores.join(" e ")}. `;
+                  }
+                  if (tecidos.length > 0) {
+                    sugestao += `Gosta de tecidos como ${tecidos.join(" e ")}. `;
+                  }
+                  if (tags.length > 0) {
+                    sugestao += `Interesse em looks de ${tags.join(", ")}. `;
+                  }
+                  if (cliente.dnaEstilo.faixaPrecoMedia > 0) {
+                    sugestao += `Faixa de preço média: R$ ${cliente.dnaEstilo.faixaPrecoMedia.toFixed(2)}. `;
+                  }
+                  sugestao += "Ofereça produtos alinhados a essas preferências.";
+                  
+                  return sugestao;
+                })()}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Seção de Edição */}
       <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm transition-colors">
         <div className="flex items-center justify-between mb-2">

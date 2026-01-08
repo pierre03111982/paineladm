@@ -1,8 +1,8 @@
 # Relatório de Auditoria Completa - Painel Administrativo
 ## Backend e Sistema de Gerenciamento
 
-**Data:** 2025-12-02 
-**Versão:** PHASE 26  
+**Data:** 2025-01-06 
+**Versão:** PHASE 27  
 **Escopo:** Estrutura completa, funcionalidades e código do paineladm
 
 ---
@@ -1853,6 +1853,146 @@ O sistema suporta geração de looks, gestão de produtos, gestão de clientes, 
 
 ---
 
-**Documento gerado automaticamente em:** 2025-01-27  
-**Última atualização:** PHASE 26
+## 27. Melhorias Implementadas (PHASE 27 - 2025-01-06)
+
+### 27.1 Refatoração do Formulário de Produtos
+
+#### 27.1.1 Formulário de Adicionar Produto
+- ✅ **Migração de Modal para Página Dedicada**
+  - Arquivo: `src/app/(lojista)/produtos/manual-product-form.tsx`
+  - Removido: Renderização como modal com overlay
+  - Adicionado: Componente de página completa com header e navegação
+  - Rota: `/produtos/novo` (via `src/app/(lojista)/produtos/novo/page.tsx`)
+  - Layout: Similar ao perfil de cliente (`cliente-profile-content.tsx`)
+  - Estilo: Cards com classe `neon-card` e bordas/sombras consistentes
+
+- ✅ **Melhorias de UI/UX**
+  - Header com botão "Voltar" e ícone Package
+  - Título: "Adicionar Produto" em azul
+  - Cards organizados por seção (Foto Principal, Estúdio Virtual, Informações Básicas, Detalhes)
+  - Botões coloridos com texto e ícones brancos
+  - Botão "Cancelar" com texto vermelho e borda vermelha
+
+#### 27.1.2 Formulário de Editar Produto
+- ✅ **Criação de Página Dedicada**
+  - Arquivo: `src/app/(lojista)/produtos/edit-product-form.tsx`
+  - Rota: `/produtos/[id]/editar` (via `src/app/(lojista)/produtos/[id]/editar/page.tsx`)
+  - Layout: Idêntico ao formulário de adicionar, mas com dados pré-preenchidos
+  - Título: "Editar Produto" em vermelho (`text-red-600 dark:text-red-400`)
+  - Funcionalidade: Usa PATCH ao invés de POST para atualização
+
+- ✅ **Correção de Serialização**
+  - Problema: Timestamps do Firestore (`createdAt`, `updatedAt`, `catalogGeneratedAt`) não podem ser passados diretamente do Server Component para Client Component
+  - Solução: Conversão de Timestamps para strings ISO antes de passar para o componente
+  - Implementação:
+    ```typescript
+    // Converter Timestamps para strings ISO
+    if (produto.createdAt && typeof produto.createdAt.toDate === 'function') {
+      produto.createdAt = produto.createdAt.toDate().toISOString();
+    }
+    // ... mesmo para updatedAt e catalogGeneratedAt
+    // Serialização completa
+    const produtoSerializado = JSON.parse(JSON.stringify(produto));
+    ```
+
+- ✅ **Navegação Atualizada**
+  - Arquivo: `src/app/(lojista)/produtos/products-table.tsx`
+  - Removido: Modal de edição (`EditProdutoModal`)
+  - Adicionado: Navegação via `router.push()` para página dedicada
+  - Botão "Editar" agora navega para `/produtos/[id]/editar?lojistaId=...`
+  - Correção: Variável `lojistaIdParam` passada como prop para `ProductGridCard`
+
+### 27.2 API de Geração de Catálogo
+
+#### 27.2.1 Suporte para Novos Produtos
+- ✅ **Arquivo:** `src/app/api/ai/catalog/route.ts`
+- ✅ **Problema:** API exigia `produtoId` obrigatório, impedindo geração de imagens antes de salvar o produto
+- ✅ **Solução:** `produtoId` agora é opcional
+  - Se `produtoId` fornecido: Busca produto no Firestore e salva imagem automaticamente
+  - Se `produtoId` não fornecido: Usa dados enviados no body (nome, preço, etc.) e retorna URL sem salvar
+- ✅ **Campos Adicionais:**
+  - `nome`: Nome do produto (enviado no body para novos produtos)
+  - Fallback para valores do Firestore quando produto existe
+
+#### 27.2.2 Fluxo de Geração
+```typescript
+// Para novos produtos (sem produtoId)
+{
+  imagemUrl: string,
+  corManequim: string,
+  cenario: string,
+  lojistaId: string,
+  preco: number,
+  precoPromocional?: number,
+  descontoEspecial?: number,
+  nome: string  // Novo campo
+}
+
+// Resposta
+{
+  success: true,
+  imageUrl: string,
+  produtoId: null,
+  savedAsMain: false  // Não foi salvo porque produto ainda não existe
+}
+```
+
+### 27.3 Ajustes de Estilo e Cores
+
+#### 27.3.1 Cards de Formulário
+- ✅ **Classe `neon-card` aplicada**
+  - Bordas: `rgba(99, 102, 241, 0.5)` (indigo)
+  - Sombra: Neon shadow matching "Produtos" card
+  - Títulos: `font-bold text-[var(--text-main)]`
+
+#### 27.3.2 Botões
+- ✅ **Botões Coloridos:**
+  - "Selecionar Imagem": Gradiente indigo/blue com texto branco
+  - "Gerar Imagem de Catálogo": Gradiente purple/pink com texto branco
+  - "Salvar Produto": Gradiente indigo/blue com texto branco
+  - "Cancelar": Fundo branco, borda vermelha, texto vermelho
+
+- ✅ **CSS Global (`globals.css`):**
+  - Regras específicas para forçar texto branco em botões coloridos dentro de `.neon-card`
+  - Regras específicas para botão "Cancelar" com texto vermelho
+  - Uso de `!important` para garantir precedência
+
+#### 27.3.3 Títulos
+- ✅ **"Adicionar Produto":** Azul (`text-blue-600 dark:text-blue-400`)
+- ✅ **"Editar Produto":** Vermelho (`text-red-600 dark:text-red-400`)
+
+### 27.4 Estrutura de Arquivos Atualizada
+
+```
+src/app/(lojista)/produtos/
+├── manual-product-form.tsx          # Formulário de adicionar (página completa)
+├── edit-product-form.tsx            # Formulário de editar (página completa)
+├── products-table.tsx               # Tabela de produtos (navegação atualizada)
+├── novo/
+│   └── page.tsx                     # Página de adicionar produto
+└── [id]/
+    └── editar/
+        └── page.tsx                 # Página de editar produto
+```
+
+### 27.5 Correções de Bugs
+
+#### 27.5.1 Erro de Navegação
+- ✅ **Problema:** `lojistaIdParam is not defined` ao clicar em "Editar"
+- ✅ **Causa:** Variável não estava disponível no escopo de `ProductGridCard`
+- ✅ **Solução:** Passada como prop para `ProductGridCard` e uso de `useRouter()` dentro do componente
+
+#### 27.5.2 Erro de Serialização
+- ✅ **Problema:** "Only plain objects can be passed to Client Components"
+- ✅ **Causa:** Timestamps do Firestore são objetos não serializáveis
+- ✅ **Solução:** Conversão para strings ISO antes de passar para Client Component
+
+#### 27.5.3 API de Catálogo
+- ✅ **Problema:** Não funcionava para novos produtos (exigia `produtoId`)
+- ✅ **Solução:** `produtoId` opcional, suporte a dados do body para novos produtos
+
+---
+
+**Documento gerado automaticamente em:** 2025-01-06  
+**Última atualização:** PHASE 27
 

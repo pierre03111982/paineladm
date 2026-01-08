@@ -29,25 +29,45 @@ export default async function ProdutosPage({ searchParams }: ProdutosPageProps) 
     process.env.LOJISTA_ID ||
     "";
 
-  const includeArchived = params.includeArchived === "true";
-  const produtos = await fetchProdutos(lojistaId);
-  const perfil = await fetchLojaPerfil(lojistaId);
-  
-  console.log("[ProdutosPage] lojistaId:", lojistaId);
-  console.log("[ProdutosPage] Produtos encontrados:", produtos.length);
-  
-  // Filtrar arquivados se necessário
-  const filteredProdutos = includeArchived 
-    ? produtos 
-    : produtos.filter((p) => !p.arquivado);
+  if (!lojistaId) {
+    console.error("[ProdutosPage] ERRO: lojistaId está vazio!");
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Erro: ID da loja não encontrado</h1>
+        <p className="text-gray-600">Por favor, faça login novamente ou forneça o lojistaId na URL.</p>
+      </div>
+    );
+  }
 
-  console.log("[ProdutosPage] Produtos filtrados (arquivados):", filteredProdutos.length);
+  try {
+    const includeArchived = params.includeArchived === "true";
+    const produtos = await fetchProdutos(lojistaId);
+    const perfil = await fetchLojaPerfil(lojistaId);
+    
+    console.log("[ProdutosPage] lojistaId:", lojistaId);
+    console.log("[ProdutosPage] Produtos encontrados:", produtos.length);
+    
+    // Filtrar arquivados se necessário
+    const filteredProdutos = includeArchived 
+      ? produtos 
+      : produtos.filter((p) => !p.arquivado);
 
-  return (
-    <ProductsPageContent 
-      initialProdutos={filteredProdutos}
-      perfil={perfil}
-      lojistaId={lojistaId}
-    />
-  );
+    console.log("[ProdutosPage] Produtos filtrados (arquivados):", filteredProdutos.length);
+
+    return (
+      <ProductsPageContent 
+        initialProdutos={filteredProdutos}
+        perfil={perfil}
+        lojistaId={lojistaId}
+      />
+    );
+  } catch (error: any) {
+    console.error("[ProdutosPage] Erro ao carregar produtos:", error);
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-red-600 mb-4">Erro ao carregar produtos</h1>
+        <p className="text-gray-600">{error.message || "Erro desconhecido"}</p>
+      </div>
+    );
+  }
 }

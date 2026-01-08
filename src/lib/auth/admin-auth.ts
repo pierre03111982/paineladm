@@ -208,4 +208,3 @@ export async function requireSuperAdmin(): Promise<void> {
 export async function checkSuperAdminAccess(): Promise<boolean> {
   return await isSuperAdmin();
 }
-

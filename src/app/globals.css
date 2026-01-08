@@ -26,6 +26,48 @@
   animation-fill-mode: forwards;
 }
 
+/* Efeito luminoso que passa da esquerda para direita */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2.5s infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Forçar texto e ícone brancos no botão shimmer-effect */
+.shimmer-effect span,
+.shimmer-effect svg,
+.shimmer-effect svg path {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
 /* Forçar texto branco no botão Cadastrar Cliente */
 button[class*="from-blue-600"][class*="to-indigo-600"] span,
 button[class*="from-blue-600"][class*="to-indigo-600"] {
@@ -501,6 +543,54 @@ header[class*="bg-\[#"] {
 .neon-card label {
   color: #1E293B !important;
   font-weight: 500 !important;
+}
+
+/* Exceção para botões coloridos - texto e ícones brancos */
+.neon-card button[class*="bg-gradient"],
+.neon-card button[class*="from-indigo"],
+.neon-card button[class*="from-purple"],
+.neon-card button[class*="from-blue"],
+.neon-card button[class*="bg-gray-600"],
+.neon-card button[class*="bg-indigo"],
+.neon-card button[class*="bg-purple"],
+.neon-card a[class*="bg-gradient"],
+.neon-card a[class*="from-indigo"],
+.neon-card a[class*="from-purple"],
+.neon-card a[class*="from-blue"],
+.neon-card a[class*="bg-gray-600"],
+.neon-card a[class*="bg-indigo"],
+.neon-card a[class*="bg-purple"] {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+.neon-card button[class*="bg-gradient"] *,
+.neon-card button[class*="from-indigo"] *,
+.neon-card button[class*="from-purple"] *,
+.neon-card button[class*="from-blue"] *,
+.neon-card button[class*="bg-gray-600"] *,
+.neon-card button[class*="bg-indigo"] *,
+.neon-card button[class*="bg-purple"] *,
+.neon-card a[class*="bg-gradient"] *,
+.neon-card a[class*="from-indigo"] *,
+.neon-card a[class*="from-purple"] *,
+.neon-card a[class*="from-blue"] *,
+.neon-card a[class*="bg-gray-600"] *,
+.neon-card a[class*="bg-indigo"] *,
+.neon-card a[class*="bg-purple"] * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* Exceção para botão cancelar - texto vermelho */
+.neon-card a[class*="border-red"],
+.neon-card a[style*="color: #DC2626"],
+.neon-card a[style*="color: '#DC2626'"],
+.neon-card a[class*="border-red"] *,
+.neon-card a[style*="color: #DC2626"] *,
+.neon-card a[style*="color: '#DC2626'"] * {
+  color: #DC2626 !important;
+  -webkit-text-fill-color: #DC2626 !important;
 }
 
 .neon-card [class*="text-gray"],

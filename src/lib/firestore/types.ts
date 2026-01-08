@@ -82,6 +82,15 @@ export type ClienteDoc = {
     }>;
     ultimaAtualizacao?: Date;
   };
+  // PHASE 29: DNA de Estilo Agregado
+  dnaEstilo?: {
+    coresPreferidas: Record<string, number>;    // ex: { "preto": 15, "azul": 4 }
+    tecidosPreferidos: Record<string, number>;  // ex: { "linho": 8, "couro": 2 }
+    tagsInteresse: Record<string, number>;      // ex: { "festa": 10, "inverno": 5, "decote-v": 3 }
+    faixaPrecoMedia: number;                    // Média de preço dos produtos interagidos
+    tamanhosProvados: Record<string, number>;   // ex: { "M": 10, "G": 2 }
+    ultimaAtualizacao: string; // ISO Date
+  };
 };
 
 export type ComposicaoDoc = {
