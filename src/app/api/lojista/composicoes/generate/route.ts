@@ -661,10 +661,16 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // PRIORIDADE 3: Buscar produtos do catálogo do Firestore
+      // Type guard: garantir que lojistaId não é null (já validado na linha 508)
+      if (!lojistaId) {
+        throw new Error("lojistaId é obrigatório para buscar produtos");
+      }
+      const validLojistaId: string = lojistaId!;
+      
       console.log("[API] 🔍 Buscando produtos do Firestore:", {
         totalProductIds: productIds.length,
         productIds: productIds,
-        lojistaId,
+        lojistaId: validLojistaId,
       });
       
       for (const productId of productIds) {
@@ -672,7 +678,7 @@ export async function POST(request: NextRequest) {
           console.log(`[API] 📦 Buscando produto ${productId}...`);
           const productDoc = await db
             .collection("lojas")
-            .doc(lojistaId)
+            .doc(validLojistaId)
             .collection("produtos")
             .doc(productId)
             .get();
@@ -744,7 +750,13 @@ export async function POST(request: NextRequest) {
     let lojaData: any = null;
     
     try {
-      const lojaDoc = await db.collection("lojas").doc(lojistaId).get();
+      // Type guard: garantir que lojistaId não é null (já validado na linha 508)
+      if (!lojistaId) {
+        throw new Error("lojistaId é obrigatório para buscar dados da loja");
+      }
+      const validLojistaId: string = lojistaId!;
+      
+      const lojaDoc = await db.collection("lojas").doc(validLojistaId).get();
       if (lojaDoc.exists) {
         lojaData = lojaDoc.data();
       }
@@ -1889,17 +1901,21 @@ export async function POST(request: NextRequest) {
         try {
           const { updateClientDNA } = await import("@/lib/firestore/client-profiling");
           
+          // Type guard: garantir que lojistaId não é null (type assertion não-null)
+          const validLojistaId: string = lojistaId!;
+          
           // Buscar dados completos do produto do Firestore
           const produtoDoc = await db
             .collection("lojas")
-            .doc(lojistaId)
+            .doc(validLojistaId)
             .collection("produtos")
             .doc(primaryProduct.id)
             .get();
           
           if (produtoDoc.exists) {
             const produtoData = produtoDoc.data();
-            await updateClientDNA(lojistaId, customerId, "try-on", produtoData as any);
+            // Type assertion: customerId já validado no if acima
+            await updateClientDNA(validLojistaId, customerId!, "try-on", produtoData as any);
             console.log("[API] ✅ DNA de Estilo atualizado (Try-on)");
           }
         } catch (profilingError) {
@@ -2155,10 +2171,16 @@ export async function POST(request: NextRequest) {
           if (((produtosParaSalvar?.length ?? 0) === 0) && composicaoData.produtos && composicaoData.produtos.length > 0 && composicaoId) {
             console.log("[API] 🔄 Atualizando generation com produtos da composição...");
             try {
+              // Type guard: garantir que lojistaId não é null (já validado na linha 508)
+              if (!lojistaId) {
+                throw new Error("lojistaId é obrigatório para atualizar generation");
+              }
+              const validLojistaId: string = lojistaId!;
+              
               const generationsRef = db.collection("generations");
               const existingGen = await generationsRef
                 .where("compositionId", "==", composicaoId) // composicaoId não é null aqui devido à verificação acima
-                .where("lojistaId", "==", lojistaId)
+                .where("lojistaId", "==", validLojistaId)
                 .limit(1)
                 .get();
               
