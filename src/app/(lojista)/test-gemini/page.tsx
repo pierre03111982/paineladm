@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/button";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { Loader2 } from "lucide-react";
 
 export default function TestGeminiPage() {
   const [testing, setTesting] = useState(false);
@@ -33,7 +33,7 @@ export default function TestGeminiPage() {
       
       if (response.ok && data.success) {
         setResults({
-          test: "Análise de Produto (gemini-2.5-flash-exp)",
+          test: "Análise de Produto (gemini-2.5-flash)",
           success: true,
           data: data.data,
           processingTime: data.processingTime,
@@ -69,7 +69,7 @@ export default function TestGeminiPage() {
       
       if (response.ok && data.text) {
         setResults({
-          test: "Chat do Agente Ana (gemini-2.5-flash-001)",
+          test: "Chat do Agente Ana (gemini-2.5-flash)",
           success: true,
           data: { text: data.text },
           groundingMetadata: data.groundingMetadata,
@@ -94,10 +94,10 @@ export default function TestGeminiPage() {
       </div>
 
       <div className="space-y-4 mb-6">
-        <Card className="p-6">
+        <AnimatedCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Teste 1: Análise de Produto</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Testa o modelo <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gemini-2.5-flash-exp</code>
+            Testa o modelo <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gemini-2.5-flash</code>
           </p>
           <Button
             onClick={testProductAnalyzer}
@@ -106,19 +106,19 @@ export default function TestGeminiPage() {
           >
             {testing ? (
               <>
-                <Spinner className="mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Testando...
               </>
             ) : (
               "Testar Análise de Produto"
             )}
           </Button>
-        </Card>
+        </AnimatedCard>
 
-        <Card className="p-6">
+        <AnimatedCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Teste 2: Chat do Agente Ana</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Testa o modelo <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gemini-2.5-flash-001</code>
+            Testa o modelo <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gemini-2.5-flash</code>
           </p>
           <Button
             onClick={testChatAgent}
@@ -127,27 +127,27 @@ export default function TestGeminiPage() {
           >
             {testing ? (
               <>
-                <Spinner className="mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Testando...
               </>
             ) : (
               "Testar Chat"
             )}
           </Button>
-        </Card>
+        </AnimatedCard>
       </div>
 
       {error && (
-        <Card className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+        <AnimatedCard className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
           <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
             ❌ Erro
           </h3>
           <p className="text-red-700 dark:text-red-400">{error}</p>
-        </Card>
+        </AnimatedCard>
       )}
 
       {results && (
-        <Card className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+        <AnimatedCard className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
           <h3 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-4">
             ✅ {results.test} - Sucesso!
           </h3>
@@ -169,10 +169,10 @@ export default function TestGeminiPage() {
               <strong>Google Search usado:</strong> {results.groundingMetadata.webSearchQueries.length} queries
             </div>
           )}
-        </Card>
+        </AnimatedCard>
       )}
 
-      <Card className="p-6 mt-6 bg-blue-50 dark:bg-blue-900/20">
+      <AnimatedCard className="p-6 mt-6 bg-blue-50 dark:bg-blue-900/20">
         <h3 className="text-lg font-semibold mb-2">ℹ️ Informações</h3>
         <ul className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
           <li>• Certifique-se de estar logado como lojista</li>
@@ -180,7 +180,7 @@ export default function TestGeminiPage() {
           <li>• Verifique os logs do servidor para mais detalhes</li>
           <li>• Consulte <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">docs/COMO_TESTAR_GEMINI_2.5_FLASH.md</code> para mais opções</li>
         </ul>
-      </Card>
+      </AnimatedCard>
     </div>
   );
 }
