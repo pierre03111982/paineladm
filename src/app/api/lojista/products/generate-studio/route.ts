@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(produtoData?.tamanhos) && produtoData.tamanhos.length > 0) {
       produtoTamanhos = produtoData.tamanhos;
     } else if (typeof produtoData?.tamanhos === "string" && produtoData.tamanhos.trim()) {
-      produtoTamanhos = produtoData.tamanhos.split(",").map(t => t.trim()).filter(Boolean);
+      produtoTamanhos = produtoData.tamanhos.split(",").map((t: string) => t.trim()).filter(Boolean);
     }
     // Se não houver tamanhos, deixar vazio (vai mostrar "Consulte disponibilidade")
     
