@@ -8,6 +8,7 @@ import { ManualCombinationModal } from "./ManualCombinationModal";
 import { IconPageHeader } from "@/app/(lojista)/components/icon-page-header";
 import { getPageHeaderColors } from "@/app/(lojista)/components/page-header-colors";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { normalizeCategory, getConsolidatedCategories } from "@/lib/categories/consolidated-categories";
 
 // Estado consolidado do produto
 export interface ProductEditorState {
@@ -58,66 +59,13 @@ interface ProductEditorLayoutProps {
   produtoNome?: string; // Para edição, mostrar no título
 }
 
-// Lista de categorias disponíveis
-const AVAILABLE_CATEGORIES = [
-  "Vestidos",
-  "Calças",
-  "Blusas",
-  "Fitness",
-  "Praia",
-  "Acessórios",
-  "Calçados",
-  "Jaquetas",
-  "Shorts",
-  "Saias",
-  "Roupas"
-];
+// Lista de categorias disponíveis (usando categorias consolidadas)
+const AVAILABLE_CATEGORIES = getConsolidatedCategories();
 
-// Função para mapear categoria sugerida pela IA para a lista de categorias disponíveis
+// Função para mapear categoria sugerida pela IA para a lista de categorias consolidadas
 function mapCategoryToAvailable(suggestedCategory: string | undefined): string {
-  if (!suggestedCategory) return "";
-  
-  const suggestedLower = suggestedCategory.toLowerCase().trim();
-  
-  // Mapeamento direto
-  for (const cat of AVAILABLE_CATEGORIES) {
-    if (suggestedLower === cat.toLowerCase()) {
-      return cat;
-    }
-  }
-  
-  // Mapeamento por similaridade (ex: "Vestido" -> "Vestidos")
-  const categoryMap: Record<string, string> = {
-    "vestido": "Vestidos",
-    "calça": "Calças",
-    "calca": "Calças",
-    "blusa": "Blusas",
-    "camisa": "Blusas",
-    "camiseta": "Blusas",
-    "jaqueta": "Jaquetas",
-    "casaco": "Jaquetas",
-    "short": "Shorts",
-    "bermuda": "Shorts",
-    "saia": "Saias",
-    "sapato": "Calçados",
-    "tenis": "Calçados",
-    "acessorio": "Acessórios",
-    "acessório": "Acessórios",
-    "fitness": "Fitness",
-    "esportivo": "Fitness",
-    "praia": "Praia",
-    "swimwear": "Praia",
-    "biquini": "Praia",
-  };
-  
-  for (const [key, value] of Object.entries(categoryMap)) {
-    if (suggestedLower.includes(key)) {
-      return value;
-    }
-  }
-  
-  // Se não encontrar, retorna a categoria sugerida original
-  return suggestedCategory;
+  // Usa o sistema de normalização consolidado
+  return normalizeCategory(suggestedCategory);
 }
 
 export function ProductEditorLayout({ 

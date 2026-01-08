@@ -250,7 +250,7 @@ Retorne APENAS o JSON válido com a seguinte estrutura exata:
   - [ ] NÃO há palavras cortadas?
   - [ ] TODAS as aspas estão escapadas (\\")?
   - [ ] A string está FECHADA com aspas duplas?",
-  "suggested_category": "Uma das categorias padrão: Vestidos, Calças, Blusas, Fitness, Praia, Acessórios, Calçados, Jaquetas, Shorts, Saias, Roupas",
+  "suggested_category": "Uma das categorias consolidadas (obrigatório usar exatamente uma delas): Roupas, Calçados, Acessórios, Joias, Praia, Fitness, Cosméticos, Outros. IMPORTANTE: Agrupe produtos similares na mesma categoria (ex: Vestidos, Blusas, Calças, Saias, Shorts, Jaquetas -> Roupas; Tênis, Sapatos, Sandálias -> Calçados; Bolsas, Cintos, Óculos -> Acessórios; Brincos, Colares, Relógios -> Joias; Biquínis, Maiôs -> Praia; Leggings, Tops esportivos -> Fitness).",
   "product_type": "Tipo específico e detalhado do produto analisado na imagem. OBRIGATÓRIO: Deve ser preenchido com o tipo exato (ex: 'Blazer', 'Vestido Midi', 'Tênis Esportivo', 'Bermuda', 'Camisa Social', 'Legging', 'Biquíni', 'Bolsa Tote', 'Jaqueta Jeans', 'Calça Skinny'). NÃO deixe vazio.",
   "detected_fabric": "Tecido/material detectado na imagem. OBRIGATÓRIO: Deve ser preenchido com o tecido principal identificado (ex: 'Algodão', 'Linho', 'Poliéster', 'Seda', 'Couro', 'Jeans', 'Sarja', 'Malha', 'Viscose', 'Elastano', 'Algodão com Elastano'). NÃO deixe vazio.",
   "dominant_colors": [

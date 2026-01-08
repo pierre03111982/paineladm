@@ -3,6 +3,7 @@ import { updateProduto, archiveProduto } from "@/lib/firestore/server";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { getAdminDb } from "@/lib/firebaseAdmin";
 import { convertImageUrlToPng } from "@/lib/utils/image-converter";
+import { normalizeCategory } from "@/lib/categories/consolidated-categories";
 
 export const dynamic = 'force-dynamic';
 
@@ -108,9 +109,12 @@ export async function PATCH(
       }
     }
 
+    // Normalizar categoria para categoria consolidada (agrupa produtos similares)
+    const normalizedCategoria = categoria ? normalizeCategory(categoria) : undefined;
+
     const updateData: any = {
       nome,
-      categoria,
+      categoria: normalizedCategoria,
       preco,
       imagemUrl: imagemUrlFinal,
       cores,
@@ -167,9 +171,14 @@ export async function PATCH(
         // Nome e descrição
         ...(nome_sugerido && { nome_sugerido: String(nome_sugerido).trim() }),
         ...(descricao_seo && { descricao_seo: String(descricao_seo).trim() }),
-        // Categoria e tipo
-        ...(suggested_category && { suggested_category: String(suggested_category).trim() }),
-        ...(categoria_sugerida && { categoria_sugerida: String(categoria_sugerida).trim() }),
+        // Categoria e tipo (normalizar categorias para consolidadas)
+        ...(suggested_category && { 
+          suggested_category: normalizeCategory(String(suggested_category).trim()),
+          categoria_sugerida: normalizeCategory(String(suggested_category).trim())
+        }),
+        ...(categoria_sugerida && !suggested_category && { 
+          categoria_sugerida: normalizeCategory(String(categoria_sugerida).trim())
+        }),
         ...(product_type && { product_type: String(product_type).trim() }),
         // Tecido
         ...(detected_fabric && { 

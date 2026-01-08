@@ -148,9 +148,15 @@ export async function POST(request: NextRequest) {
           updateData.observacoes = novaObservacao;
         }
 
-        // Atualizar categoria (sempre)
-        if (analysis.suggested_category) {
-          updateData.categoria = analysis.suggested_category;
+        // Normalizar categoria antes de salvar (agrupa produtos similares)
+        const { normalizeCategory } = await import("@/lib/categories/consolidated-categories");
+        const normalizedCategory = analysis.suggested_category 
+          ? normalizeCategory(analysis.suggested_category)
+          : null;
+
+        // Atualizar categoria (sempre) - usar categoria normalizada consolidada
+        if (normalizedCategory) {
+          updateData.categoria = normalizedCategory;
         }
 
         // Atualizar tags (substituir por novas tags da análise, mesclando com existentes apenas se necessário)
@@ -175,16 +181,16 @@ export async function POST(request: NextRequest) {
             updateData.cores = [novaCor, ...coresExistentes.filter((c: string) => c !== novaCor)];
           }
         }
-
+        
         // Adicionar metadados COMPLETOS da análise IA
         updateData.analiseIA = {
           // Nome e descrição
           nome_sugerido: analysis.nome_sugerido,
           descricao_seo: analysis.descricao_seo,
           
-          // Categoria e tipo
-          suggested_category: analysis.suggested_category,
-          categoria_sugerida: analysis.suggested_category, // Mantido para compatibilidade (mesmo valor que suggested_category)
+          // Categoria e tipo (usando categoria normalizada consolidada)
+          suggested_category: normalizedCategory || analysis.suggested_category || "Outros",
+          categoria_sugerida: normalizedCategory || analysis.suggested_category || "Outros", // Mantido para compatibilidade
           product_type: analysis.product_type,
           
           // Tecido
