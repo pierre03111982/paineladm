@@ -555,10 +555,17 @@ async function findComplementaryProduct(
         // Filtrar produto atual se existir
         const produtos = snapshot.docs
           .filter((doc) => doc.id !== produtoIdExcluir)
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          .map((doc) => {
+            const data = doc.data() as any;
+            return {
+              id: doc.id,
+              nome: data.nome,
+              categoria: data.categoria,
+              imagemUrl: data.imagemUrl,
+              imagemUrlCatalogo: data.imagemUrlCatalogo,
+              imagemUrlOriginal: data.imagemUrlOriginal,
+            };
+          });
 
         if (produtos.length > 0) {
           // Retornar o primeiro produto encontrado
