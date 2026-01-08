@@ -149,8 +149,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Atualizar categoria (sempre)
-        if (analysis.categoria_sugerida) {
-          updateData.categoria = analysis.categoria_sugerida;
+        if (analysis.suggested_category) {
+          updateData.categoria = analysis.suggested_category;
         }
 
         // Atualizar tags (substituir por novas tags da análise, mesclando com existentes apenas se necessário)
@@ -183,8 +183,8 @@ export async function POST(request: NextRequest) {
           descricao_seo: analysis.descricao_seo,
           
           // Categoria e tipo
-          suggested_category: analysis.suggested_category || analysis.categoria_sugerida,
-          categoria_sugerida: analysis.categoria_sugerida || analysis.suggested_category,
+          suggested_category: analysis.suggested_category,
+          categoria_sugerida: analysis.suggested_category, // Mantido para compatibilidade (mesmo valor que suggested_category)
           product_type: analysis.product_type,
           
           // Tecido
