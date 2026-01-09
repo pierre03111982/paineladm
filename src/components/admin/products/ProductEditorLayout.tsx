@@ -959,14 +959,16 @@ export function ProductEditorLayout({
               {false && state.selectedCoverImage ? (
                 <div className="space-y-4">
                   {/* Imagem de Capa (Grande) - Tamanho natural sem cortes */}
-                  <div className="relative w-full rounded-lg overflow-hidden">
-                    <img
-                      src={state.selectedCoverImage}
-                      alt="Capa do produto"
-                      className="w-full h-auto object-contain"
-                      style={{ display: 'block' }}
-                    />
-                  </div>
+                  {state.selectedCoverImage && (
+                    <div className="relative w-full rounded-lg overflow-hidden">
+                      <img
+                        src={state.selectedCoverImage}
+                        alt="Capa do produto"
+                        className="w-full h-auto object-contain"
+                        style={{ display: 'block' }}
+                      />
+                    </div>
+                  )}
 
                   {/* Galeria de Miniaturas */}
                   {availableImages.length > 1 && (
