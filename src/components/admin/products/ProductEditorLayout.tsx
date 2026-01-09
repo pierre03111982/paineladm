@@ -302,7 +302,9 @@ export function ProductEditorLayout({
       setUploading(true);
       const formData = new FormData();
       formData.append("image", file);
-      formData.append("lojistaId", lojistaId);
+      if (lojistaId) {
+        formData.append("lojistaId", lojistaId);
+      }
 
       const response = await fetch(
         `/api/lojista/products/upload-image?lojistaId=${lojistaId}`,
@@ -962,7 +964,7 @@ export function ProductEditorLayout({
                   {state.selectedCoverImage && (
                     <div className="relative w-full rounded-lg overflow-hidden">
                       <img
-                        src={state.selectedCoverImage}
+                        src={state.selectedCoverImage ?? undefined}
                         alt="Capa do produto"
                         className="w-full h-auto object-contain"
                         style={{ display: 'block' }}
