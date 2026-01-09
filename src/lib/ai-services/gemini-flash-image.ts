@@ -445,7 +445,7 @@ export class GeminiFlashImageService {
       
       // Adicionar instrução de proporção no prompt se não estiver presente
       // (O orchestrator já adiciona isso, mas garantimos aqui também)
-      if (params.aspectRatio && params.aspectRatio !== forcedAspectRatio) {
+      if (params.aspectRatio && params.aspectRatio !== (forcedAspectRatio as any)) {
         console.warn(`[GeminiFlashImage] aspectRatio ${params.aspectRatio} solicitado, mas forçando 2:3 (Look Completo)`);
       }
       

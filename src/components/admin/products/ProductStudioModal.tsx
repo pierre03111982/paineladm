@@ -202,7 +202,7 @@ export function ProductStudioModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lojistaId,
-          imagemUrl,
+          imagemUrl: imageUrl,
         }),
       });
 

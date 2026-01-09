@@ -116,14 +116,14 @@ export function extractProductCharacteristics(produtoData: any): ProdutoCaracter
   if (Array.isArray(produtoData.tags)) {
     tags = produtoData.tags;
   } else if (typeof produtoData.tags === "string") {
-    tags = produtoData.tags.split(",").map(t => t.trim()).filter(Boolean);
+    tags = produtoData.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
   }
   
   // Verificar se há análise IA com tags sugeridas
   if (produtoData.analiseIA?.tags && Array.isArray(produtoData.analiseIA.tags)) {
     tags = [...tags, ...produtoData.analiseIA.tags];
   } else if (produtoData.analiseIA?.tags && typeof produtoData.analiseIA.tags === "string") {
-    tags = [...tags, ...produtoData.analiseIA.tags.split(",").map(t => t.trim()).filter(Boolean)];
+    tags = [...tags, ...produtoData.analiseIA.tags.split(",").map((t: string) => t.trim()).filter(Boolean)];
   }
   
   // Normalizar detalhes
@@ -131,7 +131,7 @@ export function extractProductCharacteristics(produtoData: any): ProdutoCaracter
   if (Array.isArray(produtoData.detalhes)) {
     detalhes = produtoData.detalhes;
   } else if (typeof produtoData.detalhes === "string") {
-    detalhes = produtoData.detalhes.split(",").map(d => d.trim()).filter(Boolean);
+    detalhes = produtoData.detalhes.split(",").map((d: string) => d.trim()).filter(Boolean);
   }
   
   // Verificar se há análise IA com detalhes

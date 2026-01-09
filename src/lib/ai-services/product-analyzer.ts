@@ -507,7 +507,7 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
           
           try {
             // Estratégia 1: Remover a descricao_seo problemática e tentar parsear
-            const jsonWithoutDesc = jsonText.replace(/"descricao_seo"\s*:\s*"[^"]*(?:"|$)/g, (match) => {
+            const jsonWithoutDesc = jsonText.replace(/"descricao_seo"\s*:\s*"[^"]*(?:"|$)/g, (match: string) => {
               // Se a string não termina com ", fechar ela
               if (!match.endsWith('"')) {
                 return match + '"';
@@ -578,8 +578,8 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
       });
 
       // Compatibilidade: mapear campos antigos para novos se necessário
-      if (analysisResult.categoria_sugerida && !analysisResult.suggested_category) {
-        analysisResult.suggested_category = analysisResult.categoria_sugerida;
+      if ('categoria_sugerida' in analysisResult && (analysisResult as any).categoria_sugerida && !analysisResult.suggested_category) {
+        analysisResult.suggested_category = (analysisResult as any).categoria_sugerida;
       }
       if (analysisResult.tecido_estimado && !analysisResult.detected_fabric) {
         analysisResult.detected_fabric = analysisResult.tecido_estimado;

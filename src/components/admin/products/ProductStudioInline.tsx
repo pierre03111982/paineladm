@@ -258,7 +258,7 @@ export function ProductStudioInline({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           lojistaId,
-          imagemUrl,
+          imagemUrl: imageUrl,
         }),
       });
 
