@@ -97,6 +97,20 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
   // Carregar dados COMPLETOS da análise IA do Firestore
   const analiseIASalva = produtoSerializado.analiseIA || {};
   
+  // Carregar variações do produto se existirem
+  const variacoesSalvas = produtoSerializado.variacoes && Array.isArray(produtoSerializado.variacoes) 
+    ? produtoSerializado.variacoes.map((v: any, index: number) => ({
+        id: `existing-${index}-${Date.now()}`,
+        variacao: v.variacao || produtoSerializado.tamanhos?.[index] || "",
+        estoque: v.estoque?.toString() || "0",
+        sku: v.sku || "",
+      }))
+    : [];
+
+  // Verificar se produto tem variações ativas
+  const temVariacoesAtivo = variacoesSalvas.length > 0 || 
+    (produtoSerializado.variacoes && Array.isArray(produtoSerializado.variacoes) && produtoSerializado.variacoes.length > 0);
+
   const initialEditorData = {
     rawImageUrl: produtoSerializado.imagemUrlOriginal || produtoSerializado.imagemUrl || "",
     aiAnalysisData: {
@@ -128,6 +142,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
     generatedCatalogImage: produtoSerializado.imagemUrlCatalogo || null,
     generatedCombinedImage: produtoSerializado.imagemUrlCombinada || null,
     selectedCoverImage: produtoSerializado.imagemUrl || produtoSerializado.imagemUrlOriginal || null,
+    imagemMedidasCustomizada: produtoSerializado.imagemMedidasCustomizada || null,
     manualData: {
       preco: produtoSerializado.preco?.toString().replace(".", ",") || "",
       precoPromocional: produtoSerializado.precoPromocional?.toString().replace(".", ",") || "",
@@ -141,7 +156,20 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
           : []),
       ativo: produtoSerializado.ativo !== undefined ? produtoSerializado.ativo : true,
       destaquePromocional: produtoSerializado.destaquePromocional || false,
+      unidadeMedida: produtoSerializado.unidadeMedida || "UN",
     },
+    // Carregar variações e estado de variações
+    temVariacoes: temVariacoesAtivo,
+    variacoes: variacoesSalvas.length > 0 
+      ? variacoesSalvas 
+      : (produtoSerializado.tamanhos && Array.isArray(produtoSerializado.tamanhos) && produtoSerializado.tamanhos.length > 0
+          ? produtoSerializado.tamanhos.map((tamanho: string, index: number) => ({
+              id: `generated-${index}-${Date.now()}`,
+              variacao: tamanho,
+              estoque: produtoSerializado.estoque?.toString() || "0",
+              sku: "",
+            }))
+          : []),
   };
 
   return (

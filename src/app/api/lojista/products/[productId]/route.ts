@@ -77,6 +77,11 @@ export async function PATCH(
       cor_predominante,
       tecido_estimado,
       detalhes,
+      // Campo de variações
+      variacoes,
+      unidadeMedida,
+      imagemUrlCombinada,
+      imagemMedidasCustomizada,
     } = body;
 
     // Converter imagem de link para PNG se necessário
@@ -124,12 +129,23 @@ export async function PATCH(
       observacoes,
     };
 
-    // Campos novos: imagem original, catálogo e desconto
+    // Adicionar unidadeMedida se fornecido
+    if (unidadeMedida !== undefined) {
+      updateData.unidadeMedida = unidadeMedida ? String(unidadeMedida).trim() : "UN";
+    }
+
+    // Campos novos: imagem original, catálogo, combinada, medidas customizada e desconto
     if (imagemUrlOriginal !== undefined) {
       updateData.imagemUrlOriginal = imagemUrlOriginal;
     }
     if (imagemUrlCatalogo !== undefined) {
       updateData.imagemUrlCatalogo = imagemUrlCatalogo;
+    }
+    if (imagemUrlCombinada !== undefined) {
+      updateData.imagemUrlCombinada = imagemUrlCombinada;
+    }
+    if (imagemMedidasCustomizada !== undefined) {
+      updateData.imagemMedidasCustomizada = imagemMedidasCustomizada;
     }
     if (descontoProduto !== undefined) {
       // Validar que é um número entre 0 e 100
@@ -195,6 +211,37 @@ export async function PATCH(
         // Metadados
         ultimaAtualizacao: new Date().toISOString(),
       };
+    }
+
+    // Salvar variações se fornecidas
+    if (variacoes !== undefined) {
+      if (Array.isArray(variacoes) && variacoes.length > 0) {
+        // Salvar apenas variações válidas (com variacao preenchida)
+        const variacoesValidas = variacoes
+          .filter((v: any) => v && v.variacao && String(v.variacao).trim())
+          .map((v: any) => ({
+            variacao: String(v.variacao).trim(),
+            estoque: parseInt(v.estoque) || 0,
+            sku: v.sku ? String(v.sku).trim() : "",
+          }));
+        
+        if (variacoesValidas.length > 0) {
+          updateData.variacoes = variacoesValidas;
+          // Se tem variações, também atualizar tamanhos baseado nas variações
+          updateData.tamanhos = variacoesValidas.map((v: any) => v.variacao);
+          // Calcular estoque total
+          const estoqueTotal = variacoesValidas.reduce((sum: number, v: any) => sum + (v.estoque || 0), 0);
+          if (estoqueTotal > 0) {
+            updateData.estoque = estoqueTotal;
+          }
+        } else {
+          // Se array vazio, limpar variações
+          updateData.variacoes = null;
+        }
+      } else if (variacoes === null || (Array.isArray(variacoes) && variacoes.length === 0)) {
+        // Se null ou array vazio, remover variações
+        updateData.variacoes = null;
+      }
     }
 
     // Remover campos undefined

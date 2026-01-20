@@ -49,6 +49,56 @@ async function fetchUsdToBrlRate(): Promise<number> {
   return 5;
 }
 
+/**
+ * Função utilitária para obter SEMPRE a imagem original do produto
+ * Prioridade: imagens[0] > imagemPrincipal > fotoPrincipal > imagemOriginal > imagemUrl > productUrl
+ * Esta função garante que sempre use a foto principal original, mesmo que o lojista
+ * tenha colocado uma imagem de catálogo com manequim no campo imagemUrl
+ */
+function getProductOriginalImage(product: any): string | null {
+  // Prioridade 1: Primeira imagem do array imagens (imagem original/principal)
+  if (Array.isArray(product?.imagens) && product.imagens.length > 0) {
+    const firstImage = product.imagens[0];
+    if (typeof firstImage === 'string' && firstImage.startsWith('http')) {
+      console.log("[API] ✅ Usando primeira imagem do array imagens (original):", firstImage.substring(0, 80) + "...");
+      return firstImage;
+    }
+  }
+
+  // Prioridade 2: Campo imagemPrincipal (foto principal original)
+  if (product?.imagemPrincipal && typeof product.imagemPrincipal === 'string' && product.imagemPrincipal.startsWith('http')) {
+    console.log("[API] ✅ Usando imagemPrincipal (original):", product.imagemPrincipal.substring(0, 80) + "...");
+    return product.imagemPrincipal;
+  }
+
+  // Prioridade 3: Campo fotoPrincipal (foto principal original)
+  if (product?.fotoPrincipal && typeof product.fotoPrincipal === 'string' && product.fotoPrincipal.startsWith('http')) {
+    console.log("[API] ✅ Usando fotoPrincipal (original):", product.fotoPrincipal.substring(0, 80) + "...");
+    return product.fotoPrincipal;
+  }
+
+  // Prioridade 4: Campo imagemOriginal (foto original)
+  if (product?.imagemOriginal && typeof product.imagemOriginal === 'string' && product.imagemOriginal.startsWith('http')) {
+    console.log("[API] ✅ Usando imagemOriginal (original):", product.imagemOriginal.substring(0, 80) + "...");
+    return product.imagemOriginal;
+  }
+
+  // Fallback 1: Campo imagemUrl (pode ser catálogo ou original, mas usamos como fallback)
+  if (product?.imagemUrl && typeof product.imagemUrl === 'string' && product.imagemUrl.startsWith('http')) {
+    console.log("[API] ⚠️ Usando imagemUrl como fallback (pode ser catálogo):", product.imagemUrl.substring(0, 80) + "...");
+    return product.imagemUrl;
+  }
+
+  // Fallback 2: Campo productUrl
+  if (product?.productUrl && typeof product.productUrl === 'string' && product.productUrl.startsWith('http')) {
+    console.log("[API] ⚠️ Usando productUrl como fallback:", product.productUrl.substring(0, 80) + "...");
+    return product.productUrl;
+  }
+
+  console.warn("[API] ❌ Nenhuma imagem original válida encontrada para produto:", product?.id || "N/A");
+  return null;
+}
+
 function applyCors(request: NextRequest, response: NextResponse) {
   const origin = request.headers.get("origin") ?? "*";
   response.headers.set("Access-Control-Allow-Origin", origin);
@@ -881,45 +931,63 @@ export async function POST(request: NextRequest) {
         })),
       });
       
-      // Coletar todas as imagens de produtos (incluindo roupas)
+      // REGRA MODELO 2: Limitar a MÁXIMO 2 produtos para evitar alucinação da IA
+      const maxProducts = 2;
+      const productsDataLimited = productsData.slice(0, maxProducts);
+      
+      if (productsData.length > maxProducts) {
+        console.warn(`[API] ⚠️ REGRA MODELO 2: Limitando de ${productsData.length} para ${maxProducts} produtos para evitar alucinação da IA`);
+      }
+      
+      // Coletar imagens ORIGINAIS de produtos (incluindo roupas)
+      // REGRA: Sempre usar a imagem original (foto principal), não a imagem de catálogo
       allProductImageUrls = [];
       const produtosComImagem: any[] = [];
       const produtosSemImagem: any[] = [];
       
-      console.log("[API] 🔍 Iniciando coleta de imagens de produtos:", {
-        totalProdutos: productsData.length,
-        produtos: productsData.map(p => ({
+      console.log("[API] 🔍 Iniciando coleta de imagens ORIGINAIS de produtos (regra: máximo 2 produtos):", {
+        totalProdutosRecebidos: productsData.length,
+        totalProdutosLimitados: productsDataLimited.length,
+        produtos: productsDataLimited.map(p => ({
           id: p.id,
           nome: p.nome,
           categoria: p.categoria,
+          temImagensArray: Array.isArray(p?.imagens),
+          totalImagensArray: Array.isArray(p?.imagens) ? p.imagens.length : 0,
+          temImagemPrincipal: !!p?.imagemPrincipal,
+          temFotoPrincipal: !!p?.fotoPrincipal,
+          temImagemOriginal: !!p?.imagemOriginal,
           temProductUrl: !!p?.productUrl,
           temImagemUrl: !!p?.imagemUrl,
         })),
       });
       
-      for (const product of productsData) {
-        const productImageUrl = product?.productUrl || product?.imagemUrl || "";
+      for (const product of productsDataLimited) {
+        // SEMPRE usar a função utilitária para obter a imagem ORIGINAL
+        const productImageUrl = getProductOriginalImage(product);
         
         if (productImageUrl && productImageUrl.startsWith("http")) {
           allProductImageUrls.push(productImageUrl);
           produtosComImagem.push(product);
-          console.log("[API] ✅ Adicionando imagem de produto ao Look Criativo:", {
+          console.log("[API] ✅ Adicionando imagem ORIGINAL de produto ao Look Criativo:", {
             produtoId: product.id,
             produtoNome: product.nome,
             categoria: product.categoria || "N/A",
-            imagemUrl: productImageUrl.substring(0, 80) + "...",
+            imagemOriginalUrl: productImageUrl.substring(0, 80) + "...",
             indice: allProductImageUrls.length, // Índice na lista (1 = primeiro produto)
             tipo: `IMAGEM_PRODUTO_${allProductImageUrls.length}`,
+            nota: "Usando sempre a imagem original (foto principal), não a imagem de catálogo",
           });
         } else {
           produtosSemImagem.push(product);
-          console.warn("[API] ⚠️ Produto SEM imagem válida (será ignorado no Look Criativo):", {
+          console.warn("[API] ⚠️ Produto SEM imagem ORIGINAL válida (será ignorado no Look Criativo):", {
             produtoId: product.id,
             produtoNome: product.nome,
             categoria: product.categoria || "N/A",
             productUrl: product?.productUrl || "N/A",
             imagemUrl: product?.imagemUrl || "N/A",
-            motivo: !productImageUrl ? "URL vazia" : !productImageUrl.startsWith("http") ? "URL inválida (não começa com http)" : "Desconhecido",
+            imagensArray: Array.isArray(product?.imagens) ? product.imagens.length : 0,
+            motivo: !productImageUrl ? "URL vazia ou inválida" : !productImageUrl.startsWith("http") ? "URL inválida (não começa com http)" : "Desconhecido",
           });
         }
       }
@@ -934,9 +1002,10 @@ export async function POST(request: NextRequest) {
         })));
       }
       
-      console.log("[API] 📊 Resumo final - Imagens coletadas para Look Criativo:", {
+      console.log("[API] 📊 Resumo final - Imagens ORIGINAIS coletadas para Look Criativo (máximo 2 produtos):", {
         totalProdutosRecebidos: productsData.length,
-        imagensValidasColetadas: allProductImageUrls.length,
+        totalProdutosLimitados: productsDataLimited.length,
+        imagensOriginaisColetadas: allProductImageUrls.length,
         produtosComImagem: produtosComImagem.map(p => ({
           id: p.id,
           nome: p.nome,
@@ -948,11 +1017,13 @@ export async function POST(request: NextRequest) {
           categoria: p.categoria,
           motivo: !p?.productUrl && !p?.imagemUrl ? "Sem URL" : "URL inválida",
         })),
-        imagens: allProductImageUrls.map((url, index) => ({
+        imagensOriginais: allProductImageUrls.map((url, index) => ({
           indice: index + 1,
           tipo: `IMAGEM_PRODUTO_${index + 1}`,
           url: url.substring(0, 60) + "...",
+          nota: "Sempre usando imagem original (foto principal), não imagem de catálogo",
         })),
+        regra: "Máximo 2 produtos (regra modelo 2 para evitar alucinação da IA)",
       });
       
       // Validação crítica: garantir que temos pelo menos uma imagem de produto

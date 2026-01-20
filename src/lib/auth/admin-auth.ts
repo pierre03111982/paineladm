@@ -149,21 +149,13 @@ export async function isSuperAdmin(): Promise<boolean> {
     // Durante o build, não há cookies, então retornar false
     if (process.env.NEXT_PHASE === 'phase-production-build') {
       return false;
-    }
-
-    const cookieStore = await cookies();
-    const token = cookieStore.get("auth-token")?.value;
-
-    if (!token) {
+    }    const cookieStore = await cookies();
+    const token = cookieStore.get("auth-token")?.value;    if (!token) {
       console.log("[isSuperAdmin] Token não encontrado nos cookies");
       return false;
-    }
-
-    // Verificar token no Firebase Admin
+    }    // Verificar token no Firebase Admin
     const auth = getAuth(getAdminApp());
-    const decodedToken = await auth.verifyIdToken(token);
-
-    // Verificar custom claims - Firebase retorna claims diretamente no token
+    const decodedToken = await auth.verifyIdToken(token);    // Verificar custom claims - Firebase retorna claims diretamente no token
     // Custom claims são acessados via decodedToken.role ou decodedToken['role']
     const role = (decodedToken as any).role || (decodedToken as any).claims?.role;
     const isSuper = role === "super_admin";

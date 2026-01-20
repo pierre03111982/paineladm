@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Upload, FileText, Download, XCircle, Package, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Upload, FileText, Download, XCircle, Package, Sparkles, Loader2, Ruler } from "lucide-react";
 import { ProductsTable } from "./products-table";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 import { ImportCatalogModal } from "./import-catalog-modal";
@@ -144,6 +144,19 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
                 Modelo CSV
               </button>
             </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <motion.button
+              onClick={() => router.push("/ajustador-medidas-test")}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg shadow-red-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+              whileTap={{ scale: 0.95 }}
+            >
+              <Ruler className="h-4 w-4 text-white" style={{ color: '#FFFFFF' }} />
+              <span className="text-white" style={{ color: '#FFFFFF' }}>Testar Ajustador de Medidas</span>
+            </motion.button>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              Teste a funcionalidade de Provador Virtual / Ajustador de Medidas
+            </p>
           </div>
           {bulkAnalysisResult && (
             <div className={`mt-4 p-3 rounded-lg text-sm ${

@@ -571,7 +571,7 @@ export function ProductStudioInline({
         <h4 className="text-base font-bold mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
           Selecione o Manequim:
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
           {MANNEQUIN_STYLES.map((mannequin) => (
             <button
               key={mannequin.id}

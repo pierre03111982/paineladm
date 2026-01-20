@@ -32,6 +32,8 @@ export interface ProductAnalysisResult {
   product_type: string; // Tipo específico do produto (ex: Blazer, Vestido, Tênis)
   detected_fabric: string; // Tecido detectado (ex: Linho, Algodão, Couro sintético)
   dominant_colors: DominantColor[]; // Array de cores predominantes com hex e nome
+  logistic_unit: string; // Unidade de medida provável: 'UN', 'PAR', 'CJ', 'KG', 'G', 'L', 'ML', 'M', 'M2'
+  has_variations_likely: boolean; // Se produto provavelmente tem variações (tamanho, cor, voltagem, etc.)
   tags?: string[]; // Tags mantidas apenas internamente (não exibidas na UI)
   cor_predominante?: string; // Mantido para compatibilidade
   tecido_estimado?: string; // Mantido para compatibilidade
@@ -257,8 +259,54 @@ Retorne APENAS o JSON válido com a seguinte estrutura exata:
     {"hex": "#000000", "name": "Preto"},
     {"hex": "#FFFFFF", "name": "Branco"}
   ],
-  "tags": ["array de strings com 5-8 tags. IMPORTANTE: Inclua tags de contexto como 'praia', 'inverno', 'fitness', 'festa', 'casual', 'social', 'swimwear', 'gym', 'winter', 'couro' para ativar os cenários corretos no sistema"]
+  "tags": ["array de strings com 5-8 tags. IMPORTANTE: Inclua tags de contexto como 'praia', 'inverno', 'fitness', 'festa', 'casual', 'social', 'swimwear', 'gym', 'winter', 'couro' para ativar os cenários corretos no sistema"],
+  "logistic_unit": "UN",
+  "has_variations_likely": true
 }
+
+🚨 CAMPOS OBRIGATÓRIOS - LOGÍSTICA E VARIAÇÕES:
+
+1. "logistic_unit": Você DEVE escolher UMA e APENAS UMA opção da seguinte lista ESTRITA: ['UN', 'PAR', 'CJ', 'KG', 'G', 'L', 'ML', 'M', 'M2']
+
+   REGRAS DE ESCOLHA:
+   - 'UN' (Unidade): Para itens contáveis individuais (roupas, móveis, eletrônicos, joias, acessórios individuais como bolsas, óculos, relógios, livros, vasos, ferramentas, etc.)
+   - 'PAR' (Par): Para itens vendidos em pares (calçados, luvas, meias, brincos, etc.)
+   - 'CJ' (Conjunto): Para conjuntos/kit de múltiplos itens vendidos juntos (conjunto de roupas, kit de cosméticos, conjunto de talheres, etc.)
+   - 'KG' (Quilograma): Para produtos vendidos por peso em quilogramas (carnes, grãos a granel, etc.)
+   - 'G' (Grama): Para produtos vendidos por peso em gramas (carnes pequenas, temperos, etc.)
+   - 'L' (Litro): Para líquidos vendidos por litro (óleos, sucos a granel, etc.)
+   - 'ML' (Mililitro): Para líquidos vendidos por mililitro (cosméticos líquidos, perfumes, remédios líquidos, etc.)
+   - 'M' (Metro): Para produtos vendidos por comprimento em metros (tecidos, fitas, cabos, cordas, etc.)
+   - 'M2' (Metro quadrado): Para produtos vendidos por área em metros quadrados (azulejos, pisos, carpetes, tecidos por m², etc.)
+
+   EXEMPLOS:
+   - Vestido, Camisa, Calça, Bolsa, Óculos, Relógio → "UN"
+   - Tênis, Sandália, Bota, Luva, Meia, Brinco → "PAR"
+   - Conjunto de Roupas (short + camiseta vendidos juntos), Kit de Maquiagem → "CJ"
+   - Tecido por metro → "M"
+   - Tecido por m², Azulejo → "M2"
+   - Perfume, Creme, Loção → "ML"
+   - Óleo de cozinha a granel → "L"
+
+2. "has_variations_likely": Boolean (true ou false). Indica se o produto PROVAVELMENTE tem variações de estoque.
+
+   CONSIDERE TRUE (tem variações) SE:
+   - É roupa ou peça de vestuário (geralmente tem tamanhos e/ou cores)
+   - É calçado (geralmente tem tamanhos e cores)
+   - É acessório como bolsa, cinto (pode ter cores)
+   - É eletrônico que pode ter voltagens diferentes ou modelos
+   - É produto de moda em geral
+   
+   CONSIDERE FALSE (não tem variações) SE:
+   - É produto único/personalizado (ex: obra de arte, produto artesanal único)
+   - É produto simples que geralmente não varia (ex: livro específico, CD, ferramenta básica, produto digital)
+   - É produto que é sempre o mesmo (ex: ingrediente específico, produto industrial padrão)
+
+   REGRA GERAL: Se for moda/vestuário/acessório → true. Se for produto simples/industrial básico → false.
+
+   EXEMPLOS:
+   - Vestido, Camisa, Calça, Tênis, Bolsa → true (geralmente tem tamanhos/cores)
+   - Livro específico, CD, Ferramenta específica → false (geralmente não varia)
 
 IMPORTANTE SOBRE OS CAMPOS OBRIGATÓRIOS:
 - "product_type": DEVE ser preenchido. Analise a imagem e identifique o tipo específico do produto (ex: se for uma camisa, diga "Camisa" ou "Camisa Social", não deixe vazio).
@@ -370,8 +418,33 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
         throw new Error(`Gemini API error: ${response.status} ${errorText}`);
       }
 
-      const responseData = await response.json();
-      console.log("[ProductAnalyzer] ✅ Resposta recebida");
+      // Tentar fazer parse do JSON com tratamento de erro melhorado
+      let responseData: any;
+      try {
+        const responseText = await response.text();
+        console.log("[ProductAnalyzer] 📄 Resposta bruta (primeiros 200 chars):", responseText.substring(0, 200));
+        
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (jsonParseError: any) {
+          console.error("[ProductAnalyzer] ❌ Erro ao fazer parse do JSON da resposta:", jsonParseError);
+          console.error("[ProductAnalyzer] 📄 Resposta completa:", responseText);
+          throw new Error(`Resposta da API não é um JSON válido: ${jsonParseError.message}. Resposta: ${responseText.substring(0, 200)}`);
+        }
+      } catch (error: any) {
+        // Se falhar ao ler como texto, tentar como JSON diretamente
+        if (error.message && error.message.includes("JSON válido")) {
+          throw error;
+        }
+        try {
+          responseData = await response.json();
+        } catch (fallbackError: any) {
+          console.error("[ProductAnalyzer] ❌ Erro ao processar resposta:", fallbackError);
+          throw new Error(`Erro ao processar resposta da API: ${fallbackError.message}`);
+        }
+      }
+      
+      console.log("[ProductAnalyzer] ✅ Resposta recebida e parseada com sucesso");
 
       // Extrair texto da resposta
       const textContent = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -395,13 +468,32 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
         .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Remove caracteres de controle
         .trim();
 
-      // Função para corrigir strings JSON não terminadas
+      // Função robusta para corrigir strings JSON malformadas
       const fixUnterminatedStrings = (text: string): string => {
         let fixed = text;
+        
+        // Passo 1: Remover caracteres de controle e quebras de linha problemáticas
+        fixed = fixed
+          .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "") // Remove caracteres de controle (exceto \n, \r, \t)
+          .replace(/\r\n/g, "\n") // Normalizar quebras de linha
+          .replace(/\r/g, "\n");
+        
+        // Passo 2: Corrigir aspas não escapadas dentro de strings
+        // Procura por padrões como: "texto "aspas" texto" e escapa as aspas internas
+        fixed = fixed.replace(/"([^"\\]*)"/g, (match, content) => {
+          // Se há aspas não escapadas dentro do conteúdo, escapar
+          if (content.includes('"') && !content.includes('\\"')) {
+            return `"${content.replace(/"/g, '\\"')}"`;
+          }
+          return match;
+        });
+        
+        // Passo 3: Detectar e corrigir strings não terminadas
         let depth = 0;
         let inString = false;
         let escapeNext = false;
-        let lastValidPos = -1;
+        let stringStartPos = -1;
+        let lastValidBrace = -1;
         
         for (let i = 0; i < fixed.length; i++) {
           const char = fixed[i];
@@ -417,74 +509,89 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
           }
           
           if (char === '"') {
-            inString = !inString;
+            if (!inString) {
+              inString = true;
+              stringStartPos = i;
+            } else {
+              inString = false;
+              stringStartPos = -1;
+            }
           }
           
           if (!inString) {
             if (char === '{') {
               depth++;
-              lastValidPos = i;
+              lastValidBrace = i;
             } else if (char === '}') {
               depth--;
               if (depth === 0) {
-                lastValidPos = i;
+                lastValidBrace = i;
               }
             }
           }
         }
         
-        // Se ainda está dentro de uma string no final, tentar fechar
-        if (inString) {
-          // Procurar o início da string não fechada
-          let stringStart = -1;
-          let foundStringStart = false;
+        // Passo 4: Se ainda está dentro de uma string, fechar ela
+        if (inString && stringStartPos !== -1) {
+          // Encontrar onde a string deveria terminar (antes de uma vírgula, } ou fim do texto)
+          let endPos = fixed.length;
           
-          for (let i = fixed.length - 1; i >= 0; i--) {
-            if (fixed[i] === '"' && (i === 0 || fixed[i - 1] !== '\\')) {
-              if (!foundStringStart) {
-                stringStart = i;
-                foundStringStart = true;
-              } else {
-                // Encontrou o início da string, fechar aqui
-                fixed = fixed.substring(0, i + 1) + '"' + fixed.substring(i + 1);
+          // Procurar por padrões que indicam fim da string
+          for (let i = stringStartPos + 1; i < fixed.length; i++) {
+            const char = fixed[i];
+            if (char === ',' || char === '}' || char === ']' || (char === '\n' && i > stringStartPos + 50)) {
+              // Se encontrou um delimitador e não há outra " antes, fechar aqui
+              const beforeDelimiter = fixed.substring(stringStartPos + 1, i);
+              if (!beforeDelimiter.includes('"')) {
+                endPos = i;
                 break;
               }
             }
           }
           
-          // Se não encontrou início, adicionar aspas de fechamento no final
-          if (!foundStringStart) {
-            // Procurar último ":" antes do problema
-            const lastColon = fixed.lastIndexOf(':');
-            if (lastColon !== -1) {
-              // Tentar fechar a string após o último ":"
-              const afterColon = fixed.substring(lastColon + 1).trim();
-              if (afterColon.startsWith('"') && !afterColon.endsWith('"')) {
-                // String não fechada, fechar e adicionar vírgula se necessário
-                fixed = fixed.substring(0, fixed.lastIndexOf('"') + 1) + '"';
-              }
-            } else {
-              // Último recurso: adicionar aspas de fechamento
-              fixed += '"';
-            }
+          // Fechar a string antes do delimitador
+          if (endPos < fixed.length) {
+            fixed = fixed.substring(0, endPos) + '"' + fixed.substring(endPos);
+            console.log("[ProductAnalyzer] ⚠️ String não terminada foi fechada na posição", endPos);
+          } else {
+            // Se não encontrou delimitador, fechar no final
+            fixed += '"';
+            console.log("[ProductAnalyzer] ⚠️ String não terminada foi fechada no final");
           }
         }
         
-        // Se não terminou com }, tentar truncar até o último } válido
+        // Passo 5: Corrigir vírgulas extras ou faltantes
+        // Remove vírgulas antes de } ou ]
+        fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+        // Remove múltiplas vírgulas consecutivas
+        fixed = fixed.replace(/,+/g, ',');
+        
+        // Passo 6: Garantir que termina com }
         if (!fixed.trim().endsWith('}')) {
           const lastBraceIndex = fixed.lastIndexOf('}');
           if (lastBraceIndex !== -1 && lastBraceIndex > fixed.length / 2) {
-            // Só truncar se o } estiver na segunda metade do texto (provavelmente válido)
+            // Truncar até o último } válido
             fixed = fixed.substring(0, lastBraceIndex + 1);
-            console.log("[ProductAnalyzer] ⚠️ JSON foi truncado até o último }");
+            console.log("[ProductAnalyzer] ⚠️ JSON foi truncado até o último } válido");
           } else {
-            // Último recurso: adicionar } de fechamento
+            // Adicionar } de fechamento se necessário
             fixed = fixed.trim();
-            if (!fixed.endsWith('}')) {
+            // Contar chaves abertas vs fechadas
+            const openBraces = (fixed.match(/{/g) || []).length;
+            const closeBraces = (fixed.match(/}/g) || []).length;
+            if (openBraces > closeBraces) {
               fixed += '}';
               console.log("[ProductAnalyzer] ⚠️ Adicionado } de fechamento");
             }
           }
+        }
+        
+        // Passo 7: Corrigir arrays não fechados
+        const openBrackets = (fixed.match(/\[/g) || []).length;
+        const closeBrackets = (fixed.match(/\]/g) || []).length;
+        if (openBrackets > closeBrackets) {
+          fixed += ']';
+          console.log("[ProductAnalyzer] ⚠️ Adicionado ] de fechamento");
         }
         
         return fixed;
@@ -500,30 +607,126 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
         console.error("[ProductAnalyzer] ❌ Erro ao fazer parse do JSON:", parseError);
         console.error("[ProductAnalyzer] 📄 JSON recebido (primeiros 500 chars):", jsonText.substring(0, 500));
         console.error("[ProductAnalyzer] 📄 JSON recebido (últimos 200 chars):", jsonText.substring(Math.max(0, jsonText.length - 200)));
+        console.error("[ProductAnalyzer] 📄 JSON completo (tamanho:", jsonText.length, "chars):", jsonText);
         
-        // Tentar reparação mais agressiva se o erro for "Unterminated string"
-        if (parseError.message.includes("Unterminated string") || parseError.message.includes("position")) {
+        // Se o erro menciona uma posição específica, mostrar o contexto ao redor
+        const positionMatch = parseError.message.match(/position (\d+)/);
+        if (positionMatch) {
+          const position = parseInt(positionMatch[1]);
+          const start = Math.max(0, position - 50);
+          const end = Math.min(jsonText.length, position + 50);
+          console.error("[ProductAnalyzer] 📍 Contexto ao redor da posição", position, ":", jsonText.substring(start, end));
+          console.error("[ProductAnalyzer] 📍 Caractere problemático:", jsonText[position], "(" + jsonText.charCodeAt(position) + ")");
+        }
+        
+        // Tentar reparação mais agressiva se o erro for "Unterminated string" ou "position"
+        if (parseError.message.includes("Unterminated string") || parseError.message.includes("position") || parseError.message.includes("Unexpected")) {
           console.log("[ProductAnalyzer] 🔧 Tentando reparação agressiva do JSON...");
           
           try {
-            // Estratégia 1: Remover a descricao_seo problemática e tentar parsear
-            const jsonWithoutDesc = jsonText.replace(/"descricao_seo"\s*:\s*"[^"]*(?:"|$)/g, (match: string) => {
-              // Se a string não termina com ", fechar ela
-              if (!match.endsWith('"')) {
-                return match + '"';
-              }
-              return match;
-            });
+            // Estratégia 1: Corrigir strings problemáticas em todos os campos (não apenas descricao_seo)
+            let jsonFixed = jsonText;
             
-            if (jsonWithoutDesc !== jsonText) {
-              analysisResult = JSON.parse(jsonWithoutDesc);
-              // Adicionar descricao_seo vazia se não existir
+            // Lista de campos que podem ter strings longas e problemáticas
+            const stringFields = ['descricao_seo', 'nome_sugerido', 'suggested_category', 'product_type', 'detected_fabric'];
+            
+            for (const field of stringFields) {
+              // Padrão para encontrar o campo e sua string (pode estar quebrada)
+              const fieldPattern = new RegExp(`"${field}"\\s*:\\s*"([^"]*(?:\\\\.[^"]*)*)"?`, 'g');
+              jsonFixed = jsonFixed.replace(fieldPattern, (match, content) => {
+                // Se a string não está fechada corretamente, fechar ela
+                if (!match.endsWith('"') || match.endsWith('":')) {
+                  // Encontrar onde a string deveria terminar
+                  const colonIndex = match.indexOf(':');
+                  const quoteAfterColon = match.indexOf('"', colonIndex);
+                  if (quoteAfterColon !== -1) {
+                    // String começa mas não termina, fechar antes da próxima vírgula ou }
+                    const restOfText = jsonText.substring(jsonText.indexOf(match) + match.length);
+                    const nextComma = restOfText.indexOf(',');
+                    const nextBrace = restOfText.indexOf('}');
+                    const endPos = nextComma !== -1 && nextComma < nextBrace ? nextComma : (nextBrace !== -1 ? nextBrace : restOfText.length);
+                    const stringContent = restOfText.substring(0, endPos).trim();
+                    // Escapar aspas internas e fechar a string
+                    const escapedContent = stringContent.replace(/"/g, '\\"').replace(/\n/g, ' ');
+                    return `"${field}": "${escapedContent}"`;
+                  }
+                }
+                return match;
+              });
+            }
+            
+            // Tentar parsear o JSON corrigido
+            if (jsonFixed !== jsonText) {
+              analysisResult = JSON.parse(jsonFixed);
+              // Garantir que campos obrigatórios existam
               if (!analysisResult.descricao_seo) {
                 analysisResult.descricao_seo = analysisResult.nome_sugerido || "Produto de qualidade.";
               }
-              console.log("[ProductAnalyzer] ✅ JSON reparado com sucesso (descricao_seo corrigida)");
+              console.log("[ProductAnalyzer] ✅ JSON reparado com sucesso (strings corrigidas)");
             } else {
-              throw new Error("Reparação não conseguiu corrigir");
+              // Estratégia 1.5: Se o erro menciona uma posição específica, tentar corrigir nessa posição
+              if (positionMatch) {
+                const position = parseInt(positionMatch[1]);
+                console.log("[ProductAnalyzer] 🔧 Tentando corrigir JSON na posição específica", position);
+                
+                // Analisar o contexto ao redor da posição do erro
+                const beforeError = jsonText.substring(0, position);
+                const afterError = jsonText.substring(position);
+                
+                // Procurar por padrão de string não fechada antes da posição
+                const lastQuoteBefore = beforeError.lastIndexOf('"');
+                const lastColonBefore = beforeError.lastIndexOf(':');
+                const lastOpenBrace = beforeError.lastIndexOf('{');
+                
+                // Se há uma string que começou mas não terminou
+                if (lastQuoteBefore !== -1 && lastColonBefore !== -1 && lastQuoteBefore > lastColonBefore && lastQuoteBefore > lastOpenBrace) {
+                  // Contar aspas entre a última " e a posição do erro
+                  const quotesBetween = (beforeError.substring(lastQuoteBefore + 1).match(/"/g) || []).length;
+                  
+                  // Se número par de aspas (ou zero), a string não foi fechada
+                  if (quotesBetween % 2 === 0) {
+                    // Tentar fechar a string antes da posição do erro
+                    const jsonFixedAtPosition = beforeError + '"' + afterError;
+                    try {
+                      analysisResult = JSON.parse(jsonFixedAtPosition);
+                      console.log("[ProductAnalyzer] ✅ JSON reparado na posição específica");
+                    } catch {
+                      throw new Error("Reparação na posição não funcionou");
+                    }
+                  } else {
+                    // Tentar outra abordagem: remover caracteres problemáticos na posição
+                    const charAtPosition = jsonText[position];
+                    if (charAtPosition && charAtPosition.charCodeAt(0) > 127) {
+                      // Caractere não-ASCII problemático, remover
+                      const jsonFixedAtPosition = jsonText.substring(0, position) + jsonText.substring(position + 1);
+                      try {
+                        analysisResult = JSON.parse(jsonFixedAtPosition);
+                        console.log("[ProductAnalyzer] ✅ JSON reparado removendo caractere problemático");
+                      } catch {
+                        throw new Error("Reparação não conseguiu corrigir");
+                      }
+                    } else {
+                      throw new Error("Reparação não conseguiu corrigir");
+                    }
+                  }
+                } else {
+                  // Tentar remover caracteres problemáticos na posição
+                  const charAtPosition = jsonText[position];
+                  if (charAtPosition && charAtPosition.charCodeAt(0) > 127) {
+                    const jsonFixedAtPosition = jsonText.substring(0, position) + jsonText.substring(position + 1);
+                    try {
+                      analysisResult = JSON.parse(jsonFixedAtPosition);
+                      console.log("[ProductAnalyzer] ✅ JSON reparado removendo caractere problemático");
+                    } catch {
+                      throw new Error("Reparação não conseguiu corrigir");
+                    }
+                  } else {
+                    throw new Error("Reparação não conseguiu corrigir");
+                  }
+                }
+              } else {
+                throw new Error("Reparação não conseguiu corrigir");
+              }
             }
           } catch (repairError) {
             // Estratégia 2: Tentar extrair apenas os campos essenciais
@@ -535,6 +738,29 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
             const tecidoMatch = jsonText.match(/"detected_fabric"\s*:\s*"([^"]+)"/);
             
             if (nomeMatch && categoriaMatch) {
+              // Inferir unidade e variações do tipo de produto extraído
+              const categoriaLower = categoriaMatch[1].toLowerCase();
+              const tipoLower = (tipoMatch ? tipoMatch[1] : categoriaMatch[1]).toLowerCase();
+              const nomeLower = nomeMatch[1].toLowerCase();
+              
+              // Inferir unidade de medida
+              let logisticUnit = "UN"; // Padrão
+              if (categoriaLower.includes("calçado") || tipoLower.includes("tênis") || tipoLower.includes("sapato") || tipoLower.includes("sandália") || tipoLower.includes("luva") || tipoLower.includes("meia")) {
+                logisticUnit = "PAR";
+              } else if (nomeLower.includes("conjunto") || nomeLower.includes("kit") || nomeLower.includes("set")) {
+                logisticUnit = "CJ";
+              } else if (nomeLower.includes("metro") || nomeLower.includes("tecido")) {
+                logisticUnit = nomeLower.includes("m²") || nomeLower.includes("metro quadrado") ? "M2" : "M";
+              } else if (categoriaLower.includes("cosmético") || tipoLower.includes("perfume") || tipoLower.includes("creme")) {
+                logisticUnit = "ML";
+              }
+              
+              // Inferir se tem variações (moda geralmente tem)
+              const categoriasComVariacoes = ['roupas', 'calçados', 'acessórios', 'joias', 'praia', 'fitness'];
+              const hasVariations = categoriasComVariacoes.some(cat => categoriaLower.includes(cat)) ||
+                                   tipoLower.includes("vestido") || tipoLower.includes("camisa") || tipoLower.includes("calça") ||
+                                   tipoLower.includes("bolsa") || tipoLower.includes("tênis") || tipoLower.includes("sapato");
+
               analysisResult = {
                 nome_sugerido: nomeMatch[1],
                 descricao_seo: nomeMatch[1] + ". Produto de qualidade e estilo.",
@@ -542,6 +768,8 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
                 product_type: tipoMatch ? tipoMatch[1] : categoriaMatch[1],
                 detected_fabric: tecidoMatch ? tecidoMatch[1] : "Não especificado",
                 dominant_colors: [],
+                logistic_unit: logisticUnit,
+                has_variations_likely: hasVariations,
                 tags: [],
               };
               
@@ -564,7 +792,11 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
             }
           }
         } else {
-          throw parseError;
+          // Se não conseguiu reparar, lançar erro com mais detalhes
+          const errorMessage = parseError.message || "Erro desconhecido ao fazer parse do JSON";
+          const errorDetails = `Erro ao analisar imagem: ${errorMessage}`;
+          console.error("[ProductAnalyzer] ❌ Falha final ao processar JSON:", errorDetails);
+          throw new Error(errorDetails);
         }
       }
 
@@ -575,6 +807,8 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
         hasProductType: !!analysisResult.product_type,
         hasDetectedFabric: !!analysisResult.detected_fabric,
         hasDominantColors: !!analysisResult.dominant_colors && Array.isArray(analysisResult.dominant_colors),
+        logistic_unit: analysisResult.logistic_unit || "NÃO DEFINIDO - SERÁ INFERIDO",
+        has_variations_likely: typeof analysisResult.has_variations_likely === 'boolean' ? analysisResult.has_variations_likely : "NÃO DEFINIDO - SERÁ INFERIDO",
       });
 
       // Compatibilidade: mapear campos antigos para novos se necessário
@@ -596,6 +830,9 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
       if (!analysisResult.nome_sugerido || !analysisResult.suggested_category) {
         throw new Error("Resposta do Gemini não contém estrutura esperada (nome_sugerido e suggested_category são obrigatórios)");
       }
+
+      // Validar que os novos campos existam (se não existirem, serão preenchidos na validação abaixo)
+      // Não bloquear se não existirem - serão inferidos automaticamente
 
       // Garantir que dominant_colors seja um array válido
       if (!Array.isArray(analysisResult.dominant_colors) || analysisResult.dominant_colors.length === 0) {
@@ -658,6 +895,78 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
         console.warn("[ProductAnalyzer] ⚠️ Descrição SEO excedeu 500 caracteres, truncando...");
         analysisResult.descricao_seo = analysisResult.descricao_seo.slice(0, 500).trim();
       }
+
+      // Validar e garantir logistic_unit (UN, PAR, CJ, KG, G, L, ML, M, M2)
+      const validUnits = ['UN', 'PAR', 'CJ', 'KG', 'G', 'L', 'ML', 'M', 'M2'];
+      if (!analysisResult.logistic_unit || !validUnits.includes(analysisResult.logistic_unit)) {
+        console.warn("[ProductAnalyzer] ⚠️ logistic_unit inválido ou ausente, inferindo do tipo de produto...");
+        
+        // Inferir unidade baseado na categoria e tipo do produto
+        const categoriaLower = (analysisResult.suggested_category || "").toLowerCase();
+        const productTypeLower = (analysisResult.product_type || "").toLowerCase();
+        const nomeLower = (analysisResult.nome_sugerido || "").toLowerCase();
+        
+        // Verificar se é calçado (PAR)
+        if (categoriaLower.includes("calçado") || categoriaLower.includes("calçados") || 
+            productTypeLower.includes("tênis") || productTypeLower.includes("sapato") || 
+            productTypeLower.includes("sandália") || productTypeLower.includes("bota") ||
+            productTypeLower.includes("luva") || productTypeLower.includes("meia") ||
+            nomeLower.includes("tênis") || nomeLower.includes("sapato") || nomeLower.includes("sandália")) {
+          analysisResult.logistic_unit = "PAR";
+        }
+        // Verificar se é conjunto (CJ)
+        else if (nomeLower.includes("conjunto") || nomeLower.includes("kit") || nomeLower.includes("set") ||
+                 categoriaLower.includes("conjunto") || productTypeLower.includes("conjunto")) {
+          analysisResult.logistic_unit = "CJ";
+        }
+        // Verificar se é tecido por metro (M ou M2)
+        else if (nomeLower.includes("metro") || nomeLower.includes("tecido") || categoriaLower.includes("tecido")) {
+          // Se mencionar m² ou metro quadrado, usar M2, senão M
+          if (nomeLower.includes("m²") || nomeLower.includes("metro quadrado") || nomeLower.includes("metro²")) {
+            analysisResult.logistic_unit = "M2";
+          } else {
+            analysisResult.logistic_unit = "M";
+          }
+        }
+        // Verificar se é líquido (ML ou L)
+        else if (categoriaLower.includes("cosmético") || productTypeLower.includes("perfume") ||
+                 productTypeLower.includes("creme") || productTypeLower.includes("loção") ||
+                 nomeLower.includes("perfume") || nomeLower.includes("creme")) {
+          analysisResult.logistic_unit = "ML";
+        }
+        // Padrão: UN (unidade) para produtos de moda/roupas
+        else {
+          analysisResult.logistic_unit = "UN";
+        }
+        
+        console.log("[ProductAnalyzer] ✅ logistic_unit inferido:", analysisResult.logistic_unit);
+      }
+
+      // Validar e garantir has_variations_likely (boolean)
+      if (typeof analysisResult.has_variations_likely !== 'boolean') {
+        console.warn("[ProductAnalyzer] ⚠️ has_variations_likely inválido ou ausente, inferindo do tipo de produto...");
+        
+        // Inferir baseado na categoria e tipo
+        const categoriaLower = (analysisResult.suggested_category || "").toLowerCase();
+        const productTypeLower = (analysisResult.product_type || "").toLowerCase();
+        
+        // Produtos de moda geralmente têm variações
+        const categoriasComVariacoes = ['roupas', 'calçados', 'acessórios', 'joias', 'praia', 'fitness'];
+        const temVariacoes = categoriasComVariacoes.some(cat => categoriaLower.includes(cat)) ||
+                            productTypeLower.includes("vestido") || productTypeLower.includes("camisa") ||
+                            productTypeLower.includes("calça") || productTypeLower.includes("blusa") ||
+                            productTypeLower.includes("short") || productTypeLower.includes("saia") ||
+                            productTypeLower.includes("bolsa") || productTypeLower.includes("cinto") ||
+                            productTypeLower.includes("tênis") || productTypeLower.includes("sapato");
+        
+        analysisResult.has_variations_likely = temVariacoes;
+        console.log("[ProductAnalyzer] ✅ has_variations_likely inferido:", analysisResult.has_variations_likely);
+      }
+
+      console.log("[ProductAnalyzer] 📊 Campos logísticos validados:", {
+        logistic_unit: analysisResult.logistic_unit,
+        has_variations_likely: analysisResult.has_variations_likely,
+      });
 
     const executionTime = Date.now() - startTime;
     console.log("[ProductAnalyzer] ✅ Análise concluída em", executionTime, "ms");

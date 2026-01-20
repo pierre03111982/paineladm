@@ -9,6 +9,8 @@ export type ProdutoDoc = {
   imagemUrl: string; // DEPRECATED: usar imagemUrlCatalogo ou imagemUrlOriginal
   imagemUrlOriginal?: string; // Foto original do produto (upload inicial)
   imagemUrlCatalogo?: string; // Foto gerada com IA (imagem principal exibida)
+  imagemUrlCombinada?: string; // Look combinado gerado pela IA
+  imagemMedidasCustomizada?: string; // Imagem de medidas inserida manualmente
   descontoProduto?: number; // % de desconto específico deste produto (sobrescreve desconto universal)
   categoria: string;
   tamanhos: string[];

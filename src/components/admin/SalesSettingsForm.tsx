@@ -330,8 +330,8 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
 
       <div className="neon-card rounded-xl border-2 border-gray-300/30 dark:border-amber-500/30 bg-[var(--bg-card)]/60 p-5 space-y-4">
         <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)]">
-          <div className="rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 p-2 shadow-lg shadow-amber-500/30 text-white">
-            <Truck className="h-4 w-4" />
+          <div className="rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 p-3 shadow-lg shadow-amber-500/30 text-white">
+            <Truck className="h-6 w-6" strokeWidth={2} />
           </div>
           <span>Frete & Origem</span>
         </div>

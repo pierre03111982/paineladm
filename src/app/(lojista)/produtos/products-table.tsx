@@ -1,6 +1,7 @@
 "use client";
 
 import { ProductPerformanceAI } from "@/components/products/ProductPerformanceAI";
+import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Package, Search, Edit, Eye, Archive, ArchiveRestore, Trash2, Filter, X, Upload, Info, Star, RefreshCw, Link2, Settings } from "lucide-react";
@@ -35,8 +36,40 @@ function ProductGridCard({
   lojistaIdParam?: string | null;
 }) {
   const router = useRouter();
-  const imagemPrincipal = produto.imagemUrlCatalogo || produto.imagemUrl;
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Preparar array de imagens para a galeria (múltiplas imagens)
+  // Ordem: Foto Catálogo (prioridade), Imagem Original, Look Combinado
+  const produtoImages = useMemo(() => {
+    const images = [];
+    
+    // 1. Foto Catálogo (prioridade - melhor qualidade)
+    if (produto.imagemUrlCatalogo) {
+      images.push({
+        url: produto.imagemUrlCatalogo,
+        label: "Foto Catálogo"
+      });
+    }
+    
+    // 2. Imagem Original (se diferente da catálogo)
+    const imagemOriginal = produto.imagemUrlOriginal || produto.imagemUrl;
+    if (imagemOriginal && imagemOriginal !== produto.imagemUrlCatalogo) {
+      images.push({
+        url: imagemOriginal,
+        label: "Imagem Original"
+      });
+    }
+    
+    // 3. Look Combinado
+    if (produto.imagemUrlCombinada && produto.imagemUrlCombinada !== produto.imagemUrlCatalogo) {
+      images.push({
+        url: produto.imagemUrlCombinada,
+        label: "Look Combinado"
+      });
+    }
+    
+    return images;
+  }, [produto.imagemUrlOriginal, produto.imagemUrl, produto.imagemUrlCatalogo, produto.imagemUrlCombinada]);
 
   // Calcular desconto total e preço com desconto
   const descontoRedes = descontoRedesSociais || 0;
@@ -99,7 +132,7 @@ function ProductGridCard({
       ref={cardRef}
       data-product-card
       className="group relative product-card-gradient rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col min-h-[500px]"
-      style={{ display: 'flex', flexDirection: 'column', minHeight: '500px', border: '3px solid #60a5fa' }}
+      style={{ display: 'flex', flexDirection: 'column', minHeight: '500px', border: '1px solid #60a5fa' }}
     >
       {/* Checkbox - Top Left - Reescrito do zero com cor azul */}
       <button
@@ -151,23 +184,18 @@ function ProductGridCard({
         )}
       </button>
 
-      {/* Product Image - Hero */}
-      <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
-        {imagemPrincipal ? (
-          <img
-            src={imagemPrincipal}
-            alt={produto.nome}
-            className="h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-            style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}
-          />
-        ) : (
-          <div className="h-full w-full flex items-center justify-center">
-            <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
-          </div>
-        )}
-        {/* Overlay gradient no hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
+      {/* Product Image Gallery - Múltiplas Imagens com Navegação */}
+      {produtoImages.length > 0 ? (
+        <ProductImageGallery
+          images={produtoImages}
+          aspectRatio="aspect-square"
+          className="w-full"
+        />
+      ) : (
+        <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
+          <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
+        </div>
+      )}
 
       {/* Content - Container Flexível com altura mínima */}
       <div className="p-4 flex flex-col flex-1" style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '0' }}>

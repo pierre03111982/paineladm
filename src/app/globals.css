@@ -445,7 +445,7 @@ header[class*="bg-\[#"] {
    ============================================ */
 .neon-card {
   background: #FFFFFF !important;
-  border: 2px solid rgba(99, 102, 241, 0.5) !important;
+  border: 1px solid rgba(99, 102, 241, 0.5) !important;
   border-radius: 0.75rem;
   box-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.05),
@@ -837,7 +837,7 @@ textarea::placeholder {
 /* Card de produto com fundo branco */
 .product-card-gradient {
   background: #FFFFFF !important;
-  border: 3px solid #60a5fa !important;
+  border: 1px solid #60a5fa !important;
   box-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.1),
     0 4px 6px rgba(0, 0, 0, 0.05) !important;

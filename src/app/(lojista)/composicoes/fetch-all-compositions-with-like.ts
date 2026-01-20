@@ -14,6 +14,12 @@ export type CompositionForVisualHistory = {
   customerWhatsapp: string | null;
   produtoNome?: string;
   customerId: string;
+  productIds?: string[];
+  produtosUtilizados?: Array<{
+    id: string;
+    nome: string;
+    imagemUrl: string;
+  }>;
 };
 
 export async function fetchAllCompositionsWithLike(
@@ -186,6 +192,80 @@ export async function fetchAllCompositionsWithLike(
       const allCompositions = Array.from(compositionMap.values());
       
       console.log(`[fetchAllCompositionsWithLike] 📊 Agrupamento: ${allFavoritos.length} favoritos → ${allCompositions.length} composições únicas`);
+      
+      // Buscar produtos utilizados em cada composição
+      // Buscar composições da coleção para obter productIds
+      const productsMap = new Map<string, string[]>(); // compositionId -> productIds
+      const produtosCache = new Map<string, { nome: string; imagemUrl: string }>(); // produtoId -> dados
+      
+      // Buscar composições individualmente (buscar apenas as primeiras 50 para performance)
+      const composicoesParaBuscar = allCompositions.slice(0, 50);
+      
+      for (const comp of composicoesParaBuscar) {
+        if (comp.id && !comp.id.startsWith('http')) {
+          try {
+            const composicaoDoc = await db
+              .collection("lojas")
+              .doc(lojistaId)
+              .collection("composicoes")
+              .doc(comp.id)
+              .get();
+            
+            if (composicaoDoc.exists) {
+              const composicaoData = typeof composicaoDoc.data === "function" ? composicaoDoc.data() : composicaoDoc.data;
+              if (composicaoData && composicaoData.productIds && Array.isArray(composicaoData.productIds)) {
+                productsMap.set(comp.id, composicaoData.productIds);
+                
+                // Buscar produtos desta composição
+                const productIds = composicaoData.productIds.slice(0, 4); // Limitar a 4 produtos
+                const produtosUtilizados: Array<{ id: string; nome: string; imagemUrl: string }> = [];
+                
+                // Buscar cada produto (ou usar cache)
+                for (const productId of productIds) {
+                  if (produtosCache.has(productId)) {
+                    const produtoCache = produtosCache.get(productId)!;
+                    produtosUtilizados.push({
+                      id: productId,
+                      ...produtoCache
+                    });
+                  } else {
+                    try {
+                      const produtoDoc = await db
+                        .collection("lojas")
+                        .doc(lojistaId)
+                        .collection("produtos")
+                        .doc(productId)
+                        .get();
+                      
+                      if (produtoDoc.exists) {
+                        const produtoData = typeof produtoDoc.data === "function" ? produtoDoc.data() : produtoDoc.data;
+                        if (produtoData) {
+                          const produtoInfo = {
+                            nome: produtoData.nome || "Produto",
+                            imagemUrl: produtoData.imagemUrl || produtoData.imagemUrlOriginal || "",
+                          };
+                          produtosCache.set(productId, produtoInfo);
+                          produtosUtilizados.push({
+                            id: productId,
+                            ...produtoInfo
+                          });
+                        }
+                      }
+                    } catch (error) {
+                      console.warn(`[fetchAllCompositionsWithLike] Erro ao buscar produto ${productId}:`, error);
+                    }
+                  }
+                }
+                
+                (comp as any).productIds = composicaoData.productIds;
+                (comp as any).produtosUtilizados = produtosUtilizados;
+              }
+            }
+          } catch (error) {
+            console.warn(`[fetchAllCompositionsWithLike] Erro ao buscar composição ${comp.id}:`, error);
+          }
+        }
+      }
       
       // Ordenar por data (mais recente primeiro)
       allCompositions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

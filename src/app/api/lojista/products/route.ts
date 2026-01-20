@@ -97,10 +97,17 @@ export async function POST(request: NextRequest) {
       tags,
       observacoes,
       medidas,
+      unidadeMedida,
+      imagemUrlOriginal,
+      imagemUrlCatalogo,
+      imagemUrlCombinada,
+      imagemMedidasCustomizada,
       // Novos campos da análise IA
       product_type,
       detected_fabric,
       dominant_colors,
+      // Campo de variações
+      variacoes,
     } = body;
 
     if (!nome || !categoria || preco === undefined) {
@@ -169,7 +176,22 @@ export async function POST(request: NextRequest) {
       tags: Array.isArray(tags) ? tags : (tags && String(tags).trim() ? [String(tags).trim()] : []),
       observacoes: observacoes ? String(observacoes).trim() : "",
       medidas: medidas ? String(medidas).trim() : "",
+      unidadeMedida: unidadeMedida ? String(unidadeMedida).trim() : "UN",
     };
+
+    // Adicionar campos de imagens se fornecidos
+    if (imagemUrlOriginal) {
+      produtoData.imagemUrlOriginal = String(imagemUrlOriginal).trim();
+    }
+    if (imagemUrlCatalogo) {
+      produtoData.imagemUrlCatalogo = String(imagemUrlCatalogo).trim();
+    }
+    if (imagemUrlCombinada) {
+      produtoData.imagemUrlCombinada = String(imagemUrlCombinada).trim();
+    }
+    if (imagemMedidasCustomizada) {
+      produtoData.imagemMedidasCustomizada = String(imagemMedidasCustomizada).trim();
+    }
 
     // Adicionar campos da análise IA se existirem
     if (product_type) {
@@ -192,11 +214,34 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Só adiciona estoque se for um número válido (não undefined/null/vazio)
-    if (estoque !== undefined && estoque !== null && estoque !== "") {
-      const estoqueNum = Number(estoque);
-      if (!isNaN(estoqueNum)) {
-        produtoData.estoque = estoqueNum;
+    // Processar variações se fornecidas
+    if (variacoes !== undefined && Array.isArray(variacoes) && variacoes.length > 0) {
+      // Filtrar apenas variações válidas (com variacao preenchida)
+      const variacoesValidas = variacoes
+        .filter((v: any) => v && v.variacao && String(v.variacao).trim())
+        .map((v: any) => ({
+          variacao: String(v.variacao).trim(),
+          estoque: parseInt(v.estoque) || 0,
+          sku: v.sku ? String(v.sku).trim() : "",
+        }));
+      
+      if (variacoesValidas.length > 0) {
+        produtoData.variacoes = variacoesValidas;
+        // Se tem variações, também atualizar tamanhos baseado nas variações
+        produtoData.tamanhos = variacoesValidas.map((v: any) => v.variacao);
+        // Calcular estoque total das variações
+        const estoqueTotal = variacoesValidas.reduce((sum: number, v: any) => sum + (v.estoque || 0), 0);
+        if (estoqueTotal > 0) {
+          produtoData.estoque = estoqueTotal;
+        }
+      }
+    } else {
+      // Só adiciona estoque se for um número válido (não undefined/null/vazio) e não houver variações
+      if (estoque !== undefined && estoque !== null && estoque !== "") {
+        const estoqueNum = Number(estoque);
+        if (!isNaN(estoqueNum)) {
+          produtoData.estoque = estoqueNum;
+        }
       }
     }
 

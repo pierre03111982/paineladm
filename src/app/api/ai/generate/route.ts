@@ -20,6 +20,62 @@ const db = getAdminDb();
 // Custo estimado por geração (em créditos)
 const COST_PER_GENERATION = 1;
 
+/**
+ * Função utilitária para obter SEMPRE a imagem original do produto
+ * Prioridade: imagens[0] > imagemPrincipal > fotoPrincipal > imagemOriginal > imagemUrl > productUrl
+ * Esta função garante que sempre use a foto principal original, mesmo que o lojista
+ * tenha colocado uma imagem de catálogo com manequim no campo imagemUrl
+ */
+function getProductOriginalImage(product: any): string | null {
+  // Prioridade 1: Primeira imagem do array imagens (imagem original/principal)
+  if (Array.isArray(product?.imagens) && product.imagens.length > 0) {
+    const firstImage = product.imagens[0];
+    if (typeof firstImage === 'string' && firstImage.startsWith('http')) {
+      console.log("[API/AI/Generate] ✅ Usando primeira imagem do array imagens (original):", firstImage.substring(0, 80) + "...");
+      return firstImage;
+    }
+  }
+
+  // Prioridade 2: Campo imagemPrincipal (foto principal original)
+  if (product?.imagemPrincipal && typeof product.imagemPrincipal === 'string' && product.imagemPrincipal.startsWith('http')) {
+    console.log("[API/AI/Generate] ✅ Usando imagemPrincipal (original):", product.imagemPrincipal.substring(0, 80) + "...");
+    return product.imagemPrincipal;
+  }
+
+  // Prioridade 3: Campo fotoPrincipal (foto principal original)
+  if (product?.fotoPrincipal && typeof product.fotoPrincipal === 'string' && product.fotoPrincipal.startsWith('http')) {
+    console.log("[API/AI/Generate] ✅ Usando fotoPrincipal (original):", product.fotoPrincipal.substring(0, 80) + "...");
+    return product.fotoPrincipal;
+  }
+
+  // Prioridade 4: Campo imagemOriginal (foto original)
+  if (product?.imagemOriginal && typeof product.imagemOriginal === 'string' && product.imagemOriginal.startsWith('http')) {
+    console.log("[API/AI/Generate] ✅ Usando imagemOriginal (original):", product.imagemOriginal.substring(0, 80) + "...");
+    return product.imagemOriginal;
+  }
+
+  // Fallback 1: Campo imagemUrl (pode ser catálogo ou original, mas usamos como fallback)
+  if (product?.imagemUrl && typeof product.imagemUrl === 'string' && product.imagemUrl.startsWith('http')) {
+    console.log("[API/AI/Generate] ⚠️ Usando imagemUrl como fallback (pode ser catálogo):", product.imagemUrl.substring(0, 80) + "...");
+    return product.imagemUrl;
+  }
+
+  // Fallback 2: Campo productUrl
+  if (product?.productUrl && typeof product.productUrl === 'string' && product.productUrl.startsWith('http')) {
+    console.log("[API/AI/Generate] ⚠️ Usando productUrl como fallback:", product.productUrl.substring(0, 80) + "...");
+    return product.productUrl;
+  }
+
+  // Fallback 3: Se for string direta (caso productImageUrl seja uma string)
+  if (typeof product === 'string' && product.startsWith('http')) {
+    console.log("[API/AI/Generate] ⚠️ Usando string direta como fallback:", product.substring(0, 80) + "...");
+    return product;
+  }
+
+  console.warn("[API/AI/Generate] ❌ Nenhuma imagem original válida encontrada para produto:", product?.id || typeof product === 'string' ? product.substring(0, 50) : "N/A");
+  return null;
+}
+
 // Domínios permitidos para CORS (separados por vírgula ou array)
 const getAllowedOrigins = (): string[] => {
   const isDevelopment = process.env.NODE_ENV === "development";
@@ -407,25 +463,73 @@ export async function POST(request: NextRequest) {
         : "N/A",
     });
 
-    // Preparar URLs dos produtos
-    const productImageUrls = productImageUrl 
-      ? (Array.isArray(productImageUrl) ? productImageUrl : [productImageUrl])
-      : [];
+    // REGRA MODELO 2: Limitar a MÁXIMO 2 produtos para evitar alucinação da IA
+    const maxProducts = 2;
 
-    // Preparar array de URLs: primeira é a pessoa (IMAGEM_PESSOA), seguintes são produtos
+    // Preparar URLs dos produtos ORIGINAIS
+    // Se produtos completos foram fornecidos, usar função utilitária para obter imagens originais
+    let productImageUrls: string[] = [];
+    
+    if (produtos && Array.isArray(produtos) && produtos.length > 0) {
+      console.log("[API/AI/Generate] 🔍 Processando produtos completos para obter imagens ORIGINAIS:", {
+        totalProdutosRecebidos: produtos.length,
+        totalProdutosLimitados: Math.min(produtos.length, maxProducts),
+      });
+      
+      // Limitar a máximo 2 produtos (regra modelo 2)
+      const produtosLimitados = produtos.slice(0, maxProducts);
+      
+      for (const produto of produtosLimitados) {
+        const imagemOriginal = getProductOriginalImage(produto);
+        if (imagemOriginal) {
+          productImageUrls.push(imagemOriginal);
+        }
+      }
+      
+      if (produtos.length > maxProducts) {
+        console.warn(`[API/AI/Generate] ⚠️ REGRA MODELO 2: Limitando de ${produtos.length} para ${maxProducts} produtos para evitar alucinação da IA`);
+      }
+    } else if (productImageUrl) {
+      // Fallback: se productImageUrl foi fornecido diretamente (compatibilidade com chamadas antigas)
+      const productUrlsRaw = Array.isArray(productImageUrl) ? productImageUrl : [productImageUrl];
+      
+      // Limitar a máximo 2 produtos (regra modelo 2)
+      const productUrlsLimited = productUrlsRaw.slice(0, maxProducts);
+      
+      for (const url of productUrlsLimited) {
+        // Se for objeto com dados do produto, usar função utilitária
+        if (typeof url === 'object' && url !== null) {
+          const imagemOriginal = getProductOriginalImage(url);
+          if (imagemOriginal) {
+            productImageUrls.push(imagemOriginal);
+          }
+        } else if (typeof url === 'string' && url.startsWith('http')) {
+          // Se for string direta, usar como está (fallback)
+          productImageUrls.push(url);
+        }
+      }
+      
+      if (productUrlsRaw.length > maxProducts) {
+        console.warn(`[API/AI/Generate] ⚠️ REGRA MODELO 2: Limitando de ${productUrlsRaw.length} para ${maxProducts} produtos para evitar alucinação da IA`);
+      }
+    }
+
+    // Preparar array de URLs: primeira é a pessoa (IMAGEM_PESSOA), seguintes são produtos ORIGINAIS
     // Ordem fixa conforme PROMPT_LOOK_CRIATIVO.md:
-    // 1. IMAGEM_PESSOA (primeira imagem)
-    // 2. IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, IMAGEM_PRODUTO_3 (máximo 3)
-    const allImageUrls = [userImageUrl, ...productImageUrls.slice(0, 3)]; // Limitar a 3 produtos
+    // 1. IMAGEM_PESSOA (primeira imagem - sempre foto original do upload do cliente)
+    // 2. IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2 (máximo 2 produtos - REGRA MODELO 2)
+    const allImageUrls = [userImageUrl, ...productImageUrls]; // Já limitado a máximo 2 produtos acima
     
     // Usar o prompt mestre diretamente do documento PROMPT_LOOK_CRIATIVO.md
     // O prompt já está otimizado para Gemini 2.5 Flash Image
     const masterPrompt = await generateImagenPrompt(userImageUrl, productImageUrls);
     
     console.log("[API/AI/Generate] Gerando imagem com Gemini 2.5 Flash Image usando prompt mestre VTO...");
-    console.log("[API/AI/Generate] Total de imagens:", allImageUrls.length, {
+    console.log("[API/AI/Generate] Total de imagens (REGRA MODELO 2: máximo 2 produtos):", allImageUrls.length, {
       pessoa: 1,
       produtos: allImageUrls.length - 1,
+      nota: "Sempre usando foto original do upload do cliente e imagens originais dos produtos (não catálogo)",
+      regra: "Máximo 2 produtos para evitar alucinação da IA",
     });
     
     const geminiService = getGeminiFlashImageService();

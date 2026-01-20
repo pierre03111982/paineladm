@@ -8,6 +8,204 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import type { ProdutoDoc } from "@/lib/firestore/types";
 
+type Variacao = {
+  id: string;
+  variacao: string;
+  estoque: string;
+  sku: string;
+};
+
+/**
+ * Função utilitária para gerar SKU automaticamente
+ * Formato: SLUG-DO-PRODUTO-VARIAÇÃO-XXXX
+ * - SLUG-DO-PRODUTO: Primeiros 10 caracteres do nome, maiúsculas, espaços por hífen
+ * - VARIAÇÃO: Nome da variação em maiúsculas
+ * - XXXX: Sufixo aleatório de 4 caracteres (letras e números)
+ */
+function generateSKU(nomeProduto: string, variacao: string): string {
+  // Validar entradas
+  if (!nomeProduto || !nomeProduto.trim()) {
+    nomeProduto = "PRODUTO";
+  }
+  
+  if (!variacao || !variacao.trim()) {
+    variacao = "VAR";
+  }
+  
+  // 1. SLUG-DO-PRODUTO: Primeiros 10 caracteres, maiúsculas, substituir espaços por hífen
+  const slugProduto = nomeProduto
+    .trim()
+    .toUpperCase()
+    .substring(0, 10)
+    .replace(/\s+/g, '-') // Substituir espaços múltiplos por hífen
+    .replace(/[^A-Z0-9-]/g, '') // Remover caracteres especiais (manter apenas letras, números e hífen)
+    .replace(/-+/g, '-') // Substituir múltiplos hífens por um único
+    .replace(/^-|-$/g, ''); // Remover hífens no início e fim
+  
+  // Garantir que tenha pelo menos 3 caracteres
+  const produtoSlug = slugProduto.length >= 3 ? slugProduto : slugProduto.padEnd(3, 'X');
+  
+  // 2. VARIAÇÃO: Maiúsculas, remover espaços e caracteres especiais
+  const variacaoSlug = variacao
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  
+  // Garantir que tenha pelo menos 1 caractere
+  const variacaoFinal = variacaoSlug || "VAR";
+  
+  // 3. XXXX: Sufixo aleatório de 4 caracteres (letras e números)
+  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let sufixo = '';
+  for (let i = 0; i < 4; i++) {
+    sufixo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+  }
+  
+  // 4. Montar SKU: SLUG-VARIAÇÃO-XXXX
+  return `${produtoSlug}-${variacaoFinal}-${sufixo}`;
+}
+
+/**
+ * Componente de linha de variação com auto-geração de SKU
+ */
+function VariacaoRow({ 
+  variacao, 
+  nomeProduto, 
+  onUpdate, 
+  onRemove 
+}: { 
+  variacao: Variacao; 
+  nomeProduto: string;
+  onUpdate: (updated: Variacao) => void;
+  onRemove: () => void;
+}) {
+  // useRef para rastrear se o SKU foi editado manualmente pelo usuário (não regenerar se editado)
+  const skuEditadoManualRef = useRef<boolean>(false);
+  // Refs para rastrear os últimos valores processados (evitar loop infinito)
+  const ultimaVariacaoProcessadaRef = useRef<string>(variacao.variacao || "");
+  const ultimoNomeProdutoProcessadoRef = useRef<string>(nomeProduto || "");
+  
+  // Inicializar: Se SKU já existe ao montar, assumir que foi editado manualmente ou carregado
+  useEffect(() => {
+    if (variacao.sku && variacao.sku.trim()) {
+      skuEditadoManualRef.current = true;
+    }
+  }, []); // Apenas na montagem inicial
+  
+  // useEffect para auto-gerar SKU quando variacao ou nomeProduto mudarem
+  useEffect(() => {
+    // Só gerar SKU se:
+    // 1. A variação não estiver vazia
+    // 2. O nome do produto não estiver vazio
+    // 3. A variação ou nome do produto realmente mudaram (não apenas o SKU)
+    // 4. O SKU não foi editado manualmente pelo usuário
+    
+    const variacaoAtual = (variacao.variacao || "").trim();
+    const nomeProdutoAtual = (nomeProduto || "").trim();
+    const variacaoMudou = ultimaVariacaoProcessadaRef.current !== variacaoAtual;
+    const nomeProdutoMudou = ultimoNomeProdutoProcessadoRef.current !== nomeProdutoAtual;
+    
+    // Não processar se nem variação nem nome do produto mudaram (evitar processamento desnecessário)
+    if (!variacaoMudou && !nomeProdutoMudou) {
+      return;
+    }
+    
+    if (variacaoAtual && nomeProdutoAtual) {
+      const skuVazio = !variacao.sku || !variacao.sku.trim();
+      const precisaRegenerar = variacaoMudou || nomeProdutoMudou;
+      
+      // Se SKU está vazio OU (variacao/nome mudou E SKU não foi editado manualmente), gerar novo
+      if (skuVazio || (precisaRegenerar && !skuEditadoManualRef.current)) {
+        const skuGerado = generateSKU(nomeProdutoAtual, variacaoAtual);
+        
+        // Só atualizar se o SKU realmente mudou (evitar atualizações desnecessárias que causam loop)
+        if (variacao.sku !== skuGerado) {
+          onUpdate({ ...variacao, sku: skuGerado });
+          
+          console.log("[EditVariacaoRow] ✅ SKU auto-gerado:", {
+            nomeProduto: nomeProdutoAtual.substring(0, 20),
+            variacao: variacaoAtual,
+            sku: skuGerado,
+            motivo: skuVazio ? "SKU vazio" : (variacaoMudou ? "Variação mudou" : "Nome produto mudou")
+          });
+        }
+        
+        // Atualizar refs para marcar que processamos estes valores
+        ultimaVariacaoProcessadaRef.current = variacaoAtual;
+        ultimoNomeProdutoProcessadoRef.current = nomeProdutoAtual;
+      }
+    }
+  }, [variacao.variacao, nomeProduto, variacao.id]); // Dependências: variacao.variacao, nomeProduto e id (não incluir variacao.sku para evitar loop)
+
+  return (
+    <div className="grid grid-cols-12 gap-2 items-center">
+      {/* Input Variação */}
+      <div className="col-span-3">
+        <input
+          type="text"
+          value={variacao.variacao}
+          onChange={(e) => {
+            onUpdate({ ...variacao, variacao: e.target.value });
+          }}
+          placeholder="P"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Input Estoque */}
+      <div className="col-span-3">
+        <input
+          type="number"
+          min="0"
+          value={variacao.estoque}
+          onChange={(e) => {
+            onUpdate({ ...variacao, estoque: e.target.value });
+          }}
+          placeholder="10"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+        />
+      </div>
+
+      {/* Input SKU (editável, mas preenchido automaticamente) */}
+      <div className="col-span-5">
+        <input
+          type="text"
+          value={variacao.sku}
+          onChange={(e) => {
+            // Quando usuário edita manualmente, marcar como editado manualmente
+            skuEditadoManualRef.current = true;
+            onUpdate({ ...variacao, sku: e.target.value });
+          }}
+          onFocus={() => {
+            // Se campo está vazio ao focar, permitir auto-geração
+            if (!variacao.sku || !variacao.sku.trim()) {
+              skuEditadoManualRef.current = false;
+            }
+          }}
+          placeholder="Auto-gerado"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          title="SKU gerado automaticamente. Você pode editar se necessário."
+        />
+      </div>
+
+      {/* Botão Remover */}
+      <div className="col-span-1">
+        <button
+          type="button"
+          onClick={onRemove}
+          className="w-full flex items-center justify-center rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          title="Remover variação"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type EditProductFormProps = {
   produto: ProdutoDoc;
   lojistaId: string;
@@ -58,6 +256,40 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
     estoque: produto.estoque?.toString() || "",
     tags: produto.tags?.join(",") || "",
     descontoProduto: produto.descontoProduto?.toString() || "",
+    unidadeMedida: (produto as any).unidadeMedida || "UN", // Nova: Unidade de medida
+  });
+
+  // Estado para variações - carregar do produto se existir
+  const [temVariacoes, setTemVariacoes] = useState(() => {
+    // Verificar se produto tem variações
+    return !!(produto as any).variacoes && Array.isArray((produto as any).variacoes) && (produto as any).variacoes.length > 0;
+  });
+
+  const [variacoes, setVariacoes] = useState<Variacao[]>(() => {
+    // Se produto tem variações, carregar elas
+    if ((produto as any).variacoes && Array.isArray((produto as any).variacoes)) {
+      return (produto as any).variacoes.map((v: any, index: number) => ({
+        id: `existing-${index}-${Date.now()}`,
+        variacao: v.variacao || produto.tamanhos?.[index] || "",
+        estoque: v.estoque?.toString() || "",
+        sku: v.sku || "",
+      }));
+    }
+    // Senão, criar variações a partir dos tamanhos se existirem
+    if (produto.tamanhos && produto.tamanhos.length > 0) {
+      return produto.tamanhos.map((tamanho, index) => ({
+        id: `generated-${index}-${Date.now()}`,
+        variacao: tamanho,
+        estoque: produto.estoque?.toString() || "",
+        sku: "",
+      }));
+    }
+    // Padrão: 3 variações de exemplo
+    return [
+      { id: "1", variacao: "P", estoque: "10", sku: "CAM-AZ-P" },
+      { id: "2", variacao: "M", estoque: "15", sku: "CAM-AZ-M" },
+      { id: "3", variacao: "G", estoque: "5", sku: "CAM-AZ-G" },
+    ];
   });
 
   const [loading, setLoading] = useState(false);
@@ -144,6 +376,15 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
       if (result.success && result.data) {
         const analysis = result.data;
+        console.log("[EditProductForm] 📊 Dados da análise recebidos:", {
+          nome_sugerido: analysis.nome_sugerido,
+          categoria_sugerida: analysis.categoria_sugerida || analysis.suggested_category,
+          tags: analysis.tags,
+          cor_predominante: analysis.cor_predominante,
+          tem_descricao: !!analysis.descricao_seo,
+          logistic_unit: analysis.logistic_unit,
+          has_variations_likely: analysis.has_variations_likely
+        });
 
         // Preencher campos automaticamente
         if (analysis.nome_sugerido) {
@@ -154,8 +395,10 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
           setFormData(prev => ({ ...prev, observacoes: analysis.descricao_seo }));
         }
 
-        if (analysis.categoria_sugerida) {
-          setFormData(prev => ({ ...prev, categoria: analysis.categoria_sugerida }));
+        // Compatibilidade: usar categoria_sugerida ou suggested_category
+        const categoriaAnalisada = analysis.categoria_sugerida || analysis.suggested_category;
+        if (categoriaAnalisada) {
+          setFormData(prev => ({ ...prev, categoria: categoriaAnalisada }));
         }
 
         if (analysis.tags && Array.isArray(analysis.tags) && analysis.tags.length > 0) {
@@ -167,6 +410,41 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
             ...prev, 
             cores: prev.cores ? `${prev.cores} - ${analysis.cor_predominante}` : analysis.cor_predominante 
           }));
+        }
+
+        // NOVO: Preencher unidade de medida se retornada pela análise
+        if (analysis.logistic_unit) {
+          setFormData(prev => ({ ...prev, unidadeMedida: analysis.logistic_unit }));
+          console.log("[EditProductForm] ✅ Unidade de medida preenchida automaticamente:", analysis.logistic_unit);
+        }
+
+        // NOVO: Ativar/desativar variações baseado na análise
+        if (typeof analysis.has_variations_likely === 'boolean') {
+          setTemVariacoes(analysis.has_variations_likely);
+          console.log("[EditProductForm] ✅ Variações configuradas automaticamente:", analysis.has_variations_likely);
+          
+          // Se não tem variações, limpar a lista de variações ou criar uma vazia
+          if (!analysis.has_variations_likely) {
+            setVariacoes([]);
+          } else if (variacoes.length === 0) {
+            // Se tem variações mas lista está vazia, criar variações baseadas nos tamanhos existentes ou exemplos
+            if (produto.tamanhos && produto.tamanhos.length > 0) {
+              const novasVariacoes = produto.tamanhos.map((tamanho, index) => ({
+                id: `existing-${index}-${Date.now()}`,
+                variacao: tamanho,
+                estoque: produto.estoque?.toString() || "",
+                sku: "",
+              }));
+              setVariacoes(novasVariacoes);
+            } else {
+              // Criar 3 exemplos
+              setVariacoes([
+                { id: "1", variacao: "P", estoque: "10", sku: "CAM-AZ-P" },
+                { id: "2", variacao: "M", estoque: "15", sku: "CAM-AZ-M" },
+                { id: "3", variacao: "G", estoque: "5", sku: "CAM-AZ-G" },
+              ]);
+            }
+          }
         }
 
         // Adicionar detalhes ao campo observações se já houver conteúdo
@@ -222,17 +500,46 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
         imagemUrl: imagemUrlFinal,
         imagemUrlOriginal: formData.imagemUrlOriginal || imagemUrlFinal,
         imagemUrlCatalogo: formData.imagemUrlCatalogo || generatedCatalogImage || null,
-        tamanhos: formData.tamanhos ? formData.tamanhos.split(";").map((s) => s.trim()).filter(Boolean) : [],
         cores: formData.cores ? formData.cores.split("-").map((c) => c.trim()).filter(Boolean) : [],
         medidas: formData.medidas.trim() || "",
         observacoes: formData.observacoes.trim() || "",
         tags: formData.tags ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        unidadeMedida: formData.unidadeMedida || "UN",
       };
 
-      if (formData.estoque && formData.estoque.trim()) {
-        const estoqueNum = parseInt(formData.estoque.trim());
-        if (!isNaN(estoqueNum)) {
-          payload.estoque = estoqueNum;
+      // Se produto tem variações, processar grade de estoque
+      if (temVariacoes && variacoes.length > 0) {
+        // Extrair tamanhos das variações válidas (com variação preenchida)
+        const variacoesValidas = variacoes.filter(v => v.variacao && v.variacao.trim());
+        const tamanhosVariacoes = variacoesValidas.map(v => v.variacao.trim());
+        
+        if (tamanhosVariacoes.length > 0) {
+          payload.tamanhos = tamanhosVariacoes;
+          payload.variacoes = variacoesValidas.map(v => ({
+            variacao: v.variacao.trim(),
+            estoque: parseInt(v.estoque) || 0,
+            sku: v.sku?.trim() || "",
+          }));
+          
+          // Calcular estoque total
+          const estoqueTotal = variacoesValidas.reduce((sum, v) => sum + (parseInt(v.estoque) || 0), 0);
+          if (estoqueTotal > 0) {
+            payload.estoque = estoqueTotal;
+          }
+        }
+      }
+      
+      // Se não tem variações ou variações inválidas, usar campo tamanhos manual (compatibilidade)
+      if (!temVariacoes || !payload.tamanhos || payload.tamanhos.length === 0) {
+        if (formData.tamanhos && formData.tamanhos.trim()) {
+          payload.tamanhos = formData.tamanhos.split(";").map((s) => s.trim()).filter(Boolean);
+        }
+        
+        if (formData.estoque && formData.estoque.trim()) {
+          const estoqueNum = parseInt(formData.estoque.trim());
+          if (!isNaN(estoqueNum)) {
+            payload.estoque = estoqueNum;
+          }
         }
       }
 
@@ -532,25 +839,47 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
         {/* Grid com duas colunas: Dados Manuais e Análise IA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* COLUNA ESQUERDA: DADOS DO LOJISTA (Manuais - Obrigatórios) */}
+          {/* COLUNA ESQUERDA: PREENCHIMENTO OBRIGATÓRIO * */}
           <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-l-4 border-gray-800 dark:border-gray-600">
             <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 uppercase text-sm tracking-wider">
-              1. Dados do Lojista
+              Preenchimento Obrigatório *
             </h3>
             <div className="space-y-4">
-              {/* Preço */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Preço (R$) *
-                </label>
-                <input
-                  type="text"
-                  value={formData.preco}
-                  onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
-                  placeholder="Ex: 329,90"
-                  required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
-                />
+              {/* TOPO: Preço e Unidade lado a lado */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Preço de Venda */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    Preço de Venda (R$) *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.preco}
+                    onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
+                    placeholder="Ex: 329,90"
+                    required
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  />
+                </div>
+
+                {/* Unidade de Medida */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    Unidade de Medida *
+                  </label>
+                  <select
+                    value={formData.unidadeMedida}
+                    onChange={(e) => setFormData({ ...formData, unidadeMedida: e.target.value })}
+                    required
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  >
+                    <option value="UN">UN</option>
+                    <option value="KG">KG</option>
+                    <option value="M">M</option>
+                    <option value="PAR">PAR</option>
+                    <option value="CJ">CJ</option>
+                  </select>
+                </div>
               </div>
 
               {/* Desconto Especial */}
@@ -573,37 +902,71 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                 </p>
               </div>
 
-              {/* Tamanhos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Tamanhos (separados por ;) *
+              {/* Switch: Este produto possui variações? */}
+              <div className="flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Este produto possui variações? (Ex: Cores, Tamanhos)
                 </label>
-                <input
-                  type="text"
-                  value={formData.tamanhos}
-                  onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
-                  placeholder="Ex: P;M;G"
-                  required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
-                />
+                <button
+                  type="button"
+                  onClick={() => setTemVariacoes(!temVariacoes)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    temVariacoes ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      temVariacoes ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
 
-              {/* Estoque */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Estoque
-                </label>
-                <input
-                  type="text"
-                  value={formData.estoque}
-                  onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
-                  placeholder="Ex: 10"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
-                />
-              </div>
+              {/* ÁREA DINÂMICA: Grade de Estoque (quando variações ativadas) */}
+              {temVariacoes && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                    Grade de Estoque
+                  </h4>
+                  
+                  {/* Lista de Variações */}
+                  <div className="space-y-2">
+                    {variacoes.map((variacao) => (
+                      <VariacaoRow
+                        key={variacao.id}
+                        variacao={variacao}
+                        nomeProduto={formData.nome}
+                        onUpdate={(updated) => {
+                          setVariacoes(variacoes.map(v => v.id === variacao.id ? updated : v));
+                        }}
+                        onRemove={() => {
+                          setVariacoes(variacoes.filter(v => v.id !== variacao.id));
+                        }}
+                      />
+                    ))}
+                  </div>
 
-              {/* Medidas */}
-              <div>
+                  {/* Botão Adicionar Variação */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const novaId = Date.now().toString();
+                      setVariacoes([
+                        ...variacoes,
+                        { id: novaId, variacao: "", estoque: "", sku: "" }
+                      ]);
+                    }}
+                    className="w-full rounded-lg border-2 border-solid border-blue-300 dark:border-blue-400 bg-blue-300 dark:bg-blue-400 px-3 py-2 text-xs font-medium hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors duration-200 flex items-center justify-center gap-1.5"
+                    style={{ color: '#FFFFFF' }}
+                  >
+                    <span style={{ color: '#FFFFFF' }}>+</span>
+                    <span style={{ color: '#FFFFFF' }}>Adicionar Variação</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Medidas (sempre visível) */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Medidas
                 </label>

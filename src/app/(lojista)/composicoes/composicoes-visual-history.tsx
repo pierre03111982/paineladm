@@ -14,6 +14,12 @@ type Composition = {
   customerWhatsapp: string | null
   produtoNome?: string
   customerId: string
+  productIds?: string[]
+  produtosUtilizados?: Array<{
+    id: string
+    nome: string
+    imagemUrl: string
+  }>
 }
 
 type ComposicoesVisualHistoryProps = {
@@ -264,7 +270,7 @@ export function ComposicoesVisualHistory({
             scrollbarColor: 'rgba(156, 163, 175, 0.5) transparent',
           }}
         >
-          {/* Grid de composições - NOVO LAYOUT estilo Instagram/Pinterest */}
+          {/* Grid de composições - LAYOUT similar ao card de produto */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {displayedCompositions.map((comp) => {
               const status = getCompositionStatus(comp.createdAt)
@@ -272,70 +278,267 @@ export function ComposicoesVisualHistory({
               return (
                 <div
                   key={comp.id}
-                  className="group bg-[#1e1e2e] dark:bg-zinc-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-200 hover:-translate-y-1 flex flex-col"
+                  className="group relative product-card-gradient rounded-xl overflow-hidden hover:shadow-lg transition-all flex flex-col min-h-[500px]"
+                  style={{ display: 'flex', flexDirection: 'column', minHeight: '500px', border: '1px solid #60a5fa' }}
                 >
-                  {/* Área da Imagem - 80% do card */}
-                  <div 
-                    className="relative h-[300px] w-full cursor-pointer"
-                    onClick={() => openClientModal(comp)}
-                  >
+                  {/* Badge de Status no canto superior esquerdo */}
+                  <div className={`absolute top-2 left-2 z-20 px-2.5 py-1 rounded-full text-xs font-semibold ${status.className}`}>
+                    {status.label}
+                  </div>
+
+                  {/* Imagem Principal da Composição - Aspect Square */}
+                  <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
                     <Image
                       src={comp.imagemUrl}
                       alt={comp.produtoNome || "Composição"}
                       fill
-                      className="object-cover"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
                       unoptimized
                     />
-                    
-                    {/* Badge de Status no canto superior direito */}
-                    <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-semibold ${status.className}`}>
-                      {status.label}
-                    </div>
-                    
-                    {/* Overlay com opções secundárias no hover */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200">
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="flex gap-2">
-                          <button className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors">
-                            <Eye className="h-5 w-5 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Overlay gradient no hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
 
-                  {/* Rodapé - 20% do card com informações e botão */}
-                  <div className="p-4 bg-[#1e1e2e] dark:bg-zinc-900 text-white flex flex-col gap-3">
-                    {/* Cabeçalho: Nome e Data */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-white truncate">
+                  {/* Miniaturas dos Produtos Utilizados - Lado a lado abaixo da imagem */}
+                  {comp.produtosUtilizados && comp.produtosUtilizados.length > 0 && (
+                    <div className="px-2 pt-2 pb-1 bg-white">
+                      <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+                        {comp.produtosUtilizados.slice(0, 4).map((produto) => (
+                          <div
+                            key={produto.id}
+                            className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-white relative"
+                            style={{ minWidth: '64px' }}
+                          >
+                            {produto.imagemUrl ? (
+                              <Image
+                                src={produto.imagemUrl}
+                                alt={produto.nome}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                                <span className="text-xs text-gray-400">N/A</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Content - Container Flexível */}
+                  <div className="p-4 flex flex-col flex-1" style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '0' }}>
+                    {/* Nome do Cliente - Barra Gradiente */}
+                    <div className="flex justify-center items-center w-full mb-3" style={{ flexShrink: 0 }}>
+                      <div
+                        style={{ 
+                          background: 'linear-gradient(to right, #4f46e5, #2563eb, #4f46e5)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '8px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'default',
+                          width: '100%',
+                          textAlign: 'center',
+                          minHeight: '48px',
+                          boxShadow: '0 4px 6px rgba(79, 70, 229, 0.3)'
+                        }}
+                        className="font-semibold text-sm"
+                      >
+                        <h3 
+                          style={{ 
+                            color: '#FFFFFF', 
+                            margin: 0, 
+                            padding: 0,
+                            textAlign: 'center',
+                            width: '100%',
+                            lineHeight: '1.4',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            fontWeight: '600'
+                          }}
+                          className="font-semibold text-sm text-white"
+                        >
                           {comp.customerName}
                         </h3>
-                        <span className="text-xs text-gray-400">
+                      </div>
+                    </div>
+
+                    {/* Grid 2x2 com Informações */}
+                    <div 
+                      style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr', 
+                        gridTemplateRows: 'minmax(60px, 1fr) minmax(60px, 1fr)',
+                        gap: '0',
+                        border: '1px solid rgba(0, 0, 0, 0.15)',
+                        borderRadius: '6px',
+                        overflow: 'hidden',
+                        width: '100%',
+                        flexShrink: 0,
+                        minHeight: '120px',
+                        background: 'linear-gradient(180deg, #f3f4f6 0%, #ffffff 50%, #f3f4f6 100%)'
+                      }}
+                    >
+                      {/* Data/Hora */}
+                      <div style={{ 
+                        padding: '10px 8px',
+                        borderRight: '1px solid rgba(0, 0, 0, 0.15)',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        minHeight: '60px'
+                      }}>
+                        <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Data:</span>
+                        <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>
                           {formatCompositionDate(comp.createdAt)}
                         </span>
                       </div>
+                      
+                      {/* WhatsApp */}
+                      <div style={{ 
+                        padding: '10px 8px',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        minHeight: '60px'
+                      }}>
+                        <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>WhatsApp:</span>
+                        <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>
+                          {comp.customerWhatsapp ? formatWhatsApp(comp.customerWhatsapp) : "-"}
+                        </span>
+                      </div>
+                      
+                      {/* Produto Principal */}
+                      <div style={{ 
+                        padding: '10px 8px',
+                        borderRight: '1px solid rgba(0, 0, 0, 0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        minHeight: '60px'
+                      }}>
+                        <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Produto:</span>
+                        <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>
+                          {comp.produtoNome || "-"}
+                        </span>
+                      </div>
+                      
+                      {/* Total de Produtos */}
+                      <div style={{ 
+                        padding: '10px 8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        minHeight: '60px'
+                      }}>
+                        <span style={{ color: '#374151', fontSize: '10px', fontWeight: '500', marginBottom: '4px' }}>Itens:</span>
+                        <span style={{ color: '#111827', fontSize: '12px', fontWeight: '600' }}>
+                          {comp.produtosUtilizados?.length || comp.productIds?.length || "1"}
+                        </span>
+                      </div>
                     </div>
-                    
-                    {/* WhatsApp */}
-                    {comp.customerWhatsapp && (
-                      <p className="text-sm text-gray-300">
-                        {formatWhatsApp(comp.customerWhatsapp)}
-                      </p>
-                    )}
-                    
-                    {/* Botão de ação */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        openClientModal(comp)
+
+                    {/* Botões de Ação */}
+                    <div 
+                      style={{ 
+                        marginTop: 'auto', 
+                        flexShrink: 0,
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: '8px',
+                        paddingTop: '12px',
+                        width: '100%'
                       }}
-                      className="w-full mt-2 px-4 py-2.5 bg-[#6c5ce7] hover:bg-[#5b4bc4] text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                     >
-                      <Sparkles className="h-4 w-4" />
-                      Analisar & Vender
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openClientModal(comp)
+                        }}
+                        style={{
+                          background: 'linear-gradient(to right, #2563eb, #9333ea)',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          padding: '10px 16px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          flex: '1 1 0%',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          minWidth: 0
+                        }}
+                      >
+                        <Eye 
+                          style={{ 
+                            width: '16px', 
+                            height: '16px', 
+                            color: '#ffffff', 
+                            stroke: '#ffffff',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span style={{ color: '#ffffff' }}>Ver</span>
+                      </button>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openClientModal(comp)
+                        }}
+                        style={{
+                          background: 'linear-gradient(to right, #22c55e, #16a34a)',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          padding: '10px 16px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          flex: '1 1 0%',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          minWidth: 0
+                        }}
+                      >
+                        <Sparkles 
+                          style={{ 
+                            width: '16px', 
+                            height: '16px', 
+                            color: '#ffffff', 
+                            stroke: '#ffffff',
+                            flexShrink: 0
+                          }}
+                        />
+                        <span style={{ color: '#ffffff' }}>Analisar</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
