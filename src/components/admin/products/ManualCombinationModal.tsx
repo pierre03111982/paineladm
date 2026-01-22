@@ -102,27 +102,27 @@ export function ManualCombinationModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">
             Montar Look Combinado
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
           >
-            <X className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+            <X className="h-6 w-6 text-gray-500" />
           </button>
         </div>
 
         {/* Área de Slots */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-gray-900">
               Produtos Selecionados
             </h3>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-gray-500">
               Itens selecionados: {selectedCount}/2
             </span>
           </div>
@@ -130,11 +130,11 @@ export function ManualCombinationModal({
           <div className="flex gap-4">
             {/* Slot Fixo: Produto Principal */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Produto Principal (Atual)
               </label>
-              <div className="aspect-square rounded-lg border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 p-2">
-                <div className="w-full h-full flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <div className="aspect-square rounded-lg border-2 border-indigo-500 bg-indigo-50 p-2">
+                <div className="w-full h-full flex items-center justify-center text-indigo-600">
                   <span className="text-sm font-semibold">Produto Atual</span>
                 </div>
               </div>
@@ -142,10 +142,10 @@ export function ManualCombinationModal({
 
             {/* Slot 1 */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Peça Complementar 1
               </label>
-              <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
+              <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 relative overflow-hidden">
                 {selectedSlots[0] ? (
                   <>
                     {selectedSlots[0].imagemUrl && (
@@ -175,10 +175,10 @@ export function ManualCombinationModal({
 
             {/* Slot 2 */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Peça Complementar 2
               </label>
-              <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 relative overflow-hidden">
+              <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 relative overflow-hidden">
                 {selectedSlots[1] ? (
                   <>
                     {selectedSlots[1].imagemUrl && (
@@ -209,7 +209,7 @@ export function ManualCombinationModal({
         </div>
 
         {/* Barra de Ferramentas */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -218,13 +218,13 @@ export function ManualCombinationModal({
                 placeholder="Buscar produtos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
               />
             </div>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900"
             >
               <option value="">Todas as categorias</option>
               {categories.map(cat => (
@@ -241,7 +241,7 @@ export function ManualCombinationModal({
               <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               Nenhum produto encontrado
             </div>
           ) : (
@@ -255,8 +255,8 @@ export function ManualCombinationModal({
                     disabled={isSelected}
                     className={`relative aspect-square rounded-lg border-2 overflow-hidden transition ${
                       isSelected
-                        ? "border-green-500 bg-green-50 dark:bg-green-900/20 opacity-50 cursor-not-allowed"
-                        : "border-gray-200 dark:border-gray-700 hover:border-indigo-500"
+                        ? "border-green-500 bg-green-50 opacity-50 cursor-not-allowed"
+                        : "border-gray-200 hover:border-indigo-500"
                     }`}
                   >
                     {product.imagemUrl ? (
@@ -266,7 +266,7 @@ export function ManualCombinationModal({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs text-center p-2">
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400 text-xs text-center p-2">
                         {product.nome}
                       </div>
                     )}
@@ -281,10 +281,10 @@ export function ManualCombinationModal({
         </div>
 
         {/* Rodapé */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold"
+            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold"
           >
             Cancelar
           </button>

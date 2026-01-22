@@ -397,7 +397,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 <img
                   src={logoPreview}
                   alt="Logo da loja"
-                  className="h-24 w-24 rounded-xl object-cover border-2 border-gray-300/50 dark:border-purple-500/50 neon-card shadow-lg"
+                  className="h-24 w-24 rounded-xl object-cover border-2 border-gray-300/50 neon-card shadow-lg"
                 />
                 <button
                   type="button"
@@ -408,7 +408,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 </button>
               </div>
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-xl border-2 border-dashed border-gray-300/50 dark:border-purple-500/50 neon-card bg-[var(--bg-card)]/60">
+              <div className="flex h-24 w-24 items-center justify-center rounded-xl border-2 border-dashed border-gray-300/50 neon-card bg-[var(--bg-card)]/60">
                 <ImageIcon className="h-8 w-8 text-[var(--text-secondary)]" />
               </div>
             )}
@@ -429,7 +429,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               />
               <label
                 htmlFor="logo-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-gray-300 dark:border-indigo-500/50 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] transition-all active:scale-[0.98]"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-gray-300 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] transition-all active:scale-[0.98]"
               >
                 {isUploadingLogo ? (
                   <>
@@ -454,7 +454,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           <div className="flex-shrink-0">
             {appIconPreview ? (
               <div className="relative">
-                <div className="relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-gray-300/50 dark:border-purple-500/50 neon-card shadow-lg bg-white dark:bg-gray-800 p-2">
+                <div className="relative h-24 w-24 rounded-2xl overflow-hidden border-2 border-gray-300/50 neon-card shadow-lg bg-white p-2">
                   <img
                     src={appIconPreview}
                     alt="Ícone do aplicativo"
@@ -470,7 +470,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 </button>
               </div>
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-300/50 dark:border-purple-500/50 neon-card bg-[var(--bg-card)]/60">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-gray-300/50 neon-card bg-[var(--bg-card)]/60">
                 <ImageIcon className="h-8 w-8 text-[var(--text-secondary)]" />
               </div>
             )}
@@ -491,7 +491,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               />
               <label
                 htmlFor="app-icon-upload"
-                className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-gray-300 dark:border-indigo-500/50 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] transition-all active:scale-[0.98]"
+                className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-gray-300 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-indigo-500/40 hover:scale-[1.02] transition-all active:scale-[0.98]"
               >
                 {isUploadingAppIcon ? (
                   <>
@@ -507,7 +507,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               </label>
             </div>
             {appIconPreview && (
-              <p className="text-xs text-green-500 dark:text-green-400 font-medium">
+              <p className="text-xs text-green-500 font-medium">
                 ✓ Ícone configurado. O aplicativo usará este ícone quando instalado no celular.
               </p>
             )}
@@ -536,7 +536,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               type="text"
               value={formData.nome}
               onChange={(e) => handleNomeChange(e.target.value)}
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+              className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
               placeholder="Ex: Pierre Loja"
               required
             />
@@ -551,7 +551,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
               onChange={(e) =>
                 setFormData({ ...formData, descricao: e.target.value })
               }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors resize-none"
+              className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors resize-none"
               rows={3}
               placeholder="Descreva sua loja em poucas palavras..."
             />
@@ -586,7 +586,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                   salesChannel: e.target.value as "checkout" | "whatsapp",
                 })
               }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+              className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
             >
               <option value="whatsapp">WhatsApp</option>
               <option value="checkout">Link de Checkout/E-commerce</option>
@@ -596,14 +596,14 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           {formData.salesChannel === "whatsapp" && (
             <div>
               <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)] mb-2">
-                <MessageCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <MessageCircle className="h-4 w-4 text-green-600" />
                 WhatsApp para Vendas *
               </label>
               <input
                 type="text"
                 value={formData.salesWhatsapp}
                 onChange={(e) => handleSalesWhatsappChange(e.target.value)}
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 placeholder="(11) 99999-9999"
                 required={formData.salesChannel === "whatsapp"}
               />
@@ -623,12 +623,12 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 onChange={(e) =>
                   setFormData({ ...formData, whatsappMessageTemplate: e.target.value })
                 }
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors resize-none"
+                className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors resize-none"
                 rows={4}
                 placeholder="Olá! Gostou do look? Confira os detalhes e compre agora: {{link}}"
               />
               <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">
-                Use <code className="bg-[var(--bg-card)]/60 px-1.5 py-0.5 rounded text-[var(--text-main)] font-mono border border-gray-300/30 dark:border-indigo-500/30">{"{{link}}"}</code> para incluir o link do produto automaticamente. Esta mensagem será enviada quando o cliente clicar em "Comprar agora".
+                Use <code className="bg-[var(--bg-card)]/60 px-1.5 py-0.5 rounded text-[var(--text-main)] font-mono border border-gray-300/30">{"{{link}}"}</code> para incluir o link do produto automaticamente. Esta mensagem será enviada quando o cliente clicar em "Comprar agora".
               </p>
             </div>
           )}
@@ -636,7 +636,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           {formData.salesChannel === "checkout" && (
             <div>
               <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-main)] mb-2">
-                <ShoppingCart className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <ShoppingCart className="h-4 w-4 text-emerald-600" />
                 Link de Checkout/E-commerce *
               </label>
               <input
@@ -645,7 +645,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                 onChange={(e) =>
                   setFormData({ ...formData, checkoutLink: e.target.value })
                 }
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 placeholder="https://sualoja.com/produto ou https://checkout.sualoja.com"
                 required={formData.salesChannel === "checkout"}
               />

@@ -192,8 +192,8 @@ function ProductGridCard({
           className="w-full"
         />
       ) : (
-        <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
-          <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
+        <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
+          <Package className="h-12 w-12 text-gray-300" />
         </div>
       )}
 
@@ -1097,7 +1097,7 @@ export function ProductsTable({
   return (
     <>
       <div className="neon-card rounded-2xl overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-gray-200 dark:border-gray-700 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-3">
             <div className="text-sm text-[var(--text-secondary)]">
               {searchTerm.trim() || categoryFilter !== "all"
@@ -1117,7 +1117,7 @@ export function ProductsTable({
             </div>
             {selectedProducts.size > 0 && (
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-500/30">
+                <span className="text-sm font-semibold text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-200">
                   {selectedProducts.size} selecionado(s)
                 </span>
                 <button
@@ -1139,20 +1139,20 @@ export function ProductsTable({
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar por nome, categoria..."
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] pl-10 pr-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-gray-300 bg-white pl-10 pr-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <Filter className="h-4 w-4 text-gray-400" />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="all">Todas</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -1536,7 +1536,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-4xl rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-4xl rounded-xl border border-gray-300 bg-white p-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-[var(--text-main)]">Editar produto</h2>
@@ -1546,7 +1546,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
           <button 
             onClick={onClose} 
-            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -1567,13 +1567,13 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           {/* Foto Principal - Mostrar Original e Catálogo lado a lado */}
           <div>
             <label className="block text-xs font-medium text-[var(--text-main)] mb-1.5">FOTO PRINCIPAL</label>
-            <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
+            <div className="rounded-xl border border-gray-300 bg-gray-50 p-3 space-y-3">
               {/* Preview lado a lado: Original e Catálogo */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Foto Original */}
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">Foto Original</label>
-                  <div className="w-full h-32 rounded-xl bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-32 rounded-xl bg-white flex items-center justify-center overflow-hidden">
                     {(formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl) ? (
                       <img
                         src={formData.imagemUrlOriginal || formData.imagemUrl || uploadedImageUrl}
@@ -1582,8 +1582,8 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       />
                     ) : (
                       <div className="text-center">
-                        <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Sem imagem</p>
+                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-500">Sem imagem</p>
                       </div>
                     )}
                   </div>
@@ -1594,7 +1594,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
                     Foto Catálogo (IA) {formData.imagemUrlCatalogo && <span className="text-emerald-400">✓</span>}
                   </label>
-                  <div className="w-full h-32 rounded-xl bg-white dark:bg-gray-800/50 flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-32 rounded-xl bg-white flex items-center justify-center overflow-hidden">
                     {(formData.imagemUrlCatalogo || generatedCatalogImage) ? (
                       <img
                         src={formData.imagemUrlCatalogo || generatedCatalogImage || ""}
@@ -1603,7 +1603,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       />
                     ) : (
                       <div className="text-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Gere com IA</p>
+                        <p className="text-xs text-gray-500">Gere com IA</p>
                         <p className="text-[10px] text-zinc-600 mt-1">Esta será exibida em todos os lugares</p>
                       </div>
                     )}
@@ -1655,7 +1655,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       });
                     }}
                     placeholder="https://exemplo.com/imagem.jpg"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -1664,11 +1664,11 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
 
           {/* Fase 13: Estúdio Virtual & Display */}
           {(formData.imagemUrl || uploadedImageUrl) && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-gray-200 pt-4">
               <label className="block text-xs font-medium text-zinc-300 mb-2">
                 ✨ ESTÚDIO VIRTUAL & DISPLAY
               </label>
-              <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
+              <div className="rounded-xl border border-gray-300 bg-gray-50 p-3 space-y-3">
                 {/* Seletor de Cor do Manequim */}
                 <div>
                   <label className="block text-xs font-medium text-[var(--text-secondary)] mb-1.5">
@@ -1800,7 +1800,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                       <p className="text-xs text-emerald-300 mb-2 font-semibold">
                         ✅ Imagem salva automaticamente como imagem principal do catálogo!
                       </p>
-                      <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800/50 p-2">
+                      <div className="rounded-xl border border-gray-300 bg-white p-2">
                         <img
                           src={generatedCatalogImage}
                           alt="Imagem de catálogo gerada"
@@ -1838,7 +1838,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
               placeholder="Ex: Vestido Aurora"
               required
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
             />
           </div>
 
@@ -1852,7 +1852,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
                 placeholder="Ex: 329,90"
                 required
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
               />
             </div>
             <div>
@@ -1861,7 +1861,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.categoria}
                 onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                 required
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-indigo-400 focus:outline-none"
               >
                 <option value="">Selecione uma categoria</option>
                 {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -1874,7 +1874,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
           </div>
 
           {/* Descontos e Valor Final Calculado */}
-          <div className="rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-[var(--bg-card)] p-3 space-y-3">
+          <div className="rounded-xl border border-gray-300 bg-gray-50 p-3 space-y-3">
             <label className="block text-xs font-medium text-zinc-300 mb-2">
               💰 DESCONTOS E PREÇO FINAL
             </label>
@@ -1909,7 +1909,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                   value={formData.descontoProduto}
                   onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
                   placeholder="Ex: 10"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
                 />
                 <p className="text-[10px] text-zinc-500 mt-1">
                   Somado ao desconto das redes sociais
@@ -1968,7 +1968,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.cores}
                 onChange={(e) => setFormData({ ...formData, cores: e.target.value })}
                 placeholder="Ex: lilás - grafite"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
               />
             </div>
             <div>
@@ -1980,7 +1980,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.tamanhos}
                 onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
                 placeholder="Ex: P;M;G"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
               />
             </div>
           </div>
@@ -1994,7 +1994,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.estoque}
                 onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
                 placeholder="Ex: 10"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
               />
             </div>
             <div>
@@ -2006,7 +2006,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder="Ex: promoção, novo, destaque"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
               />
             </div>
           </div>
@@ -2019,7 +2019,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               value={formData.medidas}
               onChange={(e) => setFormData({ ...formData, medidas: e.target.value })}
               placeholder="Ex: Altura: 150cm, Largura: 80cm"
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
             />
           </div>
 
@@ -2033,12 +2033,12 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               placeholder="Ex: tecido em seda, caimento leve, ideal para looks noturnos."
               rows={2}
-              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-400 dark:focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none"
             />
           </div>
 
           {/* Info e Botões */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="pt-2 border-t border-gray-200">
             <div className="flex items-start gap-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-2 mb-2">
               <Info className="h-3.5 w-3.5 mt-0.5 text-indigo-400 flex-shrink-0" />
               <p className="text-xs text-indigo-200">
@@ -2050,7 +2050,7 @@ function EditProdutoModal({ produto, lojistaId, descontoRedesSociais = null, onC
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-white transition hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-gray-50"
               >
                 Cancelar
               </button>

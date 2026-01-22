@@ -139,13 +139,13 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
                 <Upload className="h-4 w-4" style={{ color: '#FFFFFF' }} />
                 <span style={{ color: '#FFFFFF' }}>Importar CSV</span>
               </button>
-              <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-white transition-all hover:bg-gray-50 dark:hover:bg-[var(--bg-card)]/80">
+              <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-all hover:bg-gray-50">
                 <Download className="h-4 w-4" />
                 Modelo CSV
               </button>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <motion.button
               onClick={() => router.push("/ajustador-medidas-test")}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white shadow-lg shadow-red-500/30 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
@@ -154,15 +154,15 @@ export function ProductsPageContent({ initialProdutos, lojistaId, perfil }: Prod
               <Ruler className="h-4 w-4 text-white" style={{ color: '#FFFFFF' }} />
               <span className="text-white" style={{ color: '#FFFFFF' }}>Testar Ajustador de Medidas</span>
             </motion.button>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-xs text-gray-600 mt-2">
               Teste a funcionalidade de Provador Virtual / Ajustador de Medidas
             </p>
           </div>
           {bulkAnalysisResult && (
             <div className={`mt-4 p-3 rounded-lg text-sm ${
               bulkAnalysisResult.startsWith("Erro") 
-                ? "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300" 
-                : "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                ? "bg-red-100 text-red-700" 
+                : "bg-green-100 text-green-700"
             }`}>
               {bulkAnalysisResult}
             </div>

@@ -45,19 +45,19 @@ export default function AjustadorMedidasTestPage() {
     <div className="container mx-auto p-8 max-w-4xl">
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             🧪 Teste do Ajustador de Medidas
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Página de teste para o Provador Virtual / Ajustador de Medidas
           </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-lg border border-gray-300 dark:border-slate-600 p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white rounded-lg border border-gray-300 p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Como Testar:
           </h2>
-          <ol className="list-decimal list-inside space-y-2 text-gray-700 dark:text-gray-300">
+          <ol className="list-decimal list-inside space-y-2 text-gray-700">
             <li>Clique no botão abaixo para abrir o Provador Virtual</li>
             <li>Preencha os dados básicos (Altura, Peso, Idade, Gênero)</li>
             <li>Ajuste os sliders e o tom de pele no manequim</li>
@@ -65,8 +65,8 @@ export default function AjustadorMedidasTestPage() {
           </ol>
         </div>
 
-        <div className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg border border-red-200 dark:border-red-800 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-lg border border-red-200 p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Provador Virtual
           </h2>
           
@@ -79,19 +79,19 @@ export default function AjustadorMedidasTestPage() {
               className="w-full sm:w-auto"
             />
 
-            <div className="text-sm text-gray-700 dark:text-gray-300">
-              <p className="font-medium mb-2 text-gray-900 dark:text-white">📊 Medidas do Produto (para teste):</p>
-              <div className="bg-gray-50 dark:bg-slate-700 rounded p-3 text-xs font-mono text-gray-900 dark:text-gray-100">
+            <div className="text-sm text-gray-700">
+              <p className="font-medium mb-2 text-gray-900">📊 Medidas do Produto (para teste):</p>
+              <div className="bg-gray-50 rounded p-3 text-xs font-mono text-gray-900">
                 {JSON.stringify(productMeasurements, null, 2)}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
-          <p className="text-sm text-blue-900 dark:text-blue-200">
+        <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+          <p className="text-sm text-blue-900">
             <strong>💡 Dica:</strong> Esta é uma página de teste. Para usar no app modelo-2, 
-            você precisará integrar o componente <code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">FittingTrigger</code> 
+            você precisará integrar o componente <code className="bg-blue-100 px-1 rounded">FittingTrigger</code> 
             na página de produtos ou onde desejar exibir o ajustador de medidas.
           </p>
         </div>

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar imageUrl
-    const { imageUrl } = body;
+    const { imageUrl, context } = body;
 
     if (!imageUrl || typeof imageUrl !== "string") {
       return NextResponse.json(
@@ -59,18 +59,56 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("[api/products/analyze] Iniciando análise para lojistaId:", lojistaId);
+    // Validar contexto se fornecido
+    if (context) {
+      if (context.audience && !['KIDS', 'ADULT'].includes(context.audience)) {
+        return NextResponse.json(
+          { error: "context.audience deve ser 'KIDS' ou 'ADULT'" },
+          { status: 400 }
+        );
+      }
+      if (context.sizeSystem && !['AGE_BASED', 'LETTER_BASED', 'NUMERIC'].includes(context.sizeSystem)) {
+        return NextResponse.json(
+          { error: "context.sizeSystem deve ser 'AGE_BASED', 'LETTER_BASED' ou 'NUMERIC'" },
+          { status: 400 }
+        );
+      }
+    }
+
+    console.log("[api/products/analyze] Iniciando análise para lojistaId:", lojistaId, "context:", context);
 
     // Chamar serviço de análise
-    const analysisResult = await productAnalyzerService.analyzeProductImage(imageUrl);
+    let analysisResult;
+    try {
+      analysisResult = await productAnalyzerService.analyzeProductImage(imageUrl, context);
+    } catch (serviceError: any) {
+      console.error("[api/products/analyze] Erro no serviço de análise:", serviceError);
+      
+      // Sanitizar a mensagem de erro para garantir JSON válido
+      const errorMessage = serviceError?.message || "Erro ao analisar produto";
+      const sanitizedMessage = String(errorMessage)
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, '')
+        .substring(0, 500); // Limitar tamanho
+      
+      // Garantir que sempre retornamos JSON válido
+      return NextResponse.json(
+        { 
+          error: sanitizedMessage,
+          details: "A análise automática falhou. Você pode preencher os campos manualmente.",
+        },
+        { status: 500 }
+      );
+    }
 
-    if (!analysisResult.success) {
-      console.error("[api/products/analyze] Erro na análise:", analysisResult.error);
+    if (!analysisResult || !analysisResult.success) {
+      console.error("[api/products/analyze] Erro na análise:", analysisResult?.error || "Resultado inválido");
       
       // Retornar erro suave para permitir preenchimento manual
       return NextResponse.json(
         { 
-          error: analysisResult.error || "Erro ao analisar produto",
+          error: analysisResult?.error || "Erro ao analisar produto",
           details: "A análise automática falhou. Você pode preencher os campos manualmente.",
         },
         { status: 500 }
@@ -88,10 +126,18 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/products/analyze] Erro inesperado:", error);
     
+    // Sanitizar a mensagem de erro para garantir JSON válido
+    const errorMessage = error?.message || "Erro desconhecido";
+    const sanitizedMessage = String(errorMessage)
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, ' ')
+      .replace(/\r/g, '')
+      .substring(0, 500); // Limitar tamanho
+    
     return NextResponse.json(
       { 
         error: "Erro interno do servidor",
-        details: error.message || "Erro desconhecido",
+        details: sanitizedMessage,
       },
       { status: 500 }
     );

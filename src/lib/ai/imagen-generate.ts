@@ -280,6 +280,17 @@ async function imageUrlToBase64(imageUrl: string): Promise<{ base64: string; mim
       throw new Error("URL da imagem é inválida ou vazia");
     }
 
+    // Verificar se é uma data URL (data:image/...;base64,...)
+    if (imageUrl.startsWith('data:image/')) {
+      const matches = imageUrl.match(/^data:image\/([^;]+);base64,(.+)$/);
+      if (matches) {
+        const mimeType = `image/${matches[1]}`;
+        const base64 = matches[2];
+        console.log(`[ImagenGenerate] Data URL detectada: ${mimeType}, base64 length: ${base64.length}`);
+        return { base64, mimeType };
+      }
+    }
+
     console.log(`[ImagenGenerate] Baixando imagem de: ${imageUrl.substring(0, 150)}...`);
     
     const response = await fetch(imageUrl, {
@@ -515,7 +526,9 @@ export async function generateCatalogImage(
         },
       ],
       generationConfig: {
-        temperature: 0.4,
+        // Aumentado para de fato "refazer" como foto de catálogo/ghost mannequin.
+        // Quando a temperatura é muito baixa, o modelo pode devolver praticamente a mesma imagem.
+        temperature: 0.75, // Aumentado para garantir mais transformação da imagem original
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
@@ -557,6 +570,16 @@ export async function generateCatalogImage(
         error: errorData,
         rawError: errorText,
       });
+      
+      // Detectar especificamente erro 429 e propagar de forma mais clara
+      if (response.status === 429 || 
+          errorText.includes("429") || 
+          errorText.includes("Resource exhausted") || 
+          errorText.includes("RESOURCE_EXHAUSTED") ||
+          errorData?.error?.code === 429 ||
+          errorData?.error?.status === "RESOURCE_EXHAUSTED") {
+        throw new Error(`429 Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.`);
+      }
       
       throw new Error(`Erro ao gerar imagem: ${response.status} - ${errorText}`);
     }

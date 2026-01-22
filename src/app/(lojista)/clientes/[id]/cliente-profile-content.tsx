@@ -305,13 +305,13 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           Voltar
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-heading">Perfil do Cliente</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 font-medium">Visualize informações e histórico completo</p>
+          <h1 className="text-2xl font-bold text-blue-600 font-heading">Perfil do Cliente</h1>
+          <p className="text-sm text-slate-600 mt-1 font-medium">Visualize informações e histórico completo</p>
         </div>
       </div>
 
       {/* Profile Card Compacto - Estilo similar às Composições */}
-      <div className="group relative overflow-hidden neon-card rounded-xl border-2 border-indigo-400/60 dark:border-indigo-500/60 transition-all hover:-translate-y-1 hover:border-indigo-500/80 dark:hover:border-indigo-400/80" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(99, 102, 241, 0.35), 0 0 60px rgba(99, 102, 241, 0.15)' }}>
+      <div className="group relative overflow-hidden neon-card rounded-xl border-2 border-indigo-400/60 transition-all hover:-translate-y-1 hover:border-indigo-500/80" style={{ boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(99, 102, 241, 0.35), 0 0 60px rgba(99, 102, 241, 0.15)' }}>
         {/* Colagem de Fundo com últimas 10 imagens - Nítida e Vertical 9:16 */}
         <div className="relative h-64 w-full overflow-hidden">
           {recentImages.length > 0 ? (
@@ -321,7 +321,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 {recentImages.slice(0, 10).map((imageUrl, index) => (
                   <div
                     key={index}
-                    className="relative flex-1 overflow-hidden bg-slate-300 dark:bg-slate-700"
+                    className="relative flex-1 overflow-hidden bg-slate-300"
                     style={{ aspectRatio: '9/16' }}
                   >
                     {imageUrl && (
@@ -386,21 +386,21 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               
               <div className="flex flex-col gap-2" style={{ zIndex: 35 }}>
                 {cliente.whatsapp && (
-                  <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-white/40">
-                    <Phone className="h-4 w-4 text-white" />
-                    <span className="font-semibold text-white text-sm">{cliente.whatsapp}</span>
+                  <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-gray-300 shadow-lg">
+                    <Phone className="h-4 w-4 text-gray-700" />
+                    <span className="font-semibold text-gray-900 text-sm">{cliente.whatsapp}</span>
                   </div>
                 )}
                 {cliente.email && (
-                  <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-white/40">
-                    <Mail className="h-4 w-4 text-white" />
-                    <span className="font-semibold text-white text-sm truncate max-w-[200px]">{cliente.email}</span>
+                  <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-gray-300 shadow-lg">
+                    <Mail className="h-4 w-4 text-gray-700" />
+                    <span className="font-semibold text-gray-900 text-sm truncate max-w-[200px]">{cliente.email}</span>
                   </div>
                 )}
                 {cliente.createdAt && (
-                  <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-white/40">
-                    <Calendar className="h-4 w-4 text-white" />
-                    <span className="font-semibold text-white text-sm">
+                  <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md rounded-full px-3 py-1.5 w-fit border border-gray-300 shadow-lg">
+                    <Calendar className="h-4 w-4 text-gray-700" />
+                    <span className="font-semibold text-gray-900 text-sm">
                       Cliente desde {new Date(cliente.createdAt.toDate?.() || cliente.createdAt).toLocaleDateString("pt-BR")}
                     </span>
                   </div>
@@ -410,7 +410,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                     {tags.slice(0, 2).map((tag, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center gap-1 rounded-full border border-white/50 bg-black/70 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-white"
+                        className="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white/90 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-gray-900 shadow-lg"
                       >
                         <Tag className="h-3.5 w-3.5" />
                         {tag}
@@ -424,39 +424,39 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
         </div>
 
         {/* Stats Cards - Dentro do mesmo card */}
-        <div className="p-4 bg-white dark:bg-slate-800">
+        <div className="p-4 bg-white">
           {/* Sales Stats - Se existir */}
           {cliente.salesStats && (
             <div className="grid grid-cols-3 gap-2 mb-3">
-              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-50/50 dark:bg-emerald-900/20">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-50/50">
                 <div className="rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 p-1.5 shadow-md text-white">
                   <DollarSign className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 truncate">Total Gasto</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                  <p className="text-xs font-medium text-emerald-700 truncate">Total Gasto</p>
+                  <p className="text-lg font-bold text-slate-900 truncate">
                     R$ {cliente.salesStats.totalSpent.toFixed(2)}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-blue-400/60 bg-blue-50/50 dark:bg-blue-900/20">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-blue-400/60 bg-blue-50/50">
                 <div className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 p-1.5 shadow-md text-white">
                   <ShoppingCart className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">Pedidos</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white">{cliente.salesStats.orderCount}</p>
+                  <p className="text-xs font-medium text-blue-700 truncate">Pedidos</p>
+                  <p className="text-lg font-bold text-slate-900">{cliente.salesStats.orderCount}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-400/60 bg-purple-50/50 dark:bg-purple-900/20">
+              <div className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-400/60 bg-purple-50/50">
                 <div className="rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 shadow-md text-white">
                   <TrendingUp className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-purple-700 dark:text-purple-300 truncate">Ticket Médio</p>
-                  <p className="text-lg font-bold text-slate-900 dark:text-white truncate">
+                  <p className="text-xs font-medium text-purple-700 truncate">Ticket Médio</p>
+                  <p className="text-lg font-bold text-slate-900 truncate">
                     R$ {cliente.salesStats.averageTicket.toFixed(2)}
                   </p>
                 </div>
@@ -466,43 +466,43 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
           {/* Engagement Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-blue-400/60 bg-blue-50/50 dark:bg-blue-900/20">
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-blue-400/60 bg-blue-50/50">
               <div className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 p-1.5 shadow-md text-white">
                 <ImageIcon className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate">Composições</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalComposicoes}</p>
+                <p className="text-xs font-medium text-blue-700 truncate">Composições</p>
+                <p className="text-lg font-bold text-slate-900">{totalComposicoes}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-50/50 dark:bg-emerald-900/20">
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-emerald-400/60 bg-emerald-50/50">
               <div className="rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 p-1.5 shadow-md text-white">
                 <Heart className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 truncate">Curtidas</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalLikes}</p>
+                <p className="text-xs font-medium text-emerald-700 truncate">Curtidas</p>
+                <p className="text-lg font-bold text-slate-900">{totalLikes}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-amber-400/60 bg-amber-50/50 dark:bg-amber-900/20">
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-amber-400/60 bg-amber-50/50">
               <div className="rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 p-1.5 shadow-md text-white">
                 <ThumbsDown className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-amber-700 dark:text-amber-300 truncate">Rejeições</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalDislikes}</p>
+                <p className="text-xs font-medium text-amber-700 truncate">Rejeições</p>
+                <p className="text-lg font-bold text-slate-900">{totalDislikes}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-400/60 bg-purple-50/50 dark:bg-purple-900/20">
+            <div className="flex items-center gap-2 p-2.5 rounded-lg border border-purple-400/60 bg-purple-50/50">
               <div className="rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 p-1.5 shadow-md text-white">
                 <Share2 className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-purple-700 dark:text-purple-300 truncate">Compartilhamentos</p>
-                <p className="text-lg font-bold text-slate-900 dark:text-white">{totalShares}</p>
+                <p className="text-xs font-medium text-purple-700 truncate">Compartilhamentos</p>
+                <p className="text-lg font-bold text-slate-900">{totalShares}</p>
               </div>
             </div>
           </div>
@@ -521,7 +521,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {/* Top Cores */}
             {cliente.dnaEstilo.coresPreferidas && Object.keys(cliente.dnaEstilo.coresPreferidas).length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Top Cores Preferidas</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Top Cores Preferidas</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.coresPreferidas)
                     .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
@@ -529,10 +529,10 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                     .map(([cor, score]) => (
                       <div
                         key={cor}
-                        className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-700 px-3 py-2"
+                        className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
                       >
                         <div
-                          className="h-4 w-4 rounded-full border border-gray-300 dark:border-gray-600"
+                          className="h-4 w-4 rounded-full border border-gray-300"
                           style={{
                             backgroundColor: cor.toLowerCase() === "preto" ? "#000000" :
                                            cor.toLowerCase() === "branco" ? "#ffffff" :
@@ -549,8 +549,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                                            "#9ca3af",
                           }}
                         />
-                        <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{cor}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">({String(score)})</span>
+                        <span className="text-sm font-medium text-gray-900 capitalize">{cor}</span>
+                        <span className="text-xs text-gray-500">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -560,7 +560,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {/* Tecidos Favoritos */}
             {cliente.dnaEstilo.tecidosPreferidos && Object.keys(cliente.dnaEstilo.tecidosPreferidos).length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tecidos Favoritos</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Tecidos Favoritos</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.tecidosPreferidos)
                     .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
@@ -568,10 +568,10 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                     .map(([tecido, score]) => (
                       <div
                         key={tecido}
-                        className="rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5"
+                        className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5"
                       >
-                        <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300 capitalize">{tecido}</span>
-                        <span className="text-xs text-indigo-500 dark:text-indigo-400 ml-2">({String(score)})</span>
+                        <span className="text-sm font-medium text-indigo-700 capitalize">{tecido}</span>
+                        <span className="text-xs text-indigo-500 ml-2">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -581,7 +581,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {/* Nuvem de Interesse (Tags) */}
             {cliente.dnaEstilo.tagsInteresse && Object.keys(cliente.dnaEstilo.tagsInteresse).length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Nuvem de Interesse</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Nuvem de Interesse</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.tagsInteresse)
                     .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
@@ -589,10 +589,10 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                     .map(([tag, score]) => (
                       <div
                         key={tag}
-                        className="rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 px-3 py-1.5"
+                        className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5"
                       >
-                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300 capitalize">{tag}</span>
-                        <span className="text-xs text-purple-500 dark:text-purple-400 ml-2">({String(score)})</span>
+                        <span className="text-sm font-medium text-purple-700 capitalize">{tag}</span>
+                        <span className="text-xs text-purple-500 ml-2">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -602,8 +602,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {/* Faixa de Preço Média */}
             {cliente.dnaEstilo.faixaPrecoMedia > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Faixa de Preço Média</h4>
-                <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Faixa de Preço Média</h4>
+                <p className="text-lg font-bold text-indigo-600">
                   R$ {cliente.dnaEstilo.faixaPrecoMedia.toFixed(2)}
                 </p>
               </div>
@@ -612,17 +612,17 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {/* Tamanhos Provados */}
             {cliente.dnaEstilo.tamanhosProvados && Object.keys(cliente.dnaEstilo.tamanhosProvados).length > 0 && (
               <div>
-                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Tamanhos Mais Provados</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Tamanhos Mais Provados</h4>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(cliente.dnaEstilo.tamanhosProvados)
                     .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
                     .map(([tamanho, score]) => (
                       <div
                         key={tamanho}
-                        className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-700 px-3 py-1.5"
+                        className="rounded-lg border border-gray-200 bg-white px-3 py-1.5"
                       >
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">{tamanho}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({String(score)})</span>
+                        <span className="text-sm font-medium text-gray-900">{tamanho}</span>
+                        <span className="text-xs text-gray-500 ml-2">({String(score)})</span>
                       </div>
                     ))}
                 </div>
@@ -630,9 +630,9 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             )}
 
             {/* Sugestão de Abordagem (IA Gerada) */}
-            <div className="rounded-lg border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 p-4">
-              <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 mb-2">💡 Sugestão de Abordagem</h4>
-              <p className="text-sm text-indigo-800 dark:text-indigo-200">
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+              <h4 className="text-sm font-semibold text-indigo-700 mb-2">💡 Sugestão de Abordagem</h4>
+              <p className="text-sm text-indigo-800">
                 {(() => {
                   const cores = Object.entries(cliente.dnaEstilo.coresPreferidas || {})
                     .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
@@ -671,9 +671,9 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
       )}
 
       {/* Seção de Edição */}
-      <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-sm transition-colors">
+      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
             <Edit className="h-3.5 w-3.5 text-indigo-500" />
             Editar Informações
           </h3>
@@ -686,7 +686,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                   observacoes: (cliente as any).observacoes || (cliente as any).obs || "",
                 });
               }}
-              className="inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
+              className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <X className="h-3 w-3" />
               Cancelar
@@ -718,20 +718,20 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           <div className="grid grid-cols-2 gap-2">
             {/* ID do Cliente (somente leitura) */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-0.5">
+              <label className="block text-[10px] font-medium text-gray-500 mb-0.5">
                 ID (não alterável)
               </label>
               <input
                 type="text"
                 value={cliente.id}
                 disabled
-                className="w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                className="w-full rounded border border-gray-300 bg-gray-100 px-2 py-1 text-[11px] text-gray-500 cursor-not-allowed"
               />
             </div>
 
             {/* Nome */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+              <label className="block text-[10px] font-medium text-gray-700 mb-0.5">
                 Nome *
               </label>
               <input
@@ -739,7 +739,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 required
                 value={editData.nome}
                 onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
-                className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-900 focus:border-indigo-500 focus:outline-none"
               />
             </div>
           </div>
@@ -748,13 +748,13 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
           <div className="grid grid-cols-2 gap-2">
             {/* Status */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+              <label className="block text-[10px] font-medium text-gray-700 mb-0.5">
                 Status
               </label>
               <select
                 value={editData.status}
                 onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-900 focus:border-indigo-500 focus:outline-none"
               >
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
@@ -763,13 +763,13 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
             {/* Resetar Senha */}
             <div>
-              <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+              <label className="block text-[10px] font-medium text-gray-700 mb-0.5">
                 Senha
               </label>
               <button
                 onClick={handleResetPassword}
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded border-2 border-red-500 bg-white dark:bg-white px-2 py-1 text-[11px] font-medium text-red-600 dark:text-red-600 hover:bg-red-50 dark:hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded border-2 border-red-500 bg-white px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <KeyRound className="h-3 w-3 text-red-600" />
                 Resetar Senha
@@ -779,14 +779,14 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
           {/* Terceira linha: Observações (largura total) */}
           <div>
-            <label className="block text-[10px] font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+            <label className="block text-[10px] font-medium text-gray-700 mb-0.5">
               Observações
             </label>
             <textarea
               value={editData.observacoes}
               onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
               rows={2}
-              className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-[11px] text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+              className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-900 focus:border-indigo-500 focus:outline-none"
               placeholder="Adicione observações sobre o cliente..."
             />
           </div>
@@ -800,7 +800,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Produtos Favoritos */}
       {topProducts.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-colors">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Star className="h-5 w-5 text-amber-500" />
             Produtos Favoritos
@@ -809,10 +809,10 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
             {topProducts.map(([productId, count]) => (
               <div
                 key={productId}
-                className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-700 px-4 py-3"
+                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
               >
-                <span className="text-sm font-medium text-gray-900 dark:text-white">Produto {productId.slice(0, 8)}</span>
-                <span className="text-sm text-gray-600 dark:text-gray-300">{count} curtida(s)</span>
+                <span className="text-sm font-medium text-gray-900">Produto {productId.slice(0, 8)}</span>
+                <span className="text-sm text-gray-600">{count} curtida(s)</span>
               </div>
             ))}
           </div>
@@ -821,7 +821,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Purchase History */}
       {cliente.orders && cliente.orders.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-colors">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Receipt className="h-5 w-5 text-gray-600" />
             Histórico de Compras
@@ -842,7 +842,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      <span className="text-sm font-semibold text-gray-900">
                         Pedido #{order.id.slice(0, 8)}
                       </span>
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${statusBadge}`}>
@@ -863,7 +863,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    <p className="text-lg font-bold text-gray-900">
                       R$ {order.total?.toFixed(2) || "0.00"}
                     </p>
                   </div>
@@ -876,8 +876,8 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
 
       {/* Composições Recentes */}
       {cliente.composicoes && cliente.composicoes.length > 0 && (
-        <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md transition-colors">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Composições Recentes</h3>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md transition-colors">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Composições Recentes</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cliente.composicoes.slice(0, 6).map((comp: any) => {
               const previewUrl = comp.looks?.[0]?.imagemUrl || comp.imagemUrl || comp.imageUrl;
@@ -886,7 +886,7 @@ export function ClienteProfileContent({ cliente, lojistaId }: ClienteProfileCont
               return (
                 <div
                   key={comp.id}
-                  className="group relative overflow-hidden rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm dark:shadow-md transition hover:shadow-md dark:hover:shadow-lg"
+                  className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
                 >
                   {previewUrl && (
                     <div className="aspect-square w-full overflow-hidden bg-gray-100">

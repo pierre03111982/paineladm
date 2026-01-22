@@ -134,7 +134,7 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
           <p className="text-sm text-[var(--text-secondary)]">
             Displays na mesma rede detectados automaticamente
             {autoScanEnabled && (
-              <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+              <span className="ml-2 inline-flex items-center gap-1 text-xs text-emerald-600">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
                 Busca automática ativa
               </span>
@@ -147,8 +147,8 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
             className={cn(
               "inline-flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-xs font-semibold transition-all",
               autoScanEnabled
-                ? "border-amber-500/60 dark:border-amber-400/60 bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-900/30 dark:to-orange-900/30 text-amber-700 dark:text-amber-300 hover:shadow-lg hover:shadow-amber-500/30"
-                : "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400"
+                ? "border-amber-500/60 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-700 hover:shadow-lg hover:shadow-amber-500/30"
+                : "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-emerald-500 hover:text-emerald-600"
             )}
             title={autoScanEnabled ? "Desativar busca automática" : "Ativar busca automática"}
           >
@@ -170,8 +170,8 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
             className={cn(
               "inline-flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-xs font-semibold transition-all",
               loading
-                ? "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] opacity-50 cursor-not-allowed"
-                : "border-cyan-500/60 dark:border-cyan-400/60 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-900/30 dark:to-blue-900/30 text-cyan-700 dark:text-cyan-300 hover:shadow-lg hover:shadow-cyan-500/30"
+                ? "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] opacity-50 cursor-not-allowed"
+                : "border-cyan-500/60 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-700 hover:shadow-lg hover:shadow-cyan-500/30"
             )}
           >
             {loading ? (
@@ -190,7 +190,7 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
       </div>
 
       {error && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border-2 border-rose-500/60 dark:border-rose-400/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 dark:from-rose-900/30 dark:to-pink-900/30 px-4 py-3 text-sm text-rose-700 dark:text-rose-200">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border-2 border-rose-500/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 px-4 py-3 text-sm text-rose-700">
           <AlertCircle className="h-4 w-4" />
           {error}
         </div>
@@ -224,7 +224,7 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
           {displays.map((display) => (
             <div
               key={display.id}
-              className="neon-card flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-xl border-2 border-cyan-300/50 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/30 dark:to-blue-950/30 p-4 shadow-sm gap-4"
+              className="neon-card flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-xl border-2 border-cyan-300/50 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 p-4 shadow-sm gap-4"
             >
               <div className="flex items-center gap-4 flex-1">
                 <div className="rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 p-3 text-white shadow-lg">
@@ -243,21 +243,21 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
                         </span>
                       </p>
                       {display.isOnline === false && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400/50">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 border border-amber-400/50">
                           Offline
                         </span>
                       )}
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-[var(--text-main)]">Endereço IP:</p>
-                      <p className="text-xs font-mono text-[var(--text-main)] bg-[var(--bg-card)]/70 px-3 py-1.5 rounded border-2 border-cyan-300/50 dark:border-cyan-500/50 break-all">
+                      <p className="text-xs font-mono text-[var(--text-main)] bg-[var(--bg-card)]/70 px-3 py-1.5 rounded border-2 border-cyan-300/50 break-all">
                         {display.ip}
                       </p>
                     </div>
                     <div className="space-y-2">
                       <div>
                         <p className="text-xs font-semibold text-[var(--text-main)] mb-1">ID do Display:</p>
-                        <p className="text-xs font-mono text-[var(--text-main)] bg-[var(--bg-card)]/70 px-3 py-1.5 rounded border-2 border-cyan-300/50 dark:border-cyan-500/50 break-all">
+                        <p className="text-xs font-mono text-[var(--text-main)] bg-[var(--bg-card)]/70 px-3 py-1.5 rounded border-2 border-cyan-300/50 break-all">
                           {display.displayUuid}
                         </p>
                       </div>
@@ -266,7 +266,7 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
                           <summary className="cursor-pointer hover:text-[var(--text-main)] transition-colors font-semibold text-[var(--text-main)]">
                             User-Agent: {display.userAgent.substring(0, 50)}{display.userAgent.length > 50 ? '...' : ''}
                           </summary>
-                          <p className="mt-1 font-mono text-[10px] bg-[var(--bg-card)]/70 px-2 py-1.5 rounded border-2 border-cyan-300/30 dark:border-cyan-500/30 break-all text-[var(--text-main)]">
+                          <p className="mt-1 font-mono text-[10px] bg-[var(--bg-card)]/70 px-2 py-1.5 rounded border-2 border-cyan-300/30 break-all text-[var(--text-main)]">
                             {display.userAgent}
                           </p>
                         </details>
@@ -276,8 +276,8 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
                           <span className={cn(
                             "text-xs px-2 py-1 rounded-full font-semibold",
                             display.status === "paired"
-                              ? "bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/50"
-                              : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-400/50"
+                              ? "bg-blue-500/20 text-blue-700 border border-blue-400/50"
+                              : "bg-emerald-500/20 text-emerald-700 border border-emerald-400/50"
                           )}>
                             {display.status === "paired" ? "✓ Pareado" : "○ Disponível"}
                           </span>
@@ -299,8 +299,8 @@ export function DisplayDiscovery({ lojistaId }: DisplayDiscoveryProps) {
                   className={cn(
                     "inline-flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-xs font-semibold transition-all w-full sm:w-auto justify-center",
                     connecting === display.displayUuid
-                      ? "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] opacity-50 cursor-not-allowed"
-                      : "border-emerald-500/60 dark:border-emerald-400/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 dark:from-emerald-900/30 dark:to-teal-900/30 text-emerald-700 dark:text-emerald-300 hover:shadow-lg hover:shadow-emerald-500/30"
+                      ? "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] opacity-50 cursor-not-allowed"
+                      : "border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 hover:shadow-lg hover:shadow-emerald-500/30"
                   )}
                 >
                   {connecting === display.displayUuid ? (

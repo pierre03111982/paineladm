@@ -220,12 +220,12 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
         </div>
       </div>
 
-      <div className="neon-card flex flex-col gap-5 rounded-xl border-2 border-gray-300/30 dark:border-indigo-500/30 bg-[var(--bg-card)]/60 p-5">
+      <div className="neon-card flex flex-col gap-5 rounded-xl border-2 border-gray-300/30 bg-[var(--bg-card)]/60 p-5">
         <label className="flex items-center justify-between text-sm font-semibold text-[var(--text-main)]">
           <span>Habilitar carrinho e checkout</span>
           <input
             type="checkbox"
-            className="h-5 w-5 rounded border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 text-indigo-600 focus:ring-2 focus:ring-indigo-500/60 transition-colors cursor-pointer"
+            className="h-5 w-5 rounded border-2 border-gray-300 bg-[var(--bg-card)]/60 text-indigo-600 focus:ring-2 focus:ring-indigo-500/60 transition-colors cursor-pointer"
             checked={form.enabled}
             onChange={(e) => setForm((prev) => ({ ...prev, enabled: e.target.checked }))}
           />
@@ -242,7 +242,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                   paymentGateway: e.target.value as SalesConfigPayload["payment_gateway"],
                 }))
               }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+              className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
             >
               <option value="mercadopago">Mercado Pago</option>
               <option value="manual_whatsapp">Manual via WhatsApp</option>
@@ -258,7 +258,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                   shippingProvider: e.target.value as SalesConfigPayload["shipping_provider"],
                 }))
               }
-              className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+              className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
             >
               <option value="none">Sem cálculo automático</option>
               <option value="fixed_price">Valor fixo</option>
@@ -269,9 +269,9 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
       </div>
 
       {form.paymentGateway === "manual_whatsapp" && (
-        <div className="neon-card rounded-xl border-2 border-gray-300/30 dark:border-green-500/30 bg-[var(--bg-card)]/60 p-5 space-y-3">
+        <div className="neon-card rounded-xl border-2 border-gray-300/30 bg-[var(--bg-card)]/60 p-5 space-y-3">
           <p className="text-sm font-bold text-[var(--text-main)] flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <MessageCircle className="h-4 w-4 text-green-600" />
             Contato via WhatsApp
           </p>
           <input
@@ -279,7 +279,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
             value={form.manualContact}
             onChange={(e) => setForm((prev) => ({ ...prev, manualContact: e.target.value }))}
             placeholder="(11) 99999-0000"
-            className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+            className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
           />
           <p className="text-xs font-medium text-[var(--text-secondary)]">
             O botão "Comprar agora" abrirá essa conversa para concluir manualmente.
@@ -288,7 +288,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
       )}
 
       {form.paymentGateway === "mercadopago" && (
-        <div className="neon-card rounded-xl border-2 border-indigo-400/60 dark:border-indigo-500/60 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/30 p-5 space-y-4 shadow-lg shadow-indigo-500/20">
+        <div className="neon-card rounded-xl border-2 border-indigo-400/60 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 p-5 space-y-4 shadow-lg shadow-indigo-500/20">
           <p className="text-sm font-bold text-[var(--text-main)]">Credenciais Mercado Pago</p>
           <div className="grid gap-4">
             <div>
@@ -298,7 +298,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                 value={form.mpPublicKey}
                 onChange={(e) => setForm((prev) => ({ ...prev, mpPublicKey: e.target.value }))}
                 placeholder="APP_USR-..."
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 required={form.enabled}
               />
             </div>
@@ -309,7 +309,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                 value={form.mpAccessToken}
                 onChange={(e) => setForm((prev) => ({ ...prev, mpAccessToken: e.target.value }))}
                 placeholder="APP_USR-..."
-                className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 required={form.enabled}
               />
             </div>
@@ -320,7 +320,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
               href="https://www.mercadopago.com.br/developers/pt/docs"
               target="_blank"
               rel="noreferrer"
-              className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold"
+              className="text-indigo-600 hover:underline font-semibold"
             >
               developers.mercadopago.com.br → Minhas integrações
             </a>
@@ -328,7 +328,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
         </div>
       )}
 
-      <div className="neon-card rounded-xl border-2 border-gray-300/30 dark:border-amber-500/30 bg-[var(--bg-card)]/60 p-5 space-y-4">
+      <div className="neon-card rounded-xl border-2 border-gray-300/30 bg-[var(--bg-card)]/60 p-5 space-y-4">
         <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-main)]">
           <div className="rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 p-3 shadow-lg shadow-amber-500/30 text-white">
             <Truck className="h-6 w-6" strokeWidth={2} />
@@ -340,7 +340,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
           value={form.originZip}
           onChange={(e) => setForm((prev) => ({ ...prev, originZip: e.target.value }))}
           placeholder="CEP de origem (ex: 01311-200)"
-          className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+          className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
         />
         {form.shippingProvider === "fixed_price" && (
           <input
@@ -349,7 +349,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
             value={form.fixedShippingPrice}
             onChange={(e) => setForm((prev) => ({ ...prev, fixedShippingPrice: e.target.value }))}
             placeholder="Valor fixo do frete (R$)"
-            className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+            className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
           />
         )}
         {form.shippingProvider === "melhor_envio" && (
@@ -364,7 +364,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                   value={form.melhorEnvioClientId}
                   onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientId: e.target.value }))}
                   placeholder="Client ID do Melhor Envio"
-                  className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                  className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
               </div>
               <div>
@@ -376,7 +376,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                   value={form.melhorEnvioClientSecret}
                   onChange={(e) => setForm((prev) => ({ ...prev, melhorEnvioClientSecret: e.target.value }))}
                   placeholder="Secret do Melhor Envio"
-                  className="w-full rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                  className="w-full rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
               </div>
             </div>
@@ -385,10 +385,10 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
               <label className="flex items-center gap-2 text-xs font-semibold text-[var(--text-main)] mb-2">
                 Token de Acesso
                 {tokenStatus === "valid" && (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 )}
                 {tokenStatus === "invalid" && (
-                  <XCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                  <XCircle className="h-4 w-4 text-rose-600" />
                 )}
               </label>
               <div className="flex gap-2">
@@ -400,7 +400,7 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
                     setTokenStatus(null);
                   }}
                   placeholder="Cole o token aqui ou obtenha via OAuth"
-                  className="flex-1 rounded-xl border-2 border-gray-300 dark:border-indigo-500/50 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
+                  className="flex-1 rounded-xl border-2 border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2.5 text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 transition-colors"
                 />
                 <Button
                   type="button"
@@ -478,8 +478,8 @@ export function SalesSettingsForm({ lojistaId, initialConfig }: SalesSettingsFor
         {feedback && (
           <p className={`text-center text-sm font-semibold ${
             feedback.includes("sucesso") 
-              ? "text-emerald-600 dark:text-emerald-400" 
-              : "text-rose-600 dark:text-rose-400"
+              ? "text-emerald-600" 
+              : "text-rose-600"
           }`}>
             {feedback}
           </p>

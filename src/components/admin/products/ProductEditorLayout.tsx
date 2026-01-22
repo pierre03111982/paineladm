@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby } from "lucide-react";
+import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby, UserCircle, User } from "lucide-react";
 import { MANNEQUIN_STYLES } from "@/lib/ai-services/mannequin-prompts";
 import { ManualCombinationModal } from "./ManualCombinationModal";
 import { IconPageHeader } from "@/app/(lojista)/components/icon-page-header";
 import { getPageHeaderColors } from "@/app/(lojista)/components/page-header-colors";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { normalizeCategory, getConsolidatedCategories } from "@/lib/categories/consolidated-categories";
-import { MeasurementGuideCard } from "./MeasurementGuideCard";
+import { SmartMeasurementEditor } from "./SmartMeasurementEditor";
+import type { SmartGuideData } from "@/types/measurements";
 
 // Estado consolidado do produto
 export interface ProductEditorState {
@@ -20,6 +21,12 @@ export interface ProductEditorState {
   generatedCombinedImage: string | null;
   selectedCoverImage: string | null;
   imagemMedidasCustomizada: string | null; // Imagem de medidas inserida manualmente
+  smartMeasurements?: SmartGuideData; // Dados do editor inteligente de medidas
+  
+  // Persistência de medidas por público alvo e grade
+  // Armazena medidas coletadas para cada combinação de público alvo + grade
+  // Chave: `${targetAudience}_${sizeCategory}`, Valor: SmartGuideData
+  persistedMeasurementsByAudience?: Record<string, SmartGuideData>;
   
   // Análise IA
   aiAnalysisData: {
@@ -31,6 +38,14 @@ export interface ProductEditorState {
     product_type?: string;
     detected_fabric?: string;
     dominant_colors?: Array<{ hex: string; name: string }>;
+    colors_by_item?: Array<{ item: string; colors: Array<{ hex: string; name: string }> }>; // Cores por item (para conjuntos)
+    standard_measurements?: {
+      bust?: number;
+      waist?: number;
+      hip?: number;
+      length?: number;
+    }; // Medidas padrão coletadas da análise inteligente (tamanho M)
+    detected_audience?: 'KIDS' | 'ADULT'; // Público alvo detectado pela IA
     cor_predominante?: string; // Compatibilidade
     tecido_estimado?: string; // Compatibilidade
     detalhes?: string[]; // Compatibilidade
@@ -69,9 +84,10 @@ export interface ProductEditorState {
     variacao: string;
     estoque: string;
     sku: string;
+    equivalence?: string; // Referência em outra grade (ex: "38" -> "M")
   }>;
   // Grade de Tamanho
-  sizeCategory: 'standard' | 'plus'; // Grade Padrão (P, M, G, GG) ou Plus Size (G1, G2, G3, G4)
+  sizeCategory: 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen'; // Grades dinâmicas
   // Público Alvo
   targetAudience: 'female' | 'male' | 'kids'; // Feminino, Masculino ou Infantil
 }
@@ -85,6 +101,20 @@ interface ProductEditorLayoutProps {
 
 // Lista de categorias disponíveis (usando categorias consolidadas)
 const AVAILABLE_CATEGORIES = getConsolidatedCategories();
+
+// Sistema de Grades Dinâmicas
+const SIZE_GRIDS = {
+  ADULT: [
+    { id: 'standard', label: 'Letras (Padrão)', examples: 'PP, P, M, G, GG', icon: Tag },
+    { id: 'numeric', label: 'Numérica (Jeans)', examples: '36, 38, 40, 42', icon: Ruler },
+    { id: 'plus', label: 'Plus Size', examples: 'G1, G2, G3, 46+', icon: Package },
+  ],
+  KIDS: [
+    { id: 'baby', label: 'Bebê (Meses)', examples: 'RN, 3M, 6M, 9M', icon: Baby },
+    { id: 'kids_numeric', label: 'Infantil (Anos)', examples: '2, 4, 6, 8, 10', icon: UserCircle },
+    { id: 'teen', label: 'Juvenil', examples: '12, 14, 16', icon: User },
+  ],
+};
 
 // Função para mapear categoria sugerida pela IA para a lista de categorias consolidadas
 function mapCategoryToAvailable(suggestedCategory: string | undefined): string {
@@ -173,9 +203,9 @@ function VariacaoRow({
   onUpdate, 
   onRemove 
 }: { 
-  variacao: { id: string; variacao: string; estoque: string; sku: string }; 
+  variacao: { id: string; variacao: string; estoque: string; sku: string; equivalence?: string }; 
   nomeProduto: string;
-  onUpdate: (updated: { id: string; variacao: string; estoque: string; sku: string }) => void;
+  onUpdate: (updated: { id: string; variacao: string; estoque: string; sku: string; equivalence?: string }) => void;
   onRemove: () => void;
 }) {
   const skuEditadoManualRef = useRef<boolean>(false);
@@ -224,7 +254,7 @@ function VariacaoRow({
 
   return (
     <div className="grid grid-cols-12 gap-1 items-center">
-      <div className="col-span-3">
+      <div className="col-span-2">
         <input
           type="text"
           value={variacao.variacao}
@@ -232,11 +262,24 @@ function VariacaoRow({
             onUpdate({ ...variacao, variacao: e.target.value });
           }}
           placeholder="P"
-          className="w-full h-6 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-1.5 py-0 text-xs leading-tight text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full h-6 rounded border border-gray-300 bg-white px-1.5 py-0 text-xs leading-tight text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
         />
       </div>
 
-      <div className="col-span-3">
+      <div className="col-span-2">
+        <input
+          type="text"
+          value={variacao.equivalence || ""}
+          onChange={(e) => {
+            onUpdate({ ...variacao, equivalence: e.target.value });
+          }}
+          placeholder="Ref: M"
+          className="w-full h-6 rounded border border-gray-300 bg-white px-1.5 py-0 text-xs leading-tight text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
+          title="Referência em outra grade (ex: 38 = M)"
+        />
+      </div>
+
+      <div className="col-span-2">
         <input
           type="number"
           min="0"
@@ -245,7 +288,7 @@ function VariacaoRow({
             onUpdate({ ...variacao, estoque: e.target.value });
           }}
           placeholder="10"
-          className="w-full h-6 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-1.5 py-0 text-xs leading-tight text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full h-6 rounded border border-gray-300 bg-white px-1.5 py-0 text-xs leading-tight text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
         />
       </div>
 
@@ -263,7 +306,7 @@ function VariacaoRow({
             }
           }}
           placeholder="Auto-gerado"
-          className="w-full h-6 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-1.5 py-0 text-xs leading-tight text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full h-6 rounded border border-gray-300 bg-white px-1.5 py-0 text-xs leading-tight text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
           title="SKU gerado automaticamente. Você pode editar se necessário."
         />
       </div>
@@ -272,7 +315,7 @@ function VariacaoRow({
         <button
           type="button"
           onClick={onRemove}
-          className="w-full h-6 flex items-center justify-center rounded border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          className="w-full h-6 flex items-center justify-center rounded border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
           title="Remover variação"
         >
           <X className="h-2.5 w-2.5" />
@@ -295,11 +338,11 @@ export function ProductEditorLayout({
   const [uploadingMedidas, setUploadingMedidas] = useState(false);
 
   // Ler preferência de Grade de Tamanho do localStorage
-  const getInitialSizeCategory = (): 'standard' | 'plus' => {
+  const getInitialSizeCategory = (): 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen' => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('lastSizeCategory');
-      if (saved === 'standard' || saved === 'plus') {
-        return saved;
+      if (saved === 'standard' || saved === 'plus' || saved === 'numeric' || saved === 'baby' || saved === 'kids_numeric' || saved === 'teen') {
+        return saved as any;
       }
     }
     return 'standard'; // Padrão
@@ -349,9 +392,9 @@ export function ProductEditorLayout({
     },
     temVariacoes: initialData?.temVariacoes !== undefined ? initialData.temVariacoes : true,
     variacoes: initialData?.variacoes || [
-      { id: "1", variacao: "P", estoque: "", sku: "" },
-      { id: "2", variacao: "M", estoque: "", sku: "" },
-      { id: "3", variacao: "G", estoque: "", sku: "" },
+      { id: "1", variacao: "P", estoque: "", sku: "", equivalence: "" },
+      { id: "2", variacao: "M", estoque: "", sku: "", equivalence: "" },
+      { id: "3", variacao: "G", estoque: "", sku: "", equivalence: "" },
     ],
     sizeCategory: initialData?.sizeCategory || getInitialSizeCategory(),
     targetAudience: initialData?.targetAudience || getInitialTargetAudience(),
@@ -366,10 +409,11 @@ export function ProductEditorLayout({
   const [saving, setSaving] = useState(false);
   const [viewingImageIndex, setViewingImageIndex] = useState(0); // Índice da imagem sendo visualizada
   const [showManualModal, setShowManualModal] = useState(false);
+  const [showAudienceConfirmation, setShowAudienceConfirmation] = useState(false);
   const [creditInfo, setCreditInfo] = useState({ credits: 0, catalogPack: 0 });
 
   // Ref para preservar variações quando o switch é desativado
-  const variacoesPreservadasRef = useRef<Array<{ id: string; variacao: string; estoque: string; sku: string }>>(
+  const variacoesPreservadasRef = useRef<Array<{ id: string; variacao: string; estoque: string; sku: string; equivalence?: string }>>(
     initialData?.variacoes || []
   );
 
@@ -431,9 +475,17 @@ export function ProductEditorLayout({
 
   // Referência para rastrear a última URL analisada
   const lastAnalyzedUrlRef = useRef<string>("");
+  const analyzingRef = useRef<boolean>(false); // Ref para evitar chamadas simultâneas
+  const has429ErrorRef = useRef<boolean>(false); // Ref simples: se houve erro 429, não tentar automaticamente novamente
+  const last429ErrorTimeRef = useRef<number>(0); // Timestamp do último erro 429 para permitir nova tentativa após 15 minutos
 
   // === HANDLER DE ANÁLISE IA ===
   const analyzeImage = async (imageUrl: string) => {
+    // Proteção contra chamadas simultâneas
+    if (analyzingRef.current) {
+      console.warn("[ProductEditor] ⚠️ Análise já em andamento, ignorando chamada duplicada");
+      return;
+    }
     if (!imageUrl) {
       console.error("[ProductEditor] ❌ imageUrl está vazio ou undefined");
       return;
@@ -447,11 +499,49 @@ export function ProductEditorLayout({
     }
 
     try {
+      analyzingRef.current = true;
       setAnalyzing(true);
       console.log("[ProductEditor] 🔍 Iniciando análise com imageUrl:", imageUrl.substring(0, 100) + "...");
       console.log("[ProductEditor] 🔍 lojistaId:", lojistaId);
       
-      const requestBody = { imageUrl: imageUrl };
+      // Preparar contexto para a análise
+      const context: {
+        audience?: 'KIDS' | 'ADULT';
+        sizeSystem?: 'AGE_BASED' | 'LETTER_BASED' | 'NUMERIC';
+      } = {};
+      
+      // Mapear targetAudience para audience
+      if (state.targetAudience === 'kids') {
+        context.audience = 'KIDS';
+      } else if (state.targetAudience === 'female' || state.targetAudience === 'male') {
+        context.audience = 'ADULT';
+      }
+      
+      // Mapear sizeCategory para sizeSystem (corrigido conforme documento)
+      if (state.targetAudience === 'kids') {
+        // Grades infantis
+        if (state.sizeCategory === 'baby') {
+          context.sizeSystem = 'AGE_BASED'; // Bebê usa meses (idade)
+        } else if (state.sizeCategory === 'kids_numeric' || state.sizeCategory === 'teen') {
+          context.sizeSystem = 'AGE_BASED'; // Infantil/Juvenil usa anos (idade)
+        } else {
+          context.sizeSystem = 'AGE_BASED'; // Padrão para kids
+        }
+      } else {
+        // Grades adultas
+        if (state.sizeCategory === 'numeric') {
+          context.sizeSystem = 'NUMERIC'; // Numérica (36, 38, 40)
+        } else if (state.sizeCategory === 'plus') {
+          context.sizeSystem = 'NUMERIC'; // Plus Size usa numérico (G1, G2, etc.)
+        } else {
+          context.sizeSystem = 'LETTER_BASED'; // Padrão usa letras (P, M, G, GG)
+        }
+      }
+      
+      const requestBody = { 
+        imageUrl: imageUrl,
+        context: Object.keys(context).length > 0 ? context : undefined
+      };
       console.log("[ProductEditor] 📤 Enviando requisição:", {
         url: `/api/lojista/products/analyze?lojistaId=${lojistaId}`,
         body: requestBody,
@@ -487,14 +577,43 @@ export function ProductEditorLayout({
       // Processar resposta de sucesso
       let responseData: any;
       try {
-        if (!responseText) {
+        if (!responseText || responseText.trim() === "") {
           throw new Error("Resposta vazia do servidor");
         }
+        
+        // Verificar se parece JSON antes de tentar parsear
+        const trimmedText = responseText.trim();
+        if (!trimmedText.startsWith("{") && !trimmedText.startsWith("[")) {
+          console.error("[ProductEditor] ❌ Resposta não parece ser JSON:", trimmedText.substring(0, 200));
+          throw new Error(`Resposta do servidor não é JSON válido. Recebido: ${trimmedText.substring(0, 100)}...`);
+        }
+        
         responseData = JSON.parse(responseText);
       } catch (parseError: any) {
-        console.error("[ProductEditor] Erro ao parsear JSON da resposta:", parseError);
-        console.error("[ProductEditor] Resposta recebida (primeiros 500 chars):", responseText?.substring(0, 500));
-        throw new Error(`Erro ao processar resposta do servidor: ${parseError.message || "JSON inválido"}. Verifique o console para mais detalhes.`);
+        console.error("[ProductEditor] ❌ Erro ao parsear JSON da resposta:", parseError);
+        console.error("[ProductEditor] 📄 Resposta completa recebida:", responseText);
+        console.error("[ProductEditor] 📄 Tamanho da resposta:", responseText?.length || 0);
+        
+        // Tentar obter mais detalhes do erro de parsing
+        const errorPosition = parseError.message?.match(/position (\d+)/)?.[1];
+        if (errorPosition) {
+          const pos = parseInt(errorPosition);
+          const start = Math.max(0, pos - 50);
+          const end = Math.min(responseText?.length || 0, pos + 50);
+          console.error("[ProductEditor] 📍 Contexto ao redor do erro (posição", pos, "):", responseText?.substring(start, end));
+        }
+        
+        // Se a resposta parece HTML, informar ao usuário
+        if (responseText?.includes("<!DOCTYPE") || responseText?.includes("<html")) {
+          throw new Error(`O servidor retornou HTML ao invés de JSON. Isso geralmente indica um erro interno. Verifique os logs do servidor.`);
+        }
+        
+        // Mensagem mais clara para erro de JSON malformado
+        const errorMsg = parseError.message?.includes("Expected double-quoted property") 
+          ? "A resposta do servidor contém JSON malformado. Tente novamente ou preencha os campos manualmente."
+          : `Erro ao processar resposta do servidor: ${parseError.message || "JSON inválido"}`;
+        
+        throw new Error(`Erro ao analisar imagem: ${errorMsg}`);
       }
       // A API retorna { success: true, data: {...} }, então extraímos o data
       const analysisData = responseData.data || responseData;
@@ -538,10 +657,55 @@ export function ProductEditorLayout({
         .trim();
       
       // A IA agora está configurada para gerar textos COMPLETOS dentro de 470 caracteres
-      // Se exceder 500 (caso raro), apenas limitar sem adicionar "..."
-      if (descricaoSEOLimpa.length > 500) {
-        console.warn("[ProductEditor] ⚠️ Descrição excedeu 500 caracteres, limitando...");
-        descricaoSEOLimpa = descricaoSEOLimpa.slice(0, 500).trim();
+      // Descrição SEO agora não tem limite - manter texto completo
+      
+      // Validação e fallback para campos obrigatórios
+      const detectedFabric = analysisData.detected_fabric || analysisData.tecido_estimado || "";
+      const hasValidColors = processedColors && Array.isArray(processedColors) && processedColors.length > 0;
+      
+      // Se não houver cores, tentar extrair da descrição ou usar fallback
+      if (!hasValidColors) {
+        // Tentar extrair cor da descrição
+        const descLower = descricaoSEOLimpa.toLowerCase();
+        const colorKeywords: Record<string, { hex: string; name: string }> = {
+          'azul': { hex: '#0000FF', name: 'Azul' },
+          'verde': { hex: '#008000', name: 'Verde' },
+          'vermelho': { hex: '#FF0000', name: 'Vermelho' },
+          'preto': { hex: '#000000', name: 'Preto' },
+          'branco': { hex: '#FFFFFF', name: 'Branco' },
+          'rosa': { hex: '#FFC0CB', name: 'Rosa' },
+          'amarelo': { hex: '#FFFF00', name: 'Amarelo' },
+          'laranja': { hex: '#FFA500', name: 'Laranja' },
+          'roxo': { hex: '#800080', name: 'Roxo' },
+          'bege': { hex: '#F5F5DC', name: 'Bege' },
+          'cinza': { hex: '#808080', name: 'Cinza' },
+          'marrom': { hex: '#A52A2A', name: 'Marrom' },
+        };
+        
+        for (const [keyword, color] of Object.entries(colorKeywords)) {
+          if (descLower.includes(keyword)) {
+            processedColors = [color];
+            break;
+          }
+        }
+        
+        // Se ainda não encontrou, usar cor padrão
+        if (processedColors.length === 0) {
+          processedColors = [{ hex: '#808080', name: 'Cor não identificada' }];
+        }
+      }
+      
+      // Se não houver tecido, tentar inferir do product_type ou usar fallback
+      let finalDetectedFabric = detectedFabric;
+      if (!finalDetectedFabric || finalDetectedFabric.trim() === "") {
+        const productTypeLower = (analysisData.product_type || "").toLowerCase();
+        if (productTypeLower.includes('jeans') || productTypeLower.includes('calça')) {
+          finalDetectedFabric = "Jeans";
+        } else if (productTypeLower.includes('algodão') || productTypeLower.includes('camiseta')) {
+          finalDetectedFabric = "Algodão";
+        } else {
+          finalDetectedFabric = "Tecido não identificado";
+        }
       }
       
       const newAiAnalysisData = {
@@ -551,18 +715,53 @@ export function ProductEditorLayout({
         suggested_category: mappedCategory,
         categoria_sugerida: mappedCategory, // Compatibilidade
         product_type: analysisData.product_type || "",
-        detected_fabric: analysisData.detected_fabric || analysisData.tecido_estimado || "",
+        detected_fabric: finalDetectedFabric,
         dominant_colors: processedColors,
-        cor_predominante: analysisData.cor_predominante || "", // Compatibilidade
-        tecido_estimado: analysisData.detected_fabric || analysisData.tecido_estimado || "", // Compatibilidade
+        colors_by_item: analysisData.colors_by_item || undefined, // Cores por item (para conjuntos)
+        standard_measurements: analysisData.standard_measurements || undefined, // Medidas padrão coletadas da análise
+        cor_predominante: processedColors[0]?.name || analysisData.cor_predominante || "", // Compatibilidade
+        tecido_estimado: finalDetectedFabric, // Compatibilidade
         detalhes: analysisData.detalhes || [], // Compatibilidade
+        detected_audience: analysisData.detected_audience, // Público alvo detectado pela IA
       };
+      
+      console.log("[ProductEditor] 📏 Medidas padrão coletadas da análise:", newAiAnalysisData.standard_measurements);
+      
+      // Verificar inconsistência entre público alvo selecionado e detectado pela IA
+      const detectedAudience = analysisData.detected_audience;
+      const selectedAudience = state.targetAudience;
+      let hasInconsistency = false;
+      
+      if (detectedAudience) {
+        // Mapear detected_audience para targetAudience
+        // KIDS sempre mapeia para 'kids'
+        // ADULT pode ser 'female' ou 'male' (mantém o selecionado se já for adulto)
+        const isSelectedAdult = selectedAudience === 'female' || selectedAudience === 'male';
+        const isDetectedAdult = detectedAudience === 'ADULT';
+        const isSelectedKids = selectedAudience === 'kids';
+        const isDetectedKids = detectedAudience === 'KIDS';
+        
+        // Inconsistência: selecionou adulto mas IA detectou kids, ou vice-versa
+        if ((isSelectedAdult && isDetectedKids) || (isSelectedKids && isDetectedAdult)) {
+          hasInconsistency = true;
+          console.log("[ProductEditor] ⚠️ Inconsistência detectada:", {
+            selecionado: selectedAudience,
+            detectado: detectedAudience,
+            isSelectedAdult,
+            isDetectedAdult,
+            isSelectedKids,
+            isDetectedKids
+          });
+        }
+      }
       
       console.log("[ProductEditor] ✅ Salvando no estado:", {
         product_type: newAiAnalysisData.product_type,
         detected_fabric: newAiAnalysisData.detected_fabric,
         dominant_colors: newAiAnalysisData.dominant_colors,
         dominant_colors_length: newAiAnalysisData.dominant_colors?.length || 0,
+        detected_audience: newAiAnalysisData.detected_audience,
+        hasInconsistency,
         fullData: newAiAnalysisData
       });
       
@@ -570,6 +769,11 @@ export function ProductEditorLayout({
         ...prev,
         aiAnalysisData: newAiAnalysisData,
       }));
+      
+      // Se houver inconsistência, mostrar modal de confirmação
+      if (hasInconsistency) {
+        setShowAudienceConfirmation(true);
+      }
       
       // Log após atualização (usando setTimeout para garantir que o estado foi atualizado)
       setTimeout(() => {
@@ -580,39 +784,99 @@ export function ProductEditorLayout({
         });
       }, 100);
     } catch (error: any) {
-      console.error("[ProductEditor] Erro na análise:", error);
-      alert(`Erro ao analisar imagem: ${error.message}`);
-      // Resetar referência em caso de erro para permitir nova tentativa
-      lastAnalyzedUrlRef.current = "";
+      const errorMessage = error.message || "";
+      console.error("[ProductEditor] ❌ Erro na análise:", errorMessage);
+      
+      // Se for erro 429, marcar que houve erro e parar tentativas automáticas
+      if (errorMessage.includes("429") || errorMessage.includes("Resource exhausted")) {
+        has429ErrorRef.current = true; // Marcar que houve erro 429 - não tentar automaticamente novamente
+        last429ErrorTimeRef.current = Date.now(); // Registrar timestamp do erro
+        alert(`⚠️ Limite de uso da API Gemini atingido. A análise automática foi interrompida. Aguarde alguns minutos ou use o botão "Regenerar Análise" para tentar manualmente.`);
+        console.error("[ProductEditor] 🚫 Erro 429 registrado. Tentativas automáticas interrompidas. Aguarde 15 minutos ou use o botão manual.");
+        return;
+      } else {
+        // Mensagem mais amigável para erro de JSON malformado
+        const userFriendlyMessage = errorMessage.includes("JSON malformado") || errorMessage.includes("Expected double-quoted")
+          ? "Erro ao processar análise da imagem. A resposta do servidor está incorreta. Você pode tentar novamente ou preencher os campos manualmente."
+          : errorMessage;
+        
+        alert(`Erro ao analisar imagem: ${userFriendlyMessage}`);
+      }
     } finally {
+      analyzingRef.current = false;
       setAnalyzing(false);
     }
   };
 
   // Análise automática quando a imagem for carregada
+  // SIMPLES: Apenas uma tentativa automática. Se der erro 429, parar completamente (mas permitir após 15 minutos).
   useEffect(() => {
-    if (state.rawImageUrl && !state.aiAnalysisData && !analyzing) {
-      // Verificar se é uma URL válida e diferente da última analisada
-      if (
-        (state.rawImageUrl.startsWith("http://") || state.rawImageUrl.startsWith("https://")) &&
-        state.rawImageUrl !== lastAnalyzedUrlRef.current
-      ) {
-        // Marcar como analisada para evitar análises duplicadas
-        lastAnalyzedUrlRef.current = state.rawImageUrl;
-        
-        // Pequeno delay para garantir que o upload foi concluído
-        const timer = setTimeout(() => {
-          console.log("[ProductEditor] 🔍 Iniciando análise automática da imagem:", state.rawImageUrl);
-          analyzeImage(state.rawImageUrl).catch(err => {
-            console.error("[ProductEditor] Erro na análise automática:", err);
-            // Resetar referência em caso de erro para permitir nova tentativa
-            lastAnalyzedUrlRef.current = "";
-          });
-        }, 1500); // Delay de 1.5 segundos para garantir que o upload foi concluído
-        
-        return () => clearTimeout(timer);
+    // Verificar se estamos no cliente (evitar problemas de hidratação)
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
+    // Verificar se o erro 429 já expirou (15 minutos)
+    const FIFTEEN_MINUTES = 15 * 60 * 1000;
+    if (has429ErrorRef.current && last429ErrorTimeRef.current > 0) {
+      const timeSinceError = Date.now() - last429ErrorTimeRef.current;
+      if (timeSinceError >= FIFTEEN_MINUTES) {
+        // Erro 429 expirou, permitir nova tentativa automática
+        console.log("[ProductEditor] ⏰ Erro 429 expirou (passaram mais de 15 minutos). Permitindo nova tentativa automática.");
+        has429ErrorRef.current = false;
+        last429ErrorTimeRef.current = 0;
+      } else {
+        const minutesRemaining = Math.ceil((FIFTEEN_MINUTES - timeSinceError) / 1000 / 60);
+        console.log(`[ProductEditor] ⏭️ Erro 429 ainda ativo (${minutesRemaining} minuto(s) restante(s)). Use o botão 'Regenerar Análise' para tentar manualmente.`);
+        return;
       }
     }
+    
+    // VALIDAÇÕES: Se não temos URL, já temos análise, ou está analisando, não fazer nada
+    if (!state.rawImageUrl || state.aiAnalysisData || analyzing || analyzingRef.current) {
+      return;
+    }
+    
+    // Verificar se é uma URL válida
+    if (!state.rawImageUrl.startsWith("http://") && !state.rawImageUrl.startsWith("https://")) {
+      return;
+    }
+    
+    // VERIFICAÇÃO DE DUPLICATAS: Se já está marcado como analisada, não tentar novamente
+    if (state.rawImageUrl === lastAnalyzedUrlRef.current) {
+      console.log("[ProductEditor] ⏭️ Imagem já foi marcada para análise");
+      return;
+    }
+    
+    // Marcar como analisada IMEDIATAMENTE para evitar disparos duplicados
+    lastAnalyzedUrlRef.current = state.rawImageUrl;
+    
+    console.log("[ProductEditor] 📝 Iniciando análise automática da imagem:", state.rawImageUrl.substring(0, 50));
+    
+    // Delay simples de 2 segundos para garantir que o upload foi concluído
+    const timer = setTimeout(() => {
+      // Verificações finais antes de executar
+      if (
+        state.rawImageUrl === lastAnalyzedUrlRef.current && 
+        !state.aiAnalysisData && 
+        !analyzing && 
+        !analyzingRef.current &&
+        !has429ErrorRef.current &&
+        typeof window !== 'undefined'
+      ) {
+        console.log("[ProductEditor] 🔍 Executando análise automática da imagem");
+        analyzeImage(state.rawImageUrl).catch(err => {
+          console.error("[ProductEditor] ❌ Erro na análise automática:", err);
+          // Não fazer nada aqui - o erro já foi tratado no analyzeImage
+        });
+      } else {
+        console.log("[ProductEditor] ⏭️ Análise cancelada - condições mudaram durante o delay");
+      }
+    }, 2000);
+    
+    return () => {
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.rawImageUrl, state.aiAnalysisData, analyzing]);
 
@@ -655,8 +919,11 @@ export function ProductEditorLayout({
 
       const data = await response.json();
       
-      // Resetar referência para permitir nova análise
-      lastAnalyzedUrlRef.current = "";
+          // Resetar referências para permitir nova análise
+          lastAnalyzedUrlRef.current = "";
+          has429ErrorRef.current = false; // Limpar erro 429 ao fazer upload de nova imagem (permitir nova tentativa)
+          last429ErrorTimeRef.current = 0; // Limpar timestamp também
+          analyzingRef.current = false; // Limpar flag de análise
       
       setState(prev => ({
         ...prev,
@@ -1285,6 +1552,7 @@ export function ProductEditorLayout({
             variacao: v.variacao.trim(),
             estoque: parseInt(v.estoque) || 0,
             sku: v.sku?.trim() || "",
+            equivalence: v.equivalence?.trim() || undefined,
           }));
           
           // Calcular estoque total das variações
@@ -1400,7 +1668,7 @@ export function ProductEditorLayout({
           <div className="flex items-center gap-3">
             <button
               onClick={handleGoBack}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2.5 text-sm font-semibold transition-all duration-300"
             >
               <ArrowLeft className="w-5 h-5" />
               Voltar
@@ -1433,7 +1701,7 @@ export function ProductEditorLayout({
         {/* === COLUNA ESQUERDA: O Estúdio Visual === */}
         <div className="w-full lg:w-[40%] flex flex-col">
             {/* Bloco 1: Estúdio Criativo IA - 3 Caixas Lado a Lado */}
-            <AnimatedCard className="p-0 overflow-hidden bg-white dark:bg-slate-800 shadow-sm flex-1 flex flex-col">
+            <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm flex-1 flex flex-col">
               {/* Cabeçalho Verde/Esmeralda */}
               <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-3 h-[52px] flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: '#FFFFFF' }}>
@@ -1453,7 +1721,7 @@ export function ProductEditorLayout({
               
               {/* Cards de Seleção de Público Alvo */}
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 text-center">
+                <label className="block text-sm font-semibold text-slate-700 mb-3 text-center">
                   Público Alvo <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -1461,27 +1729,54 @@ export function ProductEditorLayout({
                   <button
                     onClick={() => {
                       const newAudience: 'female' | 'male' | 'kids' = 'female';
-                      setState(prev => ({ ...prev, targetAudience: newAudience }));
+                      
+                      setState(prev => {
+                        // CRÍTICO: Quando mudar público alvo, verificar se já temos medidas para alguma grade deste público
+                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                        const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
+                          key.startsWith(`${newAudience}_`)
+                        );
+                        
+                        if (measurementKeys.length > 0) {
+                          const lastKey = measurementKeys[measurementKeys.length - 1];
+                          const existingMeasurements = persistedMeasurements[lastKey];
+                          const [, sizeCategory] = lastKey.split('_');
+                          
+                          console.log('[ProductEditor] ✅ Medidas encontradas para público alvo', newAudience, '- restaurando grade', sizeCategory);
+                          
+                          return {
+                            ...prev,
+                            targetAudience: newAudience,
+                            sizeCategory: sizeCategory as typeof prev.sizeCategory,
+                            smartMeasurements: existingMeasurements,
+                            imagemMedidasCustomizada: existingMeasurements.baseImage,
+                          };
+                        } else {
+                          console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para público alvo', newAudience);
+                          return { ...prev, targetAudience: newAudience };
+                        }
+                      });
+                      
                       if (typeof window !== 'undefined') {
                         localStorage.setItem('lastTargetAudience', newAudience);
                       }
                     }}
                     className={`relative p-4 rounded-lg border-2 transition-all ${
                       state.targetAudience === 'female'
-                        ? 'border-pink-600 bg-pink-50 dark:bg-pink-900/20 ring-2 ring-pink-300 dark:ring-pink-700'
-                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-slate-800 hover:border-pink-300 dark:hover:border-pink-700'
+                        ? 'border-pink-600 bg-pink-50 ring-2 ring-pink-300'
+                        : 'border-gray-200 bg-white hover:border-pink-300'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Venus className={`w-8 h-8 ${
                         state.targetAudience === 'female'
-                          ? 'text-pink-600 dark:text-pink-400'
-                          : 'text-gray-400 dark:text-gray-500'
+                          ? 'text-pink-600'
+                          : 'text-gray-400'
                       }`} />
                       <h3 className={`text-sm font-bold ${
                         state.targetAudience === 'female'
-                          ? 'text-pink-700 dark:text-pink-300'
-                          : 'text-slate-700 dark:text-slate-300'
+                          ? 'text-pink-700'
+                          : 'text-slate-700'
                       }`}>
                         Feminino
                       </h3>
@@ -1495,27 +1790,54 @@ export function ProductEditorLayout({
                   <button
                     onClick={() => {
                       const newAudience: 'female' | 'male' | 'kids' = 'male';
-                      setState(prev => ({ ...prev, targetAudience: newAudience }));
+                      
+                      setState(prev => {
+                        // CRÍTICO: Quando mudar público alvo, verificar se já temos medidas para alguma grade deste público
+                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                        const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
+                          key.startsWith(`${newAudience}_`)
+                        );
+                        
+                        if (measurementKeys.length > 0) {
+                          const lastKey = measurementKeys[measurementKeys.length - 1];
+                          const existingMeasurements = persistedMeasurements[lastKey];
+                          const [, sizeCategory] = lastKey.split('_');
+                          
+                          console.log('[ProductEditor] ✅ Medidas encontradas para público alvo', newAudience, '- restaurando grade', sizeCategory);
+                          
+                          return {
+                            ...prev,
+                            targetAudience: newAudience,
+                            sizeCategory: sizeCategory as typeof prev.sizeCategory,
+                            smartMeasurements: existingMeasurements,
+                            imagemMedidasCustomizada: existingMeasurements.baseImage,
+                          };
+                        } else {
+                          console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para público alvo', newAudience);
+                          return { ...prev, targetAudience: newAudience };
+                        }
+                      });
+                      
                       if (typeof window !== 'undefined') {
                         localStorage.setItem('lastTargetAudience', newAudience);
                       }
                     }}
                     className={`relative p-4 rounded-lg border-2 transition-all ${
                       state.targetAudience === 'male'
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-300 dark:ring-blue-700'
-                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
+                        ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-300'
+                        : 'border-gray-200 bg-white hover:border-blue-300'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Mars className={`w-8 h-8 ${
                         state.targetAudience === 'male'
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-gray-400 dark:text-gray-500'
+                          ? 'text-blue-600'
+                          : 'text-gray-400'
                       }`} />
                       <h3 className={`text-sm font-bold ${
                         state.targetAudience === 'male'
-                          ? 'text-blue-700 dark:text-blue-300'
-                          : 'text-slate-700 dark:text-slate-300'
+                          ? 'text-blue-700'
+                          : 'text-slate-700'
                       }`}>
                         Masculino
                       </h3>
@@ -1529,27 +1851,54 @@ export function ProductEditorLayout({
                   <button
                     onClick={() => {
                       const newAudience: 'female' | 'male' | 'kids' = 'kids';
-                      setState(prev => ({ ...prev, targetAudience: newAudience }));
+                      
+                      setState(prev => {
+                        // CRÍTICO: Quando mudar público alvo, verificar se já temos medidas para alguma grade deste público
+                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                        const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
+                          key.startsWith(`${newAudience}_`)
+                        );
+                        
+                        if (measurementKeys.length > 0) {
+                          const lastKey = measurementKeys[measurementKeys.length - 1];
+                          const existingMeasurements = persistedMeasurements[lastKey];
+                          const [, sizeCategory] = lastKey.split('_');
+                          
+                          console.log('[ProductEditor] ✅ Medidas encontradas para público alvo', newAudience, '- restaurando grade', sizeCategory);
+                          
+                          return {
+                            ...prev,
+                            targetAudience: newAudience,
+                            sizeCategory: sizeCategory as typeof prev.sizeCategory,
+                            smartMeasurements: existingMeasurements,
+                            imagemMedidasCustomizada: existingMeasurements.baseImage,
+                          };
+                        } else {
+                          console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para público alvo', newAudience);
+                          return { ...prev, targetAudience: newAudience };
+                        }
+                      });
+                      
                       if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastTargetAudience', newAudience);
+                        localStorage.setItem('lastTargetAudience', 'kids');
                       }
                     }}
                     className={`relative p-4 rounded-lg border-2 transition-all ${
                       state.targetAudience === 'kids'
-                        ? 'border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-300 dark:ring-yellow-700'
-                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-slate-800 hover:border-yellow-300 dark:hover:border-yellow-700'
+                        ? 'border-yellow-600 bg-yellow-50 ring-2 ring-yellow-300'
+                        : 'border-gray-200 bg-white hover:border-yellow-300'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Baby className={`w-8 h-8 ${
                         state.targetAudience === 'kids'
-                          ? 'text-yellow-600 dark:text-yellow-400'
-                          : 'text-gray-400 dark:text-gray-500'
+                          ? 'text-yellow-600'
+                          : 'text-gray-400'
                       }`} />
                       <h3 className={`text-sm font-bold ${
                         state.targetAudience === 'kids'
-                          ? 'text-yellow-700 dark:text-yellow-300'
-                          : 'text-slate-700 dark:text-slate-300'
+                          ? 'text-yellow-700'
+                          : 'text-slate-700'
                       }`}>
                         Infantil
                       </h3>
@@ -1561,119 +1910,122 @@ export function ProductEditorLayout({
                 </div>
               </div>
 
-              {/* Cards de Seleção de Grade de Tamanho */}
-              <div className={`mb-4 ${state.targetAudience === 'kids' ? 'opacity-50 pointer-events-none' : ''}`}>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 text-center">
+              {/* Cards de Seleção de Grade de Tamanho - DINÂMICO */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-3 text-center">
                   Selecione a Grade de Tamanho <span className="text-red-500">*</span>
-                  {state.targetAudience === 'kids' && (
-                    <span className="text-xs text-slate-500 dark:text-slate-400 block mt-1">
-                      (Não se aplica a produtos infantis)
-                    </span>
-                  )}
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Card A: Grade Padrão */}
-                  <button
-                    onClick={() => {
-                      const newCategory: 'standard' | 'plus' = 'standard';
-                      setState(prev => ({ ...prev, sizeCategory: newCategory }));
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastSizeCategory', newCategory);
-                      }
-                    }}
-                    className={`relative p-4 rounded-lg border-2 transition-all ${
-                      state.sizeCategory === 'standard'
-                        ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20 ring-2 ring-purple-300 dark:ring-purple-700'
-                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-slate-800 hover:border-purple-300 dark:hover:border-purple-700'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Tag className={`w-8 h-8 ${
-                        state.sizeCategory === 'standard'
-                          ? 'text-purple-600 dark:text-purple-400'
-                          : 'text-gray-400 dark:text-gray-500'
-                      }`} />
-                      <h3 className={`text-sm font-bold ${
-                        state.sizeCategory === 'standard'
-                          ? 'text-purple-700 dark:text-purple-300'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}>
-                        Grade Padrão
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        P, M, G, GG
-                      </p>
-                    </div>
-                    {state.sizeCategory === 'standard' && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-purple-600 rounded-full"></div>
-                    )}
-                  </button>
-
-                  {/* Card B: Plus Size */}
-                  <button
-                    onClick={() => {
-                      const newCategory: 'standard' | 'plus' = 'plus';
-                      setState(prev => ({ ...prev, sizeCategory: newCategory }));
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastSizeCategory', newCategory);
-                      }
-                    }}
-                    className={`relative p-4 rounded-lg border-2 transition-all ${
-                      state.sizeCategory === 'plus'
-                        ? 'border-pink-600 bg-pink-50 dark:bg-pink-900/20 ring-2 ring-pink-300 dark:ring-pink-700'
-                        : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-slate-800 hover:border-pink-300 dark:hover:border-pink-700'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Ruler className={`w-8 h-8 ${
-                        state.sizeCategory === 'plus'
-                          ? 'text-pink-600 dark:text-pink-400'
-                          : 'text-gray-400 dark:text-gray-500'
-                      }`} />
-                      <h3 className={`text-sm font-bold ${
-                        state.sizeCategory === 'plus'
-                          ? 'text-pink-700 dark:text-pink-300'
-                          : 'text-slate-700 dark:text-slate-300'
-                      }`}>
-                        Plus Size
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        G1, G2, G3, G4
-                      </p>
-                    </div>
-                    {state.sizeCategory === 'plus' && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-pink-600 rounded-full"></div>
-                    )}
-                  </button>
+                <div className={`grid gap-3 ${
+                  (state.targetAudience === 'kids' ? SIZE_GRIDS.KIDS : SIZE_GRIDS.ADULT).length === 3
+                    ? 'grid-cols-3'
+                    : 'grid-cols-2'
+                }`}>
+                  {(state.targetAudience === 'kids' ? SIZE_GRIDS.KIDS : SIZE_GRIDS.ADULT).map((grid) => {
+                    const Icon = grid.icon;
+                    const isSelected = state.sizeCategory === grid.id;
+                    
+                    // Cores dinâmicas baseadas no público alvo
+                    const audienceColors = {
+                      female: {
+                        selected: {
+                          border: 'border-pink-600',
+                          bg: 'bg-pink-50',
+                          ring: 'ring-pink-300',
+                          icon: 'text-pink-600',
+                          text: 'text-pink-700',
+                          dot: 'bg-pink-600',
+                        },
+                        hover: 'hover:border-pink-300',
+                      },
+                      male: {
+                        selected: {
+                          border: 'border-blue-600',
+                          bg: 'bg-blue-50',
+                          ring: 'ring-blue-300',
+                          icon: 'text-blue-600',
+                          text: 'text-blue-700',
+                          dot: 'bg-blue-600',
+                        },
+                        hover: 'hover:border-blue-300',
+                      },
+                      kids: {
+                        selected: {
+                          border: 'border-yellow-600',
+                          bg: 'bg-yellow-50',
+                          ring: 'ring-yellow-300',
+                          icon: 'text-yellow-600',
+                          text: 'text-yellow-700',
+                          dot: 'bg-yellow-600',
+                        },
+                        hover: 'hover:border-yellow-300',
+                      },
+                    };
+                    
+                    const colors = audienceColors[state.targetAudience];
+                    
+                    return (
+                      <button
+                        key={grid.id}
+                        onClick={() => {
+                          const newCategory = grid.id as 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen';
+                          
+                          setState(prev => {
+                            // CRÍTICO: Verificar se já temos medidas coletadas para este público alvo
+                            // Se tiver, restaurar automaticamente sem precisar nova análise
+                            const measurementKey = `${prev.targetAudience}_${newCategory}`;
+                            const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                            const existingMeasurements = persistedMeasurements[measurementKey];
+                            
+                            if (existingMeasurements) {
+                              console.log('[ProductEditor] ✅ Medidas encontradas para', measurementKey, '- restaurando automaticamente');
+                              return {
+                                ...prev,
+                                sizeCategory: newCategory,
+                                smartMeasurements: existingMeasurements,
+                                imagemMedidasCustomizada: existingMeasurements.baseImage,
+                              };
+                            } else {
+                              console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para', measurementKey, '- será necessário nova análise');
+                              return { ...prev, sizeCategory: newCategory };
+                            }
+                          });
+                          
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('lastSizeCategory', newCategory);
+                          }
+                        }}
+                        className={`relative p-4 rounded-lg border-2 transition-all ${
+                          isSelected
+                            ? `${colors.selected.border} ${colors.selected.bg} ring-2 ${colors.selected.ring}`
+                            : `border-gray-200 bg-white ${colors.hover}`
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <Icon className={`w-8 h-8 ${
+                            isSelected
+                              ? colors.selected.icon
+                              : 'text-gray-400'
+                          }`} />
+                          <h3 className={`text-sm font-bold ${
+                            isSelected
+                              ? colors.selected.text
+                              : 'text-slate-700'
+                          }`}>
+                            {grid.label}
+                          </h3>
+                          <p className="text-xs text-slate-600">
+                            {grid.examples}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <div className={`absolute top-2 right-2 w-3 h-3 ${colors.selected.dot} rounded-full`}></div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               
-              {/* Seletor de Manequim */}
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 text-center">
-                  Selecione o Manequim
-                </label>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {MANNEQUIN_STYLES.map((mannequin) => (
-                    <button
-                      key={mannequin.id}
-                      onClick={() => setState(prev => ({ ...prev, selectedMannequinId: mannequin.id }))}
-                      className={`w-full rounded-lg overflow-hidden border-2 transition-all ${
-                        state.selectedMannequinId === mannequin.id
-                          ? "border-purple-600 ring-4 ring-purple-300"
-                          : "border-slate-300 dark:border-slate-600 hover:border-purple-400"
-                      }`}
-                    >
-                      <img
-                        src={mannequin.thumbnailUrl}
-                        alt={mannequin.name}
-                        className="w-full h-auto object-contain"
-                        style={{ display: 'block' }}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Caixa de Visualização de Imagens - ABAIXO DOS BOTÕES */}
               <div className="mb-4">
@@ -1735,15 +2087,15 @@ export function ProductEditorLayout({
                     {uploading ? (
                       <>
                         <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-2" />
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">Fazendo upload...</p>
+                        <p className="text-xs text-slate-600 font-medium whitespace-nowrap">Fazendo upload...</p>
                       </>
                     ) : (
                       <>
                         <Upload className="w-10 h-10 text-slate-500 mb-2" />
-                        <p className="text-xs text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+                        <p className="text-xs text-slate-600 font-medium whitespace-nowrap">
                           Upload your produto
                         </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-1 whitespace-nowrap">
+                        <p className="text-xs text-slate-500 mt-1 whitespace-nowrap">
                           Clique ou arraste uma imagem aqui
                         </p>
                       </>
@@ -1758,7 +2110,7 @@ export function ProductEditorLayout({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Caixa 1: Imagem Original */}
                   <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide whitespace-nowrap text-center">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap text-center">
                       Imagem Original
                     </h4>
                     <button
@@ -1799,7 +2151,7 @@ export function ProductEditorLayout({
 
                   {/* Caixa 2: Foto Catálogo */}
                   <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide whitespace-nowrap text-center">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap text-center">
                       Foto Catálogo
                     </h4>
                     <button
@@ -1849,7 +2201,7 @@ export function ProductEditorLayout({
 
                   {/* Caixa 3: Look Combinado */}
                   <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide whitespace-nowrap text-center">
+                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap text-center">
                       Look Combinado
                     </h4>
                     <button
@@ -1918,7 +2270,7 @@ export function ProductEditorLayout({
         {/* === COLUNA DIREITA: O Hub de Dados === */}
         <div className="w-full lg:flex-1 flex flex-col">
             {/* Card Unificado: Preenchimento Obrigatório + Análise Inteligente */}
-            <AnimatedCard className="p-0 overflow-hidden bg-white dark:bg-slate-800 shadow-sm flex-1 flex flex-col">
+            <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm flex-1 flex flex-col">
               {/* Cabeçalho Vermelho/Rosa - Preenchimento Obrigatório no Topo */}
               <div className="bg-gradient-to-r from-red-600 to-rose-600 px-3 h-[52px] flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: '#FFFFFF' }}>
@@ -1933,11 +2285,11 @@ export function ProductEditorLayout({
               {/* Corpo Branco - Conteúdo Unificado */}
               <div className="p-3 space-y-3 bg-white flex-1 flex flex-col">
                 {/* SEÇÃO 1: Preenchimento Obrigatório (No Topo) */}
-                <div className="space-y-2 pb-3 border-b border-slate-200 dark:border-slate-700">
+                <div className="space-y-2 pb-3 border-b border-slate-200">
                   {/* Linha 1: Preços */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Preço (R$) <span style={{ color: '#ef4444', fontWeight: 'bold' }}>*</span>
                       </label>
                       <input
@@ -1951,7 +2303,7 @@ export function ProductEditorLayout({
                           }));
                         }}
                         placeholder="0,00"
-                        className="w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
                         style={{ 
                           border: '2px solid #ef4444', 
                           borderColor: '#ef4444',
@@ -1975,7 +2327,7 @@ export function ProductEditorLayout({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Preço Promocional (R$)
                       </label>
                       <input
@@ -1989,7 +2341,7 @@ export function ProductEditorLayout({
                           }));
                         }}
                         placeholder="0,00"
-                        className="w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
                         style={{ 
                           border: '2px solid #ef4444', 
                           borderColor: '#ef4444',
@@ -2017,7 +2369,7 @@ export function ProductEditorLayout({
                   {/* Linha 2: SKU e Estoque */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         SKU <span style={{ color: '#ef4444', fontWeight: 'bold' }}>*</span>
                       </label>
                       <input
@@ -2038,7 +2390,7 @@ export function ProductEditorLayout({
                         }}
                         placeholder="Auto-gerado"
                         title="SKU gerado automaticamente. Você pode editar se necessário."
-                        className="w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
                         style={{ 
                           border: '2px solid #ef4444', 
                           borderColor: '#ef4444',
@@ -2066,7 +2418,7 @@ export function ProductEditorLayout({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Estoque (Qtd Total) <span style={{ color: '#ef4444', fontWeight: 'bold' }}>*</span>
                       </label>
                       <input
@@ -2079,7 +2431,7 @@ export function ProductEditorLayout({
                           }))
                         }
                         placeholder="0"
-                        className="w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
                         style={{ 
                           border: '2px solid #ef4444', 
                           borderColor: '#ef4444',
@@ -2106,7 +2458,7 @@ export function ProductEditorLayout({
 
                   {/* Switch: Este produto possui variações? */}
                   <div className="flex items-center justify-between py-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <label className="text-sm font-medium text-slate-700">
                       Este produto possui variações? (Ex: Cores, Tamanhos)
                     </label>
                     <button
@@ -2123,9 +2475,9 @@ export function ProductEditorLayout({
                             } else {
                               // Criar variações padrão P, M, G sem estoque preenchido
                               const variacoesPadrao = [
-                                { id: Date.now().toString(), variacao: "P", estoque: "", sku: "" },
-                                { id: (Date.now() + 1).toString(), variacao: "M", estoque: "", sku: "" },
-                                { id: (Date.now() + 2).toString(), variacao: "G", estoque: "", sku: "" }
+                                { id: Date.now().toString(), variacao: "P", estoque: "", sku: "", equivalence: "" },
+                                { id: (Date.now() + 1).toString(), variacao: "M", estoque: "", sku: "", equivalence: "" },
+                                { id: (Date.now() + 2).toString(), variacao: "G", estoque: "", sku: "", equivalence: "" }
                               ];
                               variacoesPreservadasRef.current = variacoesPadrao;
                               return { ...prev, temVariacoes: novoEstadoVariacoes, variacoes: variacoesPadrao };
@@ -2141,7 +2493,7 @@ export function ProductEditorLayout({
                         });
                       }}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                        state.temVariacoes ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                        state.temVariacoes ? 'bg-indigo-600' : 'bg-gray-300'
                       }`}
                     >
                       <span
@@ -2154,9 +2506,9 @@ export function ProductEditorLayout({
 
                   {/* ÁREA DINÂMICA: Grade de Estoque (quando variações ativadas) - COMPACTA */}
                   {state.temVariacoes && (
-                    <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+                    <div className="border-t border-slate-200 pt-3 space-y-2">
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                           Grade de Estoque
                         </h4>
                         <select
@@ -2167,7 +2519,7 @@ export function ProductEditorLayout({
                               manualData: { ...prev.manualData, unidadeMedida: e.target.value }
                             }));
                           }}
-                          className="text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1 text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                          className="text-xs rounded border border-gray-300 bg-white px-2 py-1 text-slate-900 focus:border-gray-500 focus:outline-none"
                         >
                           <option value="UN">UN (Unidade)</option>
                           <option value="KG">KG (Quilograma)</option>
@@ -2178,6 +2530,15 @@ export function ProductEditorLayout({
                           <option value="DZ">DZ (Dúzia)</option>
                           <option value="PAR">PAR (Par)</option>
                         </select>
+                      </div>
+                      
+                      {/* Cabeçalho da Tabela de Variações */}
+                      <div className="grid grid-cols-12 gap-1 mb-1 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <div className="col-span-2">Tamanho</div>
+                        <div className="col-span-2">Ref</div>
+                        <div className="col-span-2">Estoque</div>
+                        <div className="col-span-5">SKU</div>
+                        <div className="col-span-1"></div>
                       </div>
                       
                       {/* Lista de Variações - Compacta */}
@@ -2221,7 +2582,7 @@ export function ProductEditorLayout({
                           setState(prev => {
                             const novasVariacoes = [
                               ...prev.variacoes,
-                              { id: novaId, variacao: "", estoque: "", sku: "" }
+                              { id: novaId, variacao: "", estoque: "", sku: "", equivalence: "" }
                             ];
                             // Atualizar ref para preservar as variações atualizadas
                             variacoesPreservadasRef.current = [...novasVariacoes];
@@ -2231,7 +2592,7 @@ export function ProductEditorLayout({
                             };
                           });
                         }}
-                        className="w-full h-6 rounded border-2 border-solid border-blue-300 dark:border-blue-400 bg-blue-300 dark:bg-blue-400 px-2 py-0 text-xs font-semibold hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors duration-200 flex items-center justify-center gap-1.5"
+                        className="w-full h-6 rounded border-2 border-solid border-blue-300 bg-blue-300 px-2 py-0 text-xs font-semibold hover:bg-blue-400 transition-colors duration-200 flex items-center justify-center gap-1.5"
                         style={{ color: '#FFFFFF' }}
                       >
                         <Plus className="h-2.5 w-2.5 stroke-[2.5]" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
@@ -2240,31 +2601,90 @@ export function ProductEditorLayout({
                     </div>
                   )}
 
-                  {/* Card de Medidas - Abaixo da Grade de Estoque */}
-                  <MeasurementGuideCard
-                    aiCategory={state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida}
-                    aiProductType={state.aiAnalysisData?.product_type}
-                    aiKeywords={state.aiAnalysisData?.tags}
-                    imagemMedidasCustomizada={state.imagemMedidasCustomizada}
-                    onUploadManual={(file) => handleMedidasFileSelect(file)}
-                    onRemoveCustom={() => {
-                      setState(prev => ({ ...prev, imagemMedidasCustomizada: null }));
-                    }}
-                    uploading={uploadingMedidas}
-                    medidasFileInputRef={medidasFileInputRef}
-                    variacoes={state.variacoes}
-                    onMedidasChange={(medidas) => {
-                      // Salvar medidas no estado do produto (pode ser adicionado ao estado se necessário)
-                      console.log('Medidas atualizadas:', medidas);
+                  {/* Editor de Medidas Inteligente - Abaixo da Grade de Estoque */}
+                  <SmartMeasurementEditor
+                    rawImageUrl={state.rawImageUrl}
+                    rawImageFile={state.rawImageFile}
+                    lojistaId={lojistaId}
+                    produtoId={produtoId}
+                    productInfo={{
+                      category: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida,
+                      productType: state.aiAnalysisData?.product_type,
+                      color: state.aiAnalysisData?.dominant_colors?.[0]?.name || state.aiAnalysisData?.cor_predominante,
+                      material: state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado,
+                      style: state.aiAnalysisData?.product_type,
+                      standardMeasurements: state.aiAnalysisData?.standard_measurements, // Medidas pré-coletadas da análise
                     }}
                     sizeCategory={state.sizeCategory}
                     targetAudience={state.targetAudience}
+                    variacoes={state.variacoes}
+                    onImageUpload={async (file) => {
+                      await handleMedidasFileSelect(file);
+                    }}
+                    onMeasurementsChange={useCallback((data: SmartGuideData) => {
+                      setState(prev => {
+                        // Verificar se os dados realmente mudaram para evitar re-renderizações desnecessárias
+                        const currentBaseImage = prev.smartMeasurements?.baseImage;
+                        if (currentBaseImage === data.baseImage && 
+                            JSON.stringify(prev.smartMeasurements) === JSON.stringify(data)) {
+                          return prev;
+                        }
+                        
+                        // CRÍTICO: Armazenar medidas por público alvo e grade para reutilização
+                        const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
+                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                        
+                        return {
+                          ...prev,
+                          smartMeasurements: data,
+                          imagemMedidasCustomizada: data.baseImage, // Manter compatibilidade
+                          persistedMeasurementsByAudience: {
+                            ...persistedMeasurements,
+                            [measurementKey]: data, // Armazenar medidas para esta combinação de público alvo + grade
+                          },
+                        };
+                      });
+                    }, [])}
+                    onSave={async (data) => {
+                      // Salvar medidas no estado e persistir por público alvo + grade
+                      setState(prev => {
+                        const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
+                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                        
+                        return {
+                          ...prev,
+                          smartMeasurements: data,
+                          imagemMedidasCustomizada: data.baseImage,
+                          persistedMeasurementsByAudience: {
+                            ...persistedMeasurements,
+                            [measurementKey]: data, // Persistir medidas para esta combinação
+                          },
+                        };
+                      });
+                      console.log('[ProductEditor] Medidas salvas e persistidas:', data);
+                    }}
+                    initialData={(() => {
+                      // CRÍTICO: Verificar se temos medidas persistidas para esta combinação de público alvo + grade
+                      // Se tiver, usar elas; caso contrário, usar smartMeasurements padrão
+                      const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
+                      const persistedMeasurements = state.persistedMeasurementsByAudience || {};
+                      const persistedData = persistedMeasurements[measurementKey];
+                      
+                      if (persistedData) {
+                        console.log('[ProductEditor] 📦 Usando medidas persistidas para', measurementKey);
+                        return persistedData;
+                      }
+                      
+                      return state.smartMeasurements;
+                    })()}
+                    uploading={uploadingMedidas}
+                    variacoes={state.variacoes}
                   />
 
                   {/* Toggles */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <label className="text-sm font-medium text-slate-700">
                         Ativar no Site
                       </label>
                       <button
@@ -2275,7 +2695,7 @@ export function ProductEditorLayout({
                           }))
                         }
                         className={`relative w-12 h-6 rounded-full transition-colors ${
-                          state.manualData.ativo ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"
+                          state.manualData.ativo ? "bg-blue-500" : "bg-slate-300"
                         }`}
                       >
                         <span
@@ -2286,7 +2706,7 @@ export function ProductEditorLayout({
                       </button>
                     </div>
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      <label className="text-sm font-medium text-slate-700">
                         Destaque Promocional
                       </label>
                       <button
@@ -2297,7 +2717,7 @@ export function ProductEditorLayout({
                           }))
                         }
                         className={`relative w-12 h-6 rounded-full transition-colors ${
-                          state.manualData.destaquePromocional ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"
+                          state.manualData.destaquePromocional ? "bg-blue-500" : "bg-slate-300"
                         }`}
                       >
                         <span
@@ -2342,8 +2762,54 @@ export function ProductEditorLayout({
                   {/* Conteúdo do Accordion */}
                   {analiseAccordionOpen && (
                     <div className="space-y-2 pt-2">
-                      {/* Botão Regenerar - Movido para dentro do accordion */}
-                      <div className="flex justify-end">
+                      {/* Botões de Análise - Movido para dentro do accordion */}
+                      <div className="flex justify-end gap-2">
+                        {/* Botão Nova Análise - Sempre visível quando há análise */}
+                        {state.aiAnalysisData && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                              if (!imageUrlToAnalyze) {
+                                alert("Por favor, faça upload de uma imagem primeiro.");
+                                return;
+                              }
+                              try {
+                                console.log("[ProductEditor] 🔄 Nova análise com contexto atualizado");
+                                // Resetar análise anterior
+                                lastAnalyzedUrlRef.current = "";
+                                setState(prev => ({
+                                  ...prev,
+                                  aiAnalysisData: null,
+                                }));
+                                // Aguardar um momento para o estado atualizar
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                // Fazer nova análise com contexto atual
+                                await analyzeImage(imageUrlToAnalyze);
+                              } catch (error: any) {
+                                console.error("[ProductEditor] Erro ao fazer nova análise:", error);
+                                alert(`Erro ao fazer nova análise: ${error.message || "Erro desconhecido"}`);
+                              }
+                            }}
+                            disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                            title="Fazer nova análise com o público alvo e grade selecionados"
+                          >
+                            {analyzing ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span>Analisando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4" />
+                                <span>Nova Análise</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                        
+                        {/* Botão Regenerar - Alternativa */}
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
@@ -2362,7 +2828,7 @@ export function ProductEditorLayout({
                             }
                           }}
                           disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-purple-300 dark:border-purple-700"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-purple-300"
                         >
                           {analyzing ? (
                             <>
@@ -2372,7 +2838,7 @@ export function ProductEditorLayout({
                           ) : (
                             <>
                               <RotateCcw className="w-4 h-4" />
-                              <span>Regenerar Análise</span>
+                              <span>Regenerar</span>
                             </>
                           )}
                         </button>
@@ -2380,17 +2846,17 @@ export function ProductEditorLayout({
 
                       {/* Subseção: Marketing & SEO */}
                       <div className="space-y-2 pt-2">
-                        <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
                           Marketing & SEO
                         </h3>
                       
                         {/* Nome Sugerido */}
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                          <label className="block text-sm font-medium text-slate-700">
                             Nome Sugerido
                           </label>
                           {analyzing && !state.aiAnalysisData ? (
-                            <div className="h-11 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+                            <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
                           ) : (
                             <input
                               type="text"
@@ -2404,7 +2870,7 @@ export function ProductEditorLayout({
                                 }))
                               }
                               placeholder={analyzing ? "Analisando..." : "Aguardando análise..."}
-                              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
                             />
                           )}
                         </div>
@@ -2412,30 +2878,24 @@ export function ProductEditorLayout({
                         {/* Descrição SEO */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                               Descrição Comercial/SEO
                             </label>
-                            <span className={`text-xs font-medium ${
-                              (state.aiAnalysisData?.descricao_seo?.length || 0) > 500 
-                                ? 'text-red-500' 
-                                : (state.aiAnalysisData?.descricao_seo?.length || 0) > 450 
-                                  ? 'text-orange-500' 
-                                  : 'text-slate-500 dark:text-slate-400'
-                            }`}>
-                              {(state.aiAnalysisData?.descricao_seo?.length || 0)} / 500
+                            <span className="text-xs font-medium text-slate-500">
+                              {(state.aiAnalysisData?.descricao_seo?.length || 0)} caracteres
                             </span>
                           </div>
                           {analyzing && !state.aiAnalysisData ? (
                             <div className="space-y-2">
-                              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-full" />
-                              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-5/6" />
-                              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-4/6" />
+                              <div className="h-4 bg-slate-200 rounded animate-pulse w-full" />
+                              <div className="h-4 bg-slate-200 rounded animate-pulse w-5/6" />
+                              <div className="h-4 bg-slate-200 rounded animate-pulse w-4/6" />
                             </div>
                           ) : (
                             <textarea
                               value={state.aiAnalysisData?.descricao_seo || ""}
                               onChange={(e) => {
-                                const newValue = e.target.value.slice(0, 500); // Limitar a 500 caracteres
+                                const newValue = e.target.value; // Sem limite de caracteres
                                 setState(prev => ({
                                   ...prev,
                                   aiAnalysisData: prev.aiAnalysisData
@@ -2443,16 +2903,9 @@ export function ProductEditorLayout({
                                     : { descricao_seo: newValue },
                                 }));
                               }}
-                              maxLength={500}
                               rows={6}
                               placeholder={analyzing ? "Analisando imagem..." : "Aguardando análise da imagem..."}
-                              className={`w-full px-4 py-2.5 border rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y transition-all min-h-[120px] ${
-                                (state.aiAnalysisData?.descricao_seo?.length || 0) > 500 
-                                  ? 'border-red-500 dark:border-red-500' 
-                                  : (state.aiAnalysisData?.descricao_seo?.length || 0) > 450 
-                                    ? 'border-orange-500 dark:border-orange-500' 
-                                    : 'border-slate-300 dark:border-slate-600'
-                              }`}
+                              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y transition-all min-h-[120px]"
                             />
                           )}
                         </div>
@@ -2460,18 +2913,18 @@ export function ProductEditorLayout({
 
                       {/* Seção B: Ficha Técnica Automática */}
                       <div className="space-y-2 pt-2">
-                        <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                           Ficha Técnica Automática
                         </h3>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {/* Categoria (Dropdown) */}
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                               Categoria Sugerida
                             </label>
                             {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
                             ) : (
                               <select
                                 value={state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || ""}
@@ -2487,7 +2940,7 @@ export function ProductEditorLayout({
                                       : { suggested_category: e.target.value, categoria_sugerida: e.target.value },
                                   }))
                                 }
-                                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
                               >
                                 <option value="">Selecione uma categoria</option>
                                 {AVAILABLE_CATEGORIES.map(cat => (
@@ -2499,11 +2952,11 @@ export function ProductEditorLayout({
 
                           {/* Tipo de Produto */}
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                               Tipo de Produto
                             </label>
                             {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
                             ) : (
                               <input
                                 type="text"
@@ -2518,18 +2971,18 @@ export function ProductEditorLayout({
                                   }));
                                 }}
                                 placeholder="Ex: Blazer, Vestido, Tênis"
-                                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
                               />
                             )}
                           </div>
 
                           {/* Tecido Detectado */}
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                               Tecido Detectado
                             </label>
                             {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
                             ) : (
                               <input
                                 type="text"
@@ -2548,19 +3001,53 @@ export function ProductEditorLayout({
                                   }));
                                 }}
                                 placeholder="Ex: Algodão, Linho, Couro"
-                                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
                               />
                             )}
                           </div>
 
                           {/* Cores Predominantes */}
                           <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            <label className="block text-sm font-medium text-slate-700">
                               Cores Predominantes
                             </label>
                             {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse" />
+                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
+                            ) : state.aiAnalysisData?.colors_by_item && Array.isArray(state.aiAnalysisData.colors_by_item) && state.aiAnalysisData.colors_by_item.length > 0 ? (
+                              /* CONJUNTO: Mostrar cores por item */
+                              <div className="space-y-2.5">
+                                {state.aiAnalysisData.colors_by_item.map((itemData, itemIdx) => (
+                                  <div key={itemIdx} className="space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold text-slate-700">
+                                        {itemData.item}:
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 items-center">
+                                      {itemData.colors.map((color, colorIdx) => {
+                                        const colorHex = color?.hex || "#808080";
+                                        const colorName = color?.name || "Não especificado";
+                                        return (
+                                          <div
+                                            key={colorIdx}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white border-2 border-slate-200 rounded-lg shadow-sm"
+                                          >
+                                            <div
+                                              className="w-5 h-5 rounded-full border-2 border-slate-200"
+                                              style={{ backgroundColor: colorHex }}
+                                            />
+                                            <span className="text-sm text-slate-700 font-medium">
+                                              {colorName}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             ) : state.aiAnalysisData?.dominant_colors && Array.isArray(state.aiAnalysisData.dominant_colors) && state.aiAnalysisData.dominant_colors.length > 0 ? (
+                              /* PRODUTO ÚNICO: Mostrar cores gerais */
                               <div className="flex flex-wrap gap-2 items-center">
                                 {state.aiAnalysisData.dominant_colors.map((color, idx) => {
                                   // Garantir que color tenha hex e name
@@ -2569,13 +3056,13 @@ export function ProductEditorLayout({
                                   return (
                                     <div
                                       key={idx}
-                                      className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-sm"
+                                      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm"
                                     >
                                       <div
-                                        className="w-5 h-5 rounded-full border-2 border-slate-200 dark:border-slate-400"
+                                        className="w-5 h-5 rounded-full border-2 border-slate-200"
                                         style={{ backgroundColor: colorHex }}
                                       />
-                                      <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                                      <span className="text-sm text-slate-700 font-medium">
                                         {colorName}
                                       </span>
                                     </div>
@@ -2583,7 +3070,7 @@ export function ProductEditorLayout({
                                 })}
                               </div>
                             ) : (
-                              <p className="text-sm text-slate-500 dark:text-slate-400 py-2">
+                              <p className="text-sm text-slate-500 py-2">
                                 {state.aiAnalysisData ? "Nenhuma cor detectada" : "Cores serão detectadas após a análise"}
                               </p>
                             )}
@@ -2606,6 +3093,118 @@ export function ProductEditorLayout({
           onClose={() => setShowManualModal(false)}
           onConfirm={handleGenerateCombinedManual}
         />
+      )}
+
+      {/* Modal de Confirmação de Público Alvo */}
+      {showAudienceConfirmation && state.aiAnalysisData?.detected_audience && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  Confirmação de Público Alvo
+                </h3>
+                <p className="text-xs text-slate-500">
+                  A IA detectou uma possível inconsistência
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                A análise detectou que este produto pode ser para um público diferente do que você selecionou. Isso pode afetar a precisão das medidas sugeridas.
+              </p>
+              
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-amber-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-700">Você selecionou:</span>
+                  </div>
+                  <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
+                    state.targetAudience === 'female' ? 'bg-pink-100 text-pink-700' :
+                    state.targetAudience === 'male' ? 'bg-blue-100 text-blue-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {state.targetAudience === 'female' ? '👩 Feminino' : 
+                     state.targetAudience === 'male' ? '👨 Masculino' : '👶 Infantil'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <span className="text-sm font-medium text-slate-700">IA detectou:</span>
+                  </div>
+                  <span className="text-sm font-bold px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700">
+                    {state.aiAnalysisData.detected_audience === 'KIDS' ? '👶 Infantil' : '👔 Adulto'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  <strong>💡 Dica:</strong> Se o público alvo estiver incorreto, ajuste o seletor acima e clique em <strong>"Nova Análise"</strong> para recalcular as medidas com o contexto adequado. Isso garante maior precisão nas medidas sugeridas.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={async () => {
+                  setShowAudienceConfirmation(false);
+                  const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                  
+                  if (!imageUrlToAnalyze) {
+                    alert("Por favor, faça upload de uma imagem primeiro.");
+                    return;
+                  }
+                  
+                  try {
+                    // Resetar análise anterior
+                    setState(prev => ({
+                      ...prev,
+                      aiAnalysisData: null,
+                    }));
+                    lastAnalyzedUrlRef.current = ""; // Resetar para permitir nova análise
+                    
+                    // Aguardar um momento para o estado atualizar
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Fazer nova análise com contexto atual (público alvo já foi ajustado pelo usuário)
+                    await analyzeImage(imageUrlToAnalyze);
+                  } catch (error: any) {
+                    console.error("[ProductEditor] Erro ao fazer nova análise:", error);
+                    alert(`Erro ao fazer nova análise: ${error.message || "Erro desconhecido"}`);
+                  }
+                }}
+                className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
+                <span>Nova Análise com Contexto Correto</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowAudienceConfirmation(false);
+                }}
+                className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Continuar com Análise Atual
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowAudienceConfirmation(false);
+                }}
+                className="w-full px-4 py-2 text-slate-500 hover:text-slate-700 font-medium rounded-lg transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

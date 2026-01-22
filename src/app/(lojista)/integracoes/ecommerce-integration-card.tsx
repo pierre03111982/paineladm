@@ -27,7 +27,7 @@ export function EcommerceIntegrationCard() {
   };
 
   return (
-    <div className="neon-card rounded-xl border-2 border-emerald-200 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-50/50 to-green-50/50 dark:from-emerald-950/30 dark:to-green-950/30 p-5 space-y-3 shadow-lg shadow-emerald-500/20">
+    <div className="neon-card rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-green-50/50 p-5 space-y-3 shadow-lg shadow-emerald-500/20">
       <h4 className="text-sm font-semibold text-[var(--text-main)] mb-2">Conecte seu e-commerce</h4>
       <p className="text-xs font-medium text-[var(--text-secondary)] leading-relaxed">
         Estamos preparando integrações nativas com Shopify, Nuvemshop e VTEX para que seu catálogo fique sempre sincronizado. Cadastre-se na lista de espera e seja avisado em primeira mão.
@@ -39,13 +39,13 @@ export function EcommerceIntegrationCard() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Seu melhor e-mail"
-            className="flex-1 rounded-lg border border-emerald-300 dark:border-emerald-500/50 bg-white dark:bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 transition-colors"
+            className="flex-1 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs text-[var(--text-main)] placeholder:text-[var(--text-secondary)] focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/60 transition-colors"
             required
           />
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white px-4 py-2 text-xs font-semibold shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-semibold shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               "Cadastrando..."
@@ -58,7 +58,7 @@ export function EcommerceIntegrationCard() {
           </button>
         </form>
       ) : (
-        <div className="rounded-lg bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-lg bg-emerald-100 border border-emerald-300 px-3 py-2 text-xs font-medium text-emerald-700">
           ✅ Cadastro realizado! Você será notificado quando as integrações estiverem disponíveis.
         </div>
       )}

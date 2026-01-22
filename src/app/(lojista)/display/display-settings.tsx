@@ -107,26 +107,26 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
           className={cn(
             "relative neon-card rounded-xl border-2 p-6 transition-all hover:scale-[1.02]",
             orientation === "horizontal"
-              ? "border-cyan-400/80 dark:border-cyan-500/80 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 dark:from-cyan-900/30 dark:to-blue-900/30 shadow-lg shadow-cyan-500/30"
-              : "border-gray-300/50 dark:border-gray-600/50 bg-[var(--bg-card)]/60 hover:border-cyan-400/50 dark:hover:border-cyan-500/50"
+              ? "border-cyan-400/80 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 shadow-lg shadow-cyan-500/30"
+              : "border-gray-300/50 bg-[var(--bg-card)]/60 hover:border-cyan-400/50"
           )}
         >
           <div className="flex flex-col items-center gap-4">
             <div className={cn(
               "p-4 rounded-lg transition-all",
               orientation === "horizontal"
-                ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 dark:from-cyan-900/50 dark:to-blue-900/50 shadow-lg shadow-cyan-500/30"
+                ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 shadow-lg shadow-cyan-500/30"
                 : "bg-[var(--bg-card)]/40"
             )}>
               <Monitor className={cn(
                 "h-8 w-8",
-                orientation === "horizontal" ? "text-cyan-600 dark:text-cyan-400" : "text-[var(--text-secondary)]"
+                orientation === "horizontal" ? "text-cyan-600" : "text-[var(--text-secondary)]"
               )} />
             </div>
             <div className="text-center">
               <h4 className={cn(
                 "font-bold mb-1",
-                orientation === "horizontal" ? "text-cyan-700 dark:text-cyan-300" : "text-[var(--text-main)]"
+                orientation === "horizontal" ? "text-cyan-700" : "text-[var(--text-main)]"
               )}>
                 Horizontal
               </h4>
@@ -153,26 +153,26 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
           className={cn(
             "relative neon-card rounded-xl border-2 p-6 transition-all hover:scale-[1.02]",
             orientation === "vertical"
-              ? "border-cyan-400/80 dark:border-cyan-500/80 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 dark:from-cyan-900/30 dark:to-blue-900/30 shadow-lg shadow-cyan-500/30"
-              : "border-gray-300/50 dark:border-gray-600/50 bg-[var(--bg-card)]/60 hover:border-cyan-400/50 dark:hover:border-cyan-500/50"
+              ? "border-cyan-400/80 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 shadow-lg shadow-cyan-500/30"
+              : "border-gray-300/50 bg-[var(--bg-card)]/60 hover:border-cyan-400/50"
           )}
         >
           <div className="flex flex-col items-center gap-4">
             <div className={cn(
               "p-4 rounded-lg transition-all",
               orientation === "vertical"
-                ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 dark:from-cyan-900/50 dark:to-blue-900/50 shadow-lg shadow-cyan-500/30"
+                ? "bg-gradient-to-br from-cyan-500/30 to-blue-500/30 shadow-lg shadow-cyan-500/30"
                 : "bg-[var(--bg-card)]/40"
             )}>
               <Smartphone className={cn(
                 "h-8 w-8",
-                orientation === "vertical" ? "text-cyan-600 dark:text-cyan-400" : "text-[var(--text-secondary)]"
+                orientation === "vertical" ? "text-cyan-600" : "text-[var(--text-secondary)]"
               )} />
             </div>
             <div className="text-center">
               <h4 className={cn(
                 "font-bold mb-1",
-                orientation === "vertical" ? "text-cyan-700 dark:text-cyan-300" : "text-[var(--text-main)]"
+                orientation === "vertical" ? "text-cyan-700" : "text-[var(--text-main)]"
               )}>
                 Vertical
               </h4>
@@ -195,13 +195,13 @@ export function DisplaySettings({ lojistaId, onOrientationChange }: DisplaySetti
       <div className="flex items-center justify-between">
         <div className="text-xs">
           {saveStatus === "success" && (
-            <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-semibold">
+            <span className="text-emerald-600 flex items-center gap-2 font-semibold">
               <Check className="h-4 w-4" />
               Configuração salva com sucesso!
             </span>
           )}
           {saveStatus === "error" && (
-            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+            <span className="text-rose-600 font-semibold">
               Erro ao salvar configuração. Tente novamente.
             </span>
           )}

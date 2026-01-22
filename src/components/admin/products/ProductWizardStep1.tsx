@@ -125,7 +125,7 @@ export function ProductWizardStep1({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Coluna Esquerda: Upload */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-xl font-bold text-gray-900">
           Sua Foto Original
         </h2>
         
@@ -135,8 +135,8 @@ export function ProductWizardStep1({
           onDragOver={handleDragOver}
           className={`relative border-2 border-dashed rounded-xl p-8 min-h-[400px] flex items-center justify-center transition-all ${
             uploading || analyzing
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-              : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 hover:border-indigo-500"
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-300 bg-gray-50 hover:border-indigo-500"
           }`}
         >
           {wizardState.rawImageUrl ? (
@@ -159,8 +159,8 @@ export function ProductWizardStep1({
             </div>
           ) : (
             <div className="text-center">
-              <Upload className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
+              <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2">
                 Arraste uma imagem aqui ou clique para selecionar
               </p>
               <button
@@ -187,14 +187,14 @@ export function ProductWizardStep1({
 
       {/* Coluna Direita: Feedback IA */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-indigo-500" />
           Sugestões da Inteligência Artificial
         </h2>
 
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-xl p-6 space-y-4">
+        <div className="bg-indigo-50 rounded-xl p-6 space-y-4">
           {!wizardState.rawImageUrl ? (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+            <p className="text-gray-500 text-center py-8">
               Aguardando imagem para iniciar análise...
             </p>
           ) : analyzing ? (
@@ -202,8 +202,8 @@ export function ProductWizardStep1({
             <div className="space-y-4">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/4 mb-2"></div>
-                  <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gray-300 rounded w-1/4 mb-2"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
                 </div>
               ))}
             </div>
@@ -211,7 +211,7 @@ export function ProductWizardStep1({
             // Campos Preenchidos
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
                   Nome Sugerido
                 </label>
@@ -226,12 +226,12 @@ export function ProductWizardStep1({
                       },
                     })
                   }
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
                   Descrição SEO
                 </label>
@@ -246,12 +246,12 @@ export function ProductWizardStep1({
                     })
                   }
                   rows={4}
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
                   Tags
                 </label>
@@ -259,7 +259,7 @@ export function ProductWizardStep1({
                   {wizardState.aiAnalysisData.tags?.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm"
+                      className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"
                     >
                       {tag}
                     </span>
@@ -268,7 +268,7 @@ export function ProductWizardStep1({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-indigo-500" />
                   Categoria
                 </label>
@@ -283,7 +283,7 @@ export function ProductWizardStep1({
                       },
                     })
                   }
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900"
                 />
               </div>
             </>

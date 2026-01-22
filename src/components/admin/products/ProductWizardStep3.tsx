@@ -114,15 +114,15 @@ export function ProductWizardStep3({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Coluna Principal: Formulário (70%) */}
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
             Dados de Venda (Manual)
           </h2>
 
           <div className="space-y-4">
             {/* Preço */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Preço (R$)
               </label>
               <input
@@ -137,13 +137,13 @@ export function ProductWizardStep3({
                   })
                 }
                 placeholder="199,90"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-slate-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900"
               />
             </div>
 
             {/* Preço Promocional */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Preço Promocional (R$)
               </label>
               <input
@@ -158,13 +158,13 @@ export function ProductWizardStep3({
                   })
                 }
                 placeholder="149,90"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-slate-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900"
               />
             </div>
 
             {/* Estoque */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Estoque (Qtd)
               </label>
               <input
@@ -179,13 +179,13 @@ export function ProductWizardStep3({
                   })
                 }
                 placeholder="50"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-slate-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900"
               />
             </div>
 
             {/* SKU */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 SKU
               </label>
               <input
@@ -200,13 +200,13 @@ export function ProductWizardStep3({
                   })
                 }
                 placeholder="VST-FL-001"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-slate-900 dark:text-white"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900"
               />
             </div>
 
             {/* Variações: Tamanhos */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Variações (Tamanho)
               </label>
               <div className="flex gap-2 mb-2">
@@ -216,7 +216,7 @@ export function ProductWizardStep3({
                   onChange={(e) => setNewSize(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAddSize()}
                   placeholder="Ex: P, M, G"
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-slate-900 dark:text-white"
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900"
                 />
                 <button
                   onClick={handleAddSize}
@@ -229,7 +229,7 @@ export function ProductWizardStep3({
                 {wizardState.manualData.tamanhos.map((size) => (
                   <span
                     key={size}
-                    className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center gap-2"
+                    className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm flex items-center gap-2"
                   >
                     {size}
                     <button
@@ -245,7 +245,7 @@ export function ProductWizardStep3({
 
             {/* Variações: Cores */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Variações (Cor)
               </label>
               <div className="flex gap-2 mb-2">
@@ -255,7 +255,7 @@ export function ProductWizardStep3({
                   onChange={(e) => setNewColor(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAddColor()}
                   placeholder="Ex: Preto, Branco"
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-slate-900 dark:text-white"
+                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-slate-900"
                 />
                 <button
                   onClick={handleAddColor}
@@ -268,7 +268,7 @@ export function ProductWizardStep3({
                 {wizardState.manualData.cores.map((color) => (
                   <span
                     key={color}
-                    className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm flex items-center gap-2"
+                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-2"
                   >
                     {color}
                     <button
@@ -288,12 +288,12 @@ export function ProductWizardStep3({
       {/* Coluna Lateral: Contexto Visual (30%) */}
       <div className="space-y-6">
         {/* Miniatura da Capa */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">
             Contexto do Produto
           </h3>
           {wizardState.selectedCoverImage ? (
-            <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+            <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
               <img
                 src={wizardState.selectedCoverImage}
                 alt="Capa selecionada"
@@ -301,39 +301,39 @@ export function ProductWizardStep3({
               />
             </div>
           ) : (
-            <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400">
+            <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400">
               Sem capa selecionada
             </div>
           )}
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">
+          <p className="text-sm text-gray-500 mt-2 text-center">
             Capa Selecionada
           </p>
         </div>
 
         {/* Resumo IA */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-indigo-500" />
             Resumo IA
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
                 Nome:
               </label>
-              <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              <p className="text-sm font-semibold text-gray-900">
                 {wizardState.aiAnalysisData?.nome_sugerido || "Não definido"}
               </p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
                 Tags:
               </label>
               <div className="flex flex-wrap gap-2">
                 {wizardState.aiAnalysisData?.tags?.slice(0, 5).map((tag, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-xs"
+                    className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs"
                   >
                     #{tag}
                   </span>
@@ -348,7 +348,7 @@ export function ProductWizardStep3({
       <div className="lg:col-span-3 flex justify-between pt-4">
         <button
           onClick={onBack}
-          className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold"
+          className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold"
         >
           ← Voltar
         </button>

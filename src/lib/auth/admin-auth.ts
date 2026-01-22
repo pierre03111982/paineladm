@@ -158,15 +158,9 @@ export async function isSuperAdmin(): Promise<boolean> {
     const decodedToken = await auth.verifyIdToken(token);    // Verificar custom claims - Firebase retorna claims diretamente no token
     // Custom claims são acessados via decodedToken.role ou decodedToken['role']
     const role = (decodedToken as any).role || (decodedToken as any).claims?.role;
-    const isSuper = role === "super_admin";
-
-    // Fallback: Verificar também se é admin via email (compatibilidade)
+    const isSuper = role === "super_admin";    // Fallback: Verificar também se é admin via email (compatibilidade)
     const email = decodedToken.email;
-    const isAdminByEmail = email ? isAdminEmail(email) : false;
-
-    const isAuthorized = isSuper || isAdminByEmail;
-
-    console.log("[isSuperAdmin] Verificação:", {
+    const isAdminByEmail = email ? isAdminEmail(email) : false;    const isAuthorized = isSuper || isAdminByEmail;    console.log("[isSuperAdmin] Verificação:", {
       uid: decodedToken.uid,
       email: decodedToken.email,
       role,

@@ -45,8 +45,8 @@ export function ImageCarousel({
   // Se não houver imagens, retornar placeholder
   if (filteredImages.length === 0) {
     return (
-      <div className={`relative w-full ${aspectRatio} rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 flex items-center justify-center ${className}`}>
-        <p className="text-sm text-slate-500 dark:text-slate-400 text-center px-4">
+      <div className={`relative w-full ${aspectRatio} rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center ${className}`}>
+        <p className="text-sm text-slate-500 text-center px-4">
           Nenhuma imagem disponível
         </p>
       </div>
@@ -56,7 +56,7 @@ export function ImageCarousel({
   return (
     <div className={`relative w-full ${className}`}>
       {/* Container do Carrossel */}
-      <div className={`relative w-full ${aspectRatio} rounded-lg overflow-hidden border-2 border-slate-300 dark:border-slate-600 bg-white group`}>
+      <div className={`relative w-full ${aspectRatio} rounded-lg overflow-hidden border-2 border-slate-300 bg-white group`}>
         {/* Imagem Atual */}
         <div className="relative w-full h-full">
           <Image

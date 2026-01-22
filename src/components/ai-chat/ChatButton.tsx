@@ -188,25 +188,25 @@ export function ChatButton({ lojistaId }: ChatButtonProps) {
             </div>
           ) : (
             // Estado Expandido - Chat Completo
-            <div className="h-full bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col">
+            <div className="h-full bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col">
               {/* Header com área de arrasto e gradiente animado */}
               <div
                 ref={headerRef}
                 onMouseDown={handleMouseDown}
-                className={`flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 relative overflow-hidden ${
+                className={`flex items-center justify-between p-4 border-b border-gray-200 relative overflow-hidden ${
                   isDragging ? 'cursor-grabbing' : 'cursor-move'
                 }`}
               >
                 {/* Fundo com Gradiente Animado */}
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 animate-gradient-flow opacity-100 dark:opacity-90"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 animate-gradient-flow opacity-100"></div>
                 
                 {/* Camada de Overlay para suavizar */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20 dark:to-black/20"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/20"></div>
                 
                 <div className="flex items-center gap-3 relative z-10">
                   {/* Ícone com Borda Branca */}
-                  <div className="h-11 w-11 rounded-full bg-white dark:bg-gray-900 flex items-center justify-center shadow-lg ring-2 ring-white/50">
-                    <MessageCircle className="h-6 w-6 text-cyan-600 dark:text-cyan-400" strokeWidth={2.5} />
+                  <div className="h-11 w-11 rounded-full bg-white flex items-center justify-center shadow-lg ring-2 ring-white/50">
+                    <MessageCircle className="h-6 w-6 text-cyan-600" strokeWidth={2.5} />
                   </div>
                   
                   <div>
@@ -223,14 +223,14 @@ export function ChatButton({ lojistaId }: ChatButtonProps) {
                 <div className="flex items-center gap-1 relative z-10">
                   <button
                     onClick={handleToggleMinimize}
-                    className="p-2 rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-colors backdrop-blur-sm"
+                    className="p-2 rounded-lg hover:bg-white/20 transition-colors backdrop-blur-sm"
                     title="Minimizar"
                   >
                     <Minimize2 className="h-4 w-4 text-white drop-shadow" />
                   </button>
                   <button
                     onClick={handleClose}
-                    className="p-2 rounded-lg hover:bg-white/20 dark:hover:bg-black/20 transition-colors backdrop-blur-sm"
+                    className="p-2 rounded-lg hover:bg-white/20 transition-colors backdrop-blur-sm"
                     title="Fechar"
                   >
                     <X className="h-4 w-4 text-white drop-shadow" />

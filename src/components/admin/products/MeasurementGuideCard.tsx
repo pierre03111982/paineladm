@@ -110,7 +110,7 @@ function ManualMeasurementTable({
 
   if (variacoes.length === 0) {
     return (
-      <div className="text-center py-6 text-sm text-slate-500 dark:text-slate-400">
+      <div className="text-center py-6 text-sm text-slate-500">
         Adicione variações (tamanhos) na Grade de Estoque para preencher as medidas.
       </div>
     );
@@ -120,12 +120,12 @@ function ManualMeasurementTable({
     <div className="space-y-3">
       {/* Cabeçalho da Tabela com Botão de Adicionar Coluna */}
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+        <h4 className="text-xs font-semibold text-slate-700">
           Tabela de Medidas Manual
         </h4>
         <button
           onClick={handleAddColumn}
-          className="px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+          className="px-2 py-1 text-xs font-medium text-slate-700 border border-gray-300 rounded hover:bg-slate-50 transition-colors flex items-center gap-1"
         >
           <Plus className="w-3 h-3" />
           <span>Coluna</span>
@@ -133,17 +133,17 @@ function ManualMeasurementTable({
       </div>
 
       {/* Tabela */}
-      <div className="overflow-x-auto border border-gray-300 dark:border-gray-600 rounded-lg">
+      <div className="overflow-x-auto border border-gray-300 rounded-lg">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-slate-100 dark:bg-slate-700">
-              <th className="px-2 py-2 text-left font-semibold text-slate-700 dark:text-slate-300 border-r border-gray-300 dark:border-gray-600">
+            <tr className="bg-slate-100">
+              <th className="px-2 py-2 text-left font-semibold text-slate-700 border-r border-gray-300">
                 Tamanho
               </th>
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className="px-2 py-2 text-center font-semibold text-slate-700 dark:text-slate-300 border-r border-gray-300 dark:border-gray-600 relative group"
+                  className="px-2 py-2 text-center font-semibold text-slate-700 border-r border-gray-300 relative group"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>{col}</span>
@@ -165,19 +165,19 @@ function ManualMeasurementTable({
             {variacoes.map((variacao) => (
               <tr
                 key={variacao.id}
-                className="border-b border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="border-b border-gray-300 hover:bg-slate-50"
               >
-                <td className="px-2 py-2 font-medium text-slate-700 dark:text-slate-300 border-r border-gray-300 dark:border-gray-600">
+                <td className="px-2 py-2 font-medium text-slate-700 border-r border-gray-300">
                   {variacao.variacao}
                 </td>
                 {columns.map((col, idx) => (
-                  <td key={idx} className="px-2 py-2 border-r border-gray-300 dark:border-gray-600">
+                  <td key={idx} className="px-2 py-2 border-r border-gray-300">
                     <input
                       type="text"
                       value={medidas[variacao.variacao]?.[col] || ''}
                       onChange={(e) => handleMedidaChange(variacao.variacao, col, e.target.value)}
                       placeholder="0"
-                      className="w-full px-2 py-1 text-center text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-2 py-1 text-center text-xs border border-gray-300 rounded bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </td>
                 ))}
@@ -269,7 +269,7 @@ export function MeasurementGuideCard({
     // Modo imagem
     if (measurementImageUrl) {
       return (
-        <div className="relative w-full aspect-auto rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-900">
+        <div className="relative w-full aspect-auto rounded-lg overflow-hidden border border-gray-300 bg-white">
           {hasCustomImage && onUploadManual && (
             <button
               onClick={handleRemoveCustomImage}
@@ -297,12 +297,12 @@ export function MeasurementGuideCard({
   // Se houver imagem ou modo tabela ativo, mostrar card completo
   if (measurementImageUrl || modoVisualizacao === 'tabela') {
     return (
-      <div className={`rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 p-4 shadow-sm ${className}`}>
+      <div className={`rounded-lg border border-gray-300 bg-white p-4 shadow-sm ${className}`}>
         {/* Cabeçalho com Botões de Alternância */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Ruler className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <Ruler className="w-5 h-5 text-slate-600" />
+            <h3 className="text-sm font-semibold text-slate-700">
               📏 Guia de Medidas {hasCustomImage ? "(Inserida Manualmente)" : hasMatchImage ? "Sugerido (IA)" : ""}
             </h3>
           </div>
@@ -314,7 +314,7 @@ export function MeasurementGuideCard({
                 className={`px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1 ${
                   modoVisualizacao === 'imagem'
                     ? 'bg-emerald-600 text-white'
-                    : 'text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    : 'text-slate-700 border border-gray-300 hover:bg-slate-50'
                 }`}
               >
                 <ImageIcon className="w-3 h-3" />
@@ -326,7 +326,7 @@ export function MeasurementGuideCard({
               className={`px-2 py-1 text-xs font-medium rounded transition-colors flex items-center gap-1 ${
                 modoVisualizacao === 'tabela'
                   ? 'bg-emerald-600 text-white'
-                  : 'text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-gray-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  : 'text-slate-700 border border-gray-300 hover:bg-slate-50'
               }`}
             >
               <Table2 className="w-3 h-3" />
@@ -335,7 +335,7 @@ export function MeasurementGuideCard({
             {hasCustomImage && onUploadManual && modoVisualizacao === 'imagem' && (
               <button
                 onClick={() => medidasFileInputRef?.current?.click()}
-                className="px-2 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 border border-gray-300 dark:border-gray-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 bg-white dark:bg-slate-800"
+                className="px-2 py-1 text-xs font-medium text-slate-700 border border-gray-300 rounded hover:bg-slate-50 transition-colors flex items-center gap-1 bg-white"
               >
                 <Upload className="w-3 h-3" />
                 <span>Trocar</span>
@@ -364,17 +364,17 @@ export function MeasurementGuideCard({
   // Se não houver categoria detectada ainda, mostrar placeholder
   if (!aiCategory && !aiProductType) {
     return (
-      <div className={`rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 p-4 ${className}`}>
+      <div className={`rounded-lg border border-gray-300 bg-white p-4 ${className}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Ruler className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <Ruler className="w-5 h-5 text-slate-600" />
+            <h3 className="text-sm font-semibold text-slate-700">
               📏 Guia de Medidas Sugerido (IA)
             </h3>
           </div>
         </div>
         <div className="text-center py-8">
-          <p className="text-xs text-slate-600 dark:text-slate-400">
+          <p className="text-xs text-slate-600">
             Aguardando análise da IA para sugerir medidas...
           </p>
         </div>
@@ -384,12 +384,12 @@ export function MeasurementGuideCard({
 
   // Se não encontrou imagem de medidas, mostrar área de upload manual
   return (
-    <div className={`rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-800 p-4 shadow-sm ${className}`}>
+    <div className={`rounded-lg border border-gray-300 bg-white p-4 shadow-sm ${className}`}>
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Ruler className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <Ruler className="w-5 h-5 text-slate-600" />
+          <h3 className="text-sm font-semibold text-slate-700">
             📏 Guia de Medidas
           </h3>
         </div>
@@ -397,13 +397,13 @@ export function MeasurementGuideCard({
 
       {/* Área de Upload Manual */}
       <div className="space-y-3">
-        <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-slate-800">
+        <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg bg-white">
           <div className="flex flex-col items-center gap-2">
-            <Ruler className="w-8 h-8 text-slate-500 dark:text-slate-400" />
-            <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+            <Ruler className="w-8 h-8 text-slate-500" />
+            <p className="text-xs text-slate-700 font-medium">
               Tabela de medidas não detectada
             </p>
-            <p className="text-xs text-slate-600 dark:text-slate-400 px-4">
+            <p className="text-xs text-slate-600 px-4">
               Não encontramos uma tabela de medidas correspondente para este tipo de produto.
             </p>
           </div>
@@ -449,7 +449,7 @@ export function MeasurementGuideCard({
         )}
 
         {/* Texto informativo */}
-        <p className="text-xs text-slate-600 dark:text-slate-400 italic text-center px-2">
+        <p className="text-xs text-slate-600 italic text-center px-2">
           *Referência de medidas padrão de mercado. Pequenas variações podem ocorrer entre modelagens.
         </p>
       </div>

@@ -715,7 +715,7 @@ export function ClientSalesCockpitModal({
                     Nenhum produto identificado nesta imagem.
                   </div>
                 ) : (
-                  <div className="max-h-[250px] overflow-y-auto mb-2 border border-gray-300 dark:border-gray-600 rounded-lg p-2">
+                  <div className="max-h-[250px] overflow-y-auto mb-2 border border-gray-300 rounded-lg p-2">
                     <div className="space-y-2">
                       {products.map((prod) => {
                         const isSelected = selectedProductIds.has(prod.id)
@@ -727,7 +727,7 @@ export function ClientSalesCockpitModal({
                             className={`relative flex items-start p-3 rounded-lg border-2 cursor-pointer transition-all min-h-[90px] ${
                               isSelected
                                 ? "border-indigo-500 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 shadow-lg shadow-indigo-500/30 opacity-100"
-                                : "border-gray-600 bg-[#2b2b40] dark:bg-zinc-800 opacity-60 hover:opacity-80 hover:border-gray-500"
+                                : "border-gray-600 bg-[#2b2b40] opacity-60 hover:opacity-80 hover:border-gray-500"
                             }`}
                           >
                             {/* Indicador de Seleção - Check no canto superior esquerdo */}
@@ -873,7 +873,7 @@ export function ClientSalesCockpitModal({
                 </div>
                 
                 {/* Resumo Financeiro Completo */}
-                <div className="bg-[#151520] dark:bg-zinc-900 p-3 rounded-lg space-y-2">
+                <div className="bg-[#151520] p-3 rounded-lg space-y-2">
                   {/* Total sem Desconto */}
                   <div className="flex justify-between text-xs text-gray-300">
                     <span>Total sem Desconto:</span>

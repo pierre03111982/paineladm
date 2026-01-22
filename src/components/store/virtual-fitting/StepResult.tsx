@@ -167,7 +167,7 @@ function SideLabel({
         </svg>
       </div>
       {/* Texto */}
-      <span className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+      <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
         {labelTexts[status]}
       </span>
     </motion.div>
@@ -237,13 +237,13 @@ export function StepResult({
     <div className="space-y-6 p-6">
       {/* Título da Recomendação */}
       <div className="text-center">
-        <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">
+        <p className="text-sm font-medium text-slate-600 mb-2">
           MELHOR OPÇÃO
         </p>
         {recommendedSize ? (
           <div className="relative inline-block">
-            <div className="w-32 h-32 bg-white dark:bg-slate-800 border-2 border-gray-300 dark:border-slate-600 rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-5xl font-bold text-slate-900 dark:text-white">
+            <div className="w-32 h-32 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center shadow-lg">
+              <span className="text-5xl font-bold text-slate-900">
                 {recommendedSize}
               </span>
             </div>
@@ -252,7 +252,7 @@ export function StepResult({
             </div>
           </div>
         ) : (
-          <p className="text-lg text-slate-600 dark:text-slate-400">
+          <p className="text-lg text-slate-600">
             Não foi possível calcular uma recomendação precisa
           </p>
         )}
@@ -274,7 +274,7 @@ export function StepResult({
 
       {/* Visualização do Manequim com Faixas de Tensão */}
       {selectedSize && productMeasurements?.[selectedSize] && userCharacteristics && (
-        <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-gray-200 dark:border-slate-700">
+        <div className="bg-white rounded-lg p-6 border border-gray-200">
           <MannequinWithTensionBands
             userCharacteristics={userCharacteristics}
             skinTone={skinTone || SKIN_TONE_PALETTE[0]}
@@ -290,8 +290,8 @@ export function StepResult({
 
       {/* Feedback de Tensão/Ajuste */}
       {recommendedSize && productMeasurements?.[recommendedSize] && (
-        <div className="space-y-3 bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+        <div className="space-y-3 bg-slate-50 rounded-lg p-4 border border-gray-200">
+          <h3 className="text-sm font-semibold text-slate-700">
             Ajuste em diferentes partes:
           </h3>
           
@@ -305,10 +305,10 @@ export function StepResult({
               if (!status) return null;
               return (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Busto</span>
+                  <span className="text-slate-600">Busto</span>
                   <div className="flex items-center gap-2">
                     {getFitIcon(status)}
-                    <span className="text-slate-700 dark:text-slate-300">
+                    <span className="text-slate-700">
                       {getFitText(status)}
                     </span>
                   </div>
@@ -325,10 +325,10 @@ export function StepResult({
               if (!status) return null;
               return (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Cintura</span>
+                  <span className="text-slate-600">Cintura</span>
                   <div className="flex items-center gap-2">
                     {getFitIcon(status)}
-                    <span className="text-slate-700 dark:text-slate-300">
+                    <span className="text-slate-700">
                       {getFitText(status)}
                     </span>
                   </div>
@@ -345,10 +345,10 @@ export function StepResult({
               if (!status) return null;
               return (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600 dark:text-slate-400">Quadril</span>
+                  <span className="text-slate-600">Quadril</span>
                   <div className="flex items-center gap-2">
                     {getFitIcon(status)}
-                    <span className="text-slate-700 dark:text-slate-300">
+                    <span className="text-slate-700">
                       {getFitText(status)}
                     </span>
                   </div>
@@ -362,7 +362,7 @@ export function StepResult({
       {/* Seletor de Tamanhos - "Prove Também os Tamanhos" */}
       {productMeasurements && Object.keys(productMeasurements).length > 0 && (
         <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 text-center">
+          <p className="text-sm font-medium text-slate-600 text-center">
             Prove também os tamanhos:
           </p>
           <div className="flex items-center justify-center gap-3 overflow-x-auto pb-2 flex-wrap">
@@ -376,8 +376,8 @@ export function StepResult({
                 }}
                 className={`flex-shrink-0 w-16 h-16 rounded-lg border-2 flex items-center justify-center font-semibold transition-all ${
                   size === selectedSize
-                    ? "border-slate-900 dark:border-white bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-lg"
-                    : "border-gray-300 dark:border-slate-600 bg-transparent dark:bg-transparent text-slate-700 dark:text-slate-300 hover:border-red-500 dark:hover:border-red-500"
+                    ? "border-slate-900 bg-white text-slate-900 shadow-lg"
+                    : "border-gray-300 bg-transparent text-slate-700 hover:border-red-500"
                 }`}
               >
                 {size}
@@ -388,11 +388,11 @@ export function StepResult({
       )}
 
       {/* Medidas Estimadas (Info) */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-        <p className="text-xs text-blue-800 dark:text-blue-300 font-medium mb-2">
+      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+        <p className="text-xs text-blue-800 font-medium mb-2">
           Medidas estimadas:
         </p>
-        <div className="grid grid-cols-3 gap-2 text-xs text-blue-700 dark:text-blue-400">
+        <div className="grid grid-cols-3 gap-2 text-xs text-blue-700">
           <div>
             <span className="font-medium">Busto:</span> {estimatedMeasurements.bust}cm
           </div>

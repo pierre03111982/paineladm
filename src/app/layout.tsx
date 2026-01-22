@@ -64,7 +64,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${inter.variable} ${poppins.variable} font-sans antialiased bg-[var(--bg-app)] text-[var(--text-main)]`}
-        translate="no"
+        suppressHydrationWarning
       >
         {/* PHASE 8 REVISION: Aurora Container - Third Blob */}
         <div id="aurora-container">

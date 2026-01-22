@@ -107,12 +107,12 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
     <AnimatedCard className="ai-credits-card p-6">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-purple-500 dark:to-purple-600 p-2 shadow-lg shadow-indigo-500/50 dark:shadow-purple-500/50">
+          <div className="rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 p-2 shadow-lg shadow-indigo-500/50">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white font-heading">Créditos de IA</h3>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400">
+            <h3 className="text-lg font-bold text-slate-900 font-heading">Créditos de IA</h3>
+            <p className="text-sm font-medium text-slate-600">
               Gerencie os créditos para geração de imagens com IA
             </p>
           </div>
@@ -122,7 +122,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
           size="sm"
           onClick={loadBalance}
           disabled={loadingBalance}
-          className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 dark:from-purple-600 dark:to-purple-700 dark:hover:from-purple-700 dark:hover:to-purple-800 text-white border-none shadow-lg shadow-indigo-500/40 dark:shadow-purple-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+          className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white border-none shadow-lg shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
         >
           <RefreshCw className={`h-4 w-4 mr-2 text-white ${loadingBalance ? "animate-spin" : ""}`} />
           Atualizar
@@ -131,15 +131,15 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
 
       <div className="mb-6 rounded-lg p-4 bg-white shadow-md animated-card-border" style={{ border: '1px solid oklch(67.3% 0.182 276.935)' }}>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-slate-800 dark:text-white">
+          <span className="text-3xl font-bold text-slate-800">
             {loadingBalance ? "..." : credits?.toLocaleString("pt-BR") || "0"}
           </span>
-          <span className="text-sm font-medium text-slate-600 dark:text-gray-300">créditos disponíveis</span>
+          <span className="text-sm font-medium text-slate-600">créditos disponíveis</span>
         </div>
         {credits !== null && credits < 10 && (
-          <div className="mt-2 flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-slate-800 dark:text-white">Saldo baixo! Adicione mais créditos para continuar gerando imagens.</span>
+          <div className="mt-2 flex items-center gap-2 text-sm font-medium text-amber-600">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <span className="text-slate-800">Saldo baixo! Adicione mais créditos para continuar gerando imagens.</span>
           </div>
         )}
       </div>
@@ -147,25 +147,25 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
       {message && (
         <div className={`mb-4 flex items-center gap-2 rounded-lg border-2 p-3 ${
           message.type === "success"
-            ? "border-emerald-500/60 dark:border-emerald-400/60 bg-white dark:bg-emerald-900/20"
-            : "border-red-500/60 dark:border-red-400/60 bg-white dark:bg-red-900/20"
+            ? "border-emerald-500/60 bg-white"
+            : "border-red-500/60 bg-white"
         }`} style={message.type === "success" 
           ? { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 20px rgba(16, 185, 129, 0.25)' }
           : { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 0 20px rgba(239, 68, 68, 0.25)' }
         }>
           {message.type === "success" ? (
-            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle className="h-4 w-4 text-emerald-600" />
           ) : (
-            <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <XCircle className="h-4 w-4 text-red-600" />
           )}
           <span className={`text-sm font-medium ${
             message.type === "success"
-              ? "text-emerald-700 dark:text-emerald-200"
-              : "text-red-700 dark:text-red-200"
+              ? "text-emerald-700"
+              : "text-red-700"
           }`}>{message.text}</span>
           <button
             onClick={() => setMessage(null)}
-            className="ml-auto text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            className="ml-auto text-slate-400 hover:text-slate-600 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -174,7 +174,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
 
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-bold text-slate-900 dark:text-white">
+          <label className="mb-2 block text-sm font-bold text-slate-900">
             Adicionar Créditos
           </label>
           <div className="flex gap-2">
@@ -192,7 +192,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
             <Button
               onClick={handleAddCredits}
               disabled={addingCredits || !amountToAdd}
-              className="bg-indigo-600 hover:bg-indigo-700 dark:bg-purple-600 dark:hover:bg-purple-700 text-white border-none shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium px-6"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white border-none shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium px-6"
             >
               {addingCredits ? (
                 <>
@@ -207,7 +207,7 @@ export function CreditsManager({ lojistaId: lojistaIdFromProp }: CreditsManagerP
               )}
             </Button>
           </div>
-          <p className="mt-2 text-xs font-medium text-slate-600 dark:text-gray-400">
+          <p className="mt-2 text-xs font-medium text-slate-600">
             Cada geração de imagem consome 1 crédito
           </p>
         </div>

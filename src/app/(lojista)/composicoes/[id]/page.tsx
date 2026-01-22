@@ -95,7 +95,7 @@ export default async function ComposicaoPage({
       </div>
 
       {composicao.imageUrl ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="relative w-full" style={{ aspectRatio: "9/16", maxHeight: "80vh" }}>
             <Image
               src={composicao.imageUrl}
@@ -107,17 +107,17 @@ export default async function ComposicaoPage({
           </div>
         </div>
       ) : (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 text-center">
+        <div className="bg-gray-100 rounded-lg p-8 text-center">
           <p className="text-gray-500">Imagem não disponível</p>
         </div>
       )}
 
       <div className="mt-6 flex gap-4">
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-gray-600">
           <span className="font-medium">Curtidas:</span>
           <span>{composicao.liked ? "Sim" : "Não"}</span>
         </div>
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+        <div className="flex items-center gap-2 text-gray-600">
           <span className="font-medium">Compartilhamentos:</span>
           <span>{composicao.shares}</span>
         </div>

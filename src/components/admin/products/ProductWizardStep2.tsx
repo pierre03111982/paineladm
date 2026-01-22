@@ -206,22 +206,22 @@ export function ProductWizardStep2({
   return (
     <div className="space-y-6">
       {/* Barra Superior: Seletor de Manequim e Créditos */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+          <h3 className="text-lg font-bold text-gray-900">
             Seletor de Manequim
           </h3>
           {!loadingCredits && (
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <Gem className="h-5 w-5 text-blue-500" />
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
+                <span className="font-semibold text-gray-700">
                   {creditInfo.credits} Créditos
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-purple-500" />
-                <span className="font-semibold text-gray-700 dark:text-gray-300">
+                <span className="font-semibold text-gray-700">
                   {creditInfo.catalogPack} no Pacote
                 </span>
               </div>
@@ -237,8 +237,8 @@ export function ProductWizardStep2({
               onClick={() => updateWizardState({ selectedMannequinId: mannequin.id })}
               className={`flex-shrink-0 rounded-xl border-2 transition-all ${
                 wizardState.selectedMannequinId === mannequin.id
-                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500 ring-offset-2"
-                  : "border-gray-200 dark:border-gray-700 hover:border-indigo-300"
+                  ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2"
+                  : "border-gray-200 hover:border-indigo-300"
               }`}
             >
               <div className="w-32 h-48 overflow-hidden rounded-t-xl">
@@ -253,10 +253,10 @@ export function ProductWizardStep2({
                 />
               </div>
               <div className="p-2 text-center">
-                <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                <p className="text-xs font-semibold text-gray-900">
                   {mannequin.name}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500">
                   {mannequin.description}
                 </p>
               </div>
@@ -268,11 +268,11 @@ export function ProductWizardStep2({
       {/* Grid Principal: 3 Colunas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Coluna 1: Original */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 space-y-4">
-          <h4 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+          <h4 className="text-base font-bold text-gray-900">
             Original (Referência)
           </h4>
-          <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
             {wizardState.rawImageUrl ? (
               <img
                 src={wizardState.rawImageUrl}
@@ -290,7 +290,7 @@ export function ProductWizardStep2({
             className={`w-full px-4 py-2 rounded-lg font-semibold transition ${
               wizardState.selectedCoverImage === wizardState.rawImageUrl
                 ? "bg-green-500 text-white"
-                : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
             <Check className="h-4 w-4 inline mr-2" />
@@ -299,11 +299,11 @@ export function ProductWizardStep2({
         </div>
 
         {/* Coluna 2: Foto Catálogo */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 space-y-4">
-          <h4 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+          <h4 className="text-base font-bold text-gray-900">
             Foto Catálogo (Solo)
           </h4>
-          <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
             {wizardState.generatedCatalogImage ? (
               <img
                 src={wizardState.generatedCatalogImage}
@@ -340,7 +340,7 @@ export function ProductWizardStep2({
               className={`w-full px-4 py-2 rounded-lg font-semibold transition ${
                 wizardState.selectedCoverImage === wizardState.generatedCatalogImage
                   ? "bg-green-500 text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <Check className="h-4 w-4 inline mr-2" />
@@ -350,11 +350,11 @@ export function ProductWizardStep2({
         </div>
 
         {/* Coluna 3: Look Combinado */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 space-y-4">
-          <h4 className="text-base font-bold text-gray-900 dark:text-white">
+        <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+          <h4 className="text-base font-bold text-gray-900">
             Look Combinado (Sugestão)
           </h4>
-          <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
             {wizardState.generatedCombinedImage ? (
               <img
                 src={wizardState.generatedCombinedImage}
@@ -369,7 +369,7 @@ export function ProductWizardStep2({
           </div>
           {!wizardState.generatedCombinedImage ? (
             <div className="space-y-3">
-              <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <h5 className="text-sm font-semibold text-gray-700">
                 Adicionar Peças Complementares
               </h5>
               <button
@@ -389,17 +389,17 @@ export function ProductWizardStep2({
                   </>
                 )}
               </button>
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 A IA escolhe até 2 peças do seu estoque que combinam baseado nas tags.
               </p>
               <button
                 onClick={() => setShowManualModal(true)}
                 disabled={generatingCombined}
-                className="w-full px-4 py-2 border-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition disabled:opacity-50"
+                className="w-full px-4 py-2 border-2 border-indigo-500 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition disabled:opacity-50"
               >
                 👆 Seleção Manual
               </button>
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 Abra o catálogo e escolha você mesmo as peças.
               </p>
             </div>
@@ -409,7 +409,7 @@ export function ProductWizardStep2({
               className={`w-full px-4 py-2 rounded-lg font-semibold transition ${
                 wizardState.selectedCoverImage === wizardState.generatedCombinedImage
                   ? "bg-green-500 text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               <Check className="h-4 w-4 inline mr-2" />
@@ -423,7 +423,7 @@ export function ProductWizardStep2({
       <div className="flex justify-between pt-4">
         <button
           onClick={onBack}
-          className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-semibold"
+          className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold"
         >
           ← Voltar
         </button>

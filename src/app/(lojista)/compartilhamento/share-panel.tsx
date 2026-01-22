@@ -55,8 +55,8 @@ export function SharePanel({ lojistaId }: SharePanelProps) {
               URL do App
             </label>
             <div className="flex gap-3">
-              <div className="flex items-start gap-3 flex-1 neon-card rounded-xl border-2 border-gray-300/50 dark:border-purple-500/50 bg-[var(--bg-card)] p-4">
-                <Link2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 flex-1 neon-card rounded-xl border-2 border-gray-300/50 bg-[var(--bg-card)] p-4">
+                <Link2 className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p
                     className="w-full bg-transparent text-base font-bold text-[var(--text-main)] font-mono break-all leading-relaxed select-text cursor-text"

@@ -95,8 +95,8 @@ export function ProductImageGallery({
   // Se não houver imagens, retornar placeholder
   if (filteredImages.length === 0) {
     return (
-      <div className={`relative w-full ${aspectRatio} rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center ${className}`}>
-        <p className="text-xs text-gray-400 dark:text-gray-500">Sem imagem</p>
+      <div className={`relative w-full ${aspectRatio} rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center ${className}`}>
+        <p className="text-xs text-gray-400">Sem imagem</p>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export function ProductImageGallery({
   // Se houver apenas uma imagem, mostrar sem controles
   if (filteredImages.length === 1) {
     return (
-      <div className={`relative w-full ${aspectRatio} overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 ${className}`}>
+      <div className={`relative w-full ${aspectRatio} overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 ${className}`}>
         <Image
           src={filteredImages[0].url}
           alt={filteredImages[0].label}
@@ -118,7 +118,7 @@ export function ProductImageGallery({
 
   return (
     <div 
-      className={`relative w-full ${aspectRatio} overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 group ${className}`}
+      className={`relative w-full ${aspectRatio} overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 group ${className}`}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}

@@ -155,7 +155,7 @@ function VariacaoRow({
             onUpdate({ ...variacao, variacao: e.target.value });
           }}
           placeholder="P"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
         />
       </div>
 
@@ -169,7 +169,7 @@ function VariacaoRow({
             onUpdate({ ...variacao, estoque: e.target.value });
           }}
           placeholder="10"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
         />
       </div>
 
@@ -190,7 +190,7 @@ function VariacaoRow({
             }
           }}
           placeholder="Auto-gerado"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
           title="SKU gerado automaticamente. Você pode editar se necessário."
         />
       </div>
@@ -200,7 +200,7 @@ function VariacaoRow({
         <button
           type="button"
           onClick={onRemove}
-          className="w-full flex items-center justify-center rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          className="w-full flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-2 py-1.5 text-red-600 hover:bg-red-100 transition-colors"
           title="Remover variação"
         >
           <X className="h-3 w-3" />
@@ -608,19 +608,19 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
             <Package className="h-6 w-6 icon-animate-once" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 font-heading">Adicionar Produto</h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 font-medium">Preencha os campos abaixo para cadastrar uma nova peça no catálogo</p>
+            <h1 className="text-2xl font-bold text-blue-600 font-heading">Adicionar Produto</h1>
+            <p className="text-sm text-slate-600 mt-1 font-medium">Preencha os campos abaixo para cadastrar uma nova peça no catálogo</p>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-lg border border-red-500 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </div>
       )}
       {success && (
-        <div className="rounded-lg border border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-lg border border-emerald-500 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {success}
         </div>
       )}
@@ -629,22 +629,22 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
         {/* Grid com duas colunas: Produto e Imagens/Publicação */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* COLUNA ESQUERDA: PRODUTO */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             {/* Título com ícone e barra azul */}
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-2">
-                <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h3 className="font-bold text-gray-800 dark:text-gray-200 uppercase text-base tracking-wider">
+                <Package className="h-5 w-5 text-blue-600" />
+                <h3 className="font-bold text-gray-800 uppercase text-base tracking-wider">
                   Produto
                 </h3>
               </div>
-              <div className="h-1 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
+              <div className="h-1 bg-blue-600 rounded-full"></div>
             </div>
             
             <div className="space-y-4">
               {/* Nome do Produto (expandido) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Nome do Produto *
                 </label>
                 <input
@@ -653,13 +653,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   placeholder="Ex: Vestido Aurora"
                   required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Preço de Venda */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Preço de Venda (R$) *
                 </label>
                 <input
@@ -668,20 +668,20 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
                   placeholder="Ex: 329,90"
                   required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Unidade de Medida */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Unidade de Medida *
                 </label>
                 <select
                   value={formData.unidadeMedida}
                   onChange={(e) => setFormData({ ...formData, unidadeMedida: e.target.value })}
                   required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-gray-500 focus:outline-none"
                 >
                   <option value="UN">UN</option>
                   <option value="KG">KG</option>
@@ -693,14 +693,14 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
 
               {/* Categoria */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Categoria *
                 </label>
                 <select
                   value={formData.categoria}
                   onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                   required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-gray-500 focus:outline-none"
                 >
                   <option value="">Selecione uma categoria</option>
                   {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -714,7 +714,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
               {/* Tamanhos */}
               {!temVariacoes && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Tamanhos
                   </label>
                   <input
@@ -722,7 +722,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                     value={formData.tamanhos}
                     onChange={(e) => setFormData({ ...formData, tamanhos: e.target.value })}
                     placeholder="Ex: P, M, G"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                   />
                 </div>
               )}
@@ -730,7 +730,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
               {/* Estoque */}
               {!temVariacoes && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Estoque
                   </label>
                   <input
@@ -739,14 +739,14 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                     value={formData.estoque}
                     onChange={(e) => setFormData({ ...formData, estoque: e.target.value })}
                     placeholder="Ex: 10"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                   />
                 </div>
               )}
 
               {/* Desconto % */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Desconto (%)
                 </label>
                 <input
@@ -757,13 +757,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.descontoProduto}
                   onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
                   placeholder="Ex: 10"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Tags
                 </label>
                 <input
@@ -771,13 +771,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder="Ex: promoção, novo, destaque"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Descrição (textarea grande) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Descrição
                 </label>
                 <textarea
@@ -785,13 +785,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                   placeholder="Descreva o produto detalhadamente..."
                   rows={6}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none resize-none"
                 />
               </div>
 
               {/* Marca do Fabricante */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Marca do Fabricante
                 </label>
                 <input
@@ -799,13 +799,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.marca}
                   onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                   placeholder="Ex: Nike, Adidas"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Modelo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Modelo
                 </label>
                 <input
@@ -813,13 +813,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.modelo}
                   onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
                   placeholder="Ex: Modelo XYZ-2024"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Garantia */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Garantia
                 </label>
                 <input
@@ -827,13 +827,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.garantia}
                   onChange={(e) => setFormData({ ...formData, garantia: e.target.value })}
                   placeholder="Ex: 12 meses"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Cor */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Cor
                 </label>
                 <input
@@ -841,13 +841,13 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.cores}
                   onChange={(e) => setFormData({ ...formData, cores: e.target.value })}
                   placeholder="Ex: lilás - grafite"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Material */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Material
                 </label>
                 <input
@@ -855,20 +855,20 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.material}
                   onChange={(e) => setFormData({ ...formData, material: e.target.value })}
                   placeholder="Ex: Algodão, Poliéster"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
 
               {/* Switch: Este produto possui variações? */}
-              <div className="flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="flex items-center justify-between py-2 border-t border-gray-200 pt-4">
+                <label className="text-sm font-medium text-gray-700">
                   Este produto possui variações? (Ex: Cores, Tamanhos)
                 </label>
                 <button
                   type="button"
                   onClick={() => setTemVariacoes(!temVariacoes)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                    temVariacoes ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                    temVariacoes ? 'bg-indigo-600' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -881,8 +881,8 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
 
               {/* ÁREA DINÂMICA: Grade de Estoque (quando variações ativadas) */}
               {temVariacoes && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                <div className="border-t border-gray-200 pt-4 space-y-3">
+                  <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Grade de Estoque
                   </h4>
                   
@@ -913,7 +913,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                         { id: novaId, variacao: "", estoque: "", sku: "" }
                       ]);
                     }}
-                    className="w-full rounded-lg border-2 border-solid border-blue-300 dark:border-blue-400 bg-blue-300 dark:bg-blue-400 px-3 py-2 text-xs font-medium hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors duration-200 flex items-center justify-center gap-1.5"
+                    className="w-full rounded-lg border-2 border-solid border-blue-300 bg-blue-300 px-3 py-2 text-xs font-medium hover:bg-blue-400 transition-colors duration-200 flex items-center justify-center gap-1.5"
                     style={{ color: '#FFFFFF' }}
                   >
                     <span style={{ color: '#FFFFFF' }}>+</span>
@@ -924,7 +924,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
 
               {/* Medidas */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Medidas
                 </label>
                 <input
@@ -932,7 +932,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                   value={formData.medidas}
                   onChange={(e) => setFormData({ ...formData, medidas: e.target.value })}
                   placeholder="Ex: Altura: 150cm, Largura: 80cm"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -941,16 +941,16 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
           {/* COLUNA DIREITA: IMAGENS DO PRODUTO E PUBLICAÇÃO */}
           <div className="space-y-6">
             {/* Seção: Imagens do Produto */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               {/* Título com ícone e barra azul */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-bold text-gray-800 dark:text-gray-200 uppercase text-base tracking-wider">
+                  <Upload className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-bold text-gray-800 uppercase text-base tracking-wider">
                     Imagens do Produto
                   </h3>
                 </div>
-                <div className="h-1 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
+                <div className="h-1 bg-blue-600 rounded-full"></div>
               </div>
 
               {/* Upload de Imagens */}
@@ -967,7 +967,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={uploadingImage}
-                    className="w-full rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-700 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {uploadingImage ? (
                       <span className="flex items-center justify-center gap-2">
@@ -986,7 +986,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                     <img
                       src={formData.imagemUrl || uploadedImageUrl || formData.imagemUrlOriginal}
                       alt="Preview do produto"
-                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700 object-cover max-h-64"
+                      className="w-full rounded-lg border border-gray-200 object-cover max-h-64"
                     />
                   </div>
                 )}
@@ -1031,22 +1031,22 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
             </div>
 
             {/* Seção: Publicação */}
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               {/* Título com ícone e barra azul */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Globe className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  <h3 className="font-bold text-gray-800 dark:text-gray-200 uppercase text-base tracking-wider">
+                  <Globe className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-bold text-gray-800 uppercase text-base tracking-wider">
                     Publicação
                   </h3>
                 </div>
-                <div className="h-1 bg-blue-600 dark:bg-blue-400 rounded-full"></div>
+                <div className="h-1 bg-blue-600 rounded-full"></div>
               </div>
 
               <div className="space-y-4">
                 {/* Status do Produto */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Status do Produto
                   </label>
                   <div className="flex items-center gap-3">
@@ -1059,7 +1059,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                         onChange={(e) => setFormData({ ...formData, statusProduto: e.target.value })}
                         className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Publicado</span>
+                      <span className="text-sm text-gray-700">Publicado</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -1070,20 +1070,20 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                         onChange={(e) => setFormData({ ...formData, statusProduto: e.target.value })}
                         className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">Oculto</span>
+                      <span className="text-sm text-gray-700">Oculto</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Disponibilidade */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Disponibilidade
                   </label>
                   <select
                     value={formData.disponibilidade}
                     onChange={(e) => setFormData({ ...formData, disponibilidade: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-gray-500 focus:outline-none"
                   >
                     <option value="em_estoque">Em Estoque</option>
                     <option value="fora_estoque">Fora de Estoque</option>
@@ -1092,7 +1092,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
 
                 {/* Data de Publicação */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-gray-500" />
                     Data de Publicação
                   </label>
@@ -1100,7 +1100,7 @@ export function ManualProductForm({ lojistaId, onClose }: ManualProductFormProps
                     type="date"
                     value={formData.dataPublicacao}
                     onChange={(e) => setFormData({ ...formData, dataPublicacao: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-gray-500 focus:outline-none"
                   />
                 </div>
 

@@ -307,7 +307,7 @@ export function ProductStudioInline({
             <Sparkles className="h-5 w-5 text-indigo-500" />
             Estúdio de Criação IA
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             {nomeProduto}
           </p>
         </div>
@@ -316,16 +316,16 @@ export function ProductStudioInline({
             <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
           ) : (
             <>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 rounded-lg">
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+                <span className="text-sm font-semibold text-indigo-700">
                   {creditInfo.credits} Créditos
                 </span>
               </div>
               {creditInfo.catalogPack > 0 && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-lg">
+                  <Package className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-semibold text-green-700">
                     {creditInfo.catalogPack} Pack
                   </span>
                 </div>
@@ -342,7 +342,7 @@ export function ProductStudioInline({
           <h4 className="text-base font-bold uppercase tracking-wider bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent">
             Foto Original
           </h4>
-          <div className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
             {imagemUrlOriginal ? (
               <img
                 src={imagemUrlOriginal}
@@ -375,7 +375,7 @@ export function ProductStudioInline({
           />
           {/* Campo URL */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">
               Ou adicione por URL
             </label>
             <div className="flex gap-2">
@@ -394,13 +394,13 @@ export function ProductStudioInline({
                   }
                 }}
                 placeholder="https://exemplo.com/imagem.jpg"
-                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-green-500 dark:focus:border-green-400 focus:outline-none"
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-gray-400 focus:border-green-500 focus:outline-none"
               />
               {imagemUrlOriginal && !isAnalyzing && onAnalyzeImage && (
                 <button
                   type="button"
                   onClick={() => onAnalyzeImage(imagemUrlOriginal)}
-                  className="shimmer-effect inline-flex items-center gap-1 rounded-lg border-2 border-indigo-300 dark:border-indigo-500 px-3 py-2 text-xs font-bold shadow-md shadow-indigo-500/20 transition relative overflow-hidden group"
+                  className="shimmer-effect inline-flex items-center gap-1 rounded-lg border-2 border-indigo-300 px-3 py-2 text-xs font-bold shadow-md shadow-indigo-500/20 transition relative overflow-hidden group"
                   title="Analisar com IA"
                   style={{
                     background: 'linear-gradient(90deg, #ec4899 0%, #a855f7 25%, #6366f1 50%, #a855f7 75%, #ec4899 100%)',
@@ -426,7 +426,7 @@ export function ProductStudioInline({
             </div>
           </div>
           {isAnalyzing && (
-            <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-center gap-2 text-xs text-indigo-600">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span>✨ IA analisando...</span>
             </div>
@@ -438,7 +438,7 @@ export function ProductStudioInline({
           <h4 className="text-base font-bold uppercase tracking-wider bg-gradient-to-r from-indigo-600 via-purple-500 to-indigo-600 bg-clip-text text-transparent">
             Foto Catálogo
           </h4>
-          <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
             {catalogImage ? (
               <img
                 src={catalogImage}
@@ -469,28 +469,28 @@ export function ProductStudioInline({
               </>
             )}
           </button>
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <p className="text-xs text-gray-500 text-center">
             Custo: {catalogCost} {creditInfo.catalogPack > 0 ? "Pack" : "Crédito"}
           </p>
           {catalogImage && (
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 onClick={() => handleSetAsCover(catalogImage)}
-                className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
               >
                 <Check className="h-3 w-3 inline mr-1" />
                 Capa
               </button>
               <button
                 onClick={() => handleSendToDisplay(catalogImage)}
-                className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
               >
                 <Monitor className="h-3 w-3 inline mr-1" />
                 Display
               </button>
               <button
                 onClick={() => handleSetPromotional(catalogImage)}
-                className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition"
               >
                 <Star className="h-3 w-3 inline mr-1" />
                 Promo
@@ -504,7 +504,7 @@ export function ProductStudioInline({
           <h4 className="text-base font-bold uppercase tracking-wider bg-gradient-to-r from-pink-600 via-rose-500 to-pink-600 bg-clip-text text-transparent">
             Look Combinado
           </h4>
-          <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <div className="relative aspect-[2/3] rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
             {combinedImage ? (
               <img
                 src={combinedImage}
@@ -535,28 +535,28 @@ export function ProductStudioInline({
               </>
             )}
           </button>
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          <p className="text-xs text-gray-500 text-center">
             Custo: {combinedCost} {creditInfo.catalogPack > 0 ? "Pack" : "Créditos"}
           </p>
           {combinedImage && (
             <div className="flex flex-wrap gap-2 pt-2">
               <button
                 onClick={() => handleSetAsCover(combinedImage)}
-                className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
               >
                 <Check className="h-3 w-3 inline mr-1" />
                 Capa
               </button>
               <button
                 onClick={() => handleSendToDisplay(combinedImage)}
-                className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
               >
                 <Monitor className="h-3 w-3 inline mr-1" />
                 Display
               </button>
               <button
                 onClick={() => handleSetPromotional(combinedImage)}
-                className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"
+                className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition"
               >
                 <Star className="h-3 w-3 inline mr-1" />
                 Promo
@@ -578,12 +578,12 @@ export function ProductStudioInline({
               onClick={() => setSelectedMannequinId(mannequin.id)}
               className={`group relative rounded-xl border-2 transition-all overflow-hidden flex flex-col ${
                 selectedMannequinId === mannequin.id
-                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500 ring-offset-2"
-                  : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:shadow-lg"
+                  ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2"
+                  : "border-gray-200 hover:border-indigo-300 hover:shadow-lg"
               }`}
             >
               {/* Miniatura do Manequim - Formato 2:3 (Look Completo) */}
-              <div className="relative w-full bg-gray-100 dark:bg-gray-800 overflow-hidden" style={{ aspectRatio: '2/3' }}>
+              <div className="relative w-full bg-gray-100 overflow-hidden" style={{ aspectRatio: '2/3' }}>
                 <img
                   src={mannequin.thumbnailUrl}
                   alt={mannequin.name}
@@ -612,10 +612,10 @@ export function ProductStudioInline({
               
               {/* Informações do Manequim - Abaixo da imagem, pode ultrapassar 9:16 */}
               <div className="p-3 flex-shrink-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white text-center mb-1">
+                <p className="text-sm font-semibold text-gray-900 text-center mb-1">
                   {mannequin.name}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center leading-relaxed">
+                <p className="text-xs text-gray-500 text-center leading-relaxed">
                   {mannequin.description}
                 </p>
               </div>
@@ -623,7 +623,7 @@ export function ProductStudioInline({
           ))}
         </div>
         {!selectedMannequinId && (
-          <p className="text-sm text-amber-600 dark:text-amber-400 mt-3 text-center">
+          <p className="text-sm text-amber-600 mt-3 text-center">
             ⚠️ Selecione um manequim para habilitar a geração de imagens
           </p>
         )}
@@ -631,12 +631,12 @@ export function ProductStudioInline({
 
       {/* Mensagens de Erro/Sucesso */}
       {error && (
-        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
           {error}
         </div>
       )}
       {success && (
-        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-300">
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
           {success}
         </div>
       )}

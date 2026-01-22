@@ -311,7 +311,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-emerald-500/70 dark:border-emerald-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          className="neon-card p-4 border-emerald-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
           style={{ 
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.2)',
             width: '16%',
@@ -323,10 +323,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <TrendingUp className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
               {data.metrics.experimentToday}
             </p>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+            <p className="text-sm font-medium text-slate-600 truncate">
               Exp. hoje
             </p>
           </div>
@@ -339,7 +339,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-blue-500/70 dark:border-indigo-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          className="neon-card p-4 border-blue-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
           style={{ 
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2)',
             width: '16%',
@@ -351,10 +351,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <MonitorSmartphone className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
               {data.metrics.experimentWeek}
             </p>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+            <p className="text-sm font-medium text-slate-600 truncate">
               Últimos 7 dias
             </p>
           </div>
@@ -367,7 +367,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-red-500/70 dark:border-red-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          className="neon-card p-4 border-red-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
           style={{ 
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(239, 68, 68, 0.4), 0 0 60px rgba(239, 68, 68, 0.2)',
             width: '16%',
@@ -379,10 +379,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <Heart className="h-5 w-5" style={{ color: '#FFFFFF', fill: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
               {data.metrics.likedTotal}
             </p>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+            <p className="text-sm font-medium text-slate-600 truncate">
               Like
             </p>
           </div>
@@ -395,7 +395,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-cyan-500/70 dark:border-cyan-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          className="neon-card p-4 border-cyan-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
           style={{ 
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(6, 182, 212, 0.4), 0 0 60px rgba(6, 182, 212, 0.2)',
             width: '16%',
@@ -407,10 +407,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <Share2 className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
               {data.metrics.sharesTotal}
             </p>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+            <p className="text-sm font-medium text-slate-600 truncate">
               Compartilh.
             </p>
           </div>
@@ -423,7 +423,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-amber-500/70 dark:border-orange-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          className="neon-card p-4 border-amber-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
           style={{ 
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.2)',
             width: '16%',
@@ -435,10 +435,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <ShoppingCart className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
               {data.metrics.checkoutTotal}
             </p>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+            <p className="text-sm font-medium text-slate-600 truncate">
               Checkouts
             </p>
           </div>
@@ -451,7 +451,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
           whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-purple-500/70 dark:border-purple-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
+          className="neon-card p-4 border-purple-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
           style={{ 
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2)',
             width: '16%',
@@ -463,10 +463,10 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             <Package className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 dark:text-white leading-none mb-1">
+            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
               {data.metrics.totalProdutos || 0}
             </p>
-            <p className="text-sm font-medium text-slate-600 dark:text-gray-400 truncate">
+            <p className="text-sm font-medium text-slate-600 truncate">
               Produtos
             </p>
           </div>

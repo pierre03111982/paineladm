@@ -96,10 +96,10 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md">
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 text-indigo-600 animate-spin" />
-          <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="ml-2 text-sm font-medium text-gray-700">
             Analisando perfil do cliente...
           </span>
         </div>
@@ -109,15 +109,15 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
 
   if (error && !analysis) {
     return (
-      <div className="rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 p-6">
+      <div className="rounded-xl border border-red-200 bg-red-50 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">Erro ao carregar análise</p>
-            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm font-semibold text-red-600 mb-1">Erro ao carregar análise</p>
+            <p className="text-xs text-red-600">{error}</p>
           </div>
           <button
             onClick={fetchAnalysis}
-            className="px-3 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+            className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-100 transition-colors"
           >
             Tentar novamente
           </button>
@@ -127,18 +127,18 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-md">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-md">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-purple-400" />
+          <Sparkles className="h-5 w-5 text-indigo-600" />
           <h3 className="text-lg font-semibold text-black">
             Dossiê do Cliente
           </h3>
         </div>
         <button
           onClick={fetchAnalysis}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           title="Atualizar análise"
         >
           <RefreshCw className="h-4 w-4 text-gray-500" />
@@ -156,7 +156,7 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
           </div>
           
           {analysis.style && analysis.style !== "Em Análise" ? (
-            <div className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 p-4 space-y-3">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
               <div>
                 <p className="text-base font-bold text-black mb-1">
                   {analysis.style}
@@ -175,7 +175,7 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
               )}
               
               {analysis.salesTip && (
-                <div className="mt-3 pt-3 border-t border-amber-300 dark:border-amber-700">
+                <div className="mt-3 pt-3 border-t border-amber-300">
                   <p className="text-xs font-semibold text-black mb-1">
                     💡 Dica de Venda:
                   </p>
@@ -186,7 +186,7 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
               )}
             </div>
           ) : (
-            <div className="rounded-lg border border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-900/20 p-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <p className="text-sm font-bold text-black mb-2">
                 Em Análise
               </p>
@@ -212,7 +212,7 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
           </span>
         </div>
         
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden mb-2">
+        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mb-2">
           <div
             className={`h-full rounded-full transition-all duration-500 ${getThermometerColor(interestScore)}`}
             style={{ width: `${interestScore}%` }}
@@ -239,8 +239,8 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
           <div
             className={`rounded-lg border p-3 ${
               analysis.daysSinceLastAccess > 30
-                ? "border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20"
-                : "border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20"
+                ? "border-red-200 bg-red-50"
+                : "border-amber-200 bg-amber-50"
             }`}
           >
             <p className="text-sm text-black">
@@ -254,7 +254,7 @@ export function ClientStyleProfile({ cliente, lojistaId }: ClientStyleProfilePro
 
       {/* Mensagem quando não há análise */}
       {!analysis && !loading && !error && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/20 p-4">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
           <p className="text-sm text-black">
             Nenhuma análise disponível no momento.
           </p>

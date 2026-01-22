@@ -72,7 +72,7 @@ export function FittingTrigger({
       {hasSavedMeasurements && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="text-sm text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 underline mt-2"
+          className="text-sm text-slate-600 hover:text-red-500 underline mt-2"
         >
           Ver detalhes
         </button>

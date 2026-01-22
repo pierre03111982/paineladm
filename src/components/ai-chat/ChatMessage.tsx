@@ -194,7 +194,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
         className={`max-w-[80%] rounded-lg px-4 py-3 ${
           isUser
             ? "bg-indigo-600 text-white"
-            : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+            : "bg-gray-100 text-gray-900"
         }`}
       >
         <div className="space-y-2">
@@ -204,7 +204,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
               <img
                 src={image}
                 alt="Imagem anexada"
-                className="max-w-[200px] max-h-[200px] rounded-lg border border-gray-300 dark:border-gray-700 object-cover"
+                className="max-w-[200px] max-h-[200px] rounded-lg border border-gray-300 object-cover"
                 onError={(e) => {
                   // Fallback se a imagem não carregar
                   (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23ddd' width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%23999' font-family='Arial' font-size='14'%3EImagem não disponível%3C/text%3E%3C/svg%3E";
@@ -221,7 +221,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
                 <div
                   key={index}
                   onClick={() => handleButtonClick(actionLink)}
-                  className="block mt-3 mb-1 max-w-xs bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  className="block mt-3 mb-1 max-w-xs bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="relative w-full" style={{ aspectRatio: "9/16", maxHeight: "400px" }}>
                     <img
@@ -235,14 +235,14 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
                     />
                   </div>
                   <div className="p-3">
-                    <div className="font-semibold text-sm text-gray-800 dark:text-gray-200 truncate mb-1">
+                    <div className="font-semibold text-sm text-gray-800 truncate mb-1">
                       {title}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-gray-500">
                       {subtitle}
                     </div>
                     {type === "PRODUCT" && (
-                      <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 font-medium">
+                      <div className="text-xs text-indigo-600 mt-1 font-medium">
                         Ver detalhes →
                       </div>
                     )}
@@ -274,7 +274,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
                   href={cleanUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+                  className="font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                   onClick={(e) => {
                     console.log(`[ChatMessage] 🔗 Abrindo link em nova aba: "${part.content}" -> "${cleanUrl}"`);
                   }}
@@ -323,7 +323,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
                     href={cleanUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline transition-colors"
+                    className="font-bold text-blue-600 hover:text-blue-800 hover:underline transition-colors"
                     onClick={(e) => {
                       console.log(`[ChatMessage] 🔗 Abrindo link inline: "${label}" -> "${cleanUrl}"`);
                     }}
@@ -362,7 +362,7 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
         {timestamp && (
           <div
             className={`text-xs mt-2 ${
-              isUser ? "text-indigo-200" : "text-gray-500 dark:text-gray-400"
+              isUser ? "text-indigo-200" : "text-gray-500"
             }`}
           >
             {timestamp.toLocaleTimeString("pt-BR", {
@@ -374,8 +374,8 @@ export function ChatMessage({ message, isUser = false, timestamp, image, lojista
 
         {/* Indicador simples de pesquisa na internet */}
         {!isUser && ((grounding?.webSearchQueries?.length ?? 0) > 0 || (grounding?.sources?.length ?? 0) > 0) && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <div className="mt-2 pt-2 border-t border-gray-200">
+            <div className="text-xs text-gray-500 flex items-center gap-1">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>

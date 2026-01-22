@@ -214,7 +214,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
   return (
     <section className="neon-card grid gap-6 rounded-2xl p-6 lg:grid-cols-[320px_1fr]">
       <div className="space-y-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-900/30 dark:to-blue-900/30 border-2 border-cyan-400/60 dark:border-cyan-500/60 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-300 shadow-lg shadow-cyan-500/30">
+        <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border-2 border-cyan-400/60 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-cyan-700 shadow-lg shadow-cyan-500/30">
           Display da loja
         </span>
         <h2 className="text-lg font-bold text-[var(--text-main)]">
@@ -224,7 +224,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
           Copie o link oficial do display ou imprima o QR Code para abrir o painel
           em qualquer monitor. Ideal para vitrines, balcões e totens interativos.
         </p>
-        <div className="neon-card rounded-xl border-2 border-cyan-300/50 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-950/30 dark:to-blue-950/30 p-4 text-xs text-cyan-900 dark:text-cyan-200 shadow-sm">
+        <div className="neon-card rounded-xl border-2 border-cyan-300/50 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 p-4 text-xs text-cyan-900 shadow-sm">
           Dica: deixe o navegador em tela cheia (F11) e fixe esta página no monitor
           para acompanhar novas composições em tempo real.
         </div>
@@ -241,7 +241,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
             <input
               readOnly
               value={displayUrl.toString()}
-              className="w-full rounded-xl border-2 border-gray-300/30 dark:border-purple-500/30 bg-[var(--bg-card)]/60 px-3 py-2 pr-20 text-xs text-[var(--text-main)] font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500/60 transition"
+              className="w-full rounded-xl border-2 border-gray-300/30 bg-[var(--bg-card)]/60 px-3 py-2 pr-20 text-xs text-[var(--text-main)] font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500/60 transition"
               style={{ 
                 wordBreak: "break-all",
                 overflowWrap: "break-word"
@@ -254,10 +254,10 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
             className={cn(
               "inline-flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-xs font-semibold transition-all",
               copyState === "copied"
-                ? "border-emerald-500/60 dark:border-emerald-400/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 dark:text-emerald-300 shadow-lg shadow-emerald-500/30"
+                ? "border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 shadow-lg shadow-emerald-500/30"
                 : copyState === "error"
-                ? "border-rose-500/60 dark:border-rose-400/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-700 dark:text-rose-300 shadow-lg shadow-rose-500/30"
-                : "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/30"
+                ? "border-rose-500/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 text-rose-700 shadow-lg shadow-rose-500/30"
+                : "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30"
             )}
           >
             {copyState === "copied" ? (
@@ -285,7 +285,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
             Escaneie para abrir o display no tablet ou no monitor secundário da
             loja. Perfeito para vitrines e eventos.
           </p>
-          <div className="flex h-32 w-32 items-center justify-center neon-card rounded-xl border-2 border-gray-300/50 dark:border-emerald-500/50 bg-white dark:bg-white shadow-lg">
+          <div className="flex h-32 w-32 items-center justify-center neon-card rounded-xl border-2 border-gray-300/50 bg-white shadow-lg">
             {loading ? (
               <span className="text-[10px] uppercase tracking-[0.24em] text-[var(--text-secondary)] font-semibold">
                 Gerando...
@@ -297,7 +297,7 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
                 className="h-32 w-32 rounded-lg p-2"
               />
             ) : (
-              <span className="text-[10px] uppercase tracking-[0.24em] text-rose-600 dark:text-rose-400 font-semibold">
+              <span className="text-[10px] uppercase tracking-[0.24em] text-rose-600 font-semibold">
                 Erro
               </span>
             )}
@@ -309,8 +309,8 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-xs font-semibold transition-all",
                 qrDataUrl
-                  ? "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/30"
-                  : "cursor-not-allowed border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 opacity-50"
+                  ? "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30"
+                  : "cursor-not-allowed border-gray-200 text-gray-400 opacity-50"
               )}
             >
               <Download className="h-4 w-4" />
@@ -322,8 +322,8 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-xs font-semibold transition-all",
                 qrDataUrl
-                  ? "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/30"
-                  : "cursor-not-allowed border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 opacity-50"
+                  ? "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30"
+                  : "cursor-not-allowed border-gray-200 text-gray-400 opacity-50"
               )}
             >
               <Download className="h-4 w-4" />
@@ -331,12 +331,12 @@ export function DisplayLinkPanel({ lojistaId, panelBaseUrl }: DisplayLinkPanelPr
             </button>
           </div>
           {downloadState === "success" ? (
-            <div className="inline-flex items-center gap-2 rounded-full border-2 border-emerald-400/60 dark:border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 dark:from-emerald-900/30 dark:to-teal-900/30 px-3 py-1 text-[10px] font-semibold text-emerald-800 dark:text-emerald-200 shadow-lg shadow-emerald-500/30">
+            <div className="inline-flex items-center gap-2 rounded-full border-2 border-emerald-400/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 px-3 py-1 text-[10px] font-semibold text-emerald-800 shadow-lg shadow-emerald-500/30">
               <Check className="h-3.5 w-3.5" />
               Arquivo baixado
             </div>
           ) : downloadState === "error" ? (
-            <div className="inline-flex items-center gap-2 rounded-full border-2 border-rose-400/60 dark:border-rose-500/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 dark:from-rose-900/30 dark:to-pink-900/30 px-3 py-1 text-[10px] font-semibold text-rose-800 dark:text-rose-200 shadow-lg shadow-rose-500/30">
+            <div className="inline-flex items-center gap-2 rounded-full border-2 border-rose-400/60 bg-gradient-to-r from-rose-500/20 to-pink-500/20 px-3 py-1 text-[10px] font-semibold text-rose-800 shadow-lg shadow-rose-500/30">
               <AlertCircle className="h-3.5 w-3.5" />
               Falha ao gerar arquivo
             </div>

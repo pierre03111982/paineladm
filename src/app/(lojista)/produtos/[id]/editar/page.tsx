@@ -104,6 +104,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
         variacao: v.variacao || produtoSerializado.tamanhos?.[index] || "",
         estoque: v.estoque?.toString() || "0",
         sku: v.sku || "",
+        equivalence: v.equivalence || "",
       }))
     : [];
 

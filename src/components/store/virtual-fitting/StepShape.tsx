@@ -96,20 +96,20 @@ export function StepShape({
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+          <label className="text-sm font-medium text-slate-700">{label}</label>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => onChange(adjustValue(value, -0.5))}
             disabled={value <= -2}
-            className="p-2 rounded-full bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Minus className="w-4 h-4" />
           </button>
           
           <div className="flex-1 relative">
-            <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-red-400 to-pink-500 rounded-full transition-all duration-200"
                 style={{ width: `${percentage}%` }}
@@ -130,7 +130,7 @@ export function StepShape({
             type="button"
             onClick={() => onChange(adjustValue(value, 0.5))}
             disabled={value >= 2}
-            className="p-2 rounded-full bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -143,10 +143,10 @@ export function StepShape({
     <div className="space-y-6 p-6">
       {/* Cabeçalho */}
       <div>
-        <h2 className="text-2xl font-bold text-red-600 dark:text-red-500 mb-2">
+        <h2 className="text-2xl font-bold text-red-600 mb-2">
           Ajuste o formato do corpo
         </h2>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-sm text-slate-600">
           Este é o formato aproximado do corpo que geramos com suas medidas. Ajuste somente se for necessário.
         </p>
       </div>
@@ -154,7 +154,7 @@ export function StepShape({
       {/* Layout: Manequim à esquerda, Controles à direita */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Manequim - Imagem Real */}
-        <div className="flex items-center justify-center bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700 min-h-[400px]">
+        <div className="flex items-center justify-center bg-white rounded-lg p-4 border border-gray-200 min-h-[400px]">
           <img
             src={mannequinImagePath}
             alt={`Manequim - Pele ${skinToneIndex}, Medidas B${busto}C${cintura}Q${quadril}`}
@@ -180,7 +180,7 @@ export function StepShape({
         <div className="space-y-6">
           {/* Paleta de Tons de Pele */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+            <label className="block text-sm font-medium text-slate-700 mb-3">
               Tom de Pele
             </label>
             <div className="flex flex-wrap gap-2">
@@ -191,8 +191,8 @@ export function StepShape({
                   onClick={() => setSkinTone(tone)}
                   className={`w-10 h-10 rounded-full border-2 transition-all ${
                     skinTone === tone
-                      ? "border-gray-800 dark:border-gray-200 scale-110"
-                      : "border-gray-300 dark:border-gray-600"
+                      ? "border-gray-800 scale-110"
+                      : "border-gray-300"
                   }`}
                   style={{ backgroundColor: tone }}
                   title={`Tom ${index + 1}`}
@@ -224,7 +224,7 @@ export function StepShape({
 
       {/* Indicadores de Progresso */}
       <div className="flex items-center justify-center gap-2 pt-4">
-        <div className="w-3 h-3 rounded-full bg-gray-300 dark:bg-gray-600" />
+        <div className="w-3 h-3 rounded-full bg-gray-300" />
         <div className="w-3 h-3 rounded-full bg-red-500" />
       </div>
 

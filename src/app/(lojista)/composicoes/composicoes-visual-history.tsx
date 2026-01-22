@@ -211,7 +211,7 @@ export function ComposicoesVisualHistory({
           <button
             onClick={refreshData}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-all hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:shadow-lg hover:shadow-indigo-500/30 disabled:cursor-wait disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-[var(--bg-card)]/60 px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] transition-all hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg hover:shadow-indigo-500/30 disabled:cursor-wait disabled:opacity-60"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             {isRefreshing ? "Atualizando..." : "Atualizar"}
@@ -225,7 +225,7 @@ export function ComposicoesVisualHistory({
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               filter === "all"
                 ? "bg-indigo-500 text-white"
-                : "bg-[var(--bg-card)]/60 text-[var(--text-secondary)] border border-gray-300 dark:border-gray-600 hover:border-indigo-500"
+                : "bg-[var(--bg-card)]/60 text-[var(--text-secondary)] border border-gray-300 hover:border-indigo-500"
             }`}
           >
             Todas
@@ -235,7 +235,7 @@ export function ComposicoesVisualHistory({
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               filter === "today"
                 ? "bg-indigo-500 text-white"
-                : "bg-[var(--bg-card)]/60 text-[var(--text-secondary)] border border-gray-300 dark:border-gray-600 hover:border-indigo-500"
+                : "bg-[var(--bg-card)]/60 text-[var(--text-secondary)] border border-gray-300 hover:border-indigo-500"
             }`}
           >
             Mostrar só Hoje
@@ -245,7 +245,7 @@ export function ComposicoesVisualHistory({
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               filter === "favorites"
                 ? "bg-indigo-500 text-white"
-                : "bg-[var(--bg-card)]/60 text-[var(--text-secondary)] border border-gray-300 dark:border-gray-600 hover:border-indigo-500"
+                : "bg-[var(--bg-card)]/60 text-[var(--text-secondary)] border border-gray-300 hover:border-indigo-500"
             }`}
           >
             Mostrar só Favoritos ({favoritedIds.size})
@@ -287,7 +287,7 @@ export function ComposicoesVisualHistory({
                   </div>
 
                   {/* Imagem Principal da Composição - Aspect Square */}
-                  <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 relative" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
+                  <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
                     <Image
                       src={comp.imagemUrl}
                       alt={comp.produtoNome || "Composição"}

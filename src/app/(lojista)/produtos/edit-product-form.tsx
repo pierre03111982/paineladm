@@ -151,7 +151,7 @@ function VariacaoRow({
             onUpdate({ ...variacao, variacao: e.target.value });
           }}
           placeholder="P"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
         />
       </div>
 
@@ -165,7 +165,7 @@ function VariacaoRow({
             onUpdate({ ...variacao, estoque: e.target.value });
           }}
           placeholder="10"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
         />
       </div>
 
@@ -186,7 +186,7 @@ function VariacaoRow({
             }
           }}
           placeholder="Auto-gerado"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-2 py-1.5 text-xs text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
           title="SKU gerado automaticamente. Você pode editar se necessário."
         />
       </div>
@@ -196,7 +196,7 @@ function VariacaoRow({
         <button
           type="button"
           onClick={onRemove}
-          className="w-full flex items-center justify-center rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          className="w-full flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-2 py-1.5 text-red-600 hover:bg-red-100 transition-colors"
           title="Remover variação"
         >
           <X className="h-3 w-3" />
@@ -608,19 +608,19 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
             <Package className="h-6 w-6 icon-animate-once" style={{ color: '#FFFFFF', stroke: '#FFFFFF', fill: 'none' }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-red-600 dark:text-red-400 font-heading">Editar Produto</h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 font-medium">Atualize os campos abaixo para modificar o produto</p>
+            <h1 className="text-2xl font-bold text-red-600 font-heading">Editar Produto</h1>
+            <p className="text-sm text-slate-600 mt-1 font-medium">Atualize os campos abaixo para modificar o produto</p>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-lg border border-red-500 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </div>
       )}
       {success && (
-        <div className="rounded-lg border border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-lg border border-emerald-500 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {success}
         </div>
       )}
@@ -670,13 +670,13 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
             <div className="space-y-4">
               {/* Seletor de Cor do Manequim */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Cor do Manequim
                 </label>
                 <select
                   value={corManequim}
                   onChange={(e) => setCorManequim(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="branco fosco">Branco Fosco</option>
                   <option value="preto fosco">Preto Fosco</option>
@@ -686,13 +686,13 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
               {/* Seletor de Cenário */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Cenário de Fundo
                 </label>
                 <select
                   value={cenarioEscolhido}
                   onChange={(e) => setCenarioEscolhido(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
                 >
                   {cenarios.map((cenario) => (
                     <option key={cenario.id} value={cenario.id}>
@@ -700,7 +700,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Escolha o ambiente visual para o fundo da imagem
                 </p>
               </div>
@@ -804,11 +804,11 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
               {/* Preview da Imagem Gerada */}
               {generatedCatalogImage && (
                 <div className="space-y-3">
-                  <div className="rounded-lg border border-emerald-400 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-3">
-                    <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-2 font-semibold">
+                  <div className="rounded-lg border border-emerald-400 bg-emerald-50 p-3">
+                    <p className="text-sm text-emerald-700 mb-2 font-semibold">
                       ✅ Imagem salva automaticamente como imagem principal do catálogo!
                     </p>
-                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 p-3">
+                    <div className="rounded-lg border border-gray-200 bg-white p-3">
                       <img
                         src={generatedCatalogImage}
                         alt="Imagem de catálogo gerada"
@@ -819,7 +819,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   <button
                     type="button"
                     onClick={() => setGeneratedCatalogImage(null)}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 transition hover:bg-gray-50 dark:hover:bg-slate-600"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                   >
                     Fechar Preview
                   </button>
@@ -827,9 +827,9 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
               )}
 
               {/* Info */}
-              <div className="flex items-start gap-2 rounded-lg border border-purple-300 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/10 p-3">
-                <Info className="h-4 w-4 mt-0.5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                <p className="text-sm text-purple-800 dark:text-purple-300">
+              <div className="flex items-start gap-2 rounded-lg border border-purple-300 bg-purple-50 p-3">
+                <Info className="h-4 w-4 mt-0.5 text-purple-600 flex-shrink-0" />
+                <p className="text-sm text-purple-800">
                   Gere uma imagem profissional de catálogo com etiqueta de preço integrada, ideal para exibição na TV da loja sem riscos de direitos de imagem.
                 </p>
               </div>
@@ -840,8 +840,8 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
         {/* Grid com duas colunas: Dados Manuais e Análise IA */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* COLUNA ESQUERDA: PREENCHIMENTO OBRIGATÓRIO * */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border-l-4 border-gray-800 dark:border-gray-600">
-            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 uppercase text-sm tracking-wider">
+          <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-gray-800">
+            <h3 className="font-bold text-gray-800 mb-4 uppercase text-sm tracking-wider">
               Preenchimento Obrigatório *
             </h3>
             <div className="space-y-4">
@@ -849,7 +849,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
               <div className="grid grid-cols-2 gap-3">
                 {/* Preço de Venda */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Preço de Venda (R$) *
                   </label>
                   <input
@@ -858,20 +858,20 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                     onChange={(e) => setFormData({ ...formData, preco: e.target.value })}
                     placeholder="Ex: 329,90"
                     required
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                   />
                 </div>
 
                 {/* Unidade de Medida */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Unidade de Medida *
                   </label>
                   <select
                     value={formData.unidadeMedida}
                     onChange={(e) => setFormData({ ...formData, unidadeMedida: e.target.value })}
                     required
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-gray-500 focus:outline-none"
                   >
                     <option value="UN">UN</option>
                     <option value="KG">KG</option>
@@ -884,7 +884,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
               {/* Desconto Especial */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Desconto Especial (%)
                 </label>
                 <input
@@ -895,23 +895,23 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   value={formData.descontoProduto}
                   onChange={(e) => setFormData({ ...formData, descontoProduto: e.target.value })}
                   placeholder="Ex: 10"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Desconto adicional específico para este produto
                 </p>
               </div>
 
               {/* Switch: Este produto possui variações? */}
-              <div className="flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="flex items-center justify-between py-2 border-t border-gray-200 pt-4">
+                <label className="text-sm font-medium text-gray-700">
                   Este produto possui variações? (Ex: Cores, Tamanhos)
                 </label>
                 <button
                   type="button"
                   onClick={() => setTemVariacoes(!temVariacoes)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                    temVariacoes ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                    temVariacoes ? 'bg-indigo-600' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -924,8 +924,8 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
               {/* ÁREA DINÂMICA: Grade de Estoque (quando variações ativadas) */}
               {temVariacoes && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                <div className="border-t border-gray-200 pt-4 space-y-3">
+                  <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Grade de Estoque
                   </h4>
                   
@@ -956,7 +956,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                         { id: novaId, variacao: "", estoque: "", sku: "" }
                       ]);
                     }}
-                    className="w-full rounded-lg border-2 border-solid border-blue-300 dark:border-blue-400 bg-blue-300 dark:bg-blue-400 px-3 py-2 text-xs font-medium hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors duration-200 flex items-center justify-center gap-1.5"
+                    className="w-full rounded-lg border-2 border-solid border-blue-300 bg-blue-300 px-3 py-2 text-xs font-medium hover:bg-blue-400 transition-colors duration-200 flex items-center justify-center gap-1.5"
                     style={{ color: '#FFFFFF' }}
                   >
                     <span style={{ color: '#FFFFFF' }}>+</span>
@@ -966,8 +966,8 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
               )}
 
               {/* Medidas (sempre visível) */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <div className="border-t border-gray-200 pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Medidas
                 </label>
                 <input
@@ -975,16 +975,16 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   value={formData.medidas}
                   onChange={(e) => setFormData({ ...formData, medidas: e.target.value })}
                   placeholder="Ex: Altura: 150cm, Largura: 80cm"
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-gray-500 dark:focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           {/* COLUNA DIREITA: ANÁLISE AUTOMÁTICA (IA - Sugestões) */}
-          <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/20 dark:to-slate-800 p-6 rounded-xl shadow-sm border border-indigo-100 dark:border-indigo-500/20 relative">
+          <div className="bg-gradient-to-br from-indigo-50 to-white p-6 rounded-xl shadow-sm border border-indigo-100 relative">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-indigo-700 dark:text-indigo-300 uppercase text-sm tracking-wider flex items-center gap-2">
+              <h3 className="font-bold text-indigo-700 uppercase text-sm tracking-wider flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 2. Análise Automática
               </h3>
@@ -993,7 +993,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
             <div className="space-y-4">
               {/* Nome */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Nome *
                 </label>
                 <input
@@ -1002,20 +1002,20 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   placeholder="Ex: Vestido Aurora"
                   required
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               {/* Categoria */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Categoria *
                 </label>
                 <select
                   value={formData.categoria}
                   onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                   required
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none"
                 >
                   <option value="">Selecione uma categoria</option>
                   {PRODUCT_CATEGORY_OPTIONS.map((cat) => (
@@ -1028,7 +1028,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
               {/* Cores */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Cores (separadas por -)
                 </label>
                 <input
@@ -1036,13 +1036,13 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   value={formData.cores}
                   onChange={(e) => setFormData({ ...formData, cores: e.target.value })}
                   placeholder="Ex: lilás - grafite"
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Tags (separadas por ,)
                 </label>
                 <input
@@ -1050,13 +1050,13 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder="Ex: promoção, novo, destaque"
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
 
               {/* Observações para IA */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   Descrição SEO
                 </label>
                 <textarea
@@ -1064,7 +1064,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
                   onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                   placeholder="Ex: tecido em seda, caimento leve, ideal para looks noturnos."
                   rows={3}
-                  className="w-full rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                  className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -1073,9 +1073,9 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
 
         {/* Card de Ações */}
         <div className="neon-card rounded-2xl p-6">
-          <div className="flex items-start gap-2 rounded-lg border border-indigo-300 dark:border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 p-3 mb-4">
-            <Info className="h-4 w-4 mt-0.5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
-            <p className="text-sm text-indigo-800 dark:text-indigo-300">
+          <div className="flex items-start gap-2 rounded-lg border border-indigo-300 bg-indigo-50 p-3 mb-4">
+            <Info className="h-4 w-4 mt-0.5 text-indigo-600 flex-shrink-0" />
+            <p className="text-sm text-indigo-800">
               Os dados e a imagem são enviados para o Firestore. Você pode gerar uma imagem de catálogo com IA após fazer upload da foto original.
             </p>
           </div>
@@ -1083,7 +1083,7 @@ export function EditProductForm({ produto, lojistaId }: EditProductFormProps) {
           <div className="flex justify-end gap-3">
             <Link
               href={backHref}
-              className="inline-flex items-center gap-2 rounded-lg bg-white dark:bg-slate-700 border-2 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-2 text-sm font-semibold transition shadow-lg shadow-red-500/20"
+              className="inline-flex items-center gap-2 rounded-lg bg-white border-2 border-red-500 hover:bg-red-50 px-4 py-2 text-sm font-semibold transition shadow-lg shadow-red-500/20"
               style={{ color: '#DC2626' }}
             >
               <X className="h-4 w-4" style={{ color: '#DC2626', stroke: '#DC2626', fill: 'none' }} />

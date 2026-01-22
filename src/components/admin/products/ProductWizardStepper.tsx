@@ -25,8 +25,8 @@ export function ProductWizardStepper({ currentStep, completedSteps = [] }: Produ
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mb-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">
         Product Creation Wizard
       </h1>
       
@@ -44,8 +44,8 @@ export function ProductWizardStepper({ currentStep, completedSteps = [] }: Produ
                     status === "completed"
                       ? "bg-green-500 text-white"
                       : status === "active"
-                      ? "bg-blue-600 text-white ring-4 ring-blue-200 dark:ring-blue-800"
-                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                      ? "bg-blue-600 text-white ring-4 ring-blue-200"
+                      : "bg-gray-200 text-gray-500"
                   }`}
                 >
                   {status === "completed" ? (
@@ -57,10 +57,10 @@ export function ProductWizardStepper({ currentStep, completedSteps = [] }: Produ
                 <span
                   className={`mt-2 text-sm font-medium ${
                     status === "active"
-                      ? "text-blue-600 dark:text-blue-400"
+                      ? "text-blue-600"
                       : status === "completed"
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-gray-500 dark:text-gray-400"
+                      ? "text-green-600"
+                      : "text-gray-500"
                   }`}
                 >
                   {step.label}
@@ -73,7 +73,7 @@ export function ProductWizardStepper({ currentStep, completedSteps = [] }: Produ
                   className={`flex-1 h-1 mx-4 ${
                     step.number < currentStep
                       ? "bg-green-500"
-                      : "bg-gray-200 dark:bg-gray-700"
+                      : "bg-gray-200"
                   }`}
                 />
               )}

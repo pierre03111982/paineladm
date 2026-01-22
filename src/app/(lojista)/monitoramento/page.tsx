@@ -119,15 +119,15 @@ export default function MonitoramentoPage() {
       {/* Estatísticas */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-colors">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-slate-600 dark:text-gray-300">Total de Logs</h3>
-              <Info className="h-5 w-5 text-slate-500 dark:text-gray-400" />
+              <h3 className="text-sm font-medium text-slate-600">Total de Logs</h3>
+              <Info className="h-5 w-5 text-slate-500" />
             </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalLogs}</p>
+            <p className="text-2xl font-bold text-slate-900">{stats.totalLogs}</p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-colors">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-slate-600">Erros</h3>
               <XCircle className="h-5 w-5 text-red-600" />
@@ -135,13 +135,13 @@ export default function MonitoramentoPage() {
             <p className="text-2xl font-bold text-red-600">{stats.errors}</p>
           </div>
 
-          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-colors">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-slate-600">Gerações IA</h3>
               <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
             <div className="space-y-1">
-              <p className="text-lg font-bold text-slate-900 dark:text-white">
+              <p className="text-lg font-bold text-slate-900">
                 {stats.aiGenerations.success} / {stats.aiGenerations.total}
               </p>
               <p className="text-xs text-slate-600">
@@ -150,13 +150,13 @@ export default function MonitoramentoPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm dark:shadow-md transition-colors">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-colors">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-slate-600">Eventos de Crédito</h3>
               <TrendingDown className="h-5 w-5 text-blue-600" />
             </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.creditEvents.total}</p>
-            <p className="text-xs text-slate-600 dark:text-gray-300 mt-1">
+            <p className="text-2xl font-bold text-slate-900">{stats.creditEvents.total}</p>
+            <p className="text-xs text-slate-600 mt-1">
               {stats.creditEvents.insufficient} saldo insuficiente
             </p>
           </div>

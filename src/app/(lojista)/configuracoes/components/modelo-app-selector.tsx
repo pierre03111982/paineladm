@@ -105,8 +105,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                   relative neon-card flex items-start gap-4 rounded-xl border-2 p-4 cursor-pointer transition-all hover:scale-[1.02]
                   ${
                     isSelected
-                      ? "border-purple-400/80 dark:border-purple-500/80 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-950/30 ring-2 ring-purple-500/30 shadow-lg shadow-purple-500/20"
-                      : "hover:border-purple-400/50 dark:hover:border-purple-500/50"
+                      ? "border-purple-400/80 bg-gradient-to-br from-purple-50/50 to-indigo-50/50 ring-2 ring-purple-500/30 shadow-lg shadow-purple-500/20"
+                      : "hover:border-purple-400/50"
                   }
                 `}
               >
@@ -116,8 +116,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                     flex h-6 w-6 items-center justify-center rounded-full border-2 mt-0.5 flex-shrink-0 transition-colors
                     ${
                       isSelected
-                        ? "border-purple-500 dark:border-purple-400 bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/40"
-                        : "border-gray-300 dark:border-gray-600 bg-transparent"
+                        ? "border-purple-500 bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/40"
+                        : "border-gray-300 bg-transparent"
                     }
                   `}
                 >
@@ -126,12 +126,12 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-4">
-                    <h4 className={`text-base font-bold ${isSelected ? "text-purple-700 dark:text-purple-300" : "text-[var(--text-main)]"}`}>
+                    <h4 className={`text-base font-bold ${isSelected ? "text-purple-700" : "text-[var(--text-main)]"}`}>
                       {modelo.nome}
                     </h4>
                     <div className="flex items-center gap-2">
                       {isSelected && (
-                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/50 dark:to-green-900/50 px-3 py-1 rounded-full border-2 border-emerald-400/60 dark:border-emerald-500/60 shadow-lg shadow-emerald-500/30">
+                        <span className="text-xs font-bold text-emerald-700 bg-gradient-to-r from-emerald-100 to-green-100 px-3 py-1 rounded-full border-2 border-emerald-400/60 shadow-lg shadow-emerald-500/30">
                           PADRÃO
                         </span>
                       )}
@@ -146,7 +146,7 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
                       )}
                     </div>
                   </div>
-                  <p className={`text-sm font-medium mt-1 leading-relaxed ${isSelected ? "text-purple-700 dark:text-purple-300" : "text-[var(--text-secondary)]"}`}>
+                  <p className={`text-sm font-medium mt-1 leading-relaxed ${isSelected ? "text-purple-700" : "text-[var(--text-secondary)]"}`}>
                     {modelo.descricao}
                   </p>
                 </div>
@@ -154,8 +154,8 @@ export function ModeloAppSelector({ modeloAtual, lojistaId, onModeloChange }: Mo
             );
           })}
 
-          <div className="mt-6 neon-card rounded-xl border-2 border-yellow-400/60 dark:border-yellow-500/60 bg-gradient-to-br from-yellow-50/50 to-amber-50/50 dark:from-yellow-950/30 dark:to-amber-950/30 p-4 shadow-lg shadow-yellow-500/20">
-             <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-300 leading-relaxed">
+          <div className="mt-6 neon-card rounded-xl border-2 border-yellow-400/60 bg-gradient-to-br from-yellow-50/50 to-amber-50/50 p-4 shadow-lg shadow-yellow-500/20">
+             <p className="text-xs font-semibold text-yellow-800 leading-relaxed">
                <strong>Dica:</strong> Ao trocar o modelo aqui, os novos clientes receberão o link atualizado. 
                Clientes antigos que já têm o link continuarão acessando o modelo anterior até receberem um novo link.
              </p>

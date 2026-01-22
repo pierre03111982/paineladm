@@ -335,7 +335,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
           <h2 className="text-xl font-bold text-white font-heading" style={{ color: '#ffffff' }}>Lista de Clientes</h2>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 dark:border-white/10 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-4 py-3">
           {/* Contador */}
           <div className="text-xs text-[var(--text-secondary)] whitespace-nowrap">
             {searchTerm.trim() || statusFilter !== "all"
@@ -349,16 +349,16 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
               type="checkbox"
               checked={showArchived}
               onChange={(e) => setShowArchived(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] text-indigo-600 focus:ring-indigo-500"
+              className="h-3.5 w-3.5 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-500"
             />
             <span className="text-xs">Arquivados</span>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] whitespace-nowrap">
-            <input
+            <input  
               type="checkbox"
               checked={showBlocked}
               onChange={(e) => setShowBlocked(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] text-indigo-600 focus:ring-indigo-500"
+              className="h-3.5 w-3.5 rounded border-gray-300 bg-white text-indigo-600 focus:ring-indigo-500"
             />
             <span className="text-xs">Bloqueados</span>
           </label>
@@ -478,20 +478,20 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
               </>
             )}
             <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Buscar por nome, WhatsApp..."
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] pl-9 pr-2.5 py-1.5 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-2.5 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             <div className="flex items-center gap-1.5">
-              <Filter className="h-3.5 w-3.5 text-gray-400 dark:text-gray-500" />
+              <Filter className="h-3.5 w-3.5 text-gray-400" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-gray-900 dark:text-white focus:border-indigo-500 dark:focus:border-indigo-400 focus:outline-none"
+                className="rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none"
               >
                 <option value="all">Todos</option>
                 <option value="ativo">Ativos</option>
@@ -528,8 +528,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
           <div className="space-y-3 px-4 pb-4">
             {filteredClientes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Users className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4 icon-animate-once" />
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <Users className="h-16 w-16 text-gray-300 mb-4 icon-animate-once" />
+                <p className="text-sm text-gray-600">
                   {clientes.length === 0
                     ? "Nenhum cliente cadastrado ainda. Os clientes aparecerão aqui quando começarem a usar o provador virtual."
                     : "Nenhum cliente corresponde aos filtros aplicados."}
@@ -628,8 +628,8 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
 
       {/* Modal de Visualização */}
       {viewingCliente && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 shadow-lg overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-xl border border-gray-300 bg-white shadow-lg overflow-hidden">
             {/* Barra de Título com Gradiente Azul */}
             <div className="bg-gradient-to-r from-blue-900 via-blue-600 to-blue-900 px-6 py-4">
               <div className="flex items-center justify-between">
@@ -646,41 +646,41 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
             <div className="p-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Nome</label>
-                <p className="text-sm text-zinc-100">{viewingCliente.nome}</p>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nome</label>
+                <p className="text-sm text-gray-900">{viewingCliente.nome}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">WhatsApp</label>
-                <p className="text-sm text-zinc-100">{viewingCliente.whatsapp || "—"}</p>
+                <label className="block text-xs font-medium text-gray-600 mb-1">WhatsApp</label>
+                <p className="text-sm text-gray-900">{viewingCliente.whatsapp || "—"}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Email</label>
-                <p className="text-sm text-zinc-100">{(viewingCliente as any).email || "—"}</p>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
+                <p className="text-sm text-gray-900">{(viewingCliente as any).email || "—"}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Total de Composições</label>
-                <p className="text-sm text-zinc-100">{viewingCliente.totalComposicoes || 0}</p>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Total de Composições</label>
+                <p className="text-sm text-gray-900">{viewingCliente.totalComposicoes || 0}</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Status</label>
-                <p className="text-sm text-zinc-100">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                <p className="text-sm text-gray-900">
                   {viewingCliente.arquivado ? "Arquivado" : "Ativo"}
                 </p>
               </div>
               {(viewingCliente as any).observacoes && (
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">Observações</label>
-                  <p className="text-sm text-zinc-100">{(viewingCliente as any).observacoes}</p>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Observações</label>
+                  <p className="text-sm text-gray-900">{(viewingCliente as any).observacoes}</p>
                 </div>
               )}
               {viewingCliente.tags && viewingCliente.tags.length > 0 && (
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">Segmentação</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Segmentação</label>
                   <div className="flex flex-wrap gap-2">
                     {viewingCliente.tags.map((tag, idx) => (
                       <span
                         key={idx}
-                        className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-1 text-xs text-purple-200"
+                        className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-1 text-xs text-purple-700"
                       >
                         <Tag className="h-3 w-3" />
                         {tag}
@@ -688,7 +688,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                     ))}
                   </div>
                   {viewingCliente.segmentacao?.tipo && (
-                    <p className="text-xs text-zinc-500 mt-2">
+                    <p className="text-xs text-gray-500 mt-2">
                       Tipo: {viewingCliente.segmentacao.tipo}
                     </p>
                   )}
@@ -697,34 +697,34 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
               {viewingCliente.historicoTentativas?.produtosExperimentados &&
               viewingCliente.historicoTentativas.produtosExperimentados.length > 0 && (
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Histórico de Tentativas
                   </label>
                   <div className="max-h-48 overflow-y-auto space-y-2">
                     {viewingCliente.historicoTentativas.produtosExperimentados.slice(0, 10).map((produto, idx) => (
                       <div
                         key={idx}
-                        className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-2"
+                        className="rounded-lg border border-gray-200 bg-gray-50 p-2"
                       >
-                        <p className="text-xs text-zinc-100">{produto.produtoNome}</p>
+                        <p className="text-xs text-gray-900">{produto.produtoNome}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-zinc-500">
+                          <span className="text-[10px] text-gray-500">
                             {new Date(produto.dataTentativa).toLocaleDateString("pt-BR")}
                           </span>
                           {produto.liked && (
-                            <span className="text-[10px] text-green-400">✓ Curtiu</span>
+                            <span className="text-[10px] text-green-600">✓ Curtiu</span>
                           )}
                           {produto.compartilhado && (
-                            <span className="text-[10px] text-blue-400">✓ Compartilhou</span>
+                            <span className="text-[10px] text-blue-600">✓ Compartilhou</span>
                           )}
                           {produto.checkout && (
-                            <span className="text-[10px] text-emerald-400">✓ Comprou</span>
+                            <span className="text-[10px] text-emerald-600">✓ Comprou</span>
                           )}
                         </div>
                       </div>
                     ))}
                     {viewingCliente.historicoTentativas.produtosExperimentados.length > 10 && (
-                      <p className="text-xs text-zinc-500 text-center">
+                      <p className="text-xs text-gray-500 text-center">
                         +{viewingCliente.historicoTentativas.produtosExperimentados.length - 10} produtos
                       </p>
                     )}
@@ -735,7 +735,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setViewingCliente(null)}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
               >
                 Fechar
               </button>
@@ -747,28 +747,28 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
 
       {/* Modal de Referenciados */}
       {viewingReferrals && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-xl border border-gray-300 bg-white p-6 shadow-lg max-h-[80vh] overflow-y-auto">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-white">
+                <h2 className="text-xl font-semibold text-gray-900">
                   Clientes Referenciados por {viewingReferrals.cliente.nome}
                 </h2>
-                <p className="text-sm text-zinc-400 mt-1">
+                <p className="text-sm text-gray-600 mt-1">
                   Clientes que acessaram o app via links compartilhados por este cliente
                 </p>
               </div>
               <button
                 onClick={() => setViewingReferrals(null)}
-                className="text-zinc-400 hover:text-zinc-200"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
             {viewingReferrals.referrals.length === 0 ? (
-              <div className="py-8 text-center text-zinc-500">
-                <Users2 className="mx-auto h-12 w-12 text-zinc-700 mb-4" />
+              <div className="py-8 text-center text-gray-500">
+                <Users2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                 <p>Nenhum cliente referenciado ainda.</p>
               </div>
             ) : (
@@ -776,15 +776,15 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                 {viewingReferrals.referrals.map((referral) => (
                   <div
                     key={referral.id}
-                    className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 hover:bg-zinc-800/60 transition"
+                    className="rounded-lg border border-gray-200 bg-gray-50 p-4 hover:bg-gray-100 transition"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <p className="font-medium text-zinc-100">{referral.referredClienteNome}</p>
-                        <p className="text-sm text-zinc-400 mt-1">
+                        <p className="font-medium text-gray-900">{referral.referredClienteNome}</p>
+                        <p className="text-sm text-gray-600 mt-1">
                           WhatsApp: {referral.referredClienteWhatsapp || "—"}
                         </p>
-                        <p className="text-xs text-zinc-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           Acessou em: {new Date(referral.accessedAt).toLocaleDateString("pt-BR")}
                         </p>
                       </div>
@@ -797,7 +797,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
                             setViewingReferrals(null);
                           }
                         }}
-                        className="ml-4 rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-2 text-sm text-indigo-200 transition hover:border-indigo-300/60"
+                        className="ml-4 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-100"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -810,7 +810,7 @@ export function ClientesTable({ initialClientes }: ClientesTableProps) {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setViewingReferrals(null)}
-                className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
               >
                 Fechar
               </button>
@@ -922,20 +922,20 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 pt-8 backdrop-blur-sm overflow-y-auto">
-      <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-lg mt-4 mb-8">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-900/50 p-4 pt-8 backdrop-blur-sm overflow-y-auto">
+      <div className="w-full max-w-lg rounded-xl border border-gray-300 bg-white p-6 shadow-lg mt-4 mb-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">Cadastrar Novo Cliente</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Cadastrar Novo Cliente</h2>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-200"
+            className="text-gray-400 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
               Nome *
             </label>
             <input
@@ -943,58 +943,58 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
               required
               value={formData.nome}
               onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               placeholder="Nome completo do cliente"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
               WhatsApp
             </label>
             <input
               type="text"
               value={formData.whatsapp}
               onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               placeholder="(00) 00000-0000"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
               Email
             </label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               placeholder="cliente@email.com"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
               Senha (opcional)
             </label>
             <input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               placeholder="Mínimo 6 caracteres (deixe vazio se o cliente vai criar no app)"
             />
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-gray-500">
               Se deixar vazio, o cliente precisará criar a senha no primeiro acesso ao app.
             </p>
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
               Observações
             </label>
             <textarea
               value={formData.observacoes}
               onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
               rows={3}
-              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               placeholder="Observações sobre o cliente..."
             />
           </div>
@@ -1002,7 +1002,7 @@ function CreateClienteModal({ onClose, onSave }: CreateClienteModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-300 transition hover:bg-zinc-800"
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100"
             >
               Cancelar
             </button>

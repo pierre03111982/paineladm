@@ -98,7 +98,7 @@ export function SimulatorPanel({ simulatorUrl, initialLojistaId }: SimulatorPane
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-2 p-3 rounded-xl neon-card border-2 border-gray-300/30 dark:border-purple-500/30 bg-[var(--bg-card)]/60">
+            <div className="flex items-center gap-2 p-3 rounded-xl neon-card border-2 border-gray-300/30 bg-[var(--bg-card)]/60">
               <input
                 type="text"
                 value={currentSimulatorUrl}
@@ -112,8 +112,8 @@ export function SimulatorPanel({ simulatorUrl, initialLojistaId }: SimulatorPane
                   "rounded-lg border-2 px-4 py-2 text-sm font-semibold",
                   "transition-all",
                   copied
-                    ? "border-emerald-500/60 dark:border-emerald-400/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 dark:text-emerald-300 shadow-lg shadow-emerald-500/30"
-                    : "border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:shadow-lg hover:shadow-cyan-500/30"
+                    ? "border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-700 shadow-lg shadow-emerald-500/30"
+                    : "border-gray-300 bg-[var(--bg-card)]/60 text-[var(--text-secondary)] hover:border-cyan-500 hover:text-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30"
                 )}
               >
                 {copied ? (
@@ -165,7 +165,7 @@ export function SimulatorPanel({ simulatorUrl, initialLojistaId }: SimulatorPane
           </div>
 
           <div className="flex flex-col items-center gap-4">
-            <div className="neon-card rounded-xl border-2 border-gray-300/50 dark:border-emerald-500/50 bg-white dark:bg-white p-4 shadow-lg">
+            <div className="neon-card rounded-xl border-2 border-gray-300/50 bg-white p-4 shadow-lg">
               {loading ? (
                 <div className="w-[300px] h-[300px] flex items-center justify-center">
                   <div className="text-center">
@@ -181,7 +181,7 @@ export function SimulatorPanel({ simulatorUrl, initialLojistaId }: SimulatorPane
                 />
               ) : (
                 <div className="w-[300px] h-[300px] flex items-center justify-center">
-                  <p className="text-xs text-red-500 dark:text-red-400 font-semibold">Erro ao gerar QR Code</p>
+                  <p className="text-xs text-red-500 font-semibold">Erro ao gerar QR Code</p>
                 </div>
               )}
             </div>
@@ -191,9 +191,9 @@ export function SimulatorPanel({ simulatorUrl, initialLojistaId }: SimulatorPane
                 onClick={handleDownloadQR}
                 className={cn(
                   "inline-flex items-center gap-2",
-                  "rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-[var(--bg-card)]/60",
+                  "rounded-lg border-2 border-gray-300 bg-[var(--bg-card)]/60",
                   "px-5 py-2.5 text-sm font-semibold text-[var(--text-secondary)]",
-                  "hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400",
+                  "hover:border-emerald-500 hover:text-emerald-600",
                   "transition-all hover:shadow-lg hover:shadow-emerald-500/30"
                 )}
               >

@@ -88,7 +88,7 @@ export default function TestGeminiPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">🧪 Teste do Gemini 2.5 Flash</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600">
           Teste se a migração do modelo foi bem-sucedida
         </p>
       </div>
@@ -96,8 +96,8 @@ export default function TestGeminiPage() {
       <div className="space-y-4 mb-6">
         <AnimatedCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Teste 1: Análise de Produto</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Testa o modelo <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gemini-2.5-flash</code>
+          <p className="text-sm text-gray-600 mb-4">
+            Testa o modelo <code className="bg-gray-100 px-2 py-1 rounded">gemini-2.5-flash</code>
           </p>
           <Button
             onClick={testProductAnalyzer}
@@ -117,8 +117,8 @@ export default function TestGeminiPage() {
 
         <AnimatedCard className="p-6">
           <h2 className="text-xl font-semibold mb-4">Teste 2: Chat do Agente Ana</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Testa o modelo <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gemini-2.5-flash</code>
+          <p className="text-sm text-gray-600 mb-4">
+            Testa o modelo <code className="bg-gray-100 px-2 py-1 rounded">gemini-2.5-flash</code>
           </p>
           <Button
             onClick={testChatAgent}
@@ -138,47 +138,47 @@ export default function TestGeminiPage() {
       </div>
 
       {error && (
-        <AnimatedCard className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
-          <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
+        <AnimatedCard className="p-6 bg-red-50 border-red-200">
+          <h3 className="text-lg font-semibold text-red-800 mb-2">
             ❌ Erro
           </h3>
-          <p className="text-red-700 dark:text-red-400">{error}</p>
+          <p className="text-red-700">{error}</p>
         </AnimatedCard>
       )}
 
       {results && (
-        <AnimatedCard className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <h3 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-4">
+        <AnimatedCard className="p-6 bg-green-50 border-green-200">
+          <h3 className="text-lg font-semibold text-green-800 mb-4">
             ✅ {results.test} - Sucesso!
           </h3>
           
           {results.processingTime && (
-            <p className="text-sm text-green-700 dark:text-green-400 mb-4">
+            <p className="text-sm text-green-700 mb-4">
               Tempo de processamento: <strong>{results.processingTime}ms</strong>
             </p>
           )}
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 overflow-x-auto">
-            <pre className="text-xs text-gray-800 dark:text-gray-200">
+          <div className="bg-white rounded-lg p-4 overflow-x-auto">
+            <pre className="text-xs text-gray-800">
               {JSON.stringify(results.data, null, 2)}
             </pre>
           </div>
 
           {results.groundingMetadata?.webSearchQueries?.length > 0 && (
-            <div className="mt-4 text-sm text-green-700 dark:text-green-400">
+            <div className="mt-4 text-sm text-green-700">
               <strong>Google Search usado:</strong> {results.groundingMetadata.webSearchQueries.length} queries
             </div>
           )}
         </AnimatedCard>
       )}
 
-      <AnimatedCard className="p-6 mt-6 bg-blue-50 dark:bg-blue-900/20">
+      <AnimatedCard className="p-6 mt-6 bg-blue-50">
         <h3 className="text-lg font-semibold mb-2">ℹ️ Informações</h3>
-        <ul className="text-sm space-y-2 text-gray-700 dark:text-gray-300">
+        <ul className="text-sm space-y-2 text-gray-700">
           <li>• Certifique-se de estar logado como lojista</li>
-          <li>• Adicione <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">?lojistaId=SEU_ID</code> na URL se necessário</li>
+          <li>• Adicione <code className="bg-gray-100 px-2 py-1 rounded">?lojistaId=SEU_ID</code> na URL se necessário</li>
           <li>• Verifique os logs do servidor para mais detalhes</li>
-          <li>• Consulte <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">docs/COMO_TESTAR_GEMINI_2.5_FLASH.md</code> para mais opções</li>
+          <li>• Consulte <code className="bg-gray-100 px-2 py-1 rounded">docs/COMO_TESTAR_GEMINI_2.5_FLASH.md</code> para mais opções</li>
         </ul>
       </AnimatedCard>
     </div>

@@ -111,10 +111,10 @@ export function DashboardMiniCharts({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-56 animated-card-border"
+          className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
           style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
         >
-          <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
             Volume de Experimentações
           </h3>
@@ -179,17 +179,17 @@ export function DashboardMiniCharts({
                     if (active && payload && payload.length) {
                       const value = payload[0].value as number;
                       return (
-                        <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-2xl border-2 border-indigo-200 dark:border-indigo-800">
+                        <div className="rounded-xl bg-white px-4 py-3 shadow-2xl border-2 border-indigo-200">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                               {payload[0].payload.day}
                             </p>
                           </div>
-                          <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                          <p className="text-2xl font-bold text-indigo-600">
                             {value}
                           </p>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                          <p className="text-xs font-medium text-slate-500 mt-1">
                             IMAGES IA
                           </p>
                         </div>
@@ -208,10 +208,10 @@ export function DashboardMiniCharts({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-56 animated-card-border"
+          className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
           style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
         >
-          <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
             O que eles provam?
           </h3>
@@ -244,20 +244,20 @@ export function DashboardMiniCharts({
                       if (active && payload && payload.length) {
                         const entry = payload[0].payload as ProductBreakdown;
                         return (
-                          <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-2xl border-2 border-amber-200 dark:border-amber-800">
+                          <div className="rounded-xl bg-white px-4 py-3 shadow-2xl border-2 border-amber-200">
                             <div className="flex items-center gap-2 mb-2">
                               <div 
                                 className="w-3 h-3 rounded-full" 
                                 style={{ backgroundColor: entry.color || DONUT_COLORS[0] }}
                               />
-                              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                                 {entry.name}
                               </p>
                             </div>
-                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                            <p className="text-2xl font-bold text-amber-600">
                               {payload[0].value}
                             </p>
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-xs font-medium text-slate-500 mt-1">
                               provas realizadas
                             </p>
                           </div>
@@ -272,7 +272,7 @@ export function DashboardMiniCharts({
                     verticalAlign="bottom"
                     height={35}
                     formatter={(value) => (
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                      <span className="text-xs font-medium text-slate-600">
                         {value}
                       </span>
                     )}
@@ -282,7 +282,7 @@ export function DashboardMiniCharts({
             </div>
           ) : (
             <div className="flex items-center justify-center h-[calc(100%-2rem)]">
-              <p className="text-xs text-slate-400 dark:text-slate-500">
+              <p className="text-xs text-slate-400">
                 Sem dados disponíveis
               </p>
             </div>
@@ -294,10 +294,10 @@ export function DashboardMiniCharts({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-56 animated-card-border"
+          className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
           style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
         >
-          <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
             Aprovação dos Looks
           </h3>
@@ -350,13 +350,13 @@ export function DashboardMiniCharts({
                         ? Math.round((entry.value / looksGerados) * 100) 
                         : 0;
                       return (
-                        <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-2xl border-2" style={{ borderColor: entry.color + "40" }}>
+                        <div className="rounded-xl bg-white px-4 py-3 shadow-2xl border-2" style={{ borderColor: entry.color + "40" }}>
                           <div className="flex items-center gap-2 mb-2">
                             <div 
                               className="w-3 h-3 rounded-full" 
                               style={{ backgroundColor: entry.color }}
                             />
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                               {entry.name}
                             </p>
                           </div>
@@ -364,12 +364,12 @@ export function DashboardMiniCharts({
                             {entry.value}
                           </p>
                           {entry.tooltip && (
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-xs font-medium text-slate-500 mt-1">
                               {entry.tooltip}
                             </p>
                           )}
                           {looksGerados > 0 && entry.name !== "Looks Gerados" && (
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                            <p className="text-xs font-medium text-slate-500 mt-1">
                               {percentage}% dos looks gerados
                             </p>
                           )}
@@ -394,10 +394,10 @@ export function DashboardMiniCharts({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0 }}
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-56 animated-card-border"
+        className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
         style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
       >
-        <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           Volume de Experimentações
         </h3>
@@ -465,17 +465,17 @@ export function DashboardMiniCharts({
                   if (active && payload && payload.length) {
                     const value = payload[0].value as number;
                     return (
-                      <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-2xl border-2 border-indigo-200 dark:border-indigo-800">
+                      <div className="rounded-xl bg-white px-4 py-3 shadow-2xl border-2 border-indigo-200">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                             {payload[0].payload.day}
                           </p>
                         </div>
-                        <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                        <p className="text-2xl font-bold text-indigo-600">
                           {value}
                         </p>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        <p className="text-xs font-medium text-slate-500 mt-1">
                           IMAGES IA
                         </p>
                       </div>
@@ -494,10 +494,10 @@ export function DashboardMiniCharts({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-56 animated-card-border"
+        className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
         style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
       >
-        <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           O que eles provam?
         </h3>
@@ -530,20 +530,20 @@ export function DashboardMiniCharts({
                   if (active && payload && payload.length) {
                     const entry = payload[0].payload as ProductBreakdown;
                     return (
-                      <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-2xl border-2 border-amber-200 dark:border-amber-800">
+                      <div className="rounded-xl bg-white px-4 py-3 shadow-2xl border-2 border-amber-200">
                         <div className="flex items-center gap-2 mb-2">
                           <div 
                             className="w-3 h-3 rounded-full" 
                             style={{ backgroundColor: entry.color || DONUT_COLORS[0] }}
                           />
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                             {entry.name}
                           </p>
                         </div>
-                        <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                        <p className="text-2xl font-bold text-amber-600">
                           {payload[0].value}
                         </p>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                        <p className="text-xs font-medium text-slate-500 mt-1">
                           provas realizadas
                         </p>
                       </div>
@@ -558,7 +558,7 @@ export function DashboardMiniCharts({
                   verticalAlign="bottom"
                   height={35}
                   formatter={(value) => (
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                    <span className="text-xs font-medium text-slate-600">
                       {value}
                     </span>
                   )}
@@ -568,7 +568,7 @@ export function DashboardMiniCharts({
           </div>
         ) : (
           <div className="flex items-center justify-center h-[calc(100%-2rem)]">
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-xs text-slate-400">
               Sem dados disponíveis
             </p>
           </div>
@@ -580,10 +580,10 @@ export function DashboardMiniCharts({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 h-56 animated-card-border"
+        className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
         style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
       >
-        <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           Aprovação dos Looks
         </h3>
@@ -636,13 +636,13 @@ export function DashboardMiniCharts({
                       ? Math.round((entry.value / looksGerados) * 100) 
                       : 0;
                     return (
-                      <div className="rounded-xl bg-white dark:bg-slate-900 px-4 py-3 shadow-2xl border-2" style={{ borderColor: entry.color + "40" }}>
+                      <div className="rounded-xl bg-white px-4 py-3 shadow-2xl border-2" style={{ borderColor: entry.color + "40" }}>
                         <div className="flex items-center gap-2 mb-2">
                           <div 
                             className="w-3 h-3 rounded-full" 
                             style={{ backgroundColor: entry.color }}
                           />
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                             {entry.name}
                           </p>
                         </div>
@@ -650,12 +650,12 @@ export function DashboardMiniCharts({
                           {entry.value}
                         </p>
                         {entry.tooltip && (
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                          <p className="text-xs font-medium text-slate-500 mt-1">
                             {entry.tooltip}
                           </p>
                         )}
                         {looksGerados > 0 && entry.name !== "Looks Gerados" && (
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                          <p className="text-xs font-medium text-slate-500 mt-1">
                             {percentage}% dos looks gerados
                           </p>
                         )}

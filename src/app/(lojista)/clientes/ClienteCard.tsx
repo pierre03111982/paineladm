@@ -111,7 +111,7 @@ export function ClienteCard({
   // Estado inicial sempre igual no servidor e cliente para evitar hydration mismatch
   const [oportunidadeStatus, setOportunidadeStatus] = useState({
     label: "❄️ Frio",
-    color: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700"
+    color: "bg-blue-100 text-blue-700 border-blue-300"
   });
 
   // Calcular status apenas no cliente após montagem completa
@@ -126,7 +126,7 @@ export function ClienteCard({
           : null;
       
       if (!lastActivity) {
-        setOportunidadeStatus({ label: "❄️ Frio", color: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700" });
+        setOportunidadeStatus({ label: "❄️ Frio", color: "bg-blue-100 text-blue-700 border-blue-300" });
         return;
       }
       
@@ -135,11 +135,11 @@ export function ClienteCard({
       const hoursSinceActivity = (now - lastActivityTime) / (1000 * 60 * 60);
       
       if (hoursSinceActivity < 1) {
-        setOportunidadeStatus({ label: "🔥 Quente", color: "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700" });
+        setOportunidadeStatus({ label: "🔥 Quente", color: "bg-red-100 text-red-700 border-red-300" });
       } else if (hoursSinceActivity < 6) {
-        setOportunidadeStatus({ label: "🟡 Morno", color: "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700" });
+        setOportunidadeStatus({ label: "🟡 Morno", color: "bg-amber-100 text-amber-700 border-amber-300" });
       } else {
-        setOportunidadeStatus({ label: "❄️ Frio", color: "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700" });
+        setOportunidadeStatus({ label: "❄️ Frio", color: "bg-blue-100 text-blue-700 border-blue-300" });
       }
     } catch (error) {
       // Em caso de erro, manter o estado padrão
@@ -165,7 +165,7 @@ export function ClienteCard({
 
   return (
     <div
-      className="group relative bg-white dark:bg-white rounded-lg transition-all duration-300 overflow-hidden"
+      className="group relative bg-white rounded-lg transition-all duration-300 overflow-hidden"
       style={{
         animation: isMounted ? `fadeInUp 0.5s ease-out ${animationDelay}s both` : 'none',
         border: '2px solid rgba(99, 102, 241, 0.5)',
@@ -267,8 +267,8 @@ export function ClienteCard({
 
           {/* Informações do Cliente */}
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 dark:text-white text-sm">{formatName(cliente.nome)}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="font-semibold text-gray-900 text-sm">{formatName(cliente.nome)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
               {cliente.whatsapp ? formatWhatsApp(cliente.whatsapp) : "Sem WhatsApp"}
             </p>
           </div>
@@ -295,7 +295,7 @@ export function ClienteCard({
                   <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-3.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
                 </svg>
               </div>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 leading-none ml-3 whitespace-nowrap">{cliente.totalLikes || 0}</span>
+              <span className="text-sm font-semibold text-gray-700 leading-none ml-3 whitespace-nowrap">{cliente.totalLikes || 0}</span>
             </div>
 
             {/* Dislikes - VERMELHO - Largura Fixa */}
@@ -312,7 +312,7 @@ export function ClienteCard({
                   }} 
                 />
               </div>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 leading-none ml-3 whitespace-nowrap">{cliente.totalDislikes || 0}</span>
+              <span className="text-sm font-semibold text-gray-700 leading-none ml-3 whitespace-nowrap">{cliente.totalDislikes || 0}</span>
             </div>
 
             {/* Total de Imagens Geradas - AZUL - Largura Fixa */}
@@ -336,7 +336,7 @@ export function ClienteCard({
                   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                 </svg>
               </div>
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 leading-none ml-3 whitespace-nowrap">{cliente.totalComposicoes || 0}</span>
+              <span className="text-sm font-semibold text-gray-700 leading-none ml-3 whitespace-nowrap">{cliente.totalComposicoes || 0}</span>
             </div>
           </div>
 
@@ -345,14 +345,14 @@ export function ClienteCard({
             {/* Botões de Ação Secundários */}
             <button
               onClick={handleViewProfile}
-              className="inline-flex items-center justify-center rounded-2xl border-2 border-blue-500 bg-white dark:bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-blue-600"
+              className="inline-flex items-center justify-center rounded-2xl border-2 border-blue-500 bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-blue-600"
               title="Visualizar Perfil"
             >
               <Eye className="h-4 w-4 icon-animate-once text-blue-500 stroke-blue-500" />
             </button>
             <button
               onClick={handleViewProfile}
-              className="inline-flex items-center justify-center rounded-2xl border-2 border-purple-500 bg-white dark:bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-purple-600"
+              className="inline-flex items-center justify-center rounded-2xl border-2 border-purple-500 bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-purple-600"
               title="Editar Perfil"
             >
               <Edit className="h-4 w-4 icon-animate-once text-purple-500 stroke-purple-500" />
@@ -362,7 +362,7 @@ export function ClienteCard({
                 e.preventDefault();
                 window.location.href = cockpitUrl;
               }}
-              className="inline-flex items-center justify-center rounded-2xl border-2 border-indigo-500 bg-white dark:bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-indigo-600"
+              className="inline-flex items-center justify-center rounded-2xl border-2 border-indigo-500 bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-indigo-600"
               title="Cockpit de Vendas"
             >
               <MonitorSmartphone className="h-4 w-4 icon-animate-once text-indigo-500 stroke-indigo-500" />
@@ -370,7 +370,7 @@ export function ClienteCard({
             {cliente.acessoBloqueado ? (
               <button
                 onClick={() => onBlock(false)}
-                className="inline-flex items-center justify-center rounded-2xl border-2 border-emerald-500 bg-white dark:bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-emerald-600"
+                className="inline-flex items-center justify-center rounded-2xl border-2 border-emerald-500 bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-emerald-600"
                 title="Desbloquear"
               >
                 <Unlock className="h-4 w-4 icon-animate-once text-emerald-500 stroke-emerald-500" />
@@ -378,7 +378,7 @@ export function ClienteCard({
             ) : (
               <button
                 onClick={() => onBlock(true)}
-                className="inline-flex items-center justify-center rounded-2xl border-2 border-red-500 bg-white dark:bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-red-600"
+                className="inline-flex items-center justify-center rounded-2xl border-2 border-red-500 bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-red-600"
                 title="Bloquear"
               >
                 <Lock className="h-4 w-4 icon-animate-once text-red-500 stroke-red-500" />
@@ -387,7 +387,7 @@ export function ClienteCard({
             {isAdminView && (
               <button
                 onClick={onDelete}
-                className="inline-flex items-center justify-center rounded-2xl border-2 border-red-500 bg-white dark:bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-red-600"
+                className="inline-flex items-center justify-center rounded-2xl border-2 border-red-500 bg-white p-2.5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-red-600"
                 title="Excluir"
               >
                 <Trash2 className="h-4 w-4 icon-animate-once text-red-500 stroke-red-500" />
@@ -398,19 +398,19 @@ export function ClienteCard({
 
         {/* Compartilhamento - Linha adicional se houver dados */}
         {shareStats && (shareStats.totalShares > 0 || shareStats.totalReferrals > 0) && (
-          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+          <div className="mt-2 pt-2 border-t border-gray-200 flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-1 text-blue-600">
               <Share2 className="h-3 w-3 icon-animate-once" />
               <span className="font-medium">{shareStats.totalShares} links</span>
             </div>
-            <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+            <div className="flex items-center gap-1 text-green-600">
               <Users2 className="h-3 w-3 icon-animate-once" />
               <span className="font-medium">{shareStats.totalReferrals} ref.</span>
             </div>
             {shareStats.totalReferrals > 0 && (
               <button
                 onClick={onViewReferrals}
-                className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium text-xs"
+                className="text-indigo-600 hover:underline font-medium text-xs"
               >
                 Ver →
               </button>

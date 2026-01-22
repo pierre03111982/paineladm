@@ -247,14 +247,14 @@ export function ProductStudioModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto m-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto m-4">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-gray-900">
               Estúdio de Criação IA
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-600 mt-1">
               {nomeProduto}
             </p>
           </div>
@@ -263,16 +263,16 @@ export function ProductStudioModal({
               <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
             ) : (
               <>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                  <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 rounded-lg">
+                  <Sparkles className="h-4 w-4 text-indigo-600" />
+                  <span className="text-sm font-semibold text-indigo-700">
                     {creditInfo.credits} Créditos
                   </span>
                 </div>
                 {creditInfo.catalogPack > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                    <Package className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 rounded-lg">
+                    <Package className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-semibold text-green-700">
                       {creditInfo.catalogPack} Pack
                     </span>
                   </div>
@@ -281,7 +281,7 @@ export function ProductStudioModal({
             )}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
             >
               <X className="h-5 w-5 text-gray-500" />
             </button>
@@ -292,7 +292,7 @@ export function ProductStudioModal({
         <div className="p-6 space-y-6">
           {/* Seleção de Manequim */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Selecione o Manequim:
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -302,12 +302,12 @@ export function ProductStudioModal({
                   onClick={() => setSelectedMannequinId(mannequin.id)}
                   className={`group relative rounded-xl border-2 transition-all overflow-hidden ${
                     selectedMannequinId === mannequin.id
-                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500 ring-offset-2"
-                      : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 hover:shadow-lg"
+                      ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2"
+                      : "border-gray-200 hover:border-indigo-300 hover:shadow-lg"
                   }`}
                 >
                   {/* Miniatura do Manequim */}
-                  <div className="relative aspect-square w-full bg-gray-100 dark:bg-gray-800 overflow-hidden flex items-start justify-center">
+                  <div className="relative aspect-square w-full bg-gray-100 overflow-hidden flex items-start justify-center">
                     <img
                       src={mannequin.thumbnailUrl}
                       alt={mannequin.name}
@@ -331,10 +331,10 @@ export function ProductStudioModal({
                   
                   {/* Informações do Manequim */}
                   <div className="p-3">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white text-center mb-1">
+                    <p className="text-sm font-semibold text-gray-900 text-center mb-1">
                       {mannequin.name}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                    <p className="text-xs text-gray-500 text-center">
                       {mannequin.description}
                     </p>
                   </div>
@@ -342,7 +342,7 @@ export function ProductStudioModal({
               ))}
             </div>
             {!selectedMannequinId && (
-              <p className="text-sm text-amber-600 dark:text-amber-400 mt-3 text-center">
+              <p className="text-sm text-amber-600 mt-3 text-center">
                 ⚠️ Selecione um manequim para habilitar a geração de imagens
               </p>
             )}
@@ -352,10 +352,10 @@ export function ProductStudioModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Foto Original */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
                 Foto Original
               </h4>
-              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
                 {imagemUrlOriginal ? (
                   <img
                     src={imagemUrlOriginal}
@@ -368,7 +368,7 @@ export function ProductStudioModal({
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <div className="flex items-center gap-2 text-sm text-green-600">
                 <Check className="h-4 w-4" />
                 <span>Base</span>
               </div>
@@ -376,10 +376,10 @@ export function ProductStudioModal({
 
             {/* Foto Catálogo */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
                 Foto Catálogo
               </h4>
-              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
                 {catalogImage ? (
                   <img
                     src={catalogImage}
@@ -409,28 +409,28 @@ export function ProductStudioModal({
                   </>
                 )}
               </button>
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 Custo: {catalogCost} {creditInfo.catalogPack > 0 ? "Pack" : "Crédito"}
               </p>
               {catalogImage && (
                 <div className="flex flex-wrap gap-2 pt-2">
                   <button
                     onClick={() => handleSetAsCover(catalogImage)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
                   >
                     <Check className="h-3 w-3 inline mr-1" />
                     Capa
                   </button>
                   <button
                     onClick={() => handleSendToDisplay(catalogImage)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
                   >
                     <Monitor className="h-3 w-3 inline mr-1" />
                     Display
                   </button>
                   <button
                     onClick={() => handleSetPromotional(catalogImage)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"
+                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition"
                   >
                     <Star className="h-3 w-3 inline mr-1" />
                     Promo
@@ -441,10 +441,10 @@ export function ProductStudioModal({
 
             {/* Look Combinado */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
                 Look Combinado
               </h4>
-              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
                 {combinedImage ? (
                   <img
                     src={combinedImage}
@@ -474,28 +474,28 @@ export function ProductStudioModal({
                   </>
                 )}
               </button>
-              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 Custo: {combinedCost} {creditInfo.catalogPack > 0 ? "Pack" : "Créditos"}
               </p>
               {combinedImage && (
                 <div className="flex flex-wrap gap-2 pt-2">
                   <button
                     onClick={() => handleSetAsCover(combinedImage)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition"
+                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
                   >
                     <Check className="h-3 w-3 inline mr-1" />
                     Capa
                   </button>
                   <button
                     onClick={() => handleSendToDisplay(combinedImage)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition"
+                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
                   >
                     <Monitor className="h-3 w-3 inline mr-1" />
                     Display
                   </button>
                   <button
                     onClick={() => handleSetPromotional(combinedImage)}
-                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-900/50 transition"
+                    className="flex-1 px-3 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition"
                   >
                     <Star className="h-3 w-3 inline mr-1" />
                     Promo
@@ -507,12 +507,12 @@ export function ProductStudioModal({
 
           {/* Mensagens de Erro/Sucesso */}
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {error}
             </div>
           )}
           {success && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-300">
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
               {success}
             </div>
           )}

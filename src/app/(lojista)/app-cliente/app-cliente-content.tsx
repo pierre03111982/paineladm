@@ -164,8 +164,8 @@ function ModeloCard({
       className={cn(
         "relative neon-card rounded-2xl border-2 p-7 transition-all hover:scale-[1.02]",
         isPadrao
-          ? "border-emerald-400/80 dark:border-emerald-500/80 bg-gradient-to-br from-emerald-50/50 to-green-50/50 dark:from-emerald-950/30 dark:to-green-950/30 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/20"
-          : "hover:border-indigo-400/50 dark:hover:border-indigo-500/50"
+          ? "border-emerald-400/80 bg-gradient-to-br from-emerald-50/50 to-green-50/50 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/20"
+          : "hover:border-indigo-400/50"
       )}
     >
       {/* Badge de Modelo Padrão */}
@@ -180,11 +180,11 @@ function ModeloCard({
 
       {/* Header do Card */}
       <div className="mb-5 text-center">
-        <h3 className={`text-2xl font-bold ${isPadrao ? "text-emerald-700 dark:text-emerald-300" : "text-[var(--text-main)]"}`}>
+        <h3 className={`text-2xl font-bold ${isPadrao ? "text-emerald-700" : "text-[var(--text-main)]"}`}>
           {modelo.nome}
         </h3>
         {isPadrao && (
-          <p className="mt-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+          <p className="mt-2 text-sm font-semibold text-emerald-600">
             Selecionado nas configurações
           </p>
         )}
@@ -192,8 +192,8 @@ function ModeloCard({
 
       {/* Link Input */}
       <div className="mb-5">
-        <div className="flex items-start gap-3 neon-card rounded-xl border-2 border-gray-300/50 dark:border-purple-500/50 bg-[var(--bg-card)] p-4">
-          <Smartphone className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+        <div className="flex items-start gap-3 neon-card rounded-xl border-2 border-gray-300/50 bg-[var(--bg-card)] p-4">
+          <Smartphone className="h-5 w-5 text-indigo-600 shrink-0 mt-1" />
           <div className="flex-1 min-w-0">
             <p
               className="w-full bg-transparent text-base font-bold text-[var(--text-main)] font-mono break-all leading-relaxed select-text cursor-text"
@@ -219,8 +219,8 @@ function ModeloCard({
       </div>
 
       {/* QR Code */}
-      <div className="mb-5 flex flex-col items-center space-y-4 neon-card rounded-xl border-2 border-gray-300/30 dark:border-emerald-500/30 bg-[var(--bg-card)]/60 p-5">
-        <div className="relative h-44 w-44 neon-card rounded-lg border-2 border-gray-300/50 dark:border-emerald-500/50 bg-white dark:bg-white p-3 shadow-lg">
+      <div className="mb-5 flex flex-col items-center space-y-4 neon-card rounded-xl border-2 border-gray-300/30 bg-[var(--bg-card)]/60 p-5">
+        <div className="relative h-44 w-44 neon-card rounded-lg border-2 border-gray-300/50 bg-white p-3 shadow-lg">
           {qrCodeUrl ? (
             <img
               src={qrCodeUrl}
@@ -257,8 +257,8 @@ function ModeloCard({
           rel="noopener noreferrer"
           className={`inline-flex items-center gap-2 text-sm font-bold transition-all hover:underline ${
             isPadrao
-              ? "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
-              : "text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+              ? "text-emerald-600 hover:text-emerald-700"
+              : "text-indigo-600 hover:text-indigo-700"
           }`}
         >
           <ExternalLink className="h-4 w-4" />

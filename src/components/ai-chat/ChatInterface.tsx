@@ -286,7 +286,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-white">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
@@ -302,18 +302,18 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
         ))}
         {loading && (
           <div className="flex justify-start mb-4">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3 rounded-tl-none">
+            <div className="bg-gray-100 rounded-lg px-4 py-3 rounded-tl-none">
               <div className="flex space-x-1">
                 <div 
-                  className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" 
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
                   style={{ animationDelay: '0ms' }} 
                 />
                 <div 
-                  className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" 
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
                   style={{ animationDelay: '150ms' }} 
                 />
                 <div 
-                  className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" 
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" 
                   style={{ animationDelay: '300ms' }} 
                 />
               </div>
@@ -324,7 +324,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-4 border-t border-gray-200">
         {/* Preview da imagem selecionada */}
         {selectedImage && (
           <div className="mb-3 relative inline-block">
@@ -332,7 +332,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
               <img
                 src={selectedImage}
                 alt="Preview"
-                className="max-w-[200px] max-h-[200px] rounded-lg border border-gray-300 dark:border-gray-700 object-cover"
+                className="max-w-[200px] max-h-[200px] rounded-lg border border-gray-300 object-cover"
               />
               <button
                 onClick={handleRemoveImage}
@@ -359,7 +359,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={loading}
-            className="rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg border border-gray-300 bg-white text-gray-600 p-2 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             type="button"
             title="Anexar imagem"
           >
@@ -375,7 +375,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
             onPaste={handlePaste}
             placeholder="Digite sua mensagem ou cole uma imagem (Ctrl+V)..."
             disabled={loading}
-            className="flex-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           />
           <button
             onClick={handleSend}
@@ -389,7 +389,7 @@ export function ChatInterface({ lojistaId, onClose }: ChatInterfaceProps) {
             )}
           </button>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+        <p className="text-xs text-gray-500 mt-2">
           Pressione Enter para enviar • Clique no clipe ou cole uma imagem (Ctrl+V)
         </p>
       </div>
