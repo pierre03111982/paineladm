@@ -772,7 +772,7 @@ export function ProductEditorLayout({
         // Validar e filtrar cores por item
         processedColorsByItem = processedColorsByItem.map(itemData => ({
           item: itemData.item || "Item",
-          colors: (itemData.colors || []).filter(color => {
+          colors: (itemData.colors || []).filter((color: { hex: string; name: string }) => {
             const hasValidHex = color?.hex && color.hex.startsWith('#') && color.hex.length === 7;
             const hasValidName = color?.name && 
               !color.name.toLowerCase().includes('não identificad') &&
@@ -784,10 +784,10 @@ export function ProductEditorLayout({
         
         console.log("[ProductEditor] 🎨 Cores por item processadas e validadas:", {
           itemsCount: processedColorsByItem.length,
-          items: processedColorsByItem.map(item => ({
+          items: processedColorsByItem.map((item: { item: string; colors: Array<{ hex: string; name: string }> }) => ({
             item: item.item,
             colorsCount: item.colors.length,
-            colors: item.colors.map(c => c.name),
+            colors: item.colors.map((c: { hex: string; name: string }) => c.name),
           })),
         });
       } else {
@@ -835,10 +835,10 @@ export function ProductEditorLayout({
       console.log("[ProductEditor] ✅ Dados finais processados:", {
         fabric: newAiAnalysisData.detected_fabric || "(vazio - sem dados precisos)",
         colors: newAiAnalysisData.dominant_colors.length > 0 
-          ? newAiAnalysisData.dominant_colors.map(c => c.name).join(", ")
+          ? newAiAnalysisData.dominant_colors.map((c: { hex: string; name: string }) => c.name).join(", ")
           : "(vazio - sem dados precisos)",
         colorsByItem: newAiAnalysisData.colors_by_item 
-          ? newAiAnalysisData.colors_by_item.map(item => `${item.item}: ${item.colors.map(c => c.name).join(", ")}`).join(" | ")
+          ? newAiAnalysisData.colors_by_item.map((item: { item: string; colors: Array<{ hex: string; name: string }> }) => `${item.item}: ${item.colors.map((c: { hex: string; name: string }) => c.name).join(", ")}`).join(" | ")
           : "(nenhum conjunto detectado)",
       });
       
@@ -888,12 +888,12 @@ export function ProductEditorLayout({
       // Detectar landmarks automaticamente após análise completar
       // Isso carrega as medidas automaticamente
       // Usar o imageUrl passado para a função analyzeImage (que é o rawImageUrl atual)
-      if (imageUrl && (newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida || newAiAnalysisData.productType)) {
+      if (imageUrl && (newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida || newAiAnalysisData.product_type)) {
         console.log("[ProductEditor] 🤖 Condições atendidas para detecção automática de landmarks:", {
           hasImage: !!imageUrl,
           imageUrl: imageUrl.substring(0, 100) + "...",
           category: newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida,
-          productType: newAiAnalysisData.productType,
+          productType: newAiAnalysisData.product_type,
           standardMeasurements: newAiAnalysisData.standard_measurements,
         });
         
@@ -904,7 +904,7 @@ export function ProductEditorLayout({
         console.log("[ProductEditor] ⚠️ Condições não atendidas para detecção automática:", {
           hasImage: !!imageUrl,
           category: newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida,
-          productType: newAiAnalysisData.productType,
+          productType: newAiAnalysisData.product_type,
         });
       }
       
@@ -3241,7 +3241,6 @@ export function ProductEditorLayout({
                     return data;
                   }, [state.smartMeasurements, state.targetAudience, state.sizeCategory, state.persistedMeasurementsByAudience])}
                   uploading={uploadingMedidas}
-                  variacoes={state.variacoes}
                 />
           </div>
         </div>
