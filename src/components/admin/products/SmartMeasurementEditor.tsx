@@ -1362,16 +1362,8 @@ export function SmartMeasurementEditor({
 
         // HEURÍSTICA VISUAL: Se não detectou como conjunto mas a imagem tem duas peças claras
         // (detectado pela presença de landmarks de top E bottom), forçar detecção como conjunto
+        // NOTA: No bloco catch, não temos acesso a result.data, então pulamos essa verificação
         let finalMultiKind = multiKind;
-        if (!multiKind && result.data) {
-          const hasTopLandmarks = result.data.bust_start || result.data.Length_top;
-          const hasBottomLandmarks = result.data.waist_start || result.data.Length_bottom || result.data.hip_start;
-          // Se tem landmarks de ambas as partes, é provavelmente um conjunto
-          if (hasTopLandmarks && hasBottomLandmarks) {
-            console.log("[SmartMeasurementEditor] 🔍 Heurística visual: detectando conjunto por landmarks de top e bottom");
-            finalMultiKind = "SET_TOP_BOTTOM";
-          }
-        }
 
         // HEURÍSTICA FINAL: Se productType é "Short" mas há evidências de conjunto no nome/descrição
         // Forçar detecção como conjunto mesmo sem landmarks
