@@ -2123,7 +2123,7 @@ export function SmartMeasurementEditor({
           baseImage: processedImageUrl,
           activeSize: activeSize as SizeKey,
           autoGrading,
-          sizes: {}, // Vazio para multi-item
+          sizes: {} as Record<SizeKey, MeasurementPoint[]>, // Vazio para multi-item
           groups,
         };
         
