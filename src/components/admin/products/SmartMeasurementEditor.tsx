@@ -1060,9 +1060,9 @@ export function SmartMeasurementEditor({
             }
             
             if (topGeometry.length > 0) {
-              const topDefaultValuesM = {
-                bust: productInfo?.standardMeasurements?.bust || 44,
-                length: productInfo?.standardMeasurements?.length || 60,
+              const topDefaultValuesM: Record<string, number> = {
+                bust: productInfo?.standardMeasurements?.bust ?? 44,
+                length: productInfo?.standardMeasurements?.length ?? 60,
               };
               const topValues = createInitialMeasurementValues(
                 topGeometry,
@@ -1136,10 +1136,10 @@ export function SmartMeasurementEditor({
             }
             
             if (bottomGeometry.length > 0) {
-              const bottomDefaultValuesM = {
-                waist: productInfo?.standardMeasurements?.waist || 40,
-                hip: productInfo?.standardMeasurements?.hip || 44,
-                length: productInfo?.standardMeasurements?.length || 25,
+              const bottomDefaultValuesM: Record<string, number> = {
+                waist: productInfo?.standardMeasurements?.waist ?? 40,
+                hip: productInfo?.standardMeasurements?.hip ?? 44,
+                length: productInfo?.standardMeasurements?.length ?? 25,
               };
               const bottomValues = createInitialMeasurementValues(
                 bottomGeometry,
@@ -1204,19 +1204,20 @@ export function SmartMeasurementEditor({
               
               // Valores padrão baseados na análise ou medidas padrão
               // IMPORTANTE: Se a análise retornou apenas algumas medidas (ex: só length), usar valores padrão para as outras
-              const defaultValuesM = {
-                bust: standardMeas.bust || (relevantIds.includes('bust') ? 44 : undefined),
-                waist: standardMeas.waist || (relevantIds.includes('waist') ? 40 : undefined),
-                hip: standardMeas.hip || (relevantIds.includes('hip') ? 44 : undefined),
-                length: standardMeas.length || (relevantIds.includes('length') ? 60 : undefined),
-              };
+              const defaultValuesM: Record<string, number> = {};
               
-              // Remover valores undefined
-              Object.keys(defaultValuesM).forEach(key => {
-                if (defaultValuesM[key as keyof typeof defaultValuesM] === undefined) {
-                  delete defaultValuesM[key as keyof typeof defaultValuesM];
-                }
-              });
+              if (standardMeas.bust !== undefined || relevantIds.includes('bust')) {
+                defaultValuesM.bust = standardMeas.bust || 44;
+              }
+              if (standardMeas.waist !== undefined || relevantIds.includes('waist')) {
+                defaultValuesM.waist = standardMeas.waist || 40;
+              }
+              if (standardMeas.hip !== undefined || relevantIds.includes('hip')) {
+                defaultValuesM.hip = standardMeas.hip || 44;
+              }
+              if (standardMeas.length !== undefined || relevantIds.includes('length')) {
+                defaultValuesM.length = standardMeas.length || 60;
+              }
               
               console.log("[SmartMeasurementEditor] 📏 Usando medidas padrão:", {
                 standardMeasurements: standardMeas,
@@ -1572,11 +1573,12 @@ export function SmartMeasurementEditor({
         
         if (extractedGeometry.length > 0) {
           setGeometry(extractedGeometry);
-          const defaultValuesM = productInfo?.standardMeasurements || {
-            bust: 44,
-            waist: 40,
-            hip: 44,
-            length: 60,
+          const standardMeas = productInfo?.standardMeasurements || {};
+          const defaultValuesM: Record<string, number> = {
+            bust: standardMeas.bust ?? 44,
+            waist: standardMeas.waist ?? 40,
+            hip: standardMeas.hip ?? 44,
+            length: standardMeas.length ?? 60,
           };
           const initialValues = createInitialMeasurementValues(
             extractedGeometry,
