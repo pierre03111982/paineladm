@@ -1998,11 +1998,11 @@ export function SmartMeasurementEditor({
       if (autoGrading) {
         const baseValue = newValue;
         // CRÍTICO: Usar availableSizes em vez de STANDARD_SIZES para suportar grades diferentes
-        const baseIndex = availableSizes.indexOf(activeSize);
+        const baseIndex = availableSizesAsSizeKey.indexOf(activeSize as SizeKey);
         
-        availableSizes.forEach((size) => {
-          if (size !== activeSize) {
-            const sizeIndex = availableSizes.indexOf(size);
+        availableSizesAsSizeKey.forEach((size) => {
+          if (size !== (activeSize as SizeKey)) {
+            const sizeIndex = availableSizesAsSizeKey.indexOf(size);
             const diff = sizeIndex - baseIndex;
             const variation = measurementId === 'length' ? 1.5 : 2;
             updated[measurementId][size] = Math.max(0, baseValue + (diff * variation));
@@ -2036,9 +2036,9 @@ export function SmartMeasurementEditor({
             const baseValue = group.values[geo.id]?.[activeSize as SizeKey] || 0;
             const variation = geo.id === 'length' ? 1.5 : 2;
             
-            availableSizes.forEach((size) => {
-              if (size !== activeSize) {
-                const sizeIndex = availableSizes.indexOf(size);
+            availableSizesAsSizeKey.forEach((size) => {
+              if (size !== (activeSize as SizeKey)) {
+                const sizeIndex = availableSizesAsSizeKey.indexOf(size);
                 const diff = sizeIndex - baseIndex;
                 if (!updated[geo.id]) {
                   updated[geo.id] = {} as Record<SizeKey, number>;
@@ -2067,9 +2067,9 @@ export function SmartMeasurementEditor({
         const baseValue = prev[geo.id]?.[activeSize as SizeKey] || 0;
         const variation = geo.id === 'length' ? 1.5 : 2;
         
-        availableSizes.forEach((size) => {
-          if (size !== activeSize) {
-            const sizeIndex = availableSizes.indexOf(size);
+        availableSizesAsSizeKey.forEach((size) => {
+          if (size !== (activeSize as SizeKey)) {
+            const sizeIndex = availableSizesAsSizeKey.indexOf(size);
             const diff = sizeIndex - baseIndex;
             if (!updated[geo.id]) {
               updated[geo.id] = {} as Record<SizeKey, number>;
@@ -2402,9 +2402,9 @@ export function SmartMeasurementEditor({
                         geometry.forEach((geo) => {
                           const baseValue = prev[geo.id]?.[activeSize as SizeKey] || 0;
                           const variation = geo.id === 'length' ? 1.5 : 2;
-                          availableSizes.forEach((size) => {
-                            if (size !== activeSize) {
-                              const sizeIndex = availableSizes.indexOf(size);
+                          availableSizesAsSizeKey.forEach((size) => {
+                            if (size !== (activeSize as SizeKey)) {
+                              const sizeIndex = availableSizesAsSizeKey.indexOf(size);
                               const diff = sizeIndex - baseIndex;
                               if (!updated[geo.id]) {
                                 updated[geo.id] = {} as Record<SizeKey, number>;
