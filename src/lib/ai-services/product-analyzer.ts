@@ -1348,9 +1348,9 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
               // Tentar parsear o JSON corrigido após correção de strings
               if (jsonFixed !== originalJsonFixed) {
                 try {
-                  analysisResult = JSON.parse(jsonFixed);
+                  analysisResult = JSON.parse(jsonFixed) as ProductAnalysisResult;
                   // Garantir que campos obrigatórios existam
-                  if (!analysisResult.descricao_seo) {
+                  if (analysisResult && !analysisResult.descricao_seo) {
                     analysisResult.descricao_seo = analysisResult.nome_sugerido || "Produto de qualidade.";
                   }
                   console.log("[ProductAnalyzer] ✅ JSON reparado com sucesso (strings corrigidas)");
