@@ -24,21 +24,21 @@ export const ABNT_STANDARDS: Record<string, Record<string, StandardMeasurements>
   // --- INFANTIL (NBR 15800) ---
   // Cobre Unissex/Feminino conforme PDF enviado
   KIDS: {
-    'PP': { height: 52, bust: 40, waist: 39, hip: 43, length: 26 }, // RN
-    'P':  { height: 62, bust: 44, waist: 41, hip: 44, length: 34 },
-    'M':  { height: 67, bust: 46, waist: 43, hip: 46, length: 36 },
-    'G':  { height: 72, bust: 48, waist: 44, hip: 48, length: 38 },
-    'GG': { height: 77, bust: 49, waist: 48, hip: 50, length: 40 },
-    '1':  { height: 82, bust: 50, waist: 50, hip: 52, length: 42 },
-    '2':  { height: 88, bust: 52, waist: 52, hip: 54, length: 44 },
-    '3':  { height: 98, bust: 54, waist: 54, hip: 56, length: 46 },
-    '4':  { height: 105, bust: 56, waist: 56, hip: 61, length: 48 },
-    '6':  { height: 117, bust: 61, waist: 58, hip: 65, length: 50 },
-    '8':  { height: 128, bust: 66, waist: 60, hip: 70, length: 53 },
-    '10': { height: 137, bust: 70, waist: 62, hip: 76, length: 56 },
-    '12': { height: 150, bust: 75, waist: 64, hip: 82, length: 60 },
-    '14': { height: 156, bust: 78, waist: 66, hip: 86, length: 64 },
-    '16': { height: 162, bust: 84, waist: 69, hip: 90, length: 68 },
+    'PP': { height: 52, bust: 40, waist: 39, waistRange: [37, 41], hip: 43, length: 26 }, // RN
+    'P':  { height: 62, bust: 44, waist: 41, waistRange: [39, 43], hip: 44, length: 34 },
+    'M':  { height: 67, bust: 46, waist: 43, waistRange: [41, 45], hip: 46, length: 36 },
+    'G':  { height: 72, bust: 48, waist: 44, waistRange: [42, 46], hip: 48, length: 38 },
+    'GG': { height: 77, bust: 49, waist: 48, waistRange: [46, 50], hip: 50, length: 40 },
+    '1':  { height: 82, bust: 50, waist: 50, waistRange: [48, 52], hip: 52, length: 42 },
+    '2':  { height: 88, bust: 52, waist: 52, waistRange: [50, 54], hip: 54, length: 44 },
+    '3':  { height: 98, bust: 54, waist: 54, waistRange: [52, 56], hip: 56, length: 46 },
+    '4':  { height: 105, bust: 56, waist: 56, waistRange: [54, 58], hip: 61, length: 48 },
+    '6':  { height: 117, bust: 61, waist: 58, waistRange: [56, 60], hip: 65, length: 50 },
+    '8':  { height: 128, bust: 66, waist: 60, waistRange: [58, 62], hip: 70, length: 53 },
+    '10': { height: 137, bust: 70, waist: 62, waistRange: [60, 64], hip: 76, length: 56 },
+    '12': { height: 150, bust: 75, waist: 64, waistRange: [62, 66], hip: 82, length: 60 },
+    '14': { height: 156, bust: 78, waist: 66, waistRange: [64, 68], hip: 86, length: 64 },
+    '16': { height: 162, bust: 84, waist: 69, waistRange: [67, 71], hip: 90, length: 68 },
   },
 
   // --- FEMININO ADULTO (NBR 16933) ---
