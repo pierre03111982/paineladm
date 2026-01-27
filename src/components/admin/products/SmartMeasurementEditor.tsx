@@ -1844,7 +1844,7 @@ export function SmartMeasurementEditor({
         console.log("[SmartMeasurementEditor] 📏 Usando medidas já detectadas automaticamente:", measurementValues);
         // Extrair valores do tamanho ativo
         Object.keys(measurementValues).forEach((measurementId) => {
-          const value = measurementValues[measurementId]?.[activeSize];
+          const value = measurementValues[measurementId]?.[activeSize as SizeKey];
           if (value !== undefined && value > 0) {
             measurementsToUse[measurementId] = value;
           }
@@ -1853,7 +1853,7 @@ export function SmartMeasurementEditor({
       
       // Prioridade 2: Se não houver medidas detectadas, usar medidas dos sizes carregados
       if (Object.keys(measurementsToUse).length === 0 && sizes && Object.keys(sizes).length > 0) {
-        const sizeData = sizes[activeSize] || [];
+        const sizeData = sizes[activeSize as SizeKey] || [];
         if (sizeData.length > 0) {
           console.log("[SmartMeasurementEditor] 📏 Usando medidas dos sizes carregados:", sizeData);
           sizeData.forEach((mp) => {
@@ -1992,7 +1992,7 @@ export function SmartMeasurementEditor({
       if (!updated[measurementId]) {
         updated[measurementId] = {} as Record<SizeKey, number>;
       }
-      updated[measurementId][activeSize] = newValue;
+      updated[measurementId][activeSize as SizeKey] = newValue;
       
       // Se auto-grading está ativo, recalcular outros tamanhos
       if (autoGrading) {
@@ -2033,7 +2033,7 @@ export function SmartMeasurementEditor({
           const baseIndex = availableSizes.indexOf(activeSize);
           
           group.geometry.forEach((geo) => {
-            const baseValue = group.values[geo.id]?.[activeSize] || 0;
+            const baseValue = group.values[geo.id]?.[activeSize as SizeKey] || 0;
             const variation = geo.id === 'length' ? 1.5 : 2;
             
             availableSizes.forEach((size) => {
@@ -2064,7 +2064,7 @@ export function SmartMeasurementEditor({
       const baseIndex = availableSizes.indexOf(activeSize);
       
       geometry.forEach((geo) => {
-        const baseValue = prev[geo.id]?.[activeSize] || 0;
+        const baseValue = prev[geo.id]?.[activeSize as SizeKey] || 0;
         const variation = geo.id === 'length' ? 1.5 : 2;
         
         availableSizes.forEach((size) => {
@@ -2208,7 +2208,7 @@ export function SmartMeasurementEditor({
       
       // Adicionar medidas do tamanho ativo - NOVA ARQUITETURA
       geometry.forEach((geo) => {
-        const value = measurementValues[geo.id]?.[activeSize] || 0;
+        const value = measurementValues[geo.id]?.[activeSize as SizeKey] || 0;
         if (geo.id === 'bust') {
           formData.append("bust", value.toString());
         } else if (geo.id === 'waist') {
@@ -2400,7 +2400,7 @@ export function SmartMeasurementEditor({
                       setMeasurementValues((prev) => {
                         const updated = { ...prev };
                         geometry.forEach((geo) => {
-                          const baseValue = prev[geo.id]?.[activeSize] || 0;
+                          const baseValue = prev[geo.id]?.[activeSize as SizeKey] || 0;
                           const variation = geo.id === 'length' ? 1.5 : 2;
                           availableSizes.forEach((size) => {
                             if (size !== activeSize) {
@@ -2445,7 +2445,7 @@ export function SmartMeasurementEditor({
                       </div>
                       <AnimatePresence mode="sync">
                         {group.geometry.map((geo) => {
-                          const currentValue = group.values[geo.id]?.[activeSize] || 0;
+                          const currentValue = group.values[geo.id]?.[activeSize as SizeKey] || 0;
                           return (
                             <motion.div
                               key={`${group.id}-${activeSize}-${geo.id}`}
@@ -2473,7 +2473,7 @@ export function SmartMeasurementEditor({
                                               ...g.values,
                                               [geo.id]: {
                                                 ...g.values[geo.id],
-                                                [activeSize]: newValue,
+                                                [activeSize as SizeKey]: newValue,
                                               },
                                             },
                                           }
@@ -2524,7 +2524,7 @@ export function SmartMeasurementEditor({
                   )}
                   <AnimatePresence mode="sync">
                     {geometry.map((geo) => {
-                      const currentValue = measurementValues[geo.id]?.[activeSize] || 0;
+                      const currentValue = measurementValues[geo.id]?.[activeSize as SizeKey] || 0;
                       return (
                         <motion.div
                           key={`${activeSize}-${geo.id}`}
