@@ -238,7 +238,7 @@ export async function fetchAllCompositionsWithLike(
                         .get();
                       
                       if (produtoDoc.exists) {
-                        const produtoData = typeof produtoDoc.data === "function" ? produtoDoc.data() : produtoDoc.data;
+                        const produtoData = produtoDoc.data() as any;
                         if (produtoData) {
                           const produtoInfo = {
                             nome: produtoData.nome || "Produto",
