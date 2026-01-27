@@ -743,16 +743,20 @@ export function SmartMeasurementEditor({
   const [isProcessing, setIsProcessing] = useState(false);
   
   // CRÍTICO: Calcular o tamanho inicial correto baseado na grade selecionada
-  // PADRÃO: Sempre selecionar o tamanho INTERMEDIÁRIO (meio da grade) para garantir que medidas não fiquem em branco
+  // PRIORIDADE 1: Usar o activeSize salvo (se existir e estiver disponível)
+  // PRIORIDADE 2: Se não houver salvo, usar o tamanho INTERMEDIÁRIO (meio da grade) como padrão
   const getInitialActiveSize = (): string => {
+    // PRIORIDADE 1: Verificar se há activeSize salvo e se está disponível
     if (initialData?.activeSize && availableSizes.includes(initialData.activeSize as string)) {
+      console.log("[SmartMeasurementEditor] ✅ Usando tamanho salvo anteriormente:", initialData.activeSize);
       return initialData.activeSize as string;
     }
-    // SEMPRE usar o tamanho INTERMEDIÁRIO (meio da grade) como padrão
+    
+    // PRIORIDADE 2: Usar o tamanho INTERMEDIÁRIO (meio da grade) como padrão apenas se não houver salvo
     if (availableSizes.length > 0) {
       const middleIndex = Math.floor(availableSizes.length / 2);
       const middleSize = availableSizes[middleIndex] || availableSizes[0];
-      console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário como padrão:", {
+      console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário como padrão (sem tamanho salvo):", {
         availableSizes,
         middleIndex,
         middleSize
@@ -800,7 +804,7 @@ export function SmartMeasurementEditor({
   
   // Estados legados (manter para compatibilidade inicial)
   const [sizes, setSizes] = useState<Record<SizeKey, MeasurementPoint[]>>(
-    initialData?.sizes || {}
+    initialData?.sizes || ({} as Record<SizeKey, MeasurementPoint[]>)
   );
   
   const [saved, setSaved] = useState(false);
@@ -840,6 +844,8 @@ export function SmartMeasurementEditor({
   };
 
   // CRÍTICO: Atualizar activeSize quando grade ou público alvo mudar (garantir que sempre use a grade correta)
+  // IMPORTANTE: Só atualizar se o tamanho atual não estiver disponível na nova grade
+  // NÃO forçar o intermediário se o usuário já selecionou um tamanho
   useEffect(() => {
     // Recalcular tamanhos disponíveis quando grade mudar
     const newGradeSizes = getSizesForGrade(sizeCategory, targetAudience);
@@ -858,10 +864,26 @@ export function SmartMeasurementEditor({
     });
     
     if (newAvailableSizes.length > 0) {
-      // Se o activeSize atual não está na lista de tamanhos disponíveis, atualizar para o primeiro
+      // Se o activeSize atual não está na lista de tamanhos disponíveis, atualizar para o intermediário
+      // Mas se estiver disponível, manter o selecionado (não forçar mudança)
       if (!newAvailableSizes.includes(activeSize)) {
-        console.log("[SmartMeasurementEditor] ✅ Atualizando activeSize para primeiro item da grade:", newAvailableSizes[0]);
-        setActiveSize(newAvailableSizes[0]);
+        const middleIndex = Math.floor(newAvailableSizes.length / 2);
+        const middleSize = newAvailableSizes[middleIndex] || newAvailableSizes[0];
+        console.log("[SmartMeasurementEditor] ✅ Tamanho atual não disponível na nova grade, atualizando para intermediário:", {
+          grade: sizeCategory,
+          availableSizes: newAvailableSizes,
+          middleIndex,
+          middleSize,
+          previousActiveSize: activeSize,
+        });
+        setActiveSize(middleSize);
+      } else {
+        // Tamanho atual está disponível na nova grade, manter selecionado
+        console.log("[SmartMeasurementEditor] ✅ Tamanho atual está disponível na nova grade, mantendo selecionado:", {
+          grade: sizeCategory,
+          availableSizes: newAvailableSizes,
+          currentActiveSize: activeSize,
+        });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -890,8 +912,15 @@ export function SmartMeasurementEditor({
 
   // FLUXO SEQUENCIAL: Detectar landmarks AUTOMATICAMENTE APENAS após processedImageUrl estar disponível
   // Este useEffect é o "pulo do gato": SÓ roda quando temos a imagem processada final
+  // MAS: Se já temos medidas carregadas automaticamente (do initialData), não precisa detectar novamente
   useEffect(() => {
     const detectLandmarksAutomatically = async () => {
+      // Se já temos geometria e valores de medidas (carregados automaticamente), não detectar novamente
+      if (geometry.length > 0 && Object.keys(measurementValues).length > 0) {
+        console.log("[SmartMeasurementEditor] ✅ Medidas já carregadas automaticamente, ignorando detecção de landmarks...");
+        return;
+      }
+      
       // CRÍTICO: Só detectar landmarks na IMAGEM PROCESSADA, não na RAW
       if (!processedImageUrl) {
         console.log("[SmartMeasurementEditor] ⏳ Aguardando imagem processada para detectar landmarks...");
@@ -1580,30 +1609,147 @@ export function SmartMeasurementEditor({
     detectLandmarksAutomatically();
   }, [processedImageUrl, productInfo?.category, lojistaId]); // CRÍTICO: Remover rawImageUrl e landmarks das dependências
 
-  // Carregar dados iniciais se houver
+  // Carregar dados iniciais se houver (incluindo medidas já detectadas automaticamente)
+  // Este useEffect deve rodar sempre que initialData mudar
   useEffect(() => {
-    if (initialData?.baseImage && !processedImageUrl) {
-      setProcessedImageUrl(initialData.baseImage);
-      if (initialData.sizes) {
-        setSizes(initialData.sizes);
+    console.log("[SmartMeasurementEditor] 🔄 Verificando initialData:", {
+      hasInitialData: !!initialData,
+      hasSizes: !!(initialData?.sizes && Object.keys(initialData.sizes).length > 0),
+      sizesKeys: initialData?.sizes ? Object.keys(initialData.sizes) : [],
+      currentSizesKeys: Object.keys(sizes),
+      currentGeometryCount: geometry.length,
+      currentValuesCount: Object.keys(measurementValues).length,
+    });
+    
+    if (initialData) {
+      // Se temos medidas já processadas (sizes), usar diretamente sem precisar de imagem processada
+      if (initialData.sizes && Object.keys(initialData.sizes).length > 0) {
+        // Verificar se já temos os mesmos dados carregados para evitar loops
+        const firstSize = (initialData.activeSize || Object.keys(initialData.sizes)[0]) as SizeKey;
+        const measurementPoints = initialData.sizes[firstSize] || [];
+        
+        // Só atualizar se realmente houver medidas e se ainda não foram carregadas
+        if (measurementPoints.length > 0) {
+          // PRIORIDADE 1: Usar o activeSize salvo (se existir e estiver disponível)
+          // PRIORIDADE 2: Se não houver salvo, usar o tamanho intermediário da grade atual
+          const currentGradeSizes = getSizesForGrade(sizeCategory, targetAudience);
+          const availableSizesFromData = Object.keys(initialData.sizes).filter(size => 
+            initialData.sizes[size as SizeKey]?.length > 0
+          ) as string[];
+          
+          let defaultSize: string = 'M'; // Fallback padrão
+          
+          // PRIORIDADE 1: Verificar se há activeSize salvo e se está disponível
+          if (initialData.activeSize && availableSizesFromData.includes(initialData.activeSize)) {
+            defaultSize = initialData.activeSize;
+            console.log("[SmartMeasurementEditor] ✅ Usando tamanho salvo anteriormente:", defaultSize);
+          } else {
+            // PRIORIDADE 2: Calcular tamanho intermediário da grade atual
+            if (currentGradeSizes.length > 0) {
+              const middleIndex = Math.floor(currentGradeSizes.length / 2);
+              const middleSizeFromGrade = currentGradeSizes[middleIndex] || currentGradeSizes[0];
+              
+              // Verificar se o tamanho intermediário da grade está disponível nos dados
+              if (availableSizesFromData.includes(middleSizeFromGrade)) {
+                defaultSize = middleSizeFromGrade;
+                console.log("[SmartMeasurementEditor] 🎯 Usando tamanho intermediário da grade:", defaultSize);
+              } else if (availableSizesFromData.length > 0) {
+                // Se não estiver, usar o intermediário dos dados disponíveis
+                const middleIndexData = Math.floor(availableSizesFromData.length / 2);
+                defaultSize = availableSizesFromData[middleIndexData] || availableSizesFromData[0];
+                console.log("[SmartMeasurementEditor] 📊 Usando tamanho intermediário dos dados disponíveis:", defaultSize);
+              }
+            } else if (availableSizesFromData.length > 0) {
+              // Se não houver grade definida, usar o intermediário dos dados disponíveis
+              const middleIndexData = Math.floor(availableSizesFromData.length / 2);
+              defaultSize = availableSizesFromData[middleIndexData] || availableSizesFromData[0];
+              console.log("[SmartMeasurementEditor] 📊 Usando tamanho intermediário dos dados disponíveis (sem grade):", defaultSize);
+            }
+          }
+          
+          console.log("[SmartMeasurementEditor] 📦 Carregando medidas já detectadas automaticamente:", {
+            sizeCategory,
+            targetAudience,
+            savedActiveSize: initialData.activeSize,
+            currentGradeSizes,
+            middleSizeFromGrade: currentGradeSizes.length > 0 ? currentGradeSizes[Math.floor(currentGradeSizes.length / 2)] : 'N/A',
+            availableSizesFromData,
+            defaultSize,
+            measurementPointsCount: measurementPoints.length,
+            measurementPoints: measurementPoints.map(mp => `${mp.label}: ${mp.value}cm`),
+          });
+          
+          // Definir tamanho ativo PRIMEIRO para garantir que os valores sejam exibidos corretamente
+          setActiveSize(defaultSize);
+          
+          setSizes(initialData.sizes);
+          
+          // Processar geometria a partir dos sizes
+          const geo: MeasurementGeometry[] = measurementPoints.map(mp => ({
+            id: mp.id as any,
+            label: mp.label,
+            startX: mp.startX,
+            startY: mp.startY,
+            endX: mp.endX,
+            endY: mp.endY,
+          }));
+          setGeometry(geo);
+          
+          // Preencher valores de medidas para todos os tamanhos disponíveis
+          const values: MeasurementValues = {};
+          Object.keys(initialData.sizes).forEach((sizeKey) => {
+            const sizePoints = initialData.sizes[sizeKey as SizeKey] || [];
+            sizePoints.forEach(mp => {
+              if (!values[mp.id]) {
+                values[mp.id] = {} as Record<SizeKey, number>;
+              }
+              values[mp.id][sizeKey as SizeKey] = mp.value;
+            });
+          });
+          setMeasurementValues(values);
+          
+          console.log("[SmartMeasurementEditor] ✅ Geometria e valores carregados das medidas automáticas:", {
+            geometryCount: geo.length,
+            valuesCount: Object.keys(values).length,
+            activeSize: defaultSize,
+            valuesForActiveSize: Object.keys(values).map(id => `${id}: ${values[id]?.[defaultSize as SizeKey] || 0}cm`),
+            allValues: Object.keys(values).map(id => {
+              const sizeValues = Object.keys(values[id]).map(size => `${size}: ${values[id][size as SizeKey]}cm`).join(", ");
+              return `${id} = {${sizeValues}}`;
+            }),
+          });
+        }
       }
-      if (initialData.activeSize) {
-        setActiveSize(initialData.activeSize);
+      
+      // Se temos imagem processada, carregar também
+      if (initialData.baseImage && !processedImageUrl) {
+        setProcessedImageUrl(initialData.baseImage);
       }
     }
-  }, [initialData, processedImageUrl]);
+  }, [initialData]); // Remover processedImageUrl das dependências para evitar loops
 
-  // Notificar mudanças
+  // Notificar mudanças (mesmo sem imagem processada, se temos medidas carregadas)
   useEffect(() => {
-    if (onMeasurementsChange && processedImageUrl && Object.keys(sizes).length > 0) {
-      onMeasurementsChange({
-        baseImage: processedImageUrl,
-        activeSize,
-        autoGrading,
-        sizes,
-      });
+    if (onMeasurementsChange && Object.keys(sizes).length > 0) {
+      // Usar imagem RAW se não houver processada (medidas carregadas automaticamente)
+      const baseImage = processedImageUrl || rawImageUrl || '';
+      if (baseImage) {
+        onMeasurementsChange({
+          baseImage: baseImage,
+          activeSize,
+          autoGrading,
+          sizes,
+          groups: measurementGroups.length > 0 ? measurementGroups.map(g => ({
+            id: g.id,
+            label: g.label,
+            sizes: g.sizes,
+            geometry: g.geometry,
+            values: g.values,
+          })) : undefined,
+        });
+      }
     }
-  }, [processedImageUrl, activeSize, autoGrading, sizes, onMeasurementsChange]);
+  }, [processedImageUrl, rawImageUrl, activeSize, autoGrading, sizes, measurementGroups, onMeasurementsChange]);
 
   // Função para gerar imagem com medidas (MANUAL - botão)
   const handleGenerateImageWithMeasurements = async () => {
@@ -1675,23 +1821,60 @@ export function SmartMeasurementEditor({
         formData.append("style", productInfo.style);
       }
       
-      // IMPORTANTE: Usar medidas pré-coletadas da análise inteligente (se disponíveis)
-      // Isso evita recalcular medidas durante a geração da imagem
-      if (productInfo?.standardMeasurements) {
-        console.log("[SmartMeasurementEditor] 📏 Usando medidas pré-coletadas da análise:", productInfo.standardMeasurements);
-        if (productInfo.standardMeasurements.bust !== undefined) {
-          formData.append("bust", productInfo.standardMeasurements.bust.toString());
-        }
-        if (productInfo.standardMeasurements.waist !== undefined) {
-          formData.append("waist", productInfo.standardMeasurements.waist.toString());
-        }
-        if (productInfo.standardMeasurements.hip !== undefined) {
-          formData.append("hip", productInfo.standardMeasurements.hip.toString());
-        }
-        if (productInfo.standardMeasurements.length !== undefined) {
-          formData.append("length", productInfo.standardMeasurements.length.toString());
+      // IMPORTANTE: O botão apenas gera a imagem visual, não processa medidas novamente
+      // Usar medidas já detectadas automaticamente ou da análise inteligente
+      let measurementsToUse: Record<string, number> = {};
+      
+      // Prioridade 1: Usar medidas já detectadas automaticamente (do estado measurementValues)
+      if (measurementValues && Object.keys(measurementValues).length > 0) {
+        console.log("[SmartMeasurementEditor] 📏 Usando medidas já detectadas automaticamente:", measurementValues);
+        // Extrair valores do tamanho ativo
+        Object.keys(measurementValues).forEach((measurementId) => {
+          const value = measurementValues[measurementId]?.[activeSize];
+          if (value !== undefined && value > 0) {
+            measurementsToUse[measurementId] = value;
+          }
+        });
+      }
+      
+      // Prioridade 2: Se não houver medidas detectadas, usar medidas dos sizes carregados
+      if (Object.keys(measurementsToUse).length === 0 && sizes && Object.keys(sizes).length > 0) {
+        const sizeData = sizes[activeSize] || [];
+        if (sizeData.length > 0) {
+          console.log("[SmartMeasurementEditor] 📏 Usando medidas dos sizes carregados:", sizeData);
+          sizeData.forEach((mp) => {
+            if (mp.value > 0) {
+              measurementsToUse[mp.id] = mp.value;
+            }
+          });
         }
       }
+      
+      // Prioridade 3: Se ainda não houver medidas, usar medidas da análise inteligente
+      if (Object.keys(measurementsToUse).length === 0 && productInfo?.standardMeasurements) {
+        console.log("[SmartMeasurementEditor] 📏 Usando medidas pré-coletadas da análise:", productInfo.standardMeasurements);
+        if (productInfo.standardMeasurements.bust !== undefined && productInfo.standardMeasurements.bust > 0) {
+          measurementsToUse.bust = productInfo.standardMeasurements.bust;
+        }
+        if (productInfo.standardMeasurements.waist !== undefined && productInfo.standardMeasurements.waist > 0) {
+          measurementsToUse.waist = productInfo.standardMeasurements.waist;
+        }
+        if (productInfo.standardMeasurements.hip !== undefined && productInfo.standardMeasurements.hip > 0) {
+          measurementsToUse.hip = productInfo.standardMeasurements.hip;
+        }
+        if (productInfo.standardMeasurements.length !== undefined && productInfo.standardMeasurements.length > 0) {
+          measurementsToUse.length = productInfo.standardMeasurements.length;
+        }
+      }
+      
+      // Adicionar medidas ao FormData
+      Object.entries(measurementsToUse).forEach(([key, value]) => {
+        if (value !== undefined && value > 0) {
+          formData.append(key, value.toString());
+        }
+      });
+      
+      console.log("[SmartMeasurementEditor] 📤 Enviando medidas para gerar imagem:", measurementsToUse);
       
       // Chamar API de processamento
       const url = `/api/lojista/products/process-measurements?lojistaId=${lojistaId}`;
@@ -2098,276 +2281,28 @@ export function SmartMeasurementEditor({
   const canGenerateImage = hasCompleteAnalysis && (rawImageFile || rawImageUrl) && !processedImageUrl;
 
   return (
-    <div className={`rounded-lg border border-gray-300 bg-white shadow-sm ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Ruler className="w-5 h-5 text-slate-600" />
-          <h3 className="text-sm font-semibold text-slate-700">
-            Editor de Medidas Inteligente
+    <div className={`${className}`}>
+      {/* Conteúdo Principal - Apenas Formulário de Medidas */}
+      <div className="space-y-2">
+        {/* Título da Seção - Mesmo padrão dos outros formulários */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            Medidas do Produto
           </h3>
+          {saved && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex items-center gap-1 text-emerald-600 text-xs"
+            >
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Salvo!</span>
+            </motion.div>
+          )}
         </div>
-        {saved && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="flex items-center gap-2 text-emerald-600 text-xs"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Salvo!</span>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Conteúdo Principal - Split View 65/35 - Layout Ajustado */}
-      <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-4 p-4 min-h-0">
-        {/* Coluna Esquerda (65%) - A Vitrine: Imagem Processada */}
-        <div className="space-y-3">
-          {/* Caixa da Imagem - Container principal com imagem e rodapé */}
-          <div className="rounded-lg border border-gray-300 bg-gray-50 overflow-hidden shadow-sm" ref={imageContainerRef}>
-            {/* Área da Imagem - Container com CSS corrigido para proporcionalidade */}
-            <div className="relative w-full aspect-square overflow-hidden bg-gray-50 group">
-              {isProcessing ? (
-                // Estado de processamento: "Gerando Imagem Profissional..."
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-linear-to-br from-slate-50 to-slate-100">
-                  <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-semibold text-slate-700">
-                      Gerando Imagem Profissional...
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Ghost mannequin com fundo branco limpo
-                    </p>
-                  </div>
-                </div>
-              ) : processedImageUrl ? (
-                // IMAGEM LIMPA - Sem linhas, setas ou textos sobrepostos
-                <>
-                  <div
-                    className="relative w-full h-full cursor-zoom-in"
-                    onMouseMove={(e) => {
-                      if (!zoomActive) return;
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const x = ((e.clientX - rect.left) / rect.width) * 100;
-                      const y = ((e.clientY - rect.top) / rect.height) * 100;
-                      setZoomPosition({ x, y });
-                    }}
-                    onMouseEnter={() => setZoomActive(true)}
-                    onMouseLeave={() => {
-                      setZoomActive(false);
-                      setZoomPosition(null);
-                    }}
-                  >
-                    <Image
-                      src={processedImageUrl}
-                      alt="Produto profissional"
-                      fill
-                      className={`object-contain transition-transform duration-200 ${
-                        zoomActive && zoomPosition ? 'scale-150' : 'scale-100'
-                      }`}
-                      style={{
-                        transformOrigin: zoomPosition ? `${zoomPosition.x}% ${zoomPosition.y}%` : 'center center',
-                      }}
-                      unoptimized
-                      priority
-                    />
-                    
-                    {/* Overlay de Guia Visual (linhas de medidas) - Só aparece se showGuide estiver ativo */}
-                    {showGuide && geometry.length > 0 && (
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                        {geometry.map((geo, index) => {
-                          const numeroLegenda = index + 1;
-                          return (
-                            <g key={geo.id}>
-                              {/* Linha de medida */}
-                              <line
-                                x1={`${geo.startX}%`}
-                                y1={`${geo.startY}%`}
-                                x2={`${geo.endX}%`}
-                                y2={`${geo.endY}%`}
-                                stroke="#6366f1"
-                                strokeWidth="2"
-                                strokeDasharray="4 4"
-                              />
-                              {/* Círculo no início */}
-                              <circle
-                                cx={`${geo.startX}%`}
-                                cy={`${geo.startY}%`}
-                                r="4"
-                                fill="#6366f1"
-                              />
-                              {/* Círculo no fim */}
-                              <circle
-                                cx={`${geo.endX}%`}
-                                cy={`${geo.endY}%`}
-                                r="4"
-                                fill="#6366f1"
-                              />
-                              {/* Label com número */}
-                              <text
-                                x={`${(geo.startX + geo.endX) / 2}%`}
-                                y={`${(geo.startY + geo.endY) / 2 - 10}%`}
-                                fill="#6366f1"
-                                fontSize="14"
-                                fontWeight="bold"
-                                textAnchor="middle"
-                                className="drop-shadow-lg"
-                              >
-                                {numeroLegenda}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    )}
-                  </div>
-                  
-                  {/* Botão Flutuante Toggle Guia Visual - Melhorado */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowGuide(!showGuide);
-                    }}
-                    className="absolute top-3 right-3 z-10 flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur-sm border-2 border-indigo-300 rounded-lg shadow-lg hover:bg-indigo-50 hover:border-indigo-400 transition-all active:scale-95"
-                    title={showGuide ? "Ocultar Guia Visual" : "Ver Guia Visual"}
-                  >
-                    {showGuide ? (
-                      <>
-                        <EyeOff className="w-4 h-4 text-indigo-600" />
-                        <span className="text-xs font-semibold text-indigo-700">Ocultar Guia</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="w-4 h-4 text-indigo-600" />
-                        <span className="text-xs font-semibold text-indigo-700">Ver Guia</span>
-                      </>
-                    )}
-                  </button>
-                  
-                  {/* Indicador de Zoom (aparece quando hover) */}
-                  {zoomActive && (
-                    <div className="absolute bottom-3 left-3 z-10 px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white text-xs rounded-lg flex items-center gap-2">
-                      <ZoomIn className="w-3.5 h-3.5" />
-                      <span>Passe o mouse para ampliar</span>
-                    </div>
-                  )}
-                  
-                  {/* Removido: Alerta de ajuste fino (caixa laranja) - não é mais necessário */}
-                  {/* Indicador de detecção em andamento */}
-                  {isDetectingLandmarks && (
-                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-20">
-                      <div className="bg-white/90 rounded-lg px-4 py-2 flex items-center gap-2 shadow-lg">
-                        <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                        <span className="text-sm font-medium text-slate-700">
-                          Detectando medidas...
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (rawImageFile || rawImageUrl) ? (
-                // ETAPA 1 e 2: Mostrar imagem RAW SEM setas (antes de processar)
-                <>
-                  <Image
-                    src={rawImageUrl || ""}
-                    alt="Imagem original do produto"
-                    fill
-                    className="object-contain"
-                    unoptimized
-                    priority
-                  />
-                  {/* NÃO desenhar SVG aqui - apenas mostrar imagem RAW limpa */}
-                </>
-              ) : (
-                // Estado inicial - aguardando upload
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
-                  <Upload className="w-8 h-8 text-slate-400" />
-                  <p className="text-sm text-center px-4">
-                    Faça upload de uma imagem do produto
-                  </p>
-                  <p className="text-xs text-slate-400 text-center px-4">
-                    Após a análise inteligente, use o botão para gerar a imagem profissional
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            {/* Rodapé - DENTRO DA CAIXA DA IMAGEM - Suporta múltiplos grupos (ex: biquíni) */}
-            {processedImageUrl && (
-              <>
-                {/* PRODUTO MULTI-ITEM: Mostrar múltiplas tabelas separadas */}
-                {measurementGroups.length > 0 ? (
-                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 space-y-3">
-                    {measurementGroups.map((group, groupIndex) => (
-                      <div key={group.id} className={groupIndex > 0 ? "border-t border-gray-300 pt-3" : ""}>
-                        <h4 className="text-xs font-semibold text-slate-700 mb-2">
-                          Medidas {group.label} ({activeSize})
-                        </h4>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
-                          {group.geometry.map((geo, index) => {
-                            const numeroLegenda = index + 1;
-                            const currentValue = group.values[geo.id]?.[activeSize] || 0;
-                            return (
-                              <div
-                                key={geo.id}
-                                className="flex items-center gap-1 text-slate-700"
-                              >
-                                <span className="font-semibold text-slate-900">
-                                  {numeroLegenda} -
-                                </span>
-                                <span className="font-medium text-slate-600">
-                                  {geo.label}:
-                                </span>
-                                <span className="font-semibold text-slate-800">
-                                  {currentValue}cm
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  /* PRODUTO ÚNICO: Tabela única (lógica original) */
-                  geometry.length > 0 && (
-                    <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                      <h4 className="text-xs font-semibold text-slate-700 mb-2">
-                        Medidas ({activeSize})
-                      </h4>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
-                        {geometry.map((geo, index) => {
-                          const numeroLegenda = index + 1;
-                          const currentValue = measurementValues[geo.id]?.[activeSize] || 0;
-                          return (
-                            <div
-                              key={geo.id}
-                              className="flex items-center gap-1 text-slate-700"
-                            >
-                              <span className="font-semibold text-slate-900">
-                                {numeroLegenda} -
-                              </span>
-                              <span className="font-medium text-slate-600">
-                                {geo.label}:
-                              </span>
-                              <span className="font-semibold text-slate-800">
-                                {currentValue}cm
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Coluna Direita - Editor - Layout Otimizado e Ajustado */}
-        <div className="space-y-2.5 flex flex-col h-full">
+        {/* Coluna Única - Editor de Medidas - Layout Otimizado */}
+        <div className="space-y-2.5 flex flex-col">
           {/* Botão Principal: Gerar Imagem com Medidas (MANUAL) - Ajustado */}
           {!processedImageUrl && (rawImageFile || rawImageUrl) && (
             <div className="space-y-2">
@@ -2377,7 +2312,7 @@ export function SmartMeasurementEditor({
                 className="w-full px-3 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                 title={!hasCompleteAnalysis 
                   ? "Aguarde a análise inteligente completar primeiro" 
-                  : "Gerar imagem ghost mannequin com linhas de medidas integradas"}
+                  : "Gerar imagem ghost mannequin com linhas de medidas integradas. A imagem aparecerá na área de visualização de fotos geradas por IA."}
               >
                 {isProcessing ? (
                   <>
@@ -2395,6 +2330,13 @@ export function SmartMeasurementEditor({
                 <p className="text-xs text-slate-500 text-center px-2">
                   ⏳ Aguardando análise inteligente completar...
                 </p>
+              )}
+              {isProcessing && (
+                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                  <p className="text-xs text-indigo-700 text-center">
+                    A imagem será exibida na área de visualização de fotos geradas por IA após a geração.
+                  </p>
+                </div>
               )}
             </div>
           )}
