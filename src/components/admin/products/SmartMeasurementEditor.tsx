@@ -1627,9 +1627,11 @@ export function SmartMeasurementEditor({
           // PRIORIDADE 1: Usar o activeSize salvo (se existir e estiver disponível)
           // PRIORIDADE 2: Se não houver salvo, usar o tamanho intermediário da grade atual
           const currentGradeSizes = getSizesForGrade(sizeCategory, targetAudience);
-          const availableSizesFromData = Object.keys(initialData.sizes).filter(size => 
-            initialData.sizes[size as SizeKey]?.length > 0
-          ) as string[];
+          const availableSizesFromData = initialData.sizes 
+            ? Object.keys(initialData.sizes).filter(size => 
+                initialData.sizes![size as SizeKey]?.length > 0
+              ) as string[]
+            : [];
           
           let defaultSize: string = 'M'; // Fallback padrão
           
@@ -1676,7 +1678,9 @@ export function SmartMeasurementEditor({
           // Definir tamanho ativo PRIMEIRO para garantir que os valores sejam exibidos corretamente
           setActiveSize(defaultSize);
           
-          setSizes(initialData.sizes);
+          if (initialData.sizes) {
+            setSizes(initialData.sizes);
+          }
           
           // Processar geometria a partir dos sizes
           const geo: MeasurementGeometry[] = measurementPoints.map(mp => ({
@@ -1691,15 +1695,17 @@ export function SmartMeasurementEditor({
           
           // Preencher valores de medidas para todos os tamanhos disponíveis
           const values: MeasurementValues = {};
-          Object.keys(initialData.sizes).forEach((sizeKey) => {
-            const sizePoints = initialData.sizes[sizeKey as SizeKey] || [];
-            sizePoints.forEach(mp => {
-              if (!values[mp.id]) {
-                values[mp.id] = {} as Record<SizeKey, number>;
-              }
-              values[mp.id][sizeKey as SizeKey] = mp.value;
+          if (initialData.sizes) {
+            Object.keys(initialData.sizes).forEach((sizeKey) => {
+              const sizePoints = initialData.sizes![sizeKey as SizeKey] || [];
+              sizePoints.forEach(mp => {
+                if (!values[mp.id]) {
+                  values[mp.id] = {} as Record<SizeKey, number>;
+                }
+                values[mp.id][sizeKey as SizeKey] = mp.value;
+              });
             });
-          });
+          }
           setMeasurementValues(values);
           
           console.log("[SmartMeasurementEditor] ✅ Geometria e valores carregados das medidas automáticas:", {
