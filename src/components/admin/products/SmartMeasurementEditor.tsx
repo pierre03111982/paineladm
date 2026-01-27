@@ -1103,7 +1103,7 @@ export function SmartMeasurementEditor({
             if (bottomGeometry.length === 0 && bottomRelevantIds.length > 0) {
               console.log("[SmartMeasurementEditor] ⚠️ Nenhuma geometria extraída para bottom, criando com coordenadas padrão");
               // Criar geometria padrão baseada nas medidas relevantes
-              bottomRelevantIds.forEach(id => {
+              bottomRelevantIds.forEach((id: string) => {
                 if (id === 'waist') {
                   bottomGeometry.push({
                     id: 'waist',
