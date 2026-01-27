@@ -240,7 +240,7 @@ export function suggestSize(
     .slice(1, 4)
     .map(item => ({
       size: item.variant.name,
-      confidence: item.fit.confidence,
+      confidence: item.fit.confidence === 'perfect' ? 'good' : item.fit.confidence,
       message: item.fit.message,
     }));
 
