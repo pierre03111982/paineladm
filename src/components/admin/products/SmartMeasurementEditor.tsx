@@ -1736,7 +1736,7 @@ export function SmartMeasurementEditor({
       if (baseImage) {
         onMeasurementsChange({
           baseImage: baseImage,
-          activeSize,
+          activeSize: activeSize as SizeKey,
           autoGrading,
           sizes,
           groups: measurementGroups.length > 0 ? measurementGroups.map(g => ({
