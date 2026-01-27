@@ -212,12 +212,12 @@ export async function fetchAllCompositionsWithLike(
               .get();
             
             if (composicaoDoc.exists) {
-              const composicaoData = typeof composicaoDoc.data === "function" ? composicaoDoc.data() : composicaoDoc.data;
-              if (composicaoData && composicaoData.productIds && Array.isArray(composicaoData.productIds)) {
-                productsMap.set(comp.id, composicaoData.productIds);
+              const composicaoData = composicaoDoc.data();
+              if (composicaoData && 'productIds' in composicaoData && Array.isArray(composicaoData.productIds)) {
+                productsMap.set(comp.id, composicaoData.productIds as string[]);
                 
                 // Buscar produtos desta composição
-                const productIds = composicaoData.productIds.slice(0, 4); // Limitar a 4 produtos
+                const productIds = (composicaoData.productIds as string[]).slice(0, 4); // Limitar a 4 produtos
                 const produtosUtilizados: Array<{ id: string; nome: string; imagemUrl: string }> = [];
                 
                 // Buscar cada produto (ou usar cache)
@@ -257,7 +257,7 @@ export async function fetchAllCompositionsWithLike(
                   }
                 }
                 
-                (comp as any).productIds = composicaoData.productIds;
+                (comp as any).productIds = composicaoData.productIds as string[];
                 (comp as any).produtosUtilizados = produtosUtilizados;
               }
             }
