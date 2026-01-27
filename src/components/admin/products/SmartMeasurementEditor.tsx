@@ -1739,13 +1739,27 @@ export function SmartMeasurementEditor({
           activeSize: activeSize as SizeKey,
           autoGrading,
           sizes,
-          groups: measurementGroups.length > 0 ? measurementGroups.map(g => ({
-            id: g.id,
-            label: g.label,
-            sizes: g.sizes,
-            geometry: g.geometry,
-            values: g.values,
-          })) : undefined,
+          groups: measurementGroups.length > 0 ? measurementGroups.map(g => {
+            // Converter values para sizes (formato esperado por MeasurementGroup)
+            const sizesLegacy: Record<SizeKey, MeasurementPoint[]> = {} as any;
+            STANDARD_SIZES.forEach((size) => {
+              sizesLegacy[size] = g.geometry.map((geo) => ({
+                id: geo.id as MeasurementPoint['id'],
+                label: geo.label,
+                value: g.values[geo.id]?.[size] || 0,
+                startX: geo.startX,
+                startY: geo.startY,
+                endX: geo.endX,
+                endY: geo.endY,
+              }));
+            });
+            
+            return {
+              id: g.id,
+              label: g.label,
+              sizes: sizesLegacy,
+            };
+          }) : undefined,
         });
       }
     }
@@ -2086,7 +2100,7 @@ export function SmartMeasurementEditor({
         // PRODUTO MULTI-ITEM: Converter grupos para formato SmartGuideData
         const groups = measurementGroups.map((group) => {
           const sizesLegacy: Record<SizeKey, MeasurementPoint[]> = {} as any;
-          availableSizes.forEach((size) => {
+          availableSizesAsSizeKey.forEach((size) => {
             sizesLegacy[size] = group.geometry.map((geo) => ({
               id: geo.id as MeasurementPoint['id'],
               label: geo.label,
@@ -2107,7 +2121,7 @@ export function SmartMeasurementEditor({
         
         const data: SmartGuideData = {
           baseImage: processedImageUrl,
-          activeSize,
+          activeSize: activeSize as SizeKey,
           autoGrading,
           sizes: {}, // Vazio para multi-item
           groups,
@@ -2119,7 +2133,7 @@ export function SmartMeasurementEditor({
       } else {
         // PRODUTO ÚNICO: Converter nova estrutura para formato legado
         const sizesLegacy: Record<SizeKey, MeasurementPoint[]> = {} as any;
-        availableSizes.forEach((size) => {
+        availableSizesAsSizeKey.forEach((size) => {
           sizesLegacy[size] = geometry.map((geo) => ({
             id: geo.id as MeasurementPoint['id'],
             label: geo.label,
@@ -2133,7 +2147,7 @@ export function SmartMeasurementEditor({
         
         const data: SmartGuideData = {
           baseImage: processedImageUrl,
-          activeSize,
+          activeSize: activeSize as SizeKey,
           autoGrading,
           sizes: sizesLegacy,
         };
