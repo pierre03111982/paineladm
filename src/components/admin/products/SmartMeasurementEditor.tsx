@@ -1029,7 +1029,7 @@ export function SmartMeasurementEditor({
             const topRelevantIds = inferRelevantMeasurementIds({
               category: productInfo.category,
               productType: productInfo.productType,
-              itemType: finalMultiKind === "BIKINI" ? "bikini_top" : "set_top",
+              itemType: multiKind === "BIKINI" ? "bikini_top" : "set_top",
             });
             
             console.log("[SmartMeasurementEditor] 🔍 Grupo TOP - Medidas relevantes:", {
@@ -1072,7 +1072,7 @@ export function SmartMeasurementEditor({
               );
               groups.push({
                 id: "top",
-                label: finalMultiKind === "BIKINI" ? "Top" : setLabels.topLabel,
+                label: multiKind === "BIKINI" ? "Top" : setLabels.topLabel,
                 geometry: topGeometry,
                 values: topValues,
               });
@@ -1082,7 +1082,7 @@ export function SmartMeasurementEditor({
             const bottomRelevantIds = inferRelevantMeasurementIds({
               category: productInfo.category,
               productType: productInfo.productType,
-              itemType: finalMultiKind === "BIKINI" ? "bikini_bottom" : "set_bottom",
+              itemType: multiKind === "BIKINI" ? "bikini_bottom" : "set_bottom",
             });
             
             console.log("[SmartMeasurementEditor] 🔍 Grupo BOTTOM - Medidas relevantes:", {
@@ -1149,7 +1149,7 @@ export function SmartMeasurementEditor({
               );
               groups.push({
                 id: "bottom",
-                label: finalMultiKind === "BIKINI" ? "Calcinha" : setLabels.bottomLabel,
+                label: multiKind === "BIKINI" ? "Calcinha" : setLabels.bottomLabel,
                 geometry: bottomGeometry,
                 values: bottomValues,
               });
