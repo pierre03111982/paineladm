@@ -36,7 +36,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["regata", "tank top", "sem manga", "alça", "cavada"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_03",
@@ -62,7 +63,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["moletom", "hoodie", "canguru", "casaco capuz", "sweatshirt"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_06",
@@ -79,7 +81,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "outerwear",
     "keywords": ["jaqueta", "casaco pesado", "inverno", "frio", "coat"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_08",
@@ -96,7 +99,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "activewear",
     "keywords": ["top ginástica", "top academia", "fitness", "sports bra", "treino"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_10",
@@ -113,7 +117,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["calça jeans", "denim", "blue jeans", "calça", "five pockets"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_12",
@@ -130,7 +135,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["shorts jeans", "shortinho", "denim shorts", "curto"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_14",
@@ -156,7 +162,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["saia midi", "saia longa", "saia média", "abaixo joelho"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_17",
@@ -164,7 +171,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["legging", "calça ginástica", "lycra", "yoga pants", "suplex"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_18",
@@ -172,7 +180,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["jogger", "calça moletom", "punho", "elástico", "conforto"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_19",
@@ -180,7 +189,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "one-piece",
     "keywords": ["vestido curto", "vestido verão", "mini dress", "casual"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_20",
@@ -188,7 +198,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "one-piece",
     "keywords": ["vestido longo", "maxi dress", "festa", "longo"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_21",
@@ -196,7 +207,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "one-piece",
     "keywords": ["macacão", "jumpsuit", "longo", "peça única calça"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_22",
@@ -204,7 +216,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "one-piece",
     "keywords": ["macaquinho", "romper", "curto", "peça única short"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_23",
@@ -212,7 +225,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "swimwear",
     "keywords": ["biquíni", "conjunto praia", "bikini", "duas peças"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Quadril"]
+    "defaultColumns": ["Busto", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_24",
@@ -220,7 +234,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "swimwear",
     "keywords": ["maiô", "body praia", "one piece swim", "banho"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_25",
@@ -237,7 +252,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "underwear",
     "keywords": ["cueca", "boxer", "íntima masculina", "underpants"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura"]
+    "defaultColumns": ["Cintura"],
+    "target": ["male"]
   },
   {
     "id": "std_27",
@@ -245,7 +261,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "swimwear",
     "keywords": ["top biquíni", "parte de cima", "avulso", "cortininha"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto"]
+    "defaultColumns": ["Busto"],
+    "target": ["female"]
   },
   {
     "id": "std_28",
@@ -271,7 +288,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "swimwear",
     "keywords": ["calcinha biquíni", "parte de baixo", "avulso", "tanga"],
     "isPlusSize": false,
-    "defaultColumns": ["Quadril"]
+    "defaultColumns": ["Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_31",
@@ -288,7 +306,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["polo", "camisa polo", "masculina", "gola polo"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "std_33",
@@ -296,7 +315,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["paletó", "terno", "blazer masculino", "social"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "std_34",
@@ -304,7 +324,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["colete social", "alfaiataria masculino", "waistcoat"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "std_35",
@@ -312,7 +333,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "swimwear",
     "keywords": ["boardshorts", "bermuda surf", "bermuda água", "praia"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["male"]
   },
   {
     "id": "std_36",
@@ -320,7 +342,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["polo feminina", "baby look polo", "gola polo mulher"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_37",
@@ -328,7 +351,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "underwear",
     "keywords": ["sutiã", "bra", "lingerie", "top íntimo"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto"]
+    "defaultColumns": ["Busto"],
+    "target": ["female"]
   },
   {
     "id": "std_38",
@@ -336,7 +360,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "underwear",
     "keywords": ["calcinha", "lingerie", "panties", "íntima feminina"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_39",
@@ -344,7 +369,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["short saia", "skort", "fitness", "saia com short"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_40",
@@ -352,7 +378,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["suéter", "tricô", "pullover", "lã", "inverno"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_41",
@@ -360,7 +387,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["cardigan", "casaquinho", "aberto", "botões"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_42",
@@ -368,7 +396,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "outerwear",
     "keywords": ["jaqueta jeans", "denim jacket", "sarja"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_43",
@@ -376,7 +405,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "sleepwear",
     "keywords": ["pijama curto", "short doll", "dormir", "verão"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_44",
@@ -384,7 +414,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "sleepwear",
     "keywords": ["pijama longo", "dormir", "inverno", "conjunto dormir"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_45",
@@ -392,7 +423,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "sleepwear",
     "keywords": ["roupão", "robe", "saída de banho", "bathrobe"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_46",
@@ -400,7 +432,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["jeans skinny", "cintura alta", "justa", "feminina"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_47",
@@ -408,7 +441,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["hot pants", "short cintura alta", "short curto"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_48",
@@ -416,7 +450,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["camisa feminina", "manga curta", "botões", "social"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_49",
@@ -424,7 +459,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["camisa masculina", "manga curta", "social verão"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "std_50",
@@ -432,7 +468,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["pantalona", "wide leg", "calça larga", "solta"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_51",
@@ -440,7 +477,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "one-piece",
     "keywords": ["tubinho", "vestido justo", "bodycon", "colado"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_52",
@@ -448,7 +486,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["bermuda ciclista", "biker shorts", "fitness", "justa"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_53",
@@ -456,7 +495,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "sleepwear",
     "keywords": ["camisola", "vestido dormir", "nightgown", "lingerie"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_54",
@@ -464,7 +504,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "outerwear",
     "keywords": ["puffer", "bobojaco", "acolchoada", "jaqueta gomos"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_55",
@@ -472,7 +513,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["corset", "corpete", "estruturado", "tomara que caia"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Cintura"]
+    "defaultColumns": ["Busto", "Cintura"],
+    "target": ["female"]
   },
   {
     "id": "std_56",
@@ -480,7 +522,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["calça cargo", "bolsos laterais", "streetwear", "utilitária"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_57",
@@ -497,7 +540,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["bermuda moletom", "sweatshorts", "conforto", "casual"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_59",
@@ -505,7 +549,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "outerwear",
     "keywords": ["corta vento", "windbreaker", "jaqueta leve", "esportiva"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_60",
@@ -513,7 +558,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "outerwear",
     "keywords": ["parka", "casaco longo", "militar", "capuz"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_61",
@@ -521,7 +567,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "outerwear",
     "keywords": ["sobretudo", "trench coat", "casaco longo", "gabardine"],
     "isPlusSize": false,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "std_62",
@@ -529,7 +576,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "top",
     "keywords": ["polo manga longa", "masculina", "inverno"],
     "isPlusSize": false,
-    "defaultColumns": ["Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Busto", "Manga", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "std_63",
@@ -537,7 +585,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["saia lápis", "saia justa", "secretária", "formal"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "std_64",
@@ -545,7 +594,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["pantacourt", "calça curta", "wide leg curta", "culottes"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "std_65",
@@ -553,7 +603,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "bottom",
     "keywords": ["short runner", "corrida", "fenda lateral", "esportivo"],
     "isPlusSize": false,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female", "male"]
   },
   {
     "id": "plus_01",
@@ -570,7 +621,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_top",
     "keywords": ["bata", "túnica", "blusa solta plus", "alongada"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_03",
@@ -578,7 +630,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_top",
     "keywords": ["camisa social plus", "social feminina plus", "botão plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_04",
@@ -586,7 +639,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_top",
     "keywords": ["blazer plus size", "blazer alongado", "alfaiataria plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_05",
@@ -594,7 +648,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["calça jeans plus", "cintura alta plus", "denim plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_06",
@@ -602,7 +657,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["legging plus size", "cós largo", "montaria plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_07",
@@ -610,7 +666,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["pantalona plus", "wide leg plus", "calça larga plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_08",
@@ -618,7 +675,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["short saia plus", "skort plus", "conforto"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_09",
@@ -626,7 +684,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["bermuda ciclista plus", "biker plus", "anti-atrito"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_10",
@@ -634,7 +693,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_one",
     "keywords": ["vestido envelope plus", "transpassado plus", "wrap dress"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_11",
@@ -642,7 +702,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_one",
     "keywords": ["vestido longo plus", "vestido solto", "três marias"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_12",
@@ -650,7 +711,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_one",
     "keywords": ["macacão plus size", "jumpsuit plus", "longo plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_13",
@@ -658,7 +720,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_underwear",
     "keywords": ["sutiã plus size", "reforçado", "sustentação", "alça larga"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto"]
+    "defaultColumns": ["Busto"],
+    "target": ["female"]
   },
   {
     "id": "plus_14",
@@ -666,7 +729,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_underwear",
     "keywords": ["calcinha cintura alta", "calcinha plus", "conforto"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_15",
@@ -674,7 +738,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["hot pant plus", "biquíni cintura alta", "praia plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_16",
@@ -682,7 +747,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["maiô plus size", "maiô sustentação", "body praia plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_17",
@@ -690,7 +756,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_underwear",
     "keywords": ["cinta modeladora", "shapewear", "compressão"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura"]
+    "defaultColumns": ["Cintura"],
+    "target": ["female"]
   },
   {
     "id": "plus_18",
@@ -698,7 +765,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_outer",
     "keywords": ["kimono plus", "saída de praia plus", "terceira peça"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_19",
@@ -715,7 +783,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_outer",
     "keywords": ["jaqueta jeans plus", "oversized plus", "denim plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"]
+    "defaultColumns": ["Ombro", "Busto", "Manga", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "plus_21",
@@ -723,7 +792,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["tankini", "regata banho", "praia plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Quadril"]
+    "defaultColumns": ["Busto", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_22",
@@ -731,7 +801,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["vestido de banho", "swim dress", "maiô com saia"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_23",
@@ -739,7 +810,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["sunquini", "biquíni short", "praia plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Quadril"]
+    "defaultColumns": ["Busto", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_24",
@@ -747,7 +819,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["kaftan", "saída longa", "túnica praia"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_25",
@@ -755,7 +828,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_swim",
     "keywords": ["short praia plus", "boardshorts feminino", "tactel plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_26",
@@ -772,7 +846,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_sleep",
     "keywords": ["baby doll plus", "pijama curto plus", "sensual"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_28",
@@ -780,7 +855,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_sleep",
     "keywords": ["camisola longa plus", "dormir", "nightgown"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_29",
@@ -788,7 +864,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_underwear",
     "keywords": ["sutiã tomara que caia", "sem alça", "plus size"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto"]
+    "defaultColumns": ["Busto"],
+    "target": ["female"]
   },
   {
     "id": "plus_30",
@@ -796,7 +873,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_sleep",
     "keywords": ["robe plus", "roupão cetim", "kimono dormir"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "plus_31",
@@ -804,7 +882,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_one",
     "keywords": ["jardineira plus", "salopete", "macacão jeans"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_32",
@@ -812,7 +891,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_top",
     "keywords": ["colete jeans plus", "terceira peça", "denim vest"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "plus_33",
@@ -820,7 +900,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["short alfaiataria plus", "short social", "elástico"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_34",
@@ -828,7 +909,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["saia midi plus", "saia plissada", "elegante"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_35",
@@ -836,7 +918,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_top",
     "keywords": ["ciganinha", "ombro a ombro", "blusa plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_36",
@@ -844,7 +927,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["jogger plus", "calça elástico", "viscose"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "plus_37",
@@ -852,7 +936,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_one",
     "keywords": ["vestido tubinho plus", "vestido justo", "malha"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Comprimento"]
+    "defaultColumns": ["Busto", "Cintura", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_38",
@@ -860,7 +945,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_outer",
     "keywords": ["poncho", "capa", "inverno plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female", "male"]
   },
   {
     "id": "plus_39",
@@ -877,7 +963,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_masc",
     "keywords": ["polo plus size", "masculina plus", "camisa polo"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "plus_41",
@@ -885,7 +972,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_masc",
     "keywords": ["bermuda cargo plus", "masculina plus", "bolsos"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["male"]
   },
   {
     "id": "plus_42",
@@ -893,7 +981,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_masc",
     "keywords": ["calça jeans plus masculina", "big and tall", "denim man"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "plus_43",
@@ -901,7 +990,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_masc",
     "keywords": ["sunga plus size", "moda praia masculina", "banho"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril"]
+    "defaultColumns": ["Cintura", "Quadril"],
+    "target": ["male"]
   },
   {
     "id": "plus_44",
@@ -909,7 +999,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_masc",
     "keywords": ["moletom masculino plus", "hoodie plus", "abrigo"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["male"]
   },
   {
     "id": "plus_45",
@@ -917,7 +1008,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["saia evasê", "saia em A", "saia rodada plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_46",
@@ -925,7 +1017,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["calça flare plus", "bailarina", "boca de sino"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_47",
@@ -933,7 +1026,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_top",
     "keywords": ["cropped plus size", "top alongado", "blusa curta plus"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Comprimento"]
+    "defaultColumns": ["Busto", "Comprimento"],
+    "target": ["female"]
   },
   {
     "id": "plus_48",
@@ -950,7 +1044,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_sleep",
     "keywords": ["short doll plus", "pijama curto", "verão"],
     "isPlusSize": true,
-    "defaultColumns": ["Busto", "Cintura", "Quadril"]
+    "defaultColumns": ["Busto", "Cintura", "Quadril"],
+    "target": ["female"]
   },
   {
     "id": "plus_50",
@@ -958,7 +1053,8 @@ export const MEASUREMENTS_MANIFEST: MeasurementManifestItem[] = [
     "category": "plus_bottom",
     "keywords": ["calça social plus", "reta", "elástico cintura", "formal"],
     "isPlusSize": true,
-    "defaultColumns": ["Cintura", "Quadril", "Comprimento"]
+    "defaultColumns": ["Cintura", "Quadril", "Comprimento"],
+    "target": ["female"]
   }
 ];
 
