@@ -1067,7 +1067,7 @@ export function SmartMeasurementEditor({
               const topValues = createInitialMeasurementValues(
                 topGeometry,
                 topDefaultValuesM,
-                availableSizes,
+                availableSizesAsSizeKey,
                 targetAudience
               );
               groups.push({
@@ -1144,7 +1144,7 @@ export function SmartMeasurementEditor({
               const bottomValues = createInitialMeasurementValues(
                 bottomGeometry,
                 bottomDefaultValuesM,
-                availableSizes,
+                availableSizesAsSizeKey,
                 targetAudience
               );
               groups.push({
@@ -1228,7 +1228,7 @@ export function SmartMeasurementEditor({
               const initialValues = createInitialMeasurementValues(
                 extractedGeometry,
                 defaultValuesM,
-                availableSizes,
+                availableSizesAsSizeKey,
                 targetAudience
               );
               setMeasurementValues(initialValues);
@@ -1309,7 +1309,7 @@ export function SmartMeasurementEditor({
                   const initialValues = createInitialMeasurementValues(
                     basicGeometry,
                     defaultValuesM,
-                    availableSizes,
+                    availableSizesAsSizeKey,
                     targetAudience
                   );
                   setMeasurementValues(initialValues);
@@ -1444,7 +1444,7 @@ export function SmartMeasurementEditor({
             const topValues = createInitialMeasurementValues(
               topGeometry,
               topDefaultValuesM,
-              availableSizes,
+              availableSizesAsSizeKey,
               targetAudience
             );
             groups.push({
@@ -1521,7 +1521,7 @@ export function SmartMeasurementEditor({
             const bottomValues = createInitialMeasurementValues(
               bottomGeometry,
               bottomDefaultValuesM,
-              availableSizes,
+              availableSizesAsSizeKey,
               targetAudience
             );
             groups.push({
@@ -1581,7 +1581,7 @@ export function SmartMeasurementEditor({
           const initialValues = createInitialMeasurementValues(
             extractedGeometry,
             defaultValuesM,
-            availableSizes,
+            availableSizesAsSizeKey,
             targetAudience
           );
           setMeasurementValues(initialValues);
