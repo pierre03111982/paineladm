@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby, UserCircle, User } from "lucide-react";
+import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby, UserCircle, User, Star } from "lucide-react";
 import { MANNEQUIN_STYLES } from "@/lib/ai-services/mannequin-prompts";
 import { ManualCombinationModal } from "./ManualCombinationModal";
 import { IconPageHeader } from "@/app/(lojista)/components/icon-page-header";
@@ -10,7 +10,7 @@ import { getPageHeaderColors } from "@/app/(lojista)/components/page-header-colo
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { normalizeCategory, getConsolidatedCategories } from "@/lib/categories/consolidated-categories";
 import { SmartMeasurementEditor } from "./SmartMeasurementEditor";
-import type { SmartGuideData } from "@/types/measurements";
+import type { SmartGuideData, MeasurementPoint, SizeKey } from "@/types/measurements";
 
 // Estado consolidado do produto
 export interface ProductEditorState {
@@ -21,6 +21,7 @@ export interface ProductEditorState {
   generatedCombinedImage: string | null;
   selectedCoverImage: string | null;
   imagemMedidasCustomizada: string | null; // Imagem de medidas inserida manualmente
+  extraImages: Array<{ idx: number; url: string; file: File | null }>; // Imagens extras (Foto Verso, Extra 1-4)
   smartMeasurements?: SmartGuideData; // Dados do editor inteligente de medidas
   
   // Persistência de medidas por público alvo e grade
@@ -333,7 +334,9 @@ export function ProductEditorLayout({
 }: ProductEditorLayoutProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const dropzoneRef = useRef<HTMLDivElement>(null);
+  const dropzoneRefs = useRef<(HTMLDivElement | null)[]>([]);
   const medidasFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingMedidas, setUploadingMedidas] = useState(false);
 
@@ -366,6 +369,7 @@ export function ProductEditorLayout({
     generatedCombinedImage: initialData?.generatedCombinedImage || null,
     selectedCoverImage: initialData?.selectedCoverImage || null,
     imagemMedidasCustomizada: initialData?.imagemMedidasCustomizada || null,
+    extraImages: [],
     aiAnalysisData: initialData?.aiAnalysisData || null,
     selectedMannequinId: initialData?.selectedMannequinId || MANNEQUIN_STYLES[0]?.id || null,
     combinationMode: initialData?.combinationMode || null,
@@ -408,9 +412,30 @@ export function ProductEditorLayout({
   const [generatingCombined, setGeneratingCombined] = useState(false);
   const [saving, setSaving] = useState(false);
   const [viewingImageIndex, setViewingImageIndex] = useState(0); // Índice da imagem sendo visualizada
+  const [viewingImageTab, setViewingImageTab] = useState<'original' | 'catalog' | 'combined' | 'measurements'>('original'); // Aba ativa no Passo 2
+  const [uploadViewerIndex, setUploadViewerIndex] = useState(0); // Índice da imagem na visualização de uploads
   const [showManualModal, setShowManualModal] = useState(false);
   const [showAudienceConfirmation, setShowAudienceConfirmation] = useState(false);
   const [creditInfo, setCreditInfo] = useState({ credits: 0, catalogPack: 0 });
+  
+  // Estados para o 6-Shot AI Studio
+  const [studioImages, setStudioImages] = useState<{
+    slot1: { url: string | null; generating: boolean }; // Ghost Mannequin Frente
+    slot2: { url: string | null; generating: boolean }; // Ghost Mannequin Costas
+    slot3: { url: string | null; generating: boolean; scenario: string; model: string }; // Virtual Model Frente
+    slot4: { url: string | null; generating: boolean }; // Virtual Model Costas/Meio-Perfil
+    slot5: { url: string | null; generating: boolean; combinedProductId: string | null }; // Look Combinado A
+    slot6: { url: string | null; generating: boolean }; // Look Combinado B (Zoom/Detalhe)
+  }>({
+    slot1: { url: null, generating: false },
+    slot2: { url: null, generating: false },
+    slot3: { url: null, generating: false, scenario: 'urbano', model: 'morena' },
+    slot4: { url: null, generating: false },
+    slot5: { url: null, generating: false, combinedProductId: null },
+    slot6: { url: null, generating: false },
+  });
+  const [showCombinedModal, setShowCombinedModal] = useState(false);
+  const [selectedSlotForCombined, setSelectedSlotForCombined] = useState<5 | 6 | null>(null);
 
   // Ref para preservar variações quando o switch é desativado
   const variacoesPreservadasRef = useRef<Array<{ id: string; variacao: string; estoque: string; sku: string; equivalence?: string }>>(
@@ -429,6 +454,31 @@ export function ProductEditorLayout({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Apenas na montagem inicial
+
+  // Atualizar índice quando nova imagem de medidas for gerada
+  useEffect(() => {
+    if (state.smartMeasurements?.baseImage) {
+      // Se a imagem de medidas foi gerada, atualizar o índice para mostrar ela
+      // Coletar todas as imagens geradas para determinar o índice correto
+      const allGeneratedImages = [];
+      if (state.smartMeasurements?.baseImage) {
+        allGeneratedImages.push({ url: state.smartMeasurements.baseImage, type: 'measurements' });
+      }
+      if (state.generatedCatalogImage) {
+        allGeneratedImages.push({ url: state.generatedCatalogImage, type: 'catalog' });
+      }
+      if (state.generatedCombinedImage) {
+        allGeneratedImages.push({ url: state.generatedCombinedImage, type: 'combined' });
+      }
+      
+      // Encontrar o índice da imagem de medidas
+      const measurementsIndex = allGeneratedImages.findIndex(img => img.type === 'measurements');
+      if (measurementsIndex >= 0 && viewingImageIndex !== measurementsIndex) {
+        setViewingImageIndex(measurementsIndex);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.smartMeasurements?.baseImage]);
 
   // Inicializar: Se SKU principal já existe ao montar, assumir que foi editado manualmente ou carregado
   useEffect(() => {
@@ -640,14 +690,36 @@ export function ProductEditorLayout({
       const rawCategory = analysisData.suggested_category || analysisData.categoria_sugerida;
       const mappedCategory = mapCategoryToAvailable(rawCategory);
       
-      // Processar cores: se não vier dominant_colors, tentar criar a partir de cor_predominante
+      // Processar cores: usar apenas dados precisos da API
       let processedColors = analysisData.dominant_colors || [];
+      
+      // Validar se as cores são precisas (não genéricas)
+      if (Array.isArray(processedColors) && processedColors.length > 0) {
+        // Filtrar cores genéricas ou sem hex válido
+        processedColors = processedColors.filter(color => {
+          // Verificar se tem hex válido e nome não genérico
+          const hasValidHex = color.hex && color.hex.startsWith('#') && color.hex.length === 7;
+          const hasValidName = color.name && 
+            !color.name.toLowerCase().includes('não identificad') &&
+            !color.name.toLowerCase().includes('não especificad') &&
+            color.name.trim().length > 0;
+          return hasValidHex && hasValidName;
+        });
+      }
+      
+      // Se não houver dominant_colors válidos mas houver cor_predominante específica, usar
       if (processedColors.length === 0 && analysisData.cor_predominante) {
-        // Se não houver dominant_colors mas houver cor_predominante, criar um array
-        processedColors = [{
-          hex: "#808080", // Cor padrão cinza se não houver hex
-          name: analysisData.cor_predominante
-        }];
+        const corPredominante = analysisData.cor_predominante.trim();
+        // Só usar se não for genérica
+        if (corPredominante && 
+            !corPredominante.toLowerCase().includes('não identificad') &&
+            !corPredominante.toLowerCase().includes('não especificad') &&
+            corPredominante.length > 2) {
+          processedColors = [{
+            hex: "#808080", // Cor padrão cinza se não houver hex específico
+            name: corPredominante
+          }];
+        }
       }
       
       // Limpar data da descrição SEO se existir
@@ -659,54 +731,85 @@ export function ProductEditorLayout({
       // A IA agora está configurada para gerar textos COMPLETOS dentro de 470 caracteres
       // Descrição SEO agora não tem limite - manter texto completo
       
-      // Validação e fallback para campos obrigatórios
+      // Validação de tecido: usar apenas dados precisos da API
       const detectedFabric = analysisData.detected_fabric || analysisData.tecido_estimado || "";
-      const hasValidColors = processedColors && Array.isArray(processedColors) && processedColors.length > 0;
       
-      // Se não houver cores, tentar extrair da descrição ou usar fallback
-      if (!hasValidColors) {
-        // Tentar extrair cor da descrição
-        const descLower = descricaoSEOLimpa.toLowerCase();
-        const colorKeywords: Record<string, { hex: string; name: string }> = {
-          'azul': { hex: '#0000FF', name: 'Azul' },
-          'verde': { hex: '#008000', name: 'Verde' },
-          'vermelho': { hex: '#FF0000', name: 'Vermelho' },
-          'preto': { hex: '#000000', name: 'Preto' },
-          'branco': { hex: '#FFFFFF', name: 'Branco' },
-          'rosa': { hex: '#FFC0CB', name: 'Rosa' },
-          'amarelo': { hex: '#FFFF00', name: 'Amarelo' },
-          'laranja': { hex: '#FFA500', name: 'Laranja' },
-          'roxo': { hex: '#800080', name: 'Roxo' },
-          'bege': { hex: '#F5F5DC', name: 'Bege' },
-          'cinza': { hex: '#808080', name: 'Cinza' },
-          'marrom': { hex: '#A52A2A', name: 'Marrom' },
-        };
+      // Validar se o tecido é preciso (não genérico)
+      let finalDetectedFabric = "";
+      if (detectedFabric && detectedFabric.trim() !== "") {
+        const fabricLower = detectedFabric.toLowerCase().trim();
+        // Verificar se não é genérico
+        const isGeneric = 
+          fabricLower.includes('não identificad') ||
+          fabricLower.includes('não especificad') ||
+          fabricLower.includes('tecido de qualidade') ||
+          fabricLower.includes('material de qualidade') ||
+          fabricLower === 'tecido' ||
+          fabricLower === 'material' ||
+          fabricLower.length < 3;
         
-        for (const [keyword, color] of Object.entries(colorKeywords)) {
-          if (descLower.includes(keyword)) {
-            processedColors = [color];
-            break;
-          }
-        }
-        
-        // Se ainda não encontrou, usar cor padrão
-        if (processedColors.length === 0) {
-          processedColors = [{ hex: '#808080', name: 'Cor não identificada' }];
+        if (!isGeneric) {
+          finalDetectedFabric = detectedFabric.trim();
         }
       }
       
-      // Se não houver tecido, tentar inferir do product_type ou usar fallback
-      let finalDetectedFabric = detectedFabric;
-      if (!finalDetectedFabric || finalDetectedFabric.trim() === "") {
-        const productTypeLower = (analysisData.product_type || "").toLowerCase();
-        if (productTypeLower.includes('jeans') || productTypeLower.includes('calça')) {
-          finalDetectedFabric = "Jeans";
-        } else if (productTypeLower.includes('algodão') || productTypeLower.includes('camiseta')) {
-          finalDetectedFabric = "Algodão";
-        } else {
-          finalDetectedFabric = "Tecido não identificado";
-        }
+      // NÃO usar fallbacks genéricos - deixar vazio se não houver dados precisos
+      // O usuário pode preencher manualmente se necessário
+      
+      // Log de validação dos dados processados
+      // Processar colors_by_item para conjuntos (cores separadas por item)
+      let processedColorsByItem = analysisData.colors_by_item;
+      console.log("[ProductEditor] 🎨 Cores por item recebidas da API:", {
+        hasColorsByItem: !!processedColorsByItem,
+        isArray: Array.isArray(processedColorsByItem),
+        length: Array.isArray(processedColorsByItem) ? processedColorsByItem.length : 0,
+        rawData: processedColorsByItem,
+        productType: analysisData.product_type,
+        isConjunto: analysisData.product_type?.toLowerCase().includes('conjunto'),
+      });
+      
+      if (Array.isArray(processedColorsByItem) && processedColorsByItem.length > 0) {
+        // Validar e filtrar cores por item
+        processedColorsByItem = processedColorsByItem.map(itemData => ({
+          item: itemData.item || "Item",
+          colors: (itemData.colors || []).filter(color => {
+            const hasValidHex = color?.hex && color.hex.startsWith('#') && color.hex.length === 7;
+            const hasValidName = color?.name && 
+              !color.name.toLowerCase().includes('não identificad') &&
+              !color.name.toLowerCase().includes('não especificad') &&
+              color.name.trim().length > 0;
+            return hasValidHex && hasValidName;
+          })
+        })).filter(itemData => itemData.colors.length > 0);
+        
+        console.log("[ProductEditor] 🎨 Cores por item processadas e validadas:", {
+          itemsCount: processedColorsByItem.length,
+          items: processedColorsByItem.map(item => ({
+            item: item.item,
+            colorsCount: item.colors.length,
+            colors: item.colors.map(c => c.name),
+          })),
+        });
+      } else {
+        console.log("[ProductEditor] ⚠️ Nenhuma cor por item encontrada ou inválida. Verificando se é conjunto...", {
+          productType: analysisData.product_type,
+          hasColorsByItem: !!processedColorsByItem,
+        });
       }
+      
+      console.log("[ProductEditor] 🔍 Validação de dados da análise:", {
+        detected_fabric_original: analysisData.detected_fabric,
+        detected_fabric_final: finalDetectedFabric,
+        dominant_colors_original: analysisData.dominant_colors,
+        dominant_colors_final: processedColors,
+        colors_by_item_original: analysisData.colors_by_item,
+        colors_by_item_processed: processedColorsByItem,
+        cor_predominante_original: analysisData.cor_predominante,
+        hasValidFabric: !!finalDetectedFabric,
+        hasValidColors: processedColors.length > 0,
+        hasColorsByItem: !!(processedColorsByItem && processedColorsByItem.length > 0),
+        standard_measurements: analysisData.standard_measurements,
+      });
       
       const newAiAnalysisData = {
         nome_sugerido: analysisData.nome_sugerido || "",
@@ -715,17 +818,29 @@ export function ProductEditorLayout({
         suggested_category: mappedCategory,
         categoria_sugerida: mappedCategory, // Compatibilidade
         product_type: analysisData.product_type || "",
-        detected_fabric: finalDetectedFabric,
-        dominant_colors: processedColors,
-        colors_by_item: analysisData.colors_by_item || undefined, // Cores por item (para conjuntos)
+        detected_fabric: finalDetectedFabric, // Vazio se não houver dados precisos
+        dominant_colors: processedColors, // Array vazio se não houver cores precisas
+        colors_by_item: processedColorsByItem && processedColorsByItem.length > 0 
+          ? processedColorsByItem 
+          : undefined, // Cores por item (para conjuntos) - preservar se houver
         standard_measurements: analysisData.standard_measurements || undefined, // Medidas padrão coletadas da análise
-        cor_predominante: processedColors[0]?.name || analysisData.cor_predominante || "", // Compatibilidade
-        tecido_estimado: finalDetectedFabric, // Compatibilidade
+        cor_predominante: processedColors[0]?.name || "", // Vazio se não houver cor precisa
+        tecido_estimado: finalDetectedFabric, // Vazio se não houver tecido preciso
         detalhes: analysisData.detalhes || [], // Compatibilidade
         detected_audience: analysisData.detected_audience, // Público alvo detectado pela IA
       };
       
       console.log("[ProductEditor] 📏 Medidas padrão coletadas da análise:", newAiAnalysisData.standard_measurements);
+      console.log("[ProductEditor] 🎨 Cores por item no resultado final:", newAiAnalysisData.colors_by_item);
+      console.log("[ProductEditor] ✅ Dados finais processados:", {
+        fabric: newAiAnalysisData.detected_fabric || "(vazio - sem dados precisos)",
+        colors: newAiAnalysisData.dominant_colors.length > 0 
+          ? newAiAnalysisData.dominant_colors.map(c => c.name).join(", ")
+          : "(vazio - sem dados precisos)",
+        colorsByItem: newAiAnalysisData.colors_by_item 
+          ? newAiAnalysisData.colors_by_item.map(item => `${item.item}: ${item.colors.map(c => c.name).join(", ")}`).join(" | ")
+          : "(nenhum conjunto detectado)",
+      });
       
       // Verificar inconsistência entre público alvo selecionado e detectado pela IA
       const detectedAudience = analysisData.detected_audience;
@@ -769,6 +884,29 @@ export function ProductEditorLayout({
         ...prev,
         aiAnalysisData: newAiAnalysisData,
       }));
+      
+      // Detectar landmarks automaticamente após análise completar
+      // Isso carrega as medidas automaticamente
+      // Usar o imageUrl passado para a função analyzeImage (que é o rawImageUrl atual)
+      if (imageUrl && (newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida || newAiAnalysisData.productType)) {
+        console.log("[ProductEditor] 🤖 Condições atendidas para detecção automática de landmarks:", {
+          hasImage: !!imageUrl,
+          imageUrl: imageUrl.substring(0, 100) + "...",
+          category: newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida,
+          productType: newAiAnalysisData.productType,
+          standardMeasurements: newAiAnalysisData.standard_measurements,
+        });
+        
+        setTimeout(async () => {
+          await handleDetectLandmarksAutomatically(imageUrl, newAiAnalysisData);
+        }, 1500);
+      } else {
+        console.log("[ProductEditor] ⚠️ Condições não atendidas para detecção automática:", {
+          hasImage: !!imageUrl,
+          category: newAiAnalysisData.suggested_category || newAiAnalysisData.categoria_sugerida,
+          productType: newAiAnalysisData.productType,
+        });
+      }
       
       // Se houver inconsistência, mostrar modal de confirmação
       if (hasInconsistency) {
@@ -896,7 +1034,7 @@ export function ProductEditorLayout({
   };
 
   // === HANDLERS DE UPLOAD ===
-  const handleFileSelect = async (file: File) => {
+  const handleFileSelect = async (file: File, imageIndex?: number) => {
     if (!file) return;
 
     try {
@@ -919,22 +1057,56 @@ export function ProductEditorLayout({
 
       const data = await response.json();
       
-          // Resetar referências para permitir nova análise
-          lastAnalyzedUrlRef.current = "";
-          has429ErrorRef.current = false; // Limpar erro 429 ao fazer upload de nova imagem (permitir nova tentativa)
-          last429ErrorTimeRef.current = 0; // Limpar timestamp também
-          analyzingRef.current = false; // Limpar flag de análise
-      
-      setState(prev => ({
-        ...prev,
-        rawImageUrl: data.imageUrl,
-        rawImageFile: file,
-        selectedCoverImage: data.imageUrl, // Definir como capa inicial
-        aiAnalysisData: null, // Resetar análise para nova análise
-      }));
-      
-      // Mostrar a imagem original recém-carregada
-      setViewingImageIndex(0);
+      // Se for a primeira imagem (Foto Frente)
+      if (imageIndex === undefined || imageIndex === 1) {
+        // Resetar referências para permitir nova análise
+        lastAnalyzedUrlRef.current = "";
+        has429ErrorRef.current = false;
+        last429ErrorTimeRef.current = 0;
+        analyzingRef.current = false;
+        
+        setState(prev => ({
+          ...prev,
+          rawImageUrl: data.imageUrl,
+          rawImageFile: file,
+          selectedCoverImage: data.imageUrl,
+          aiAnalysisData: null,
+        }));
+        
+        setViewingImageIndex(0);
+        setUploadViewerIndex(0); // Resetar visualizador de uploads
+      } else {
+        // Para imagens extras, adicionar ao array
+        setState(prev => {
+          const existingIndex = prev.extraImages.findIndex(img => img.idx === imageIndex);
+          const newExtraImage = { idx: imageIndex, url: data.imageUrl, file };
+          
+          let updatedExtraImages;
+          if (existingIndex >= 0) {
+            // Substituir imagem existente
+            updatedExtraImages = [...prev.extraImages];
+            updatedExtraImages[existingIndex] = newExtraImage;
+          } else {
+            // Adicionar nova imagem
+            updatedExtraImages = [...prev.extraImages, newExtraImage];
+          }
+          
+          // Se foi uma nova imagem (não substituição), mostrar ela no visualizador
+          if (existingIndex < 0) {
+            const allImages: string[] = [];
+            if (prev.rawImageUrl) allImages.push(prev.rawImageUrl);
+            updatedExtraImages.forEach(img => {
+              if (img.url) allImages.push(img.url);
+            });
+            const newImageIndex = allImages.length - 1;
+            setTimeout(() => {
+              setUploadViewerIndex(newImageIndex);
+            }, 0);
+          }
+          
+          return { ...prev, extraImages: updatedExtraImages };
+        });
+      }
     } catch (error: any) {
       console.error("[ProductEditor] Erro no upload:", error);
       alert(`Erro ao fazer upload: ${error.message}`);
@@ -943,16 +1115,37 @@ export function ProductEditorLayout({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, imageIndex?: number) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith("image/")) {
-      handleFileSelect(file);
+      handleFileSelect(file, imageIndex);
     }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  // Handler para excluir imagem
+  const handleDeleteImage = (imageIndex: number) => {
+    if (imageIndex === 1) {
+      // Excluir foto frente (rawImageUrl)
+      setState(prev => ({
+        ...prev,
+        rawImageUrl: "",
+        rawImageFile: null,
+        selectedCoverImage: null,
+        aiAnalysisData: null,
+      }));
+      setUploadViewerIndex(0);
+    } else {
+      // Excluir imagem extra
+      setState(prev => ({
+        ...prev,
+        extraImages: prev.extraImages.filter(img => img.idx !== imageIndex),
+      }));
+    }
   };
 
   // === HANDLER DE UPLOAD DE IMAGEM DE MEDIDAS ===
@@ -990,6 +1183,224 @@ export function ProductEditorLayout({
       alert(`Erro ao fazer upload da imagem de medidas: ${error.message}`);
     } finally {
       setUploadingMedidas(false);
+    }
+  };
+
+  // Função auxiliar para obter tamanhos da grade (mesma lógica do SmartMeasurementEditor)
+  const getSizesForGrade = (
+    sizeCategory?: 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen',
+    targetAudience?: 'female' | 'male' | 'kids'
+  ): string[] => {
+    if (targetAudience === 'kids') {
+      if (sizeCategory === 'baby') {
+        return ['RN', '3M', '6M', '9M', '12M'];
+      } else if (sizeCategory === 'kids_numeric') {
+        return ['2', '4', '6', '8', '10'];
+      } else if (sizeCategory === 'teen') {
+        return ['12', '14', '16'];
+      }
+    } else {
+      // Adulto
+      if (sizeCategory === 'numeric') {
+        return ['36', '38', '40', '42', '44', '46'];
+      } else if (sizeCategory === 'plus') {
+        return ['G1', 'G2', 'G3', 'G4', 'G5'];
+      } else {
+        // standard (padrão)
+        return ['PP', 'P', 'M', 'G', 'GG'];
+      }
+    }
+    // Fallback para padrão
+    return ['PP', 'P', 'M', 'G', 'GG'];
+  };
+
+  // === HANDLER DE DETECÇÃO AUTOMÁTICA DE LANDMARKS E PROCESSAMENTO DE MEDIDAS ===
+  const handleDetectLandmarksAutomatically = async (imageUrl: string, analysisData: any) => {
+    try {
+      console.log("[ProductEditor] 🔍 Detectando landmarks e processando medidas automaticamente após análise...");
+      
+      // Mapear categoria para categoria de landmark
+      const category = analysisData.suggested_category || analysisData.categoria_sugerida || "";
+      const categoryLower = category.toLowerCase();
+      
+      let garmentCategory: string = "TOPS"; // Padrão
+      if (categoryLower.includes("vestido") || categoryLower.includes("dress") || categoryLower.includes("macacão")) {
+        garmentCategory = "DRESS";
+      } else if (categoryLower.includes("calça") || categoryLower.includes("short") || categoryLower.includes("saia")) {
+        garmentCategory = "BOTTOMS";
+      }
+      
+      // 1. Detectar landmarks
+      const landmarksResponse = await fetch(
+        `/api/lojista/products/detect-landmarks?lojistaId=${lojistaId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl: imageUrl,
+            category: garmentCategory,
+          }),
+        }
+      );
+      
+      if (!landmarksResponse.ok) {
+        const errorText = await landmarksResponse.text();
+        console.error("[ProductEditor] ❌ Erro ao detectar landmarks automaticamente:", errorText);
+        return;
+      }
+      
+      const landmarksResult = await landmarksResponse.json();
+      const landmarksData = landmarksResult.data;
+      
+      if (!landmarksData) {
+        console.log("[ProductEditor] ⚠️ Nenhum landmark detectado");
+        return;
+      }
+      
+      console.log("[ProductEditor] ✅ Landmarks detectados automaticamente");
+      
+      // 2. Processar landmarks para criar geometria de medidas
+      // Usar as medidas padrão da análise inteligente se disponíveis
+      const standardMeasurements = analysisData.standard_measurements || {};
+      console.log("[ProductEditor] 📏 Medidas padrão da análise:", standardMeasurements);
+      
+      // Calcular tamanho intermediário da grade ATUAL
+      const currentGradeSizes = getSizesForGrade(state.sizeCategory, state.targetAudience);
+      const middleIndex = Math.floor(currentGradeSizes.length / 2);
+      const activeSize = (currentGradeSizes[middleIndex] || 'M') as SizeKey;
+      
+      console.log("[ProductEditor] 🎯 Tamanho intermediário da grade:", {
+        sizeCategory: state.sizeCategory,
+        targetAudience: state.targetAudience,
+        gradeSizes: currentGradeSizes,
+        middleIndex,
+        activeSize,
+      });
+      
+      // Converter landmarks para MeasurementPoint
+      const measurementPoints: MeasurementPoint[] = [];
+      
+      // Processar landmarks de TOPS/DRESS
+      if ('bust_start' in landmarksData && 'bust_end' in landmarksData) {
+        const value = standardMeasurements.bust || 0;
+        console.log("[ProductEditor] 📐 Processando busto - valor:", value, "landmarks disponíveis");
+        // SEMPRE criar geometria, mesmo se valor for 0
+        // A geometria permite que o usuário veja onde as medidas devem ser tomadas
+        measurementPoints.push({
+          id: 'bust',
+          label: 'Busto',
+          value: value, // Pode ser 0 se não houver medida da análise
+          startX: landmarksData.bust_start.x,
+          startY: landmarksData.bust_start.y,
+          endX: landmarksData.bust_end.x,
+          endY: landmarksData.bust_end.y,
+        });
+      }
+      
+      if ('waist_start' in landmarksData && 'waist_end' in landmarksData) {
+        const value = standardMeasurements.waist || 0;
+        console.log("[ProductEditor] 📐 Processando cintura - valor:", value, "landmarks disponíveis");
+        measurementPoints.push({
+          id: 'waist',
+          label: 'Cintura',
+          value: value, // Pode ser 0 se não houver medida da análise
+          startX: landmarksData.waist_start.x,
+          startY: landmarksData.waist_start.y,
+          endX: landmarksData.waist_end.x,
+          endY: landmarksData.waist_end.y,
+        });
+      }
+      
+      if ('length_top' in landmarksData && 'length_bottom' in landmarksData) {
+        const value = standardMeasurements.length || 0;
+        console.log("[ProductEditor] 📐 Processando comprimento - valor:", value, "landmarks disponíveis");
+        measurementPoints.push({
+          id: 'length',
+          label: 'Comprimento',
+          value: value, // Pode ser 0 se não houver medida da análise
+          startX: landmarksData.length_top.x,
+          startY: landmarksData.length_top.y,
+          endX: landmarksData.length_bottom.x,
+          endY: landmarksData.length_bottom.y,
+        });
+      }
+      
+      // Processar landmarks de BOTTOMS (hip)
+      if ('hip_start' in landmarksData && 'hip_end' in landmarksData) {
+        const value = standardMeasurements.hip || 0;
+        console.log("[ProductEditor] 📐 Processando quadril - valor:", value, "landmarks disponíveis");
+        measurementPoints.push({
+          id: 'hip',
+          label: 'Quadril',
+          value: value, // Pode ser 0 se não houver medida da análise
+          startX: landmarksData.hip_start.x,
+          startY: landmarksData.hip_start.y,
+          endX: landmarksData.hip_end.x,
+          endY: landmarksData.hip_end.y,
+        });
+      }
+      
+      if (measurementPoints.length === 0) {
+        console.log("[ProductEditor] ⚠️ Nenhuma medida processada dos landmarks. Landmarks disponíveis:", Object.keys(landmarksData));
+        return;
+      }
+      
+      console.log("[ProductEditor] ✅ Medidas processadas:", measurementPoints.length, "pontos criados");
+      console.log("[ProductEditor] 📊 Valores das medidas:", measurementPoints.map(mp => `${mp.label}: ${mp.value}cm`));
+      
+      // 3. Criar SmartGuideData com as medidas processadas
+      // Converter para o formato esperado: Record<SizeKey, MeasurementPoint[]>
+      // Criar estrutura de sizes com todos os tamanhos da grade atual
+      const sizes: Record<string, MeasurementPoint[]> = {};
+      
+      // Inicializar todos os tamanhos da grade atual com as medidas detectadas
+      currentGradeSizes.forEach(size => {
+        sizes[size] = measurementPoints; // Todos começam com os mesmos valores (serão calculados depois com auto-grading)
+      });
+      
+      // Inicializar também tamanhos padrão vazios para compatibilidade
+      const standardSizes: SizeKey[] = ['PP', 'P', 'M', 'G', 'GG', 'XG'];
+      standardSizes.forEach(size => {
+        if (!sizes[size]) {
+          sizes[size] = [];
+        }
+      });
+      
+      // 4. Atualizar estado com medidas processadas
+      const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
+      const persistedMeasurements = state.persistedMeasurementsByAudience || {};
+      
+      // Criar estrutura compatível com SmartGuideData (aceita qualquer string como chave)
+      const smartMeasurementsData: any = {
+        baseImage: imageUrl, // Usar imagem RAW por enquanto (será substituída quando gerar imagem)
+        activeSize: activeSize, // Usar tamanho intermediário da grade atual (ex: '6' para infantil, 'M' para padrão)
+        autoGrading: true,
+        sizes: sizes, // Aceita qualquer string como chave (ex: '2', '4', '6', '8', '10' para infantil)
+      };
+      
+      console.log("[ProductEditor] 📊 Medidas criadas para grade:", {
+        grade: state.sizeCategory,
+        tamanhos: currentGradeSizes,
+        tamanhoIntermediario: activeSize,
+        medidasPorTamanho: Object.keys(sizes).map(size => `${size}: ${sizes[size].length} medidas`),
+      });
+      
+      setState(prev => ({
+        ...prev,
+        smartMeasurements: smartMeasurementsData,
+        persistedMeasurementsByAudience: {
+          ...persistedMeasurements,
+          [measurementKey]: smartMeasurementsData,
+        },
+      }));
+      
+      console.log("[ProductEditor] ✅ Medidas processadas e carregadas automaticamente:", {
+        measurementsCount: measurementPoints.length,
+        measurements: measurementPoints.map(m => `${m.label}: ${m.value}cm`),
+      });
+    } catch (err: any) {
+      console.error("[ProductEditor] ❌ Erro ao detectar landmarks e processar medidas automaticamente:", err);
+      // Não mostrar erro ao usuário, apenas logar
     }
   };
 
@@ -1696,601 +2107,1171 @@ export function ProductEditorLayout({
         />
       </div>
 
-      {/* === CONTÊINER DAS DUAS COLUNAS === */}
-      <div className="w-full flex flex-col lg:flex-row gap-2 items-stretch">
-        {/* === COLUNA ESQUERDA: O Estúdio Visual === */}
-        <div className="w-full lg:w-[40%] flex flex-col">
-            {/* Bloco 1: Estúdio Criativo IA - 3 Caixas Lado a Lado */}
-            <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm flex-1 flex flex-col">
-              {/* Cabeçalho Verde/Esmeralda */}
-              <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-3 h-[52px] flex items-center justify-between">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-                  <Sparkles className="w-7 h-7 text-white" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                  <span style={{ color: '#FFFFFF' }}>Estúdio Criativo IA</span>
-                </h2>
-                <span className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg border border-white/30">
-                  <Package className="w-6 h-6" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                  <span className="font-bold text-base" style={{ color: '#FFFFFF' }}>
-                    {creditInfo.catalogPack > 0 ? `${creditInfo.catalogPack} Pack` : `${creditInfo.credits + 200} Créditos`}
-                  </span>
-                </span>
-              </div>
-              
-              {/* Corpo Branco */}
-              <div className="p-3 space-y-3 bg-white flex-1 flex flex-col">
-              
-              {/* Cards de Seleção de Público Alvo */}
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-slate-700 mb-3 text-center">
-                  Público Alvo <span className="text-red-500">*</span>
+      {/* === LAYOUT REESTRUTURADO: 4 CONTAINERS VERTICAIS === */}
+      <div className="w-full flex flex-col space-y-8">
+      
+      {/* CONTAINER 1: DEFINIÇÃO & MÍDIA - Configuração Inicial */}
+      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+        {/* CardHeader */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 flex items-center gap-3 border-b border-blue-500/20">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+            1
+          </div>
+          <div className="text-white" style={{ color: 'white' }}>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+              <Upload className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+              <span style={{ color: 'white' }}>Configuração Inicial</span>
+            </h2>
+            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Defina o público alvo, grade de tamanho e faça upload das fotos</p>
+          </div>
+        </div>
+        
+        <div className="p-4" style={{ height: '580px' }}>
+          {/* LAYOUT EM 3 CAIXAS LADO A LADO */}
+          <div className="flex gap-3 items-start">
+            {/* CAIXA 1: Público Alvo e Grade de Tamanho */}
+            <div className="flex-1 border-2 border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col min-w-0" style={{ height: '502.4px' }}>
+              <div className="flex-1 flex flex-col gap-2">
+              {/* Público Alvo */}
+              <div className="flex-1 flex flex-col">
+                <label className="flex text-xs font-semibold mb-1 px-2 py-2 rounded-lg bg-red-100 border-2 border-red-300 shadow-sm items-center gap-1.5" style={{ color: 'white' }}>
+                  <span className="text-red-800" style={{ color: '#991b1b' }}>Público Alvo</span>
+                  <span className="text-red-700 font-bold text-sm" style={{ color: '#b91c1c' }}>*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {/* Card Feminino */}
-                  <button
-                    onClick={() => {
-                      const newAudience: 'female' | 'male' | 'kids' = 'female';
-                      
-                      setState(prev => {
-                        // CRÍTICO: Quando mudar público alvo, verificar se já temos medidas para alguma grade deste público
-                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                        const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
-                          key.startsWith(`${newAudience}_`)
-                        );
-                        
-                        if (measurementKeys.length > 0) {
-                          const lastKey = measurementKeys[measurementKeys.length - 1];
-                          const existingMeasurements = persistedMeasurements[lastKey];
-                          const [, sizeCategory] = lastKey.split('_');
-                          
-                          console.log('[ProductEditor] ✅ Medidas encontradas para público alvo', newAudience, '- restaurando grade', sizeCategory);
-                          
-                          return {
-                            ...prev,
-                            targetAudience: newAudience,
-                            sizeCategory: sizeCategory as typeof prev.sizeCategory,
-                            smartMeasurements: existingMeasurements,
-                            imagemMedidasCustomizada: existingMeasurements.baseImage,
-                          };
-                        } else {
-                          console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para público alvo', newAudience);
-                          return { ...prev, targetAudience: newAudience };
-                        }
-                      });
-                      
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastTargetAudience', newAudience);
+                <div className="flex-1 grid grid-cols-3 gap-1">
+                {/* Card Feminino */}
+                <button
+                  onClick={() => {
+                    const newAudience: 'female' | 'male' | 'kids' = 'female';
+                    setState(prev => {
+                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                      const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
+                        key.startsWith(`${newAudience}_`)
+                      );
+                      if (measurementKeys.length > 0) {
+                        const lastKey = measurementKeys[measurementKeys.length - 1];
+                        const existingMeasurements = persistedMeasurements[lastKey];
+                        const [, sizeCategory] = lastKey.split('_');
+                        return {
+                          ...prev,
+                          targetAudience: newAudience,
+                          sizeCategory: sizeCategory as typeof prev.sizeCategory,
+                          smartMeasurements: existingMeasurements,
+                          imagemMedidasCustomizada: existingMeasurements.baseImage,
+                        };
+                      } else {
+                        return { ...prev, targetAudience: newAudience };
                       }
-                    }}
-                    className={`relative p-4 rounded-lg border-2 transition-all ${
-                      state.targetAudience === 'female'
-                        ? 'border-pink-600 bg-pink-50 ring-2 ring-pink-300'
-                        : 'border-gray-200 bg-white hover:border-pink-300'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Venus className={`w-8 h-8 ${
-                        state.targetAudience === 'female'
-                          ? 'text-pink-600'
-                          : 'text-gray-400'
-                      }`} />
-                      <h3 className={`text-sm font-bold ${
-                        state.targetAudience === 'female'
-                          ? 'text-pink-700'
-                          : 'text-slate-700'
-                      }`}>
-                        Feminino
-                      </h3>
-                    </div>
-                    {state.targetAudience === 'female' && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-pink-600 rounded-full"></div>
-                    )}
-                  </button>
-
-                  {/* Card Masculino */}
-                  <button
-                    onClick={() => {
-                      const newAudience: 'female' | 'male' | 'kids' = 'male';
-                      
-                      setState(prev => {
-                        // CRÍTICO: Quando mudar público alvo, verificar se já temos medidas para alguma grade deste público
-                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                        const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
-                          key.startsWith(`${newAudience}_`)
-                        );
-                        
-                        if (measurementKeys.length > 0) {
-                          const lastKey = measurementKeys[measurementKeys.length - 1];
-                          const existingMeasurements = persistedMeasurements[lastKey];
-                          const [, sizeCategory] = lastKey.split('_');
-                          
-                          console.log('[ProductEditor] ✅ Medidas encontradas para público alvo', newAudience, '- restaurando grade', sizeCategory);
-                          
-                          return {
-                            ...prev,
-                            targetAudience: newAudience,
-                            sizeCategory: sizeCategory as typeof prev.sizeCategory,
-                            smartMeasurements: existingMeasurements,
-                            imagemMedidasCustomizada: existingMeasurements.baseImage,
-                          };
-                        } else {
-                          console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para público alvo', newAudience);
-                          return { ...prev, targetAudience: newAudience };
-                        }
-                      });
-                      
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastTargetAudience', newAudience);
-                      }
-                    }}
-                    className={`relative p-4 rounded-lg border-2 transition-all ${
-                      state.targetAudience === 'male'
-                        ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-300'
-                        : 'border-gray-200 bg-white hover:border-blue-300'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Mars className={`w-8 h-8 ${
-                        state.targetAudience === 'male'
-                          ? 'text-blue-600'
-                          : 'text-gray-400'
-                      }`} />
-                      <h3 className={`text-sm font-bold ${
-                        state.targetAudience === 'male'
-                          ? 'text-blue-700'
-                          : 'text-slate-700'
-                      }`}>
-                        Masculino
-                      </h3>
-                    </div>
-                    {state.targetAudience === 'male' && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-blue-600 rounded-full"></div>
-                    )}
-                  </button>
-
-                  {/* Card Infantil */}
-                  <button
-                    onClick={() => {
-                      const newAudience: 'female' | 'male' | 'kids' = 'kids';
-                      
-                      setState(prev => {
-                        // CRÍTICO: Quando mudar público alvo, verificar se já temos medidas para alguma grade deste público
-                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                        const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
-                          key.startsWith(`${newAudience}_`)
-                        );
-                        
-                        if (measurementKeys.length > 0) {
-                          const lastKey = measurementKeys[measurementKeys.length - 1];
-                          const existingMeasurements = persistedMeasurements[lastKey];
-                          const [, sizeCategory] = lastKey.split('_');
-                          
-                          console.log('[ProductEditor] ✅ Medidas encontradas para público alvo', newAudience, '- restaurando grade', sizeCategory);
-                          
-                          return {
-                            ...prev,
-                            targetAudience: newAudience,
-                            sizeCategory: sizeCategory as typeof prev.sizeCategory,
-                            smartMeasurements: existingMeasurements,
-                            imagemMedidasCustomizada: existingMeasurements.baseImage,
-                          };
-                        } else {
-                          console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para público alvo', newAudience);
-                          return { ...prev, targetAudience: newAudience };
-                        }
-                      });
-                      
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('lastTargetAudience', 'kids');
-                      }
-                    }}
-                    className={`relative p-4 rounded-lg border-2 transition-all ${
-                      state.targetAudience === 'kids'
-                        ? 'border-yellow-600 bg-yellow-50 ring-2 ring-yellow-300'
-                        : 'border-gray-200 bg-white hover:border-yellow-300'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <Baby className={`w-8 h-8 ${
-                        state.targetAudience === 'kids'
-                          ? 'text-yellow-600'
-                          : 'text-gray-400'
-                      }`} />
-                      <h3 className={`text-sm font-bold ${
-                        state.targetAudience === 'kids'
-                          ? 'text-yellow-700'
-                          : 'text-slate-700'
-                      }`}>
-                        Infantil
-                      </h3>
-                    </div>
-                    {state.targetAudience === 'kids' && (
-                      <div className="absolute top-2 right-2 w-3 h-3 bg-yellow-600 rounded-full"></div>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Cards de Seleção de Grade de Tamanho - DINÂMICO */}
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-slate-700 mb-3 text-center">
-                  Selecione a Grade de Tamanho <span className="text-red-500">*</span>
-                </label>
-                <div className={`grid gap-3 ${
-                  (state.targetAudience === 'kids' ? SIZE_GRIDS.KIDS : SIZE_GRIDS.ADULT).length === 3
-                    ? 'grid-cols-3'
-                    : 'grid-cols-2'
-                }`}>
-                  {(state.targetAudience === 'kids' ? SIZE_GRIDS.KIDS : SIZE_GRIDS.ADULT).map((grid) => {
-                    const Icon = grid.icon;
-                    const isSelected = state.sizeCategory === grid.id;
-                    
-                    // Cores dinâmicas baseadas no público alvo
-                    const audienceColors = {
-                      female: {
-                        selected: {
-                          border: 'border-pink-600',
-                          bg: 'bg-pink-50',
-                          ring: 'ring-pink-300',
-                          icon: 'text-pink-600',
-                          text: 'text-pink-700',
-                          dot: 'bg-pink-600',
-                        },
-                        hover: 'hover:border-pink-300',
-                      },
-                      male: {
-                        selected: {
-                          border: 'border-blue-600',
-                          bg: 'bg-blue-50',
-                          ring: 'ring-blue-300',
-                          icon: 'text-blue-600',
-                          text: 'text-blue-700',
-                          dot: 'bg-blue-600',
-                        },
-                        hover: 'hover:border-blue-300',
-                      },
-                      kids: {
-                        selected: {
-                          border: 'border-yellow-600',
-                          bg: 'bg-yellow-50',
-                          ring: 'ring-yellow-300',
-                          icon: 'text-yellow-600',
-                          text: 'text-yellow-700',
-                          dot: 'bg-yellow-600',
-                        },
-                        hover: 'hover:border-yellow-300',
-                      },
-                    };
-                    
-                    const colors = audienceColors[state.targetAudience];
-                    
-                    return (
-                      <button
-                        key={grid.id}
-                        onClick={() => {
-                          const newCategory = grid.id as 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen';
-                          
-                          setState(prev => {
-                            // CRÍTICO: Verificar se já temos medidas coletadas para este público alvo
-                            // Se tiver, restaurar automaticamente sem precisar nova análise
-                            const measurementKey = `${prev.targetAudience}_${newCategory}`;
-                            const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                            const existingMeasurements = persistedMeasurements[measurementKey];
-                            
-                            if (existingMeasurements) {
-                              console.log('[ProductEditor] ✅ Medidas encontradas para', measurementKey, '- restaurando automaticamente');
-                              return {
-                                ...prev,
-                                sizeCategory: newCategory,
-                                smartMeasurements: existingMeasurements,
-                                imagemMedidasCustomizada: existingMeasurements.baseImage,
-                              };
-                            } else {
-                              console.log('[ProductEditor] ⚠️ Nenhuma medida encontrada para', measurementKey, '- será necessário nova análise');
-                              return { ...prev, sizeCategory: newCategory };
-                            }
-                          });
-                          
-                          if (typeof window !== 'undefined') {
-                            localStorage.setItem('lastSizeCategory', newCategory);
-                          }
-                        }}
-                        className={`relative p-4 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? `${colors.selected.border} ${colors.selected.bg} ring-2 ${colors.selected.ring}`
-                            : `border-gray-200 bg-white ${colors.hover}`
-                        }`}
-                      >
-                        <div className="flex flex-col items-center gap-2">
-                          <Icon className={`w-8 h-8 ${
-                            isSelected
-                              ? colors.selected.icon
-                              : 'text-gray-400'
-                          }`} />
-                          <h3 className={`text-sm font-bold ${
-                            isSelected
-                              ? colors.selected.text
-                              : 'text-slate-700'
-                          }`}>
-                            {grid.label}
-                          </h3>
-                          <p className="text-xs text-slate-600">
-                            {grid.examples}
-                          </p>
-                        </div>
-                        {isSelected && (
-                          <div className={`absolute top-2 right-2 w-3 h-3 ${colors.selected.dot} rounded-full`}></div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              
-
-              {/* Caixa de Visualização de Imagens - ABAIXO DOS BOTÕES */}
-              <div className="mb-4">
-                {availableImages.length > 0 ? (
-                  /* Visualizador de Imagens com Navegação */
-                  <div className="relative w-full aspect-[3/4] border-2 border-dashed border-blue-400 rounded-lg overflow-hidden bg-white group">
-                    {/* Imagem Atual */}
-                    <img
-                      src={currentViewingImage.url}
-                      alt={currentViewingImage.label}
-                      className="w-full h-full object-contain bg-white"
-                    />
-                    
-                    {/* Setas de Navegação - Aparecem no hover */}
-                    {availableImages.length > 1 && (
-                      <>
-                        {/* Seta Esquerda */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigateImage('prev');
-                          }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          aria-label="Imagem anterior"
-                        >
-                          <ChevronLeft className="w-6 h-6" />
-                        </button>
-                        
-                        {/* Seta Direita */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigateImage('next');
-                          }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                          aria-label="Próxima imagem"
-                        >
-                          <ChevronRight className="w-6 h-6" />
-                        </button>
-                      </>
-                    )}
-                    
-                    {/* Indicador de Imagem Atual */}
-                    {availableImages.length > 1 && (
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                        {viewingImageIndex + 1} / {availableImages.length}
-                      </div>
-                    )}
+                    });
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('lastTargetAudience', newAudience);
+                    }
+                  }}
+                  className={`relative h-full rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                    state.targetAudience === 'female'
+                      ? 'border-pink-600 bg-pink-50 ring-2 ring-pink-300'
+                      : 'border-gray-200 bg-white hover:border-pink-300'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Venus className={`w-10 h-10 ${
+                      state.targetAudience === 'female' ? 'text-pink-600' : 'text-gray-400'
+                    }`} />
+                    <h3 className={`text-xs font-bold ${
+                      state.targetAudience === 'female' ? 'text-pink-700' : 'text-slate-700'
+                    }`}>
+                      Feminino
+                    </h3>
                   </div>
-                ) : (
-                  /* Caixa de Upload (quando não há imagens) */
+                  {state.targetAudience === 'female' && (
+                    <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-pink-600 rounded-full"></div>
+                  )}
+                </button>
+                
+                {/* Card Masculino */}
+                <button
+                  onClick={() => {
+                    const newAudience: 'female' | 'male' | 'kids' = 'male';
+                    setState(prev => {
+                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                      const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
+                        key.startsWith(`${newAudience}_`)
+                      );
+                      if (measurementKeys.length > 0) {
+                        const lastKey = measurementKeys[measurementKeys.length - 1];
+                        const existingMeasurements = persistedMeasurements[lastKey];
+                        const [, sizeCategory] = lastKey.split('_');
+                        return {
+                          ...prev,
+                          targetAudience: newAudience,
+                          sizeCategory: sizeCategory as typeof prev.sizeCategory,
+                          smartMeasurements: existingMeasurements,
+                          imagemMedidasCustomizada: existingMeasurements.baseImage,
+                        };
+                      } else {
+                        return { ...prev, targetAudience: newAudience };
+                      }
+                    });
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('lastTargetAudience', newAudience);
+                    }
+                  }}
+                  className={`relative h-full rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                    state.targetAudience === 'male'
+                      ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-300'
+                      : 'border-gray-200 bg-white hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Mars className={`w-10 h-10 ${
+                      state.targetAudience === 'male' ? 'text-blue-600' : 'text-gray-400'
+                    }`} />
+                    <h3 className={`text-xs font-bold ${
+                      state.targetAudience === 'male' ? 'text-blue-700' : 'text-slate-700'
+                    }`}>
+                      Masculino
+                    </h3>
+                  </div>
+                  {state.targetAudience === 'male' && (
+                    <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full"></div>
+                  )}
+                </button>
+                
+                {/* Card Infantil */}
+                <button
+                  onClick={() => {
+                    const newAudience: 'female' | 'male' | 'kids' = 'kids';
+                    setState(prev => {
+                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                      const measurementKeys = Object.keys(persistedMeasurements).filter(key => 
+                        key.startsWith(`${newAudience}_`)
+                      );
+                      if (measurementKeys.length > 0) {
+                        const lastKey = measurementKeys[measurementKeys.length - 1];
+                        const existingMeasurements = persistedMeasurements[lastKey];
+                        const [, sizeCategory] = lastKey.split('_');
+                        return {
+                          ...prev,
+                          targetAudience: newAudience,
+                          sizeCategory: sizeCategory as typeof prev.sizeCategory,
+                          smartMeasurements: existingMeasurements,
+                          imagemMedidasCustomizada: existingMeasurements.baseImage,
+                        };
+                      } else {
+                        return { ...prev, targetAudience: newAudience };
+                      }
+                    });
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('lastTargetAudience', 'kids');
+                    }
+                  }}
+                  className={`relative h-full rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                    state.targetAudience === 'kids'
+                      ? 'border-yellow-600 bg-yellow-50 ring-2 ring-yellow-300'
+                      : 'border-gray-200 bg-white hover:border-yellow-300'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1.5">
+                    <Baby className={`w-10 h-10 ${
+                      state.targetAudience === 'kids' ? 'text-yellow-600' : 'text-gray-400'
+                    }`} />
+                    <h3 className={`text-xs font-bold ${
+                      state.targetAudience === 'kids' ? 'text-yellow-700' : 'text-slate-700'
+                    }`}>
+                      Infantil
+                    </h3>
+                  </div>
+                  {state.targetAudience === 'kids' && (
+                    <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-yellow-600 rounded-full"></div>
+                  )}
+                </button>
+              </div>
+              </div>
+              
+              {/* Grade de Tamanho */}
+              <div className="flex-1 flex flex-col">
+                <label className="flex text-xs font-semibold mb-1 px-2 py-2 rounded-lg bg-red-100 border-2 border-red-300 shadow-sm items-center gap-1.5" style={{ color: 'white' }}>
+                  <span className="text-red-800" style={{ color: '#991b1b' }}>Selecione a Grade de Tamanho</span>
+                  <span className="text-red-700 font-bold text-sm" style={{ color: '#b91c1c' }}>*</span>
+                </label>
+                <div className="flex-1 grid grid-cols-3 gap-1 items-stretch">
+                {(state.targetAudience === 'kids' ? SIZE_GRIDS.KIDS : SIZE_GRIDS.ADULT).map((grid) => {
+                  const Icon = grid.icon;
+                  const isSelected = state.sizeCategory === grid.id;
+                  const audienceColors = {
+                    female: {
+                      selected: { border: 'border-pink-600', bg: 'bg-pink-50', ring: 'ring-pink-300', icon: 'text-pink-600', text: 'text-pink-700', dot: 'bg-pink-600' },
+                      hover: 'hover:border-pink-300',
+                    },
+                    male: {
+                      selected: { border: 'border-blue-600', bg: 'bg-blue-50', ring: 'ring-blue-300', icon: 'text-blue-600', text: 'text-blue-700', dot: 'bg-blue-600' },
+                      hover: 'hover:border-blue-300',
+                    },
+                    kids: {
+                      selected: { border: 'border-yellow-600', bg: 'bg-yellow-50', ring: 'ring-yellow-300', icon: 'text-yellow-600', text: 'text-yellow-700', dot: 'bg-yellow-600' },
+                      hover: 'hover:border-yellow-300',
+                    },
+                  };
+                  const colors = audienceColors[state.targetAudience];
+                  return (
+                    <button
+                      key={grid.id}
+                      onClick={() => {
+                        const newCategory = grid.id as 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen';
+                        setState(prev => {
+                          const measurementKey = `${prev.targetAudience}_${newCategory}`;
+                          const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                          const existingMeasurements = persistedMeasurements[measurementKey];
+                          if (existingMeasurements) {
+                            return {
+                              ...prev,
+                              sizeCategory: newCategory,
+                              smartMeasurements: existingMeasurements,
+                              imagemMedidasCustomizada: existingMeasurements.baseImage,
+                            };
+                          } else {
+                            return { ...prev, sizeCategory: newCategory };
+                          }
+                        });
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('lastSizeCategory', newCategory);
+                        }
+                      }}
+                      className={`relative h-full rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                        isSelected
+                          ? `${colors.selected.border} ${colors.selected.bg} ring-2 ${colors.selected.ring}`
+                          : `border-gray-200 bg-white ${colors.hover}`
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2.5 justify-center w-full px-2">
+                        <Icon className={`w-10 h-10 ${
+                          isSelected ? colors.selected.icon : 'text-gray-400'
+                        }`} />
+                        <h3 className={`text-xs font-bold ${
+                          isSelected ? colors.selected.text : 'text-slate-700'
+                        }`}>
+                          {grid.label}
+                        </h3>
+                        <p className="text-[10px] text-slate-600 text-center leading-tight">
+                          {grid.examples}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <div className={`absolute top-1.5 right-1.5 w-2 h-2 ${colors.selected.dot} rounded-full`}></div>
+                      )}
+                    </button>
+                  );
+                })}
+                </div>
+              </div>
+              </div>
+            </div>
+            
+            {/* CAIXA 2: Área para carregar fotos */}
+            <div className="flex-1 border-2 border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col min-w-0" style={{ height: '502.4px' }}>
+              <div className="flex-1 flex flex-col">
+                <label className="flex text-xs font-semibold mb-1 px-2 py-2 rounded-lg bg-red-100 border-2 border-red-300 shadow-sm items-center gap-1.5" style={{ color: 'white' }}>
+                  <span className="text-red-800" style={{ color: '#991b1b' }}>Área para carregar as fotos upload</span>
+                  <span className="text-red-700 font-bold text-sm" style={{ color: '#b91c1c' }}>*</span>
+                </label>
+                <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1">
+                {[
+                  { idx: 1, label: 'Foto Frente', subtitle: '(Calibração Medidas)', required: true },
+                  { idx: 2, label: 'Foto Verso', subtitle: '', required: true },
+                  { idx: 3, label: 'Foto Extra 1', subtitle: '', required: false },
+                  { idx: 4, label: 'Foto Extra 2', subtitle: '', required: false },
+                  { idx: 5, label: 'Foto Extra 3', subtitle: '', required: false },
+                  { idx: 6, label: 'Foto Extra 4', subtitle: '', required: false },
+                ].map(({ idx, label, subtitle, required }) => (
                   <div
-                    ref={dropzoneRef}
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative w-full aspect-[3/4] border-2 border-dashed border-blue-400 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/30 transition-colors bg-white"
+                    key={idx}
+                    className="flex flex-col gap-0.5 w-full h-full"
                   >
-                    {uploading ? (
+                    <div
+                      ref={(el) => {
+                        if (idx === 1) dropzoneRef.current = el;
+                        dropzoneRefs.current[idx - 1] = el;
+                      }}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      onDragOver={handleDragOver}
+                      onClick={() => {
+                        if (idx === 1) {
+                          fileInputRef.current?.click();
+                        } else {
+                          fileInputRefs.current[idx - 1]?.click();
+                        }
+                      }}
+                      className="relative flex-1 w-full border-2 border-blue-300 rounded-lg flex items-center justify-center transition-colors bg-white cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 overflow-hidden"
+                      title="Clique para fazer upload"
+                    >
+                      {idx === 1 && (
+                        <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold shadow-md z-10 whitespace-nowrap" style={{ color: 'white' }}>
+                          Calibração Imagem
+                        </div>
+                      )}
+                      {(idx === 1 && state.rawImageUrl) || (idx > 1 && state.extraImages.find(img => img.idx === idx)?.url) ? (
+                        <>
+                          <img 
+                            src={idx === 1 ? state.rawImageUrl : state.extraImages.find(img => img.idx === idx)?.url || ''} 
+                            alt="Upload" 
+                            className="w-full h-full object-cover rounded-lg" 
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm('Deseja realmente excluir esta imagem?')) {
+                                handleDeleteImage(idx);
+                              }
+                            }}
+                            className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded w-6 h-6 flex items-center justify-center transition-all shadow-lg hover:shadow-xl hover:scale-110 z-20 border-2 border-red-800/30"
+                            title="Excluir imagem"
+                          >
+                            <X className="w-4 h-4 text-white" strokeWidth={3} style={{ color: 'white', stroke: 'white' }} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-10 h-10 text-gray-300" strokeWidth={2} />
+                        </>
+                      )}
+                      {required && (idx === 1 || idx === 2) && (
+                        <div 
+                          className="absolute z-10"
+                          style={{ 
+                            bottom: '0',
+                            right: '0',
+                            width: '0',
+                            height: '0',
+                            borderLeft: '20px solid transparent',
+                            borderBottom: '20px solid #dc2626',
+                            borderBottomRightRadius: '0.5rem'
+                          }}
+                        ></div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          {label}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* CAIXA 3: Visualizar fotos originais */}
+            <div className="border-2 border-slate-200 rounded-lg p-3 bg-slate-50 flex flex-col shrink-0" style={{ width: '282px', flexShrink: 0 }}>
+              <label className="block text-xs font-semibold text-white mb-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 shadow-sm">
+                Visualizar fotos originais upload
+              </label>
+              <div className="flex items-center justify-center relative shrink-0" style={{ width: '250px', height: '444px' }}>
+                {(() => {
+                  // Coletar todas as imagens carregadas
+                  const allImages: string[] = [];
+                  if (state.rawImageUrl) allImages.push(state.rawImageUrl);
+                  state.extraImages.forEach(img => {
+                    if (img.url) allImages.push(img.url);
+                  });
+                  
+                  const currentImage = allImages[uploadViewerIndex];
+                  
+                  if (currentImage) {
+                    return (
+                      <div className="relative w-full h-full border-2 border-green-400 rounded-lg overflow-hidden bg-white">
+                        {/* Setas de Navegação */}
+                        {allImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => setUploadViewerIndex(prev => (prev - 1 + allImages.length) % allImages.length)}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                              title="Foto anterior"
+                            >
+                              <ChevronLeft className="w-5 h-5 text-gray-700" />
+                            </button>
+                            <button
+                              onClick={() => setUploadViewerIndex(prev => (prev + 1) % allImages.length)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                              title="Próxima foto"
+                            >
+                              <ChevronRight className="w-5 h-5 text-gray-700" />
+                            </button>
+                          </>
+                        )}
+                        
+                        {/* Indicador de imagem atual */}
+                        {allImages.length > 1 && (
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 bg-white/90 rounded-full px-3 py-1 shadow-md">
+                            <span className="text-xs font-semibold text-gray-700">
+                              {uploadViewerIndex + 1} / {allImages.length}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Container da imagem com zoom hover */}
+                        <div className="absolute inset-0 flex items-center justify-center overflow-hidden group">
+                          <img
+                            src={currentImage}
+                            alt={`Foto ${uploadViewerIndex + 1}`}
+                            className="max-w-full max-h-full object-contain transition-transform duration-300 ease-in-out group-hover:scale-150 cursor-zoom-in"
+                            draggable={false}
+                          />
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="relative w-full h-full border-2 border-blue-300 rounded-lg flex items-center justify-center bg-gray-50">
+                        <p className="text-xs text-gray-400 text-center px-2">Faça upload de uma foto para visualizar</p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+            </div>
+          </div>
+          
+          {/* Input File Hidden */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file, 1);
+            }}
+            className="hidden"
+          />
+          {[2, 3, 4, 5, 6].map((idx) => (
+            <input
+              key={idx}
+              ref={(el) => {
+                fileInputRefs.current[idx - 1] = el;
+              }}
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileSelect(file, idx);
+              }}
+              className="hidden"
+            />
+          ))}
+        </div>
+      </AnimatedCard>
+      
+      {/* CONTAINER 2: ESTÚDIO CRIATIVO - Tratamento de Imagem */}
+      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+        {/* CardHeader */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 flex items-center gap-3 border-b border-emerald-500/20">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+            2
+          </div>
+          <div className="text-white" style={{ color: 'white' }}>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+              <Sparkles className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+              <span style={{ color: 'white' }}>Estúdio Criativo (IA) - Catálogo</span>
+            </h2>
+            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Gere imagens profissionais com IA: Ghost Mannequin, Modelo Virtual e Looks Combinados</p>
+          </div>
+        </div>
+        
+        <div className="p-4" style={{ height: '580px' }}>
+          {/* LAYOUT EM 3 CAIXAS LADO A LADO */}
+          <div className="flex gap-3 items-start">
+            {/* CAIXA 2: Estrutura de grid 3x2 (trocada para posição 1) */}
+            <div className="flex-1 border-2 border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col min-w-0" style={{ height: '502.4px' }}>
+              <div className="flex-1 flex flex-col">
+                <div className="flex text-xs font-semibold mb-1 px-2 py-2 rounded-lg bg-red-100 border-2 border-red-300 shadow-sm items-center justify-center gap-1.5">
+                  CATÁLOGO IA
+                </div>
+                <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1 items-stretch" style={{ gridAutoRows: '1fr' }}>
+                  {/* Linha 1 */}
+                  {/* Botão 1: FOTO FRENTE (IA) */}
+                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
+                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          FOTO FRENTE
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Botão 2: FOTO COSTAS (IA) */}
+                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
+                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          FOTO COSTAS
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Botão 3: MODELO FRENTE (IA) */}
+                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
+                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          MODELO FRENTE
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Linha 2 */}
+                  {/* Botão 4: MODELO COSTAS (IA) */}
+                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
+                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          MODELO COSTAS
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Botão 5: LOOK COMBINADO (IA) */}
+                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
+                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                      <Sparkles className="w-8 h-8 z-0" stroke="#7c3aed" fill="none" />
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          LOOK COMBINADO
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Botão 6: LOOK COMBINADO (IA) */}
+                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
+                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
+                      <Sparkles className="w-8 h-8 z-0" stroke="#7c3aed" fill="none" />
+                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
+                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
+                          LOOK COMBINADO
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* CAIXA 1: Layout para Looks Combinados (trocada para posição 2) */}
+            <div className="flex-1 border-2 border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col min-w-0" style={{ height: '502.4px' }}>
+              <div className="flex text-xs font-semibold mb-2 px-2 py-2 rounded-lg bg-red-100 border-2 border-red-300 shadow-sm items-center justify-center gap-1.5">
+                GERAR CATALOGO (IA) - Looks Combinados
+              </div>
+              
+              <div className="flex-1 flex flex-col gap-2 overflow-hidden min-h-0">
+                {/* Conjunto 1: Look Combinado #1 */}
+                <div className="flex-1 flex gap-2 overflow-hidden min-h-0">
+                  {/* Coluna Direita: Controles do Combo #1 */}
+                  <div className="flex-1 flex flex-col shrink-0 min-w-0">
+                    <div className="flex flex-col border-2 border-slate-200 rounded-lg p-1.5 bg-white h-full min-w-0 overflow-hidden">
+                      <div className="text-[10px] font-bold text-slate-700 mb-1.5 px-1">Controles do Combo #1</div>
+                      
+                      <div className="grid grid-cols-3 gap-1.5 mb-2 justify-items-stretch min-w-0 w-full flex-1">
+                        {/* Miniatura Principal */}
+                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
+                          <div className="w-full h-full border-2 border-yellow-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
+                            <Star className="w-8 h-8 !text-yellow-500" style={{ color: '#eab308' }} />
+                          </div>
+                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Principal</div>
+                        </div>
+                        
+                        {/* Miniatura Produto 1 */}
+                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
+                          <div className="w-full h-full border-2 border-blue-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
+                            <Package className="w-8 h-8 !text-blue-500" style={{ color: '#3b82f6' }} />
+                          </div>
+                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 1</div>
+                        </div>
+                        
+                        {/* Miniatura Produto 2 */}
+                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
+                          <div className="w-full h-full border-2 border-red-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
+                            <Package className="w-8 h-8 !text-red-500" style={{ color: '#ef4444' }} />
+                          </div>
+                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 2</div>
+                        </div>
+                      </div>
+                      
+                      <button className="w-full py-1.5 px-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 !text-white text-[10px] font-semibold rounded transition-all shadow-md mt-auto" style={{ color: '#ffffff' }}>
+                        Selecionar Look Combinado
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Conjunto 2: Look Combinado #2 */}
+                <div className="flex-1 flex gap-2 overflow-hidden min-h-0">
+                  {/* Coluna Direita: Controles do Combo #2 */}
+                  <div className="flex-1 flex flex-col shrink-0 min-w-0">
+                    <div className="flex flex-col border-2 border-slate-200 rounded-lg p-1.5 bg-white h-full min-w-0 overflow-hidden">
+                      <div className="text-[10px] font-bold text-slate-700 mb-1.5 px-1">Controles do Combo #2</div>
+                      
+                      <div className="grid grid-cols-3 gap-1.5 mb-2 justify-items-stretch min-w-0 w-full flex-1">
+                        {/* Miniatura Principal */}
+                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
+                          <div className="w-full h-full border-2 border-yellow-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
+                            <Star className="w-8 h-8 !text-yellow-500" style={{ color: '#eab308' }} />
+                          </div>
+                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Principal</div>
+                        </div>
+                        
+                        {/* Miniatura Produto 1 */}
+                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
+                          <div className="w-full h-full border-2 border-blue-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
+                            <Package className="w-8 h-8 !text-blue-500" style={{ color: '#3b82f6' }} />
+                          </div>
+                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 1</div>
+                        </div>
+                        
+                        {/* Miniatura Produto 2 */}
+                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
+                          <div className="w-full h-full border-2 border-red-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
+                            <Package className="w-8 h-8 !text-red-500" style={{ color: '#ef4444' }} />
+                          </div>
+                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 2</div>
+                        </div>
+                      </div>
+                      
+                      <button className="w-full py-1.5 px-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 !text-white text-[10px] font-semibold rounded transition-all shadow-md mt-auto" style={{ color: '#ffffff' }}>
+                        Selecionar Look Combinado
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* CAIXA 3: Estrutura de visualização */}
+            <div className="border-2 border-slate-200 rounded-lg p-3 bg-slate-50 flex flex-col shrink-0" style={{ width: '282px', flexShrink: 0 }}>
+              <div className="block text-xs font-semibold mb-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 shadow-sm">
+                Visualizar Fotos Catálogo IA
+              </div>
+              <div className="flex items-center justify-center relative shrink-0" style={{ width: '250px', height: '444px' }}>
+                <div className="relative w-full h-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-gray-50"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Botão Aprovar e Salvar - Embaixo das três caixas */}
+          <div className="mt-4 flex gap-3 items-start">
+            {/* Espaçador para alinhar com CAIXA 2 */}
+            <div className="flex-1"></div>
+            {/* Botão com largura da CAIXA 1 */}
+            <div className="flex-1">
+              <button className="w-full py-2 px-6 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 !text-white text-sm font-bold rounded transition-all shadow-md" style={{ color: '#ffffff' }}>
+                Aprovar e Salvar Todas as Imagens
+              </button>
+            </div>
+            {/* Espaçador para alinhar com CAIXA 3 */}
+            <div className="shrink-0" style={{ width: '282px' }}></div>
+          </div>
+        </div>
+        
+        {/* Modal de Seleção de Produto Complementar */}
+        {showCombinedModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-800">Montar Look - Selecionar Produto Complementar</h3>
+                <button
+                  onClick={() => {
+                    setShowCombinedModal(false);
+                    setSelectedSlotForCombined(null);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    placeholder="Buscar produtos..."
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* TODO: Listar produtos do catálogo aqui */}
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    Lista de produtos será carregada aqui
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowCombinedModal(false);
+                    setSelectedSlotForCombined(null);
+                  }}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implementar seleção de produto e geração de look combinado
+                    setShowCombinedModal(false);
+                    setSelectedSlotForCombined(null);
+                  }}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  Selecionar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatedCard>
+      
+      {/* CONTAINER 3: ANÁLISE INTELIGENTE - Medidas & Ficha Técnica */}
+      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+        {/* CardHeader */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-4 flex items-center gap-3 border-b border-purple-500/20">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+            3
+          </div>
+          <div className="flex-1 text-white" style={{ color: 'white' }}>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+              <Sparkles className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+              <span style={{ color: 'white' }}>Medidas & Ficha Técnica</span>
+            </h2>
+            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Análise inteligente, medidas ABNT e informações do produto geradas automaticamente</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {state.aiAnalysisData && (
+              <button
+                    onClick={async () => {
+                      const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                      if (!imageUrlToAnalyze) {
+                        alert("Por favor, faça upload de uma imagem primeiro.");
+                        return;
+                      }
+                      try {
+                        console.log("[ProductEditor] 🔄 Nova análise com contexto atualizado");
+                        lastAnalyzedUrlRef.current = "";
+                        setState(prev => ({ ...prev, aiAnalysisData: null }));
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await analyzeImage(imageUrlToAnalyze);
+                      } catch (error: any) {
+                        console.error("[ProductEditor] Erro ao fazer nova análise:", error);
+                        alert(`Erro ao fazer nova análise: ${error.message || "Erro desconhecido"}`);
+                      }
+                    }}
+                    disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/30"
+                  >
+                    {analyzing ? (
                       <>
-                        <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-2" />
-                        <p className="text-xs text-slate-600 font-medium whitespace-nowrap">Fazendo upload...</p>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Analisando...</span>
                       </>
                     ) : (
                       <>
-                        <Upload className="w-10 h-10 text-slate-500 mb-2" />
-                        <p className="text-xs text-slate-600 font-medium whitespace-nowrap">
-                          Upload your produto
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1 whitespace-nowrap">
-                          Clique ou arraste uma imagem aqui
-                        </p>
+                        <Sparkles className="w-3 h-3" />
+                        <span>Nova Análise</span>
                       </>
                     )}
-                  </div>
+                  </button>
                 )}
-              </div>
-
-              {/* 3 Caixas de Imagens lado a lado - SEMPRE VISÍVEIS */}
-              <div className="space-y-4">
-                {/* Grid com 3 colunas */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Caixa 1: Imagem Original */}
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap text-center">
-                      Imagem Original
-                    </h4>
-                    <button
-                      onClick={() => {
-                        if (state.rawImageUrl) {
-                          selectImageByType('original');
-                        } else {
-                          fileInputRef.current?.click();
-                        }
-                      }}
-                      className={`relative w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed bg-white transition-all ${
-                        currentViewingImage?.type === 'original' && state.rawImageUrl
-                          ? "border-purple-600 ring-2 ring-purple-500"
-                          : "border-purple-400 hover:border-purple-500"
-                      }`}
-                    >
-                      {state.rawImageUrl ? (
-                        <img
-                          src={state.rawImageUrl}
-                          alt="Imagem original"
-                          className="w-full h-full object-contain bg-white"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-white p-3 min-h-[200px]">
-                          <Upload className="h-10 w-10 mb-1.5 text-gray-600" />
-                          <p className="text-xs text-center text-gray-700 font-medium leading-tight px-2">Clique ou<br />arraste</p>
-                        </div>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      <Upload className="w-3.5 h-3.5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                      <span style={{ color: '#FFFFFF' }}>Trocar Foto</span>
-                    </button>
-                  </div>
-
-                  {/* Caixa 2: Foto Catálogo */}
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap text-center">
-                      Foto Catálogo
-                    </h4>
-                    <button
-                      onClick={() => {
-                        if (state.generatedCatalogImage) {
-                          selectImageByType('catalog');
-                        }
-                      }}
-                      disabled={!state.generatedCatalogImage}
-                      className={`relative w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed bg-white transition-all ${
-                        currentViewingImage?.type === 'catalog' && state.generatedCatalogImage
-                          ? "border-purple-600 ring-2 ring-purple-500"
-                          : "border-purple-400 hover:border-purple-500"
-                      } ${!state.generatedCatalogImage ? "cursor-default" : "cursor-pointer"}`}
-                    >
-                      {state.generatedCatalogImage ? (
-                        <img
-                          src={state.generatedCatalogImage}
-                          alt="Foto catálogo"
-                          className="w-full h-full object-contain bg-white"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-white p-3 min-h-[200px]">
-                          <ImageIcon className="h-10 w-10 mb-1.5 text-gray-600" />
-                          <p className="text-xs text-center text-gray-700 font-medium leading-tight px-2">Nenhuma imagem<br />gerada</p>
-                        </div>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleGenerateCatalog}
-                      disabled={generatingCatalog || !state.rawImageUrl || !state.selectedMannequinId}
-                      className="w-full px-3 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      {generatingCatalog ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                          <span style={{ color: '#FFFFFF' }}>Gerando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                          <span style={{ color: '#FFFFFF' }}>GERAR IA</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Caixa 3: Look Combinado */}
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide whitespace-nowrap text-center">
-                      Look Combinado
-                    </h4>
-                    <button
-                      onClick={() => {
-                        if (state.generatedCombinedImage) {
-                          selectImageByType('combined');
-                        }
-                      }}
-                      disabled={!state.generatedCombinedImage}
-                      className={`relative w-full aspect-[3/4] rounded-lg overflow-hidden border-2 border-dashed bg-white transition-all ${
-                        currentViewingImage?.type === 'combined' && state.generatedCombinedImage
-                          ? "border-purple-600 ring-2 ring-purple-500"
-                          : "border-purple-400 hover:border-purple-500"
-                      } ${!state.generatedCombinedImage ? "cursor-default" : "cursor-pointer"}`}
-                    >
-                      {state.generatedCombinedImage ? (
-                        <img
-                          src={state.generatedCombinedImage}
-                          alt="Look combinado"
-                          className="w-full h-full object-contain bg-white"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 bg-white p-3 min-h-[200px]">
-                          <ImageIcon className="h-10 w-10 mb-1.5 text-gray-600" />
-                          <p className="text-xs text-center text-gray-700 font-medium leading-tight px-2">Nenhuma imagem<br />gerada</p>
-                        </div>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleGenerateCombinedAuto}
-                      disabled={!state.rawImageUrl || !state.selectedMannequinId || !state.aiAnalysisData || generatingCombined}
-                      className="w-full px-3 py-2 text-xs font-semibold text-white bg-pink-600 hover:bg-pink-700 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      {generatingCombined ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                          <span style={{ color: '#FFFFFF' }}>Gerando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-3.5 h-3.5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                          <span style={{ color: '#FFFFFF' }}>GERAR IA</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                <button
+                  onClick={async () => {
+                    const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                    if (!imageUrlToAnalyze) {
+                      alert("Por favor, faça upload de uma imagem primeiro.");
+                      return;
+                    }
+                    try {
+                      console.log("[ProductEditor] 🔄 Regenerando análise para:", imageUrlToAnalyze);
+                      lastAnalyzedUrlRef.current = "";
+                      await analyzeImage(imageUrlToAnalyze);
+                    } catch (error: any) {
+                      console.error("[ProductEditor] Erro ao regenerar análise:", error);
+                      alert(`Erro ao regenerar análise: ${error.message || "Erro desconhecido"}`);
+                    }
+                  }}
+                  disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-purple-100 hover:text-white hover:bg-white/20 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/30"
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Analisando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Regenerar</span>
+                    </>
+                  )}
+                </button>
+          </div>
+        </div>
+        
+        {/* Corpo - Dados e Formulários */}
+        <div className="p-6">
+          <div className="w-full flex flex-col space-y-4">
+              {/* Subseção: Marketing & SEO */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Marketing & SEO
+                </h3>
+              
+                {/* Nome Sugerido */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">
+                    Nome Sugerido
+                  </label>
+                  {analyzing && !state.aiAnalysisData ? (
+                    <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                  ) : (
+                    <input
+                      type="text"
+                      value={state.aiAnalysisData?.nome_sugerido || ""}
+                      onChange={(e) =>
+                        setState(prev => ({
+                          ...prev,
+                          aiAnalysisData: prev.aiAnalysisData
+                            ? { ...prev.aiAnalysisData, nome_sugerido: e.target.value }
+                            : { nome_sugerido: e.target.value },
+                        }))
+                      }
+                      placeholder={analyzing ? "Analisando..." : "Aguardando análise..."}
+                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                    />
+                  )}
                 </div>
 
+                {/* Descrição SEO */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Descrição Comercial/SEO
+                    </label>
+                    <span className="text-xs font-medium text-slate-500">
+                      {(state.aiAnalysisData?.descricao_seo?.length || 0)} caracteres
+                    </span>
+                  </div>
+                  {analyzing && !state.aiAnalysisData ? (
+                    <div className="space-y-1">
+                      <div className="h-3 bg-slate-200 rounded animate-pulse w-full" />
+                      <div className="h-3 bg-slate-200 rounded animate-pulse w-5/6" />
+                      <div className="h-3 bg-slate-200 rounded animate-pulse w-4/6" />
+                    </div>
+                  ) : (
+                    <textarea
+                      value={state.aiAnalysisData?.descricao_seo || ""}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setState(prev => ({
+                          ...prev,
+                          aiAnalysisData: prev.aiAnalysisData
+                            ? { ...prev.aiAnalysisData, descricao_seo: newValue }
+                            : { descricao_seo: newValue },
+                        }));
+                      }}
+                      rows={4}
+                      placeholder={analyzing ? "Analisando imagem..." : "Aguardando análise da imagem..."}
+                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y transition-all min-h-[80px]"
+                    />
+                  )}
+                </div>
               </div>
 
-              {/* Input File Hidden */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileSelect(file);
-                }}
-                className="hidden"
-              />
+              {/* Seção: Ficha Técnica Automática */}
+              <div className="space-y-2 pt-2 border-t border-slate-200">
+                <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Ficha Técnica Automática
+                </h3>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Categoria (Dropdown) */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Categoria Sugerida
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (
+                      <select
+                        value={state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || ""}
+                        onChange={(e) =>
+                          setState(prev => ({
+                            ...prev,
+                            aiAnalysisData: prev.aiAnalysisData
+                              ? { 
+                                  ...prev.aiAnalysisData, 
+                                  suggested_category: e.target.value,
+                                  categoria_sugerida: e.target.value 
+                                }
+                              : { suggested_category: e.target.value, categoria_sugerida: e.target.value },
+                          }))
+                        }
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                      >
+                        <option value="">Selecione uma categoria</option>
+                        {AVAILABLE_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Tipo de Produto */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Tipo de Produto
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (
+                      <input
+                        type="text"
+                        value={state.aiAnalysisData?.product_type || ""}
+                        onChange={(e) => {
+                          console.log("[ProductEditor] Atualizando product_type:", e.target.value);
+                          setState(prev => ({
+                            ...prev,
+                            aiAnalysisData: prev.aiAnalysisData
+                              ? { ...prev.aiAnalysisData, product_type: e.target.value }
+                              : { product_type: e.target.value },
+                          }));
+                        }}
+                        placeholder="Ex: Blazer, Vestido, Tênis"
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                      />
+                    )}
+                  </div>
+
+                  {/* Tecido Detectado */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Tecido Detectado
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (
+                      <input
+                        type="text"
+                        value={state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado || ""}
+                        onChange={(e) => {
+                          console.log("[ProductEditor] Atualizando detected_fabric:", e.target.value);
+                          setState(prev => ({
+                            ...prev,
+                            aiAnalysisData: prev.aiAnalysisData
+                              ? { 
+                                  ...prev.aiAnalysisData, 
+                                  detected_fabric: e.target.value,
+                                  tecido_estimado: e.target.value 
+                                }
+                              : { detected_fabric: e.target.value, tecido_estimado: e.target.value },
+                          }));
+                        }}
+                        placeholder="Ex: Algodão, Linho, Couro"
+                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                      />
+                    )}
+                  </div>
+
+                  {/* Cores Predominantes */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Cores Predominantes
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : state.aiAnalysisData?.colors_by_item && Array.isArray(state.aiAnalysisData.colors_by_item) && state.aiAnalysisData.colors_by_item.length > 0 ? (
+                      /* CONJUNTO: Mostrar cores por item (prioridade) */
+                      <div className="space-y-2">
+                        {state.aiAnalysisData.colors_by_item.map((itemData, itemIdx) => {
+                          // Validar se há cores válidas neste item
+                          const validColors = (itemData.colors || []).filter(color => 
+                            color?.hex && color.hex.startsWith('#') && 
+                            color?.name && color.name.trim().length > 0
+                          );
+                          
+                          if (validColors.length === 0) return null;
+                          
+                          return (
+                            <div key={itemIdx} className="space-y-1.5 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-800 uppercase">
+                                  {itemData.item || `Item ${itemIdx + 1}`}:
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 items-center">
+                                {validColors.map((color, colorIdx) => {
+                                  const colorHex = color.hex || "#808080";
+                                  const colorName = color.name || "Não especificado";
+                                  return (
+                                    <div
+                                      key={colorIdx}
+                                      className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-300 rounded shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                      <div
+                                        className="w-4 h-4 rounded-full border-2 border-slate-300"
+                                        style={{ backgroundColor: colorHex }}
+                                      />
+                                      <span className="text-xs text-slate-700 font-medium">
+                                        {colorName}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : state.aiAnalysisData?.dominant_colors && Array.isArray(state.aiAnalysisData.dominant_colors) && state.aiAnalysisData.dominant_colors.length > 0 ? (
+                      /* PRODUTO ÚNICO: Mostrar cores gerais */
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {state.aiAnalysisData.dominant_colors.map((color, idx) => {
+                          const colorHex = color?.hex || "#808080";
+                          const colorName = color?.name || "Não especificado";
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded shadow-sm"
+                            >
+                              <div
+                                className="w-4 h-4 rounded-full border border-slate-200"
+                                style={{ backgroundColor: colorHex }}
+                              />
+                              <span className="text-xs text-slate-700 font-medium">
+                                {colorName}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 py-1">
+                        {state.aiAnalysisData ? "Nenhuma cor detectada" : "Cores serão detectadas após a análise"}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-            </AnimatedCard>
+
+            </div>
+          
+          {/* Editor de Medidas Inteligente - Abaixo do layout Clean Studio */}
+          <div className="mt-6 pt-6 border-t border-slate-200">
+            <SmartMeasurementEditor
+                  rawImageUrl={state.rawImageUrl}
+                  rawImageFile={state.rawImageFile}
+                  lojistaId={lojistaId}
+                  produtoId={produtoId}
+                  productInfo={{
+                    category: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida,
+                    productType: state.aiAnalysisData?.product_type,
+                    color: state.aiAnalysisData?.dominant_colors?.[0]?.name || state.aiAnalysisData?.cor_predominante,
+                    material: state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado,
+                    style: state.aiAnalysisData?.product_type,
+                    standardMeasurements: state.aiAnalysisData?.standard_measurements,
+                  }}
+                  sizeCategory={state.sizeCategory}
+                  targetAudience={state.targetAudience}
+                  variacoes={state.variacoes}
+                  onImageUpload={async (file) => {
+                    await handleMedidasFileSelect(file);
+                  }}
+                  onMeasurementsChange={useCallback((data: SmartGuideData) => {
+                    setState(prev => {
+                      const currentBaseImage = prev.smartMeasurements?.baseImage;
+                      if (currentBaseImage === data.baseImage && 
+                          JSON.stringify(prev.smartMeasurements) === JSON.stringify(data)) {
+                        return prev;
+                      }
+                      
+                      const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
+                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                      
+                      return {
+                        ...prev,
+                        smartMeasurements: data,
+                        imagemMedidasCustomizada: data.baseImage,
+                        persistedMeasurementsByAudience: {
+                          ...persistedMeasurements,
+                          [measurementKey]: data,
+                        },
+                      };
+                    });
+                  }, [])}
+                  onSave={async (data) => {
+                    setState(prev => {
+                      const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
+                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                      
+                      return {
+                        ...prev,
+                        smartMeasurements: data,
+                        imagemMedidasCustomizada: data.baseImage,
+                        persistedMeasurementsByAudience: {
+                          ...persistedMeasurements,
+                          [measurementKey]: data,
+                        },
+                      };
+                    });
+                    console.log('[ProductEditor] Medidas salvas e persistidas:', data);
+                  }}
+                  initialData={useMemo(() => {
+                    const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
+                    const persistedMeasurements = state.persistedMeasurementsByAudience || {};
+                    const persistedData = persistedMeasurements[measurementKey];
+                    
+                    if (persistedData) {
+                      console.log('[ProductEditor] 📦 Usando medidas persistidas para', measurementKey);
+                      return persistedData;
+                    }
+                    
+                    const data = state.smartMeasurements;
+                    console.log('[ProductEditor] 📦 Usando smartMeasurements como initialData:', {
+                      hasData: !!data,
+                      hasSizes: !!(data?.sizes && Object.keys(data.sizes).length > 0),
+                      sizesKeys: data?.sizes ? Object.keys(data.sizes) : [],
+                    });
+                    return data;
+                  }, [state.smartMeasurements, state.targetAudience, state.sizeCategory, state.persistedMeasurementsByAudience])}
+                  uploading={uploadingMedidas}
+                  variacoes={state.variacoes}
+                />
+          </div>
         </div>
+      </AnimatedCard>
 
-        {/* === COLUNA DIREITA: O Hub de Dados === */}
-        <div className="w-full lg:flex-1 flex flex-col">
-            {/* Card Unificado: Preenchimento Obrigatório + Análise Inteligente */}
-            <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm flex-1 flex flex-col">
-              {/* Cabeçalho Vermelho/Rosa - Preenchimento Obrigatório no Topo */}
-              <div className="bg-gradient-to-r from-red-600 to-rose-600 px-3 h-[52px] flex items-center justify-between">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-                  <AlertCircle className="w-7 h-7 text-white" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                  <span style={{ color: '#FFFFFF' }}>Preenchimento Obrigatório *</span>
-                </h2>
-                <span className="opacity-0 pointer-events-none">
-                  {/* Espaço reservado para alinhar com o cabeçalho do Estúdio */}
-                </span>
-              </div>
-              
-              {/* Corpo Branco - Conteúdo Unificado */}
-              <div className="p-3 space-y-3 bg-white flex-1 flex flex-col">
-                {/* SEÇÃO 1: Preenchimento Obrigatório (No Topo) */}
-                <div className="space-y-2 pb-3 border-b border-slate-200">
+      {/* CONTAINER 4: DADOS COMERCIAIS - Preço e Estoque */}
+      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+        {/* CardHeader */}
+        <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center gap-3 border-b border-red-500/20">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+            4
+          </div>
+          <div className="text-white" style={{ color: 'white' }}>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+              <AlertCircle className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+              <span style={{ color: 'white' }}>Preço e Estoque</span>
+            </h2>
+            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Configure os dados comerciais e publique o produto</p>
+          </div>
+        </div>
+        
+        {/* Corpo - Campos Comerciais */}
+        <div className="p-6 space-y-4">
+          {/* SEÇÃO: Preenchimento Obrigatório */}
+          <div className="space-y-4">
                   {/* Linha 1: Preços */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Preço (R$) <span style={{ color: '#ef4444', fontWeight: 'bold' }}>*</span>
+                      <label className="block text-xs font-medium text-slate-700 mb-0.5">
+                        Preço (R$) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -2303,31 +3284,11 @@ export function ProductEditorLayout({
                           }));
                         }}
                         placeholder="0,00"
-                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
-                        style={{ 
-                          border: '2px solid #ef4444', 
-                          borderColor: '#ef4444',
-                          borderWidth: '2px'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            el.style.setProperty('border', '2px solid #ef4444', 'important');
-                            el.style.setProperty('border-color', '#ef4444', 'important');
-                            el.style.setProperty('border-width', '2px', 'important');
-                          }
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#dc2626';
-                          e.target.style.borderWidth = '2px';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#ef4444';
-                          e.target.style.borderWidth = '2px';
-                        }}
+                        className="w-full px-2 py-1.5 text-sm rounded-lg bg-white text-slate-900 border-2 border-red-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                      <label className="block text-xs font-medium text-slate-700 mb-0.5">
                         Preço Promocional (R$)
                       </label>
                       <input
@@ -2341,27 +3302,7 @@ export function ProductEditorLayout({
                           }));
                         }}
                         placeholder="0,00"
-                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
-                        style={{ 
-                          border: '2px solid #ef4444', 
-                          borderColor: '#ef4444',
-                          borderWidth: '2px'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            el.style.setProperty('border', '2px solid #ef4444', 'important');
-                            el.style.setProperty('border-color', '#ef4444', 'important');
-                            el.style.setProperty('border-width', '2px', 'important');
-                          }
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#dc2626';
-                          e.target.style.borderWidth = '2px';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#ef4444';
-                          e.target.style.borderWidth = '2px';
-                        }}
+                        className="w-full px-2 py-1.5 text-sm rounded-lg bg-white text-slate-900 border-2 border-red-500"
                       />
                     </div>
                   </div>
@@ -2369,8 +3310,8 @@ export function ProductEditorLayout({
                   {/* Linha 2: SKU e Estoque */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        SKU <span style={{ color: '#ef4444', fontWeight: 'bold' }}>*</span>
+                      <label className="block text-xs font-medium text-slate-700 mb-0.5">
+                        SKU <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -2383,43 +3324,18 @@ export function ProductEditorLayout({
                           }));
                         }}
                         onFocus={() => {
-                          // Se o SKU estiver vazio ao focar, permitir regeneração
                           if (!state.manualData.sku || !state.manualData.sku.trim()) {
                             skuPrincipalEditadoManualRef.current = false;
                           }
                         }}
                         placeholder="Auto-gerado"
                         title="SKU gerado automaticamente. Você pode editar se necessário."
-                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
-                        style={{ 
-                          border: '2px solid #ef4444', 
-                          borderColor: '#ef4444',
-                          borderWidth: '2px'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            el.style.setProperty('border', '2px solid #ef4444', 'important');
-                            el.style.setProperty('border-color', '#ef4444', 'important');
-                            el.style.setProperty('border-width', '2px', 'important');
-                          }
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#dc2626';
-                          e.target.style.borderWidth = '2px';
-                          // Se o SKU estiver vazio ao focar, permitir regeneração
-                          if (!state.manualData.sku || !state.manualData.sku.trim()) {
-                            skuPrincipalEditadoManualRef.current = false;
-                          }
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#ef4444';
-                          e.target.style.borderWidth = '2px';
-                        }}
+                        className="w-full px-2 py-1.5 text-sm rounded-lg bg-white text-slate-900 border-2 border-red-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Estoque (Qtd Total) <span style={{ color: '#ef4444', fontWeight: 'bold' }}>*</span>
+                      <label className="block text-xs font-medium text-slate-700 mb-0.5">
+                        Estoque (Qtd Total) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="number"
@@ -2431,35 +3347,15 @@ export function ProductEditorLayout({
                           }))
                         }
                         placeholder="0"
-                        className="w-full px-4 py-2 rounded-lg bg-white text-slate-900"
-                        style={{ 
-                          border: '2px solid #ef4444', 
-                          borderColor: '#ef4444',
-                          borderWidth: '2px'
-                        }}
-                        ref={(el) => {
-                          if (el) {
-                            el.style.setProperty('border', '2px solid #ef4444', 'important');
-                            el.style.setProperty('border-color', '#ef4444', 'important');
-                            el.style.setProperty('border-width', '2px', 'important');
-                          }
-                        }}
-                        onFocus={(e) => {
-                          e.target.style.borderColor = '#dc2626';
-                          e.target.style.borderWidth = '2px';
-                        }}
-                        onBlur={(e) => {
-                          e.target.style.borderColor = '#ef4444';
-                          e.target.style.borderWidth = '2px';
-                        }}
+                        className="w-full px-2 py-1.5 text-sm rounded-lg bg-white text-slate-900 border-2 border-red-500"
                       />
                     </div>
                   </div>
 
                   {/* Switch: Este produto possui variações? */}
-                  <div className="flex items-center justify-between py-2">
-                    <label className="text-sm font-medium text-slate-700">
-                      Este produto possui variações? (Ex: Cores, Tamanhos)
+                  <div className="flex items-center justify-between py-1">
+                    <label className="text-xs font-medium text-slate-700">
+                      Este produto possui variações?
                     </label>
                     <button
                       type="button"
@@ -2506,8 +3402,8 @@ export function ProductEditorLayout({
 
                   {/* ÁREA DINÂMICA: Grade de Estoque (quando variações ativadas) - COMPACTA */}
                   {state.temVariacoes && (
-                    <div className="border-t border-slate-200 pt-3 space-y-2">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="border-t border-slate-200 pt-2 space-y-1.5">
+                      <div className="flex items-center justify-between mb-1">
                         <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
                           Grade de Estoque
                         </h4>
@@ -2533,16 +3429,16 @@ export function ProductEditorLayout({
                       </div>
                       
                       {/* Cabeçalho da Tabela de Variações */}
-                      <div className="grid grid-cols-12 gap-1 mb-1 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                        <div className="col-span-2">Tamanho</div>
+                      <div className="grid grid-cols-12 gap-0.5 mb-0.5 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        <div className="col-span-2">Tam</div>
                         <div className="col-span-2">Ref</div>
-                        <div className="col-span-2">Estoque</div>
+                        <div className="col-span-2">Est</div>
                         <div className="col-span-5">SKU</div>
                         <div className="col-span-1"></div>
                       </div>
                       
                       {/* Lista de Variações - Compacta */}
-                      <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                      <div className="space-y-0.5 max-h-40 overflow-y-auto pr-1">
                         {state.variacoes.map((variacao) => (
                           <VariacaoRow
                             key={variacao.id}
@@ -2601,90 +3497,10 @@ export function ProductEditorLayout({
                     </div>
                   )}
 
-                  {/* Editor de Medidas Inteligente - Abaixo da Grade de Estoque */}
-                  <SmartMeasurementEditor
-                    rawImageUrl={state.rawImageUrl}
-                    rawImageFile={state.rawImageFile}
-                    lojistaId={lojistaId}
-                    produtoId={produtoId}
-                    productInfo={{
-                      category: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida,
-                      productType: state.aiAnalysisData?.product_type,
-                      color: state.aiAnalysisData?.dominant_colors?.[0]?.name || state.aiAnalysisData?.cor_predominante,
-                      material: state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado,
-                      style: state.aiAnalysisData?.product_type,
-                      standardMeasurements: state.aiAnalysisData?.standard_measurements, // Medidas pré-coletadas da análise
-                    }}
-                    sizeCategory={state.sizeCategory}
-                    targetAudience={state.targetAudience}
-                    variacoes={state.variacoes}
-                    onImageUpload={async (file) => {
-                      await handleMedidasFileSelect(file);
-                    }}
-                    onMeasurementsChange={useCallback((data: SmartGuideData) => {
-                      setState(prev => {
-                        // Verificar se os dados realmente mudaram para evitar re-renderizações desnecessárias
-                        const currentBaseImage = prev.smartMeasurements?.baseImage;
-                        if (currentBaseImage === data.baseImage && 
-                            JSON.stringify(prev.smartMeasurements) === JSON.stringify(data)) {
-                          return prev;
-                        }
-                        
-                        // CRÍTICO: Armazenar medidas por público alvo e grade para reutilização
-                        const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
-                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                        
-                        return {
-                          ...prev,
-                          smartMeasurements: data,
-                          imagemMedidasCustomizada: data.baseImage, // Manter compatibilidade
-                          persistedMeasurementsByAudience: {
-                            ...persistedMeasurements,
-                            [measurementKey]: data, // Armazenar medidas para esta combinação de público alvo + grade
-                          },
-                        };
-                      });
-                    }, [])}
-                    onSave={async (data) => {
-                      // Salvar medidas no estado e persistir por público alvo + grade
-                      setState(prev => {
-                        const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
-                        const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                        
-                        return {
-                          ...prev,
-                          smartMeasurements: data,
-                          imagemMedidasCustomizada: data.baseImage,
-                          persistedMeasurementsByAudience: {
-                            ...persistedMeasurements,
-                            [measurementKey]: data, // Persistir medidas para esta combinação
-                          },
-                        };
-                      });
-                      console.log('[ProductEditor] Medidas salvas e persistidas:', data);
-                    }}
-                    initialData={(() => {
-                      // CRÍTICO: Verificar se temos medidas persistidas para esta combinação de público alvo + grade
-                      // Se tiver, usar elas; caso contrário, usar smartMeasurements padrão
-                      const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
-                      const persistedMeasurements = state.persistedMeasurementsByAudience || {};
-                      const persistedData = persistedMeasurements[measurementKey];
-                      
-                      if (persistedData) {
-                        console.log('[ProductEditor] 📦 Usando medidas persistidas para', measurementKey);
-                        return persistedData;
-                      }
-                      
-                      return state.smartMeasurements;
-                    })()}
-                    uploading={uploadingMedidas}
-                    variacoes={state.variacoes}
-                  />
-
                   {/* Toggles */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
+                  <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-200">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700">
+                      <label className="text-xs font-medium text-slate-700">
                         Ativar no Site
                       </label>
                       <button
@@ -2706,7 +3522,7 @@ export function ProductEditorLayout({
                       </button>
                     </div>
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium text-slate-700">
+                      <label className="text-xs font-medium text-slate-700">
                         Destaque Promocional
                       </label>
                       <button
@@ -2728,361 +3544,9 @@ export function ProductEditorLayout({
                       </button>
                     </div>
                   </div>
-                </div>
-
-                {/* SEÇÃO 2: Análise Inteligente & SEO (Accordion Colapsável) */}
-                <div className="space-y-2 pt-2">
-                  {/* Cabeçalho Roxo Interno - Clicável para Expandir/Colapsar */}
-                  <button
-                    onClick={() => setAnaliseAccordionOpen(!analiseAccordionOpen)}
-                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-700 px-3 h-[52px] flex items-center justify-between rounded-lg hover:from-purple-700 hover:to-indigo-800 transition-all"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-7 h-7 text-white" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                      <div className="flex flex-col items-start">
-                        <h2 className="text-lg font-bold text-white" style={{ color: '#FFFFFF' }}>
-                          Análise Inteligente & SEO
-                        </h2>
-                        {!analiseAccordionOpen && state.aiAnalysisData && (
-                          <p className="text-xs text-white/80" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                            {state.aiAnalysisData.nome_sugerido || state.aiAnalysisData.product_type || 'Análise concluída'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {analiseAccordionOpen ? (
-                        <ChevronUp className="w-5 h-5 text-white" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-white" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
-                      )}
-                    </div>
-                  </button>
-
-                  {/* Conteúdo do Accordion */}
-                  {analiseAccordionOpen && (
-                    <div className="space-y-2 pt-2">
-                      {/* Botões de Análise - Movido para dentro do accordion */}
-                      <div className="flex justify-end gap-2">
-                        {/* Botão Nova Análise - Sempre visível quando há análise */}
-                        {state.aiAnalysisData && (
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
-                              if (!imageUrlToAnalyze) {
-                                alert("Por favor, faça upload de uma imagem primeiro.");
-                                return;
-                              }
-                              try {
-                                console.log("[ProductEditor] 🔄 Nova análise com contexto atualizado");
-                                // Resetar análise anterior
-                                lastAnalyzedUrlRef.current = "";
-                                setState(prev => ({
-                                  ...prev,
-                                  aiAnalysisData: null,
-                                }));
-                                // Aguardar um momento para o estado atualizar
-                                await new Promise(resolve => setTimeout(resolve, 100));
-                                // Fazer nova análise com contexto atual
-                                await analyzeImage(imageUrlToAnalyze);
-                              } catch (error: any) {
-                                console.error("[ProductEditor] Erro ao fazer nova análise:", error);
-                                alert(`Erro ao fazer nova análise: ${error.message || "Erro desconhecido"}`);
-                              }
-                            }}
-                            disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                            title="Fazer nova análise com o público alvo e grade selecionados"
-                          >
-                            {analyzing ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Analisando...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="w-4 h-4" />
-                                <span>Nova Análise</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-                        
-                        {/* Botão Regenerar - Alternativa */}
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
-                            if (!imageUrlToAnalyze) {
-                              alert("Por favor, faça upload de uma imagem primeiro.");
-                              return;
-                            }
-                            try {
-                              console.log("[ProductEditor] 🔄 Regenerando análise para:", imageUrlToAnalyze);
-                              lastAnalyzedUrlRef.current = "";
-                              await analyzeImage(imageUrlToAnalyze);
-                            } catch (error: any) {
-                              console.error("[ProductEditor] Erro ao regenerar análise:", error);
-                              alert(`Erro ao regenerar análise: ${error.message || "Erro desconhecido"}`);
-                            }
-                          }}
-                          disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-purple-300"
-                        >
-                          {analyzing ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span>Analisando...</span>
-                            </>
-                          ) : (
-                            <>
-                              <RotateCcw className="w-4 h-4" />
-                              <span>Regenerar</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Subseção: Marketing & SEO */}
-                      <div className="space-y-2 pt-2">
-                        <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                          Marketing & SEO
-                        </h3>
-                      
-                        {/* Nome Sugerido */}
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-slate-700">
-                            Nome Sugerido
-                          </label>
-                          {analyzing && !state.aiAnalysisData ? (
-                            <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
-                          ) : (
-                            <input
-                              type="text"
-                              value={state.aiAnalysisData?.nome_sugerido || ""}
-                              onChange={(e) =>
-                                setState(prev => ({
-                                  ...prev,
-                                  aiAnalysisData: prev.aiAnalysisData
-                                    ? { ...prev.aiAnalysisData, nome_sugerido: e.target.value }
-                                    : { nome_sugerido: e.target.value },
-                                }))
-                              }
-                              placeholder={analyzing ? "Analisando..." : "Aguardando análise..."}
-                              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                            />
-                          )}
-                        </div>
-
-                        {/* Descrição SEO */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label className="block text-sm font-medium text-slate-700">
-                              Descrição Comercial/SEO
-                            </label>
-                            <span className="text-xs font-medium text-slate-500">
-                              {(state.aiAnalysisData?.descricao_seo?.length || 0)} caracteres
-                            </span>
-                          </div>
-                          {analyzing && !state.aiAnalysisData ? (
-                            <div className="space-y-2">
-                              <div className="h-4 bg-slate-200 rounded animate-pulse w-full" />
-                              <div className="h-4 bg-slate-200 rounded animate-pulse w-5/6" />
-                              <div className="h-4 bg-slate-200 rounded animate-pulse w-4/6" />
-                            </div>
-                          ) : (
-                            <textarea
-                              value={state.aiAnalysisData?.descricao_seo || ""}
-                              onChange={(e) => {
-                                const newValue = e.target.value; // Sem limite de caracteres
-                                setState(prev => ({
-                                  ...prev,
-                                  aiAnalysisData: prev.aiAnalysisData
-                                    ? { ...prev.aiAnalysisData, descricao_seo: newValue }
-                                    : { descricao_seo: newValue },
-                                }));
-                              }}
-                              rows={6}
-                              placeholder={analyzing ? "Analisando imagem..." : "Aguardando análise da imagem..."}
-                              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y transition-all min-h-[120px]"
-                            />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Seção B: Ficha Técnica Automática */}
-                      <div className="space-y-2 pt-2">
-                        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                          Ficha Técnica Automática
-                        </h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {/* Categoria (Dropdown) */}
-                          <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                              Categoria Sugerida
-                            </label>
-                            {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
-                            ) : (
-                              <select
-                                value={state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || ""}
-                                onChange={(e) =>
-                                  setState(prev => ({
-                                    ...prev,
-                                    aiAnalysisData: prev.aiAnalysisData
-                                      ? { 
-                                          ...prev.aiAnalysisData, 
-                                          suggested_category: e.target.value,
-                                          categoria_sugerida: e.target.value 
-                                        }
-                                      : { suggested_category: e.target.value, categoria_sugerida: e.target.value },
-                                  }))
-                                }
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                              >
-                                <option value="">Selecione uma categoria</option>
-                                {AVAILABLE_CATEGORIES.map(cat => (
-                                  <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-
-                          {/* Tipo de Produto */}
-                          <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                              Tipo de Produto
-                            </label>
-                            {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
-                            ) : (
-                              <input
-                                type="text"
-                                value={state.aiAnalysisData?.product_type || ""}
-                                onChange={(e) => {
-                                  console.log("[ProductEditor] Atualizando product_type:", e.target.value);
-                                  setState(prev => ({
-                                    ...prev,
-                                    aiAnalysisData: prev.aiAnalysisData
-                                      ? { ...prev.aiAnalysisData, product_type: e.target.value }
-                                      : { product_type: e.target.value },
-                                  }));
-                                }}
-                                placeholder="Ex: Blazer, Vestido, Tênis"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                              />
-                            )}
-                          </div>
-
-                          {/* Tecido Detectado */}
-                          <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                              Tecido Detectado
-                            </label>
-                            {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
-                            ) : (
-                              <input
-                                type="text"
-                                value={state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado || ""}
-                                onChange={(e) => {
-                                  console.log("[ProductEditor] Atualizando detected_fabric:", e.target.value);
-                                  setState(prev => ({
-                                    ...prev,
-                                    aiAnalysisData: prev.aiAnalysisData
-                                      ? { 
-                                          ...prev.aiAnalysisData, 
-                                          detected_fabric: e.target.value,
-                                          tecido_estimado: e.target.value 
-                                        }
-                                      : { detected_fabric: e.target.value, tecido_estimado: e.target.value },
-                                  }));
-                                }}
-                                placeholder="Ex: Algodão, Linho, Couro"
-                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                              />
-                            )}
-                          </div>
-
-                          {/* Cores Predominantes */}
-                          <div className="space-y-2">
-                            <label className="block text-sm font-medium text-slate-700">
-                              Cores Predominantes
-                            </label>
-                            {analyzing && !state.aiAnalysisData ? (
-                              <div className="h-11 bg-slate-200 rounded-lg animate-pulse" />
-                            ) : state.aiAnalysisData?.colors_by_item && Array.isArray(state.aiAnalysisData.colors_by_item) && state.aiAnalysisData.colors_by_item.length > 0 ? (
-                              /* CONJUNTO: Mostrar cores por item */
-                              <div className="space-y-2.5">
-                                {state.aiAnalysisData.colors_by_item.map((itemData, itemIdx) => (
-                                  <div key={itemIdx} className="space-y-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs font-bold text-slate-700">
-                                        {itemData.item}:
-                                      </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 items-center">
-                                      {itemData.colors.map((color, colorIdx) => {
-                                        const colorHex = color?.hex || "#808080";
-                                        const colorName = color?.name || "Não especificado";
-                                        return (
-                                          <div
-                                            key={colorIdx}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-white border-2 border-slate-200 rounded-lg shadow-sm"
-                                          >
-                                            <div
-                                              className="w-5 h-5 rounded-full border-2 border-slate-200"
-                                              style={{ backgroundColor: colorHex }}
-                                            />
-                                            <span className="text-sm text-slate-700 font-medium">
-                                              {colorName}
-                                            </span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : state.aiAnalysisData?.dominant_colors && Array.isArray(state.aiAnalysisData.dominant_colors) && state.aiAnalysisData.dominant_colors.length > 0 ? (
-                              /* PRODUTO ÚNICO: Mostrar cores gerais */
-                              <div className="flex flex-wrap gap-2 items-center">
-                                {state.aiAnalysisData.dominant_colors.map((color, idx) => {
-                                  // Garantir que color tenha hex e name
-                                  const colorHex = color?.hex || "#808080";
-                                  const colorName = color?.name || "Não especificado";
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm"
-                                    >
-                                      <div
-                                        className="w-5 h-5 rounded-full border-2 border-slate-200"
-                                        style={{ backgroundColor: colorHex }}
-                                      />
-                                      <span className="text-sm text-slate-700 font-medium">
-                                        {colorName}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-slate-500 py-2">
-                                {state.aiAnalysisData ? "Nenhuma cor detectada" : "Cores serão detectadas após a análise"}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </AnimatedCard>
+          </div>
         </div>
+      </AnimatedCard>
       </div>
 
       {/* Modal de Combinação Manual */}
