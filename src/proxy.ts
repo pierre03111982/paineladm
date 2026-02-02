@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Middleware para proteger rotas administrativas
+ * Proxy para proteger rotas administrativas (Next.js 16+)
  * Verifica se o usuário está autenticado e tem permissão de admin
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Proteger todas as rotas /admin/*
@@ -46,4 +46,3 @@ export const config = {
     "/admin/:path*",
   ],
 };
-
