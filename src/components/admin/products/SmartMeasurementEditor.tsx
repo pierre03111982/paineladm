@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -45,6 +45,10 @@ interface SmartMeasurementEditorProps {
   // Imagem original do produto
   rawImageUrl?: string;
   rawImageFile?: File | null;
+  
+  // Calibração por objeto de referência (ex.: cartão de crédito)
+  calibrationScale?: number | null;
+  isCalibratedByCard?: boolean;
   
   // ID do lojista (obrigatório para processamento)
   lojistaId: string;
@@ -677,6 +681,8 @@ function getSizesForGrade(
 export function SmartMeasurementEditor({
   rawImageUrl,
   rawImageFile,
+  calibrationScale,
+  isCalibratedByCard = false,
   lojistaId,
   produtoId,
   productInfo,
@@ -693,6 +699,8 @@ export function SmartMeasurementEditor({
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const lastImageKeyRef = useRef<string>("");
   const isProcessingRef = useRef<boolean>(false);
+  // Evitar sobrescrever measurementValues quando o efeito de initialData reexecutar (ex.: mesma referência de dados)
+  const initialDataAppliedRef = useRef<string>("");
   
   // Determinar tamanhos disponíveis: priorizar grade selecionada, depois variações, depois padrão
   const gradeSizes = getSizesForGrade(sizeCategory, targetAudience);
@@ -742,28 +750,19 @@ export function SmartMeasurementEditor({
   );
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // CRÍTICO: Calcular o tamanho inicial correto baseado na grade selecionada
+  // CRÍTICO: Tamanho ativo padrão = primeira medida da grade selecionada
   // PRIORIDADE 1: Usar o activeSize salvo (se existir e estiver disponível)
-  // PRIORIDADE 2: Se não houver salvo, usar o tamanho INTERMEDIÁRIO (meio da grade) como padrão
+  // PRIORIDADE 2: Usar o PRIMEIRO tamanho da grade como padrão
   const getInitialActiveSize = (): string => {
-    // PRIORIDADE 1: Verificar se há activeSize salvo e se está disponível
     if (initialData?.activeSize && availableSizes.includes(initialData.activeSize as string)) {
       console.log("[SmartMeasurementEditor] ✅ Usando tamanho salvo anteriormente:", initialData.activeSize);
       return initialData.activeSize as string;
     }
-    
-    // PRIORIDADE 2: Usar o tamanho INTERMEDIÁRIO (meio da grade) como padrão apenas se não houver salvo
     if (availableSizes.length > 0) {
-      const middleIndex = Math.floor(availableSizes.length / 2);
-      const middleSize = availableSizes[middleIndex] || availableSizes[0];
-      console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário como padrão (sem tamanho salvo):", {
-        availableSizes,
-        middleIndex,
-        middleSize
-      });
-      return middleSize;
+      const firstSize = availableSizes[0];
+      console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade:", firstSize, "grade:", availableSizes);
+      return firstSize;
     }
-    // Fallback apenas se não houver tamanhos disponíveis
     return 'M';
   };
   
@@ -793,6 +792,20 @@ export function SmartMeasurementEditor({
     
     return false;
   };
+
+  // Valor exibido por medida e tamanho: prioridade = valor salvo > ABNT do tamanho ativo > análise (só se não houver ABNT)
+  const getDisplayValueForSize = (measurementId: 'bust' | 'waist' | 'hip' | 'length', size: string): number | '' => {
+    const saved = measurementValues[measurementId]?.[size as SizeKey];
+    if (saved !== undefined && saved !== null && saved > 0) return saved;
+    if (targetAudience) {
+      const abntData = getStandardMeasurements(targetAudience, size);
+      const abntVal = abntData?.[measurementId];
+      if (abntVal !== undefined && abntVal !== null && abntVal > 0) return abntVal;
+    }
+    const analysisVal = productInfo?.standardMeasurements?.[measurementId];
+    if (analysisVal !== undefined && analysisVal !== null && analysisVal > 0) return analysisVal;
+    return '';
+  };
   
   // NOVO: Suporte para múltiplos grupos (ex: biquíni = top + calcinha)
   const [measurementGroups, setMeasurementGroups] = useState<Array<{
@@ -801,6 +814,79 @@ export function SmartMeasurementEditor({
     geometry: MeasurementGeometry[];
     values: MeasurementValues;
   }>>([]);
+
+  // Grupos derivados de initialData.groups para exibir no primeiro render (evita flash "Medidas (P)" antes do useEffect)
+  // Valores 0 são SEMPRE substituídos por ABNT para nunca exibir tela zerada
+  const initialDataGroupsConverted = useMemo(() => {
+    if (!initialData?.groups?.length) return [];
+    const currentGradeSizes = getSizesForGrade(sizeCategory, targetAudience);
+    const abntAudience = targetAudience === 'kids' ? 'KIDS' : targetAudience === 'male' ? 'MALE' : 'FEMALE';
+    // Fallback ABNT: se um tamanho não existir na tabela, usar o primeiro tamanho da grade que existir
+    const fallbackSize = currentGradeSizes.find((s) => getStandardMeasurements(abntAudience, s)) || currentGradeSizes[0] || 'M';
+    const fallbackAbnt = getStandardMeasurements(abntAudience, fallbackSize);
+    const fallbackVal = (id: string): number => {
+      if (!fallbackAbnt) return 0;
+      if (id === 'bust') return fallbackAbnt.bust ?? 0;
+      if (id === 'waist') return fallbackAbnt.waist ?? 0;
+      if (id === 'hip') return fallbackAbnt.hip ?? 0;
+      if (id === 'length') return fallbackAbnt.length ?? 0;
+      return 0;
+    };
+    return initialData.groups.map((g) => {
+      const sizeKeys = Object.keys(g.sizes).filter((s) => (g.sizes[s as SizeKey]?.length ?? 0) > 0);
+      const firstSize =
+        (initialData!.activeSize && sizeKeys.includes(initialData!.activeSize))
+          ? initialData!.activeSize
+          : (sizeKeys[0] || currentGradeSizes[0] || 'M');
+      const points = g.sizes[firstSize as SizeKey] || [];
+      const geo: MeasurementGeometry[] = points.map((mp) => ({
+        id: mp.id as MeasurementGeometry['id'],
+        label: mp.label,
+        startX: mp.startX,
+        startY: mp.startY,
+        endX: mp.endX,
+        endY: mp.endY,
+      }));
+      const values: MeasurementValues = {};
+      (sizeKeys.length > 0 ? sizeKeys : currentGradeSizes).forEach((sk) => {
+        const sizePoints = g.sizes[sk as SizeKey] || [];
+        const abnt = getStandardMeasurements(abntAudience, sk);
+        const abntVal = (id: string): number => {
+          if (abnt) {
+            if (id === 'bust') return abnt.bust ?? 0;
+            if (id === 'waist') return abnt.waist ?? 0;
+            if (id === 'hip') return abnt.hip ?? 0;
+            if (id === 'length') return abnt.length ?? 0;
+          }
+          return fallbackVal(id);
+        };
+        const pointsToUse = sizePoints.length > 0 ? sizePoints : (points.length > 0 ? points : []);
+        pointsToUse.forEach((mp) => {
+          if (!values[mp.id]) values[mp.id] = {} as Record<SizeKey, number>;
+          const raw = mp.value;
+          const resolved = (raw != null && raw > 0) ? raw : abntVal(mp.id);
+          values[mp.id][sk as SizeKey] = resolved > 0 ? resolved : fallbackVal(mp.id);
+        });
+        if (pointsToUse.length === 0 && (g.id === 'top' || g.id === 'bottom')) {
+          const ids = g.id === 'top' ? (['bust', 'length'] as const) : (['waist', 'hip', 'length'] as const);
+          ids.forEach((id) => {
+            if (!values[id]) values[id] = {} as Record<SizeKey, number>;
+            const v = abntVal(id);
+            values[id][sk as SizeKey] = v > 0 ? v : fallbackVal(id);
+          });
+        }
+      });
+      const labelMap: Record<string, string> = { bust: 'Busto', waist: 'Cintura', hip: 'Quadril', length: 'Comprimento' };
+      const finalGeo: MeasurementGeometry[] = geo.length > 0
+        ? geo
+        : (Object.keys(values).map((id) => ({ id: id as MeasurementGeometry['id'], label: labelMap[id] || id, startX: 0, startY: 0, endX: 0, endY: 0 })) as MeasurementGeometry[]);
+      return { id: g.id, label: g.label, geometry: finalGeo, values };
+    });
+  }, [initialData?.groups, initialData?.activeSize, sizeCategory, targetAudience]);
+
+  // Exibir grupos no primeiro carregamento: estado já preenchido ou initialData.groups (conjuntos)
+  const effectiveGroups =
+    measurementGroups.length > 0 ? measurementGroups : initialDataGroupsConverted;
   
   // Estados legados (manter para compatibilidade inicial)
   const [sizes, setSizes] = useState<Record<SizeKey, MeasurementPoint[]>>(
@@ -864,19 +950,17 @@ export function SmartMeasurementEditor({
     });
     
     if (newAvailableSizes.length > 0) {
-      // Se o activeSize atual não está na lista de tamanhos disponíveis, atualizar para o intermediário
-      // Mas se estiver disponível, manter o selecionado (não forçar mudança)
+      // Se o activeSize atual não está na lista de tamanhos disponíveis, atualizar para a PRIMEIRA medida da grade
+      // (padrão solicitado: primeira medida da grade selecionada)
       if (!newAvailableSizes.includes(activeSize)) {
-        const middleIndex = Math.floor(newAvailableSizes.length / 2);
-        const middleSize = newAvailableSizes[middleIndex] || newAvailableSizes[0];
-        console.log("[SmartMeasurementEditor] ✅ Tamanho atual não disponível na nova grade, atualizando para intermediário:", {
+        const firstSize = newAvailableSizes[0];
+        console.log("[SmartMeasurementEditor] ✅ Tamanho atual não disponível na nova grade, atualizando para primeira medida da grade:", {
           grade: sizeCategory,
           availableSizes: newAvailableSizes,
-          middleIndex,
-          middleSize,
+          firstSize,
           previousActiveSize: activeSize,
         });
-        setActiveSize(middleSize);
+        setActiveSize(firstSize);
       } else {
         // Tamanho atual está disponível na nova grade, manter selecionado
         console.log("[SmartMeasurementEditor] ✅ Tamanho atual está disponível na nova grade, mantendo selecionado:", {
@@ -898,6 +982,7 @@ export function SmartMeasurementEditor({
         lastImageKeyRef.current = currentImageKey;
       
       // Resetar TODOS os estados processados para permitir novo fluxo sequencial
+      initialDataAppliedRef.current = ""; // Permitir reaplicar initialData quando trocar de imagem
       setProcessedImageUrl(null);
       setSizes({} as Record<SizeKey, MeasurementPoint[]>);
       setGeometry([]); // Limpar geometria fixa
@@ -1160,16 +1245,14 @@ export function SmartMeasurementEditor({
             if (groups.length > 0) {
               setMeasurementGroups(groups);
               
-              // CRÍTICO: Selecionar tamanho intermediário automaticamente após criar grupos
+              // CRÍTICO: Padrão = primeira medida da grade (menor tamanho)
               if (availableSizes.length > 0) {
-                const middleIndex = Math.floor(availableSizes.length / 2);
-                const middleSize = availableSizes[middleIndex] || availableSizes[0];
-                console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário após análise (grupos):", {
+                const firstSize = availableSizes[0];
+                console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade (grupos):", {
                   availableSizes,
-                  middleIndex,
-                  middleSize
+                  firstSize,
                 });
-                setActiveSize(middleSize);
+                setActiveSize(firstSize);
               }
               
               console.log("[SmartMeasurementEditor] 📐 Grupos de medidas criados:", groups);
@@ -1234,17 +1317,14 @@ export function SmartMeasurementEditor({
               );
               setMeasurementValues(initialValues);
               
-              // CRÍTICO: Selecionar tamanho intermediário automaticamente após criar valores
+              // CRÍTICO: Padrão = primeira medida da grade (menor tamanho)
               if (availableSizes.length > 0) {
-                const middleIndex = Math.floor(availableSizes.length / 2);
-                const middleSize = availableSizes[middleIndex] || availableSizes[0];
-                console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário após análise:", {
+                const firstSize = availableSizes[0];
+                console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade após análise:", {
                   availableSizes,
-                  middleIndex,
-                  middleSize,
-                  currentActiveSize: activeSize
+                  firstSize,
                 });
-                setActiveSize(middleSize);
+                setActiveSize(firstSize);
               }
               
               console.log("[SmartMeasurementEditor] 📐 Geometria e valores criados:", { extractedGeometry, initialValues });
@@ -1315,16 +1395,14 @@ export function SmartMeasurementEditor({
                   );
                   setMeasurementValues(initialValues);
                   
-                  // CRÍTICO: Selecionar tamanho intermediário automaticamente após criar valores
+                  // CRÍTICO: Padrão = primeira medida da grade (menor tamanho)
                   if (availableSizes.length > 0) {
-                    const middleIndex = Math.floor(availableSizes.length / 2);
-                    const middleSize = availableSizes[middleIndex] || availableSizes[0];
-                    console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário após análise (geometria básica):", {
+                    const firstSize = availableSizes[0];
+                    console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade (geometria básica):", {
                       availableSizes,
-                      middleIndex,
-                      middleSize
+                      firstSize,
                     });
-                    setActiveSize(middleSize);
+                    setActiveSize(firstSize);
                   }
                   
                   console.log("[SmartMeasurementEditor] ✅ Geometria básica criada a partir de medidas padrão:", { basicGeometry, initialValues });
@@ -1530,16 +1608,14 @@ export function SmartMeasurementEditor({
           if (groups.length > 0) {
             setMeasurementGroups(groups);
             
-            // CRÍTICO: Selecionar tamanho intermediário automaticamente após criar grupos (fallback)
-            if (availableSizes.length > 0) {
-              const middleIndex = Math.floor(availableSizes.length / 2);
-              const middleSize = availableSizes[middleIndex] || availableSizes[0];
-              console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário após análise (grupos fallback):", {
+            // CRÍTICO: Padrão = primeira medida da grade (menor tamanho)
+              if (availableSizes.length > 0) {
+              const firstSize = availableSizes[0];
+              console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade (grupos fallback):", {
                 availableSizes,
-                middleIndex,
-                middleSize
+                firstSize,
               });
-              setActiveSize(middleSize);
+              setActiveSize(firstSize);
             }
           }
         } else {
@@ -1580,16 +1656,14 @@ export function SmartMeasurementEditor({
           );
           setMeasurementValues(initialValues);
           
-          // CRÍTICO: Selecionar tamanho intermediário automaticamente após criar valores
+          // CRÍTICO: Padrão = primeira medida da grade (menor tamanho)
           if (availableSizes.length > 0) {
-            const middleIndex = Math.floor(availableSizes.length / 2);
-            const middleSize = availableSizes[middleIndex] || availableSizes[0];
-            console.log("[SmartMeasurementEditor] 🎯 Selecionando tamanho intermediário após análise (fallback):", {
+            const firstSize = availableSizes[0];
+            console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade (fallback):", {
               availableSizes,
-              middleIndex,
-              middleSize
+              firstSize,
             });
-            setActiveSize(middleSize);
+            setActiveSize(firstSize);
           }
         } else {
           console.warn("[SmartMeasurementEditor] ⚠️ Fallback - Nenhuma geometria extraída!");
@@ -1604,11 +1678,12 @@ export function SmartMeasurementEditor({
   }, [processedImageUrl, productInfo?.category, lojistaId]); // CRÍTICO: Remover rawImageUrl e landmarks das dependências
 
   // Carregar dados iniciais se houver (incluindo medidas já detectadas automaticamente)
-  // Este useEffect deve rodar sempre que initialData mudar
+  // Evitar sobrescrever quando já aplicamos estes mesmos dados (evita dados "sumirem" em re-renders)
   useEffect(() => {
     console.log("[SmartMeasurementEditor] 🔄 Verificando initialData:", {
       hasInitialData: !!initialData,
       hasSizes: !!(initialData?.sizes && Object.keys(initialData.sizes).length > 0),
+      hasGroups: !!(initialData?.groups && initialData.groups.length > 0),
       sizesKeys: initialData?.sizes ? Object.keys(initialData.sizes) : [],
       currentSizesKeys: Object.keys(sizes),
       currentGeometryCount: geometry.length,
@@ -1616,16 +1691,81 @@ export function SmartMeasurementEditor({
     });
     
     if (initialData) {
+      // PRIORIDADE: Conjuntos — se initialData.groups estiver presente, aplicar na primeira análise
+      if (initialData.groups && initialData.groups.length > 0) {
+        const currentGradeSizes = getSizesForGrade(sizeCategory, targetAudience);
+        const signature = JSON.stringify({
+          type: 'groups',
+          groupsLength: initialData.groups.length,
+          activeSize: initialData.activeSize,
+          groupIds: initialData.groups.map(g => g.id),
+        });
+        if (initialDataAppliedRef.current === signature) {
+          console.log("[SmartMeasurementEditor] ⏭️ initialData.groups já aplicado, ignorando reaplicação");
+        } else {
+          initialDataAppliedRef.current = signature;
+          const internalGroups = initialData.groups.map((g) => {
+            const sizeKeys = Object.keys(g.sizes).filter((s) => (g.sizes[s as SizeKey]?.length ?? 0) > 0);
+            const firstSize = (initialData!.activeSize && sizeKeys.includes(initialData!.activeSize))
+              ? initialData!.activeSize
+              : (sizeKeys[0] || 'M');
+            const points = g.sizes[firstSize as SizeKey] || [];
+            const geo: MeasurementGeometry[] = points.map((mp) => ({
+              id: mp.id as MeasurementGeometry['id'],
+              label: mp.label,
+              startX: mp.startX,
+              startY: mp.startY,
+              endX: mp.endX,
+              endY: mp.endY,
+            }));
+            const values: MeasurementValues = {};
+            sizeKeys.forEach((sk) => {
+              const sizePoints = g.sizes[sk as SizeKey] || [];
+              sizePoints.forEach((mp) => {
+                if (!values[mp.id]) values[mp.id] = {} as Record<SizeKey, number>;
+                values[mp.id][sk as SizeKey] = mp.value;
+              });
+            });
+            return { id: g.id, label: g.label, geometry: geo, values };
+          });
+          setMeasurementGroups(internalGroups);
+          const defaultSize =
+            initialData.activeSize && currentGradeSizes.includes(initialData.activeSize)
+              ? initialData.activeSize
+              : (currentGradeSizes[0] || 'M');
+          setActiveSize(defaultSize);
+          console.log("[SmartMeasurementEditor] ✅ initialData.groups aplicado na primeira análise:", {
+            groupsCount: internalGroups.length,
+            labels: internalGroups.map((g) => g.label),
+            defaultSize,
+          });
+        }
+        if (initialData.baseImage && !processedImageUrl) {
+          setProcessedImageUrl(initialData.baseImage);
+        }
+        return;
+      }
+
       // Se temos medidas já processadas (sizes), usar diretamente sem precisar de imagem processada
       if (initialData.sizes && Object.keys(initialData.sizes).length > 0) {
-        // Verificar se já temos os mesmos dados carregados para evitar loops
         const firstSize = (initialData.activeSize || Object.keys(initialData.sizes)[0]) as SizeKey;
         const measurementPoints = initialData.sizes[firstSize] || [];
+        const signature = JSON.stringify({
+          sizesKeys: Object.keys(initialData.sizes).sort(),
+          pointsCount: measurementPoints.length,
+          activeSize: initialData.activeSize,
+        });
+        // Não sobrescrever se já aplicamos exatamente estes dados (evita dados sumirem)
+        const alreadyApplied = initialDataAppliedRef.current === signature;
+        if (alreadyApplied) {
+          console.log("[SmartMeasurementEditor] ⏭️ initialData já aplicado, ignorando reaplicação");
+        } else {
+          initialDataAppliedRef.current = signature;
         
-        // Só atualizar se realmente houver medidas e se ainda não foram carregadas
+        // Só atualizar se realmente houver medidas
         if (measurementPoints.length > 0) {
           // PRIORIDADE 1: Usar o activeSize salvo (se existir e estiver disponível)
-          // PRIORIDADE 2: Se não houver salvo, usar o tamanho intermediário da grade atual
+          // PRIORIDADE 2: Se não houver salvo, usar a primeira medida da grade (menor tamanho)
           const currentGradeSizes = getSizesForGrade(sizeCategory, targetAudience);
           const availableSizesFromData = initialData.sizes 
             ? Object.keys(initialData.sizes).filter(size => 
@@ -1633,34 +1773,15 @@ export function SmartMeasurementEditor({
               ) as string[]
             : [];
           
-          let defaultSize: string = 'M'; // Fallback padrão
-          
-          // PRIORIDADE 1: Verificar se há activeSize salvo e se está disponível
+          let defaultSize: string = 'M';
           if (initialData.activeSize && availableSizesFromData.includes(initialData.activeSize)) {
             defaultSize = initialData.activeSize;
-            console.log("[SmartMeasurementEditor] ✅ Usando tamanho salvo anteriormente:", defaultSize);
-          } else {
-            // PRIORIDADE 2: Calcular tamanho intermediário da grade atual
-            if (currentGradeSizes.length > 0) {
-              const middleIndex = Math.floor(currentGradeSizes.length / 2);
-              const middleSizeFromGrade = currentGradeSizes[middleIndex] || currentGradeSizes[0];
-              
-              // Verificar se o tamanho intermediário da grade está disponível nos dados
-              if (availableSizesFromData.includes(middleSizeFromGrade)) {
-                defaultSize = middleSizeFromGrade;
-                console.log("[SmartMeasurementEditor] 🎯 Usando tamanho intermediário da grade:", defaultSize);
-              } else if (availableSizesFromData.length > 0) {
-                // Se não estiver, usar o intermediário dos dados disponíveis
-                const middleIndexData = Math.floor(availableSizesFromData.length / 2);
-                defaultSize = availableSizesFromData[middleIndexData] || availableSizesFromData[0];
-                console.log("[SmartMeasurementEditor] 📊 Usando tamanho intermediário dos dados disponíveis:", defaultSize);
-              }
-            } else if (availableSizesFromData.length > 0) {
-              // Se não houver grade definida, usar o intermediário dos dados disponíveis
-              const middleIndexData = Math.floor(availableSizesFromData.length / 2);
-              defaultSize = availableSizesFromData[middleIndexData] || availableSizesFromData[0];
-              console.log("[SmartMeasurementEditor] 📊 Usando tamanho intermediário dos dados disponíveis (sem grade):", defaultSize);
-            }
+            console.log("[SmartMeasurementEditor] ✅ Usando tamanho salvo:", defaultSize);
+          } else if (currentGradeSizes.length > 0) {
+            defaultSize = currentGradeSizes[0];
+            console.log("[SmartMeasurementEditor] 🎯 Padrão: primeira medida da grade:", defaultSize);
+          } else if (availableSizesFromData.length > 0) {
+            defaultSize = availableSizesFromData[0];
           }
           
           console.log("[SmartMeasurementEditor] 📦 Carregando medidas já detectadas automaticamente:", {
@@ -1668,7 +1789,7 @@ export function SmartMeasurementEditor({
             targetAudience,
             savedActiveSize: initialData.activeSize,
             currentGradeSizes,
-            middleSizeFromGrade: currentGradeSizes.length > 0 ? currentGradeSizes[Math.floor(currentGradeSizes.length / 2)] : 'N/A',
+            firstSizeFromGrade: currentGradeSizes.length > 0 ? currentGradeSizes[0] : 'N/A',
             availableSizesFromData,
             defaultSize,
             measurementPointsCount: measurementPoints.length,
@@ -1693,7 +1814,7 @@ export function SmartMeasurementEditor({
           }));
           setGeometry(geo);
           
-          // Preencher valores de medidas para todos os tamanhos disponíveis
+          // Preencher valores de medidas: primeiro do initialData, depois ABNT para cada tamanho da grade
           const values: MeasurementValues = {};
           if (initialData.sizes) {
             Object.keys(initialData.sizes).forEach((sizeKey) => {
@@ -1706,6 +1827,37 @@ export function SmartMeasurementEditor({
               });
             });
           }
+          // Sempre preencher todos os tamanhos da grade com ABNT (onde ainda não houver valor)
+          const gradeSizes = getSizesForGrade(sizeCategory, targetAudience);
+          const measureIds = ['bust', 'waist', 'hip', 'length'] as const;
+          gradeSizes.forEach((sizeKey) => {
+            measureIds.forEach((id) => {
+              const existing = values[id]?.[sizeKey as SizeKey];
+              if (existing !== undefined && existing > 0) return;
+              const abnt = targetAudience ? getStandardMeasurements(targetAudience, sizeKey) : null;
+              const abntVal = abnt?.[id];
+              if (abntVal !== undefined && abntVal > 0) {
+                if (!values[id]) values[id] = {} as Record<SizeKey, number>;
+                values[id][sizeKey as SizeKey] = abntVal;
+              }
+            });
+          });
+          // Se alguma medida ficou igual em todos os tamanhos (dado incorreto), substituir pela tabela ABNT correta
+          measureIds.forEach((id) => {
+            const perSize = values[id];
+            if (!perSize || gradeSizes.length < 2) return;
+            const vals = gradeSizes.map(s => perSize[s as SizeKey]);
+            const allSame = vals.every(v => v === vals[0] && v !== undefined && v > 0);
+            if (allSame && targetAudience) {
+              gradeSizes.forEach((sizeKey) => {
+                const abnt = getStandardMeasurements(targetAudience, sizeKey);
+                const abntVal = abnt?.[id];
+                if (abntVal !== undefined && abntVal > 0) {
+                  values[id][sizeKey as SizeKey] = abntVal;
+                }
+              });
+            }
+          });
           setMeasurementValues(values);
           
           console.log("[SmartMeasurementEditor] ✅ Geometria e valores carregados das medidas automáticas:", {
@@ -1718,6 +1870,24 @@ export function SmartMeasurementEditor({
               return `${id} = {${sizeValues}}`;
             }),
           });
+        } else if (targetAudience && sizeCategory && Object.keys(measurementValues).length === 0) {
+          // Sem pontos no initialData e ainda sem valores: preencher só com ABNT (não sobrescrever dados já carregados)
+          const gradeSizes = getSizesForGrade(sizeCategory, targetAudience);
+          const measureIds = ['bust', 'waist', 'hip', 'length'] as const;
+          const values: MeasurementValues = {};
+          gradeSizes.forEach((sizeKey) => {
+            measureIds.forEach((id) => {
+              const abnt = getStandardMeasurements(targetAudience, sizeKey);
+              const abntVal = abnt?.[id];
+              if (abntVal !== undefined && abntVal > 0) {
+                if (!values[id]) values[id] = {} as Record<SizeKey, number>;
+                values[id][sizeKey as SizeKey] = abntVal;
+              }
+            });
+          });
+          setMeasurementValues(values);
+          console.log("[SmartMeasurementEditor] ✅ Grade preenchida com ABNT (sem dados iniciais):", Object.keys(values).length, "medidas");
+        }
         }
       }
       
@@ -1726,7 +1896,48 @@ export function SmartMeasurementEditor({
         setProcessedImageUrl(initialData.baseImage);
       }
     }
-  }, [initialData]); // Remover processedImageUrl das dependências para evitar loops
+  }, [initialData, sizeCategory, targetAudience]); // Incluir sizeCategory e targetAudience para preencher ABNT
+
+  // Garantir grade ABNT por tamanho: preencher faltantes e corrigir quando todas as medidas são iguais (tabela correta)
+  useEffect(() => {
+    if (!targetAudience || !sizeCategory) return;
+    const gradeSizes = getSizesForGrade(sizeCategory, targetAudience);
+    const measureIds = ['bust', 'waist', 'hip', 'length'] as const;
+    setMeasurementValues((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      gradeSizes.forEach((sizeKey) => {
+        measureIds.forEach((id) => {
+          const existing = next[id]?.[sizeKey as SizeKey];
+          if (existing !== undefined && existing > 0) return;
+          const abnt = getStandardMeasurements(targetAudience, sizeKey);
+          const abntVal = abnt?.[id];
+          if (abntVal !== undefined && abntVal > 0) {
+            next[id] = { ...(next[id] || {}), [sizeKey]: abntVal };
+            changed = true;
+          }
+        });
+      });
+      // Se alguma medida está igual em todos os tamanhos (dado incorreto), substituir pela tabela ABNT
+      measureIds.forEach((id) => {
+        const perSize = next[id];
+        if (!perSize || gradeSizes.length < 2) return;
+        const vals = gradeSizes.map(s => perSize[s as SizeKey]);
+        const allSame = vals.every(v => v !== undefined && v > 0 && v === vals[0]);
+        if (allSame && targetAudience) {
+          gradeSizes.forEach((sizeKey) => {
+            const abnt = getStandardMeasurements(targetAudience, sizeKey);
+            const abntVal = abnt?.[id];
+            if (abntVal !== undefined && abntVal > 0) {
+              next[id] = { ...(next[id] || {}), [sizeKey]: abntVal };
+              changed = true;
+            }
+          });
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [sizeCategory, targetAudience]);
 
   // Notificar mudanças (mesmo sem imagem processada, se temos medidas carregadas)
   useEffect(() => {
@@ -1739,7 +1950,7 @@ export function SmartMeasurementEditor({
           activeSize: activeSize as SizeKey,
           autoGrading,
           sizes,
-          groups: measurementGroups.length > 0 ? measurementGroups.map(g => {
+          groups: effectiveGroups.length > 0 ? effectiveGroups.map(g => {
             // Converter values para sizes (formato esperado por MeasurementGroup)
             const sizesLegacy: Record<SizeKey, MeasurementPoint[]> = {} as any;
             STANDARD_SIZES.forEach((size) => {
@@ -1763,7 +1974,7 @@ export function SmartMeasurementEditor({
         });
       }
     }
-  }, [processedImageUrl, rawImageUrl, activeSize, autoGrading, sizes, measurementGroups, onMeasurementsChange]);
+  }, [processedImageUrl, rawImageUrl, activeSize, autoGrading, sizes, measurementGroups, effectiveGroups, onMeasurementsChange]);
 
   // Função para gerar imagem com medidas (MANUAL - botão)
   const handleGenerateImageWithMeasurements = async () => {
@@ -2017,7 +2228,7 @@ export function SmartMeasurementEditor({
 
   // Verificar se há dados de medidas (single ou multi-item)
   const hasMeasurementData = () => {
-    return geometry.length > 0 || measurementGroups.length > 0;
+    return geometry.length > 0 || effectiveGroups.length > 0;
   };
 
   // NOVA ARQUITETURA: Recalcular valores para todos os tamanhos
@@ -2025,9 +2236,10 @@ export function SmartMeasurementEditor({
     if (!hasMeasurementData()) return;
     
     // Se for multi-item, recalcular cada grupo
-    if (measurementGroups.length > 0) {
-      setMeasurementGroups((prev) =>
-        prev.map((group) => {
+    if (effectiveGroups.length > 0) {
+      setMeasurementGroups((prev) => {
+        const base = prev.length > 0 ? prev : effectiveGroups;
+        return base.map((group) => {
           const updated = { ...group.values };
           // CRÍTICO: Usar availableSizes em vez de STANDARD_SIZES
           const baseIndex = availableSizes.indexOf(activeSize);
@@ -2049,8 +2261,8 @@ export function SmartMeasurementEditor({
           });
           
           return { ...group, values: updated };
-        })
-      );
+        });
+      });
       setSaved(false);
       return;
     }
@@ -2086,7 +2298,8 @@ export function SmartMeasurementEditor({
 
   const handleSave = async () => {
     const hasSingleItem = geometry.length > 0;
-    const hasMultiItem = measurementGroups.length > 0;
+    const hasMultiItem = effectiveGroups.length > 0;
+    const groupsToSave = measurementGroups.length > 0 ? measurementGroups : effectiveGroups;
     
     if (!processedImageUrl || (!hasSingleItem && !hasMultiItem)) {
       setError("Não há dados para salvar");
@@ -2098,7 +2311,7 @@ export function SmartMeasurementEditor({
       
       if (hasMultiItem) {
         // PRODUTO MULTI-ITEM: Converter grupos para formato SmartGuideData
-        const groups = measurementGroups.map((group) => {
+        const groups = groupsToSave.map((group) => {
           const sizesLegacy: Record<SizeKey, MeasurementPoint[]> = {} as any;
           availableSizesAsSizeKey.forEach((size) => {
             sizesLegacy[size] = group.geometry.map((geo) => ({
@@ -2315,48 +2528,20 @@ export function SmartMeasurementEditor({
             </motion.div>
           )}
         </div>
+
+        {/* Texto informativo antes de gerar a análise */}
+        <div className="p-3 bg-indigo-50/80 border border-indigo-200 rounded-lg">
+          <p className="text-xs text-slate-700">
+            {hasCompleteAnalysis
+              ? "Os campos abaixo permitem definir ou editar as medidas por tamanho. Recalcule a grade quando necessário."
+              : "Para preencher as medidas automaticamente, use o botão «Análise do Produto (IA)» na Configuração Inicial (após enviar Foto Frente e Foto Verso). Os campos abaixo ficam visíveis para edição manual ou serão preenchidos após a análise."}
+          </p>
+        </div>
+
         {/* Coluna Única - Editor de Medidas - Layout Otimizado */}
         <div className="space-y-2.5 flex flex-col">
-          {/* Botão Principal: Gerar Imagem com Medidas (MANUAL) - Ajustado */}
-          {!processedImageUrl && (rawImageFile || rawImageUrl) && (
-            <div className="space-y-2">
-              <button
-                onClick={handleGenerateImageWithMeasurements}
-                disabled={isProcessing || !canGenerateImage}
-                className="w-full px-3 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                title={!hasCompleteAnalysis 
-                  ? "Aguarde a análise inteligente completar primeiro" 
-                  : "Gerar imagem ghost mannequin com linhas de medidas integradas. A imagem aparecerá na área de visualização de fotos geradas por IA."}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-white">Gerando Imagem...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-white" />
-                    <span className="text-white">Gerar Imagem com Medidas</span>
-                  </>
-                )}
-              </button>
-              {!hasCompleteAnalysis && (
-                <p className="text-xs text-slate-500 text-center px-2">
-                  ⏳ Aguardando análise inteligente completar...
-                </p>
-              )}
-              {isProcessing && (
-                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
-                  <p className="text-xs text-indigo-700 text-center">
-                    A imagem será exibida na área de visualização de fotos geradas por IA após a geração.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Abas de Tamanho - Melhorado */}
-          {processedImageUrl && (
+          {/* Abas de Tamanho + Toggle + Medidas: visíveis quando há grade (após análise) ou imagem processada */}
+          {(processedImageUrl || availableSizes.length > 0) && (
             <>
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -2364,19 +2549,18 @@ export function SmartMeasurementEditor({
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {availableSizes.map((size) => (
-                    <motion.button
+                    <button
                       key={size}
+                      type="button"
                       onClick={() => setActiveSize(size)}
-                      className={`px-3.5 py-2 rounded-lg font-bold text-sm transition-all shadow-sm ${
+                      className={`px-3.5 py-2 rounded-lg font-bold text-sm transition-colors shadow-sm ${
                         activeSize === size
                           ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md ring-2 ring-indigo-300'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-md border border-slate-200'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
                       }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
                     >
                       {size}
-                    </motion.button>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -2430,10 +2614,25 @@ export function SmartMeasurementEditor({
               </div>
 
               {/* Inputs de Medidas - Suporta múltiplos grupos - Layout Otimizado */}
-              {measurementGroups.length > 0 ? (
+              {effectiveGroups.length > 0 ? (
+                (() => {
+                  // Nunca exibir inputs zerados: só mostrar quando houver pelo menos um valor > 0
+                  const hasAnyNonZero = effectiveGroups.some((g) =>
+                    g.geometry.some((geo) => (g.values[geo.id]?.[activeSize as SizeKey] ?? 0) > 0)
+                  );
+                  if (!hasAnyNonZero) {
+                    return (
+                      <div className="space-y-2.5 flex-1 overflow-y-auto min-h-0 flex flex-col items-center justify-center py-8">
+                        <div className="w-8 h-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
+                        <p className="text-sm text-slate-600 mt-3">Preparando medidas...</p>
+                        <p className="text-xs text-slate-500">Carregando valores da grade</p>
+                      </div>
+                    );
+                  }
+                  return (
                 /* PRODUTO MULTI-ITEM: Inputs separados por grupo */
                 <div className="space-y-2.5 flex-1 overflow-y-auto min-h-0">
-                  {measurementGroups.map((group, groupIndex) => (
+                  {effectiveGroups.map((group, groupIndex) => (
                     <div key={group.id} className={groupIndex > 0 ? "border-t border-gray-200 pt-4" : ""}>
                       <div className="flex items-center justify-between mb-3">
                         <label className="block text-xs font-semibold text-slate-700">
@@ -2443,16 +2642,12 @@ export function SmartMeasurementEditor({
                           {groupIndex === 0 ? "As linhas são geradas pela IA na imagem" : ""}
                         </span>
                       </div>
-                      <AnimatePresence mode="sync">
+                      <div className="space-y-3">
                         {group.geometry.map((geo) => {
-                          const currentValue = group.values[geo.id]?.[activeSize as SizeKey] || 0;
+                          const currentValue = group.values[geo.id]?.[activeSize as SizeKey] ?? 0;
                           return (
-                            <motion.div
-                              key={`${group.id}-${activeSize}-${geo.id}`}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              transition={{ duration: 0.2 }}
+                            <div
+                              key={`${group.id}-${geo.id}`}
                               className="space-y-1 mb-3"
                             >
                               <label className="text-sm font-medium text-slate-700">
@@ -2463,9 +2658,10 @@ export function SmartMeasurementEditor({
                                 value={currentValue}
                                 onChange={(e) => {
                                   const newValue = parseFloat(e.target.value) || 0;
-                                  // Atualizar valores do grupo específico
-                                  setMeasurementGroups((prev) =>
-                                    prev.map((g) =>
+                                  // Atualizar valores do grupo específico (base = estado ou effectiveGroups no primeiro render)
+                                  setMeasurementGroups((prev) => {
+                                    const base = prev.length > 0 ? prev : effectiveGroups;
+                                    return base.map((g) =>
                                       g.id === group.id
                                         ? {
                                             ...g,
@@ -2478,41 +2674,87 @@ export function SmartMeasurementEditor({
                                             },
                                           }
                                         : g
-                                    )
-                                  );
+                                    );
+                                  });
                                   setSaved(false);
                                 }}
                                 min="0"
                                 step="0.5"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                               />
-                            </motion.div>
+                            </div>
                           );
                         })}
-                      </AnimatePresence>
+                      </div>
                     </div>
                   ))}
                 </div>
+                  );
+                })()
               ) : (
-                /* PRODUTO ÚNICO: Inputs únicos (lógica original) - Layout Otimizado */
+                /* PRODUTO ÚNICO: Inputs únicos (lógica original) ou fallback quando ainda sem imagem processada */
                 <div className="space-y-2.5 flex-1 overflow-y-auto min-h-0">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-medium text-slate-600">
                       Medidas ({activeSize})
                     </label>
                     <span className="text-xs text-slate-500">
-                      As linhas são geradas pela IA na imagem
+                      {processedImageUrl ? "As linhas são geradas pela IA na imagem" : "Preencha ou aguarde a análise"}
                     </span>
                   </div>
                   
-                  {/* Status de Calibração */}
-                  {productInfo?.standardMeasurements?.calibration_method && (
+                  {/* Geometria padrão quando ainda não há imagem processada (formulários sempre visíveis) */}
+                  {geometry.length === 0 && (
+                    <div className="space-y-2.5 mb-3">
+                      {(['bust', 'waist', 'hip', 'length'] as const).map((id) => {
+                        const labels: Record<string, string> = { bust: 'Busto', waist: 'Cintura', hip: 'Quadril', length: 'Comprimento' };
+                        const currentValue = getDisplayValueForSize(id, activeSize);
+                        return (
+                          <div key={id} className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                              {labels[id]} (cm)
+                              {!isCalibratedByCard && isABNTMeasurement(id, activeSize) && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  Padrão ABNT
+                                </span>
+                              )}
+                            </label>
+                            <input
+                              type="number"
+                              value={currentValue}
+                              onChange={(e) => {
+                                const newValue = parseFloat(e.target.value) || 0;
+                                handleMeasurementChange(id, newValue);
+                              }}
+                              min="0"
+                              step="0.5"
+                              placeholder="—"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Status de Calibração: cartão (prioridade) ou método da análise */}
+                  {geometry.length > 0 && (isCalibratedByCard ? (
+                    <div className="mb-3 p-2 bg-blue-900/10 border border-blue-800/30 rounded-lg">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Ruler className="w-4 h-4 text-blue-800" />
+                        <span className="text-blue-800 font-medium">
+                          Medida real (calibrada por objeto de referência)
+                        </span>
+                      </div>
+                    </div>
+                  ) : productInfo?.standardMeasurements?.calibration_method ? (
                     <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex items-center gap-2 text-xs">
                         <Info className="w-4 h-4 text-blue-600" />
                         <span className="text-blue-700 font-medium">
                           Calibração: {
-                            productInfo.standardMeasurements.calibration_method === 'A4_REFERENCE' 
+                            productInfo.standardMeasurements.calibration_method === 'A4_REFERENCE'
                               ? 'Calibrado via Referência (A4)'
                               : productInfo.standardMeasurements.calibration_method === 'HANGER'
                               ? 'Calibrado via Cabide'
@@ -2521,32 +2763,40 @@ export function SmartMeasurementEditor({
                         </span>
                       </div>
                     </div>
-                  )}
-                  <AnimatePresence mode="sync">
+                  ) : null)}
+                  <div className="space-y-3">
                     {geometry.map((geo) => {
-                      const currentValue = measurementValues[geo.id]?.[activeSize as SizeKey] || 0;
+                      const savedVal = measurementValues[geo.id]?.[activeSize as SizeKey];
+                      const currentValue = (savedVal !== undefined && savedVal !== null && savedVal > 0)
+                        ? savedVal
+                        : (['bust', 'waist', 'hip', 'length'].includes(geo.id)
+                          ? (getDisplayValueForSize(geo.id as 'bust' | 'waist' | 'hip' | 'length', activeSize) || 0)
+                          : 0);
                       return (
-                        <motion.div
-                          key={`${activeSize}-${geo.id}`}
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          transition={{ duration: 0.2 }}
+                        <div
+                          key={geo.id}
                           className="space-y-1"
                         >
                           <div className="flex items-center justify-between">
                             <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                               {geo.label} (cm)
-                              {/* Badge ABNT - Mostrar se o valor vem da tabela ABNT */}
-                              {isABNTMeasurement(geo.id, activeSize) && (
+                              {/* Badge Calibrada - prioridade quando há objeto de referência */}
+                              {isCalibratedByCard && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-900/15 text-blue-800 rounded text-xs font-medium border border-blue-700/30">
+                                  <Ruler className="w-3 h-3" />
+                                  Medida Real (Calibrada)
+                                </span>
+                              )}
+                              {/* Badge ABNT - quando não calibrado por cartão */}
+                              {!isCalibratedByCard && isABNTMeasurement(geo.id, activeSize) && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Padrão ABNT
                                 </span>
                               )}
-                              {/* Badge IA - Mostrar se o valor inicial veio da análise IA (apenas se não for ABNT) */}
-                              {!isABNTMeasurement(geo.id, activeSize) &&
-                               productInfo?.standardMeasurements?.[geo.id as keyof typeof productInfo.standardMeasurements] !== undefined && 
+                              {/* Badge IA - quando não calibrado e não ABNT */}
+                              {!isCalibratedByCard && !isABNTMeasurement(geo.id, activeSize) &&
+                               productInfo?.standardMeasurements?.[geo.id as keyof typeof productInfo.standardMeasurements] !== undefined &&
                                currentValue === (productInfo.standardMeasurements[geo.id as 'bust' | 'waist' | 'hip' | 'length'] || 0) && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
                                   <Sparkles className="w-3 h-3" />
@@ -2566,10 +2816,10 @@ export function SmartMeasurementEditor({
                             step="0.5"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                           />
-                        </motion.div>
+                        </div>
                       );
                     })}
-                  </AnimatePresence>
+                  </div>
                 </div>
               )}
 
