@@ -8,6 +8,7 @@ import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
 import { fetchLojaPerfil } from "@/lib/firestore/server";
 import { ChatButtonWrapper } from "./components/ChatButtonWrapper";
 import { AnimatedPageWrapper } from "./components/AnimatedPageWrapper";
+import { LojistaScrollLock } from "./components/LojistaScrollLock";
 import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 
 // Forçar renderização dinâmica (não estática)
@@ -50,11 +51,15 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
     .slice(0, 2)
     .toUpperCase();
 
+  // Gradiente suave e contínuo (mais paradas = menos banding em tela cheia)
+  const blueGradient = 'linear-gradient(180deg, #113574 0%, #162f5e 18%, #1e4292 35%, #3560c4 50%, #1e4292 65%, #162f5e 82%, #113574 100%)';
+
   return (
     <div 
-      className="min-h-screen flex flex-col overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #113574 0%, #4169E1 50%, #113574 100%)' }}
+      className="lojista-layout-root h-screen w-full max-w-[100vw] flex flex-col overflow-hidden overflow-x-hidden"
+      style={{ background: blueGradient, backgroundAttachment: 'fixed' }}
     >
+      <LojistaScrollLock />
       {/* Mobile Sidebar Component */}
       <MobileSidebar
         lojaNome={lojaNome}
@@ -63,55 +68,55 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
         initials={initials}
       />
 
-      {/* Novo Header (Topo - Fixo) */}
-      <header className="h-16 w-full flex items-center border-b border-blue-900/50 z-30" style={{ background: 'linear-gradient(180deg, #113574 0%, #4169E1 50%, #113574 100%)' }}>
-        {/* Bloco Esquerdo (Logo) */}
-        <div className="w-64 h-full flex items-center px-6 border-r border-blue-900/50">
+      {/* Header fixo no topo — sem scroll horizontal (overflow-x-hidden + min-w-0 nos blocos) */}
+      <header 
+        className="flex-shrink-0 h-16 w-full min-w-0 flex items-center border-b border-blue-900/50 z-30 sticky top-0 left-0 right-0 overflow-x-hidden"
+        style={{ background: blueGradient }}
+      >
+        {/* Bloco Esquerdo (Logo) — truncar nome longo */}
+        <div className="w-64 min-w-0 shrink-0 h-full flex items-center px-4 md:px-6 border-r border-blue-900/50 overflow-hidden">
           {lojaLogo ? (
             <Image
               src={lojaLogo}
               alt={lojaNome}
               width={32}
               height={32}
-              className="h-8 w-8 rounded-lg object-contain"
+              className="h-8 w-8 rounded-lg object-contain shrink-0"
             />
           ) : (
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white text-sm font-bold">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white text-sm font-bold">
               {initials}
             </div>
           )}
-          <h1 className="ml-3 text-lg font-bold text-white font-heading">{lojaNome || "Experimente AI"}</h1>
+          <h1 className="ml-2 md:ml-3 text-base md:text-lg font-bold text-white font-heading truncate min-w-0">{lojaNome || "Experimente AI"}</h1>
         </div>
         
-        {/* Bloco Direito (Ferramentas) */}
-        <div className="flex-1 flex items-center justify-between px-6">
+        {/* Bloco Direito (Ferramentas) — flex min-w-0 para não estourar */}
+        <div className="flex-1 min-w-0 flex items-center justify-between px-3 md:px-6 overflow-hidden">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-white">
-            <span className="text-xl font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-heading">Gestor Inteligente</span>
+          <div className="min-w-0 flex items-center gap-2 text-white shrink-0">
+            <span className="text-base md:text-xl font-semibold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-heading truncate">Gestor Inteligente</span>
           </div>
           
           {/* Search e Avatar */}
-          <div className="flex items-center gap-4">
-            {/* Barra de Pesquisa Robusta */}
-            <div className="hidden md:block relative w-full max-w-xs group ml-4">
-              {/* Ícone: Camada de cima, não clicável */}
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 shrink-0">
+            {/* Barra de Pesquisa — max-width para não empurrar */}
+            <div className="hidden md:block relative w-32 lg:w-44 xl:max-w-xs shrink min-w-0 group">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-20">
                 <svg className="h-4 w-4 text-blue-300 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              
-              {/* Input: Padding forçado na esquerda */}
               <input
                 type="text"
                 placeholder="Pesquisar..."
-                className="block w-full rounded-full border border-blue-700/50 bg-blue-900/30 py-2 !pl-10 pr-4 leading-5 text-white placeholder-blue-300/70 focus:border-blue-500 focus:bg-blue-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm transition-all duration-300 indent-0"
+                className="block w-full min-w-0 rounded-full border border-blue-700/50 bg-blue-900/30 py-2 pl-10 pr-3 leading-5 text-white placeholder-blue-300/70 focus:border-blue-500 focus:bg-blue-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm transition-all duration-300"
               />
             </div>
             
-            {/* Avatar do Usuário */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+            {/* Avatar do Usuário — truncar email/nome */}
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
                 {lojaLogo ? (
                   <Image
                     src={lojaLogo}
@@ -121,41 +126,35 @@ export default async function LojistaLayout({ children }: LojistaLayoutProps) {
                     className="h-full w-full rounded-full object-contain"
                   />
                 ) : (
-                  <span className="text-sm font-semibold text-white">{initials}</span>
+                  <span className="text-xs md:text-sm font-semibold text-white">{initials}</span>
                 )}
               </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium text-white">{lojaNome}</p>
-                <p className="text-xs text-gray-300">
-                  {perfil?.email || "lojista@experimente.ai"}
-                </p>
+              <div className="hidden sm:block min-w-0 max-w-[120px] md:max-w-[180px]">
+                <p className="text-sm font-medium text-white truncate">{lojaNome}</p>
+                <p className="text-xs text-gray-300 truncate">{perfil?.email || "lojista@experimente.ai"}</p>
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Container Inferior (Flex Row) */}
-      <div className="flex flex-1 overflow-hidden" style={{ overflow: 'visible' }}>
-        {/* Sidebar Retrátil (Coluna Esquerda) */}
-        <SidebarWrapper />
+      {/* Container: sidebar fixa à esquerda + área principal com scroll — sem overflow horizontal */}
+      <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
+        {/* Sidebar fixa (coluna esquerda) — não rola */}
+        <div className="flex-shrink-0">
+          <SidebarWrapper />
+        </div>
 
-        {/* Main Content (O Cartão Branco) */}
+        {/* Área principal: só esta região rola quando o conteúdo for grande */}
         <main 
-          className="flex-1 bg-[#f3f4f6] relative z-10 flex flex-col overflow-hidden"
+          className="flex-1 min-h-0 flex flex-col overflow-hidden bg-[#f3f4f6] relative z-10"
           style={{
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.7)',
             borderTopLeftRadius: '12px',
             borderBottomLeftRadius: '12px',
-            borderTopRightRadius: '0px',
-            borderBottomRightRadius: '0px',
-            marginLeft: '0px',
-            borderLeft: 'none',
-            paddingLeft: '0px'
           }}
         >
-          {/* Conteúdo Interno */}
-          <div className="flex-1 overflow-y-auto p-8">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-8">
             <AnimatedPageWrapper>
               {children}
             </AnimatedPageWrapper>

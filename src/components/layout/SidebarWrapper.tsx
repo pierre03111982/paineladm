@@ -11,12 +11,14 @@ type SidebarWrapperProps = {};
 export function SidebarWrapper({}: SidebarWrapperProps = {}) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // Mesmo gradiente do layout para continuidade suave em tela cheia (mais paradas = menos banding)
+  const blueGradient = 'linear-gradient(180deg, #113574 0%, #162f5e 18%, #1e4292 35%, #3560c4 50%, #1e4292 65%, #162f5e 82%, #113574 100%)';
+
   return (
     <motion.aside
-      className="hidden md:flex flex-col relative z-20"
+      className="hidden md:flex flex-col relative z-20 min-h-full overflow-x-hidden"
       style={{ 
-        background: 'linear-gradient(180deg, #113574 0%, #4169E1 50%, #113574 100%)',
-        overflow: 'visible'
+        background: blueGradient,
       }}
       animate={{
         width: isCollapsed ? "80px" : "256px", // w-20 = 80px, w-64 = 256px
@@ -29,7 +31,7 @@ export function SidebarWrapper({}: SidebarWrapperProps = {}) {
           "flex-1 pt-1 pb-1 relative",
           isCollapsed ? "px-2" : "px-4"
         )}
-        style={{ overflowY: 'auto', overflowX: 'visible' }}
+        style={{ overflowY: 'auto', overflowX: 'hidden' }}
       >
         {/* Botão Toggle - Topo (acima do Dashboard) */}
         <div className="flex justify-center pt-3 pb-3">

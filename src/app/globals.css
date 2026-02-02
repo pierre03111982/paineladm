@@ -271,6 +271,23 @@ html:not(.lojista-loading) .lojista-content {
   opacity: 1 !important;
 }
 
+/* Layout lojista: uma única barra de scroll (só a área central); header e sidebar fixos */
+/* :has() aplica no carregamento (produção) antes da hidratação do LojistaScrollLock */
+html:has(.lojista-layout-root),
+body:has(.lojista-layout-root) {
+  overflow: hidden !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: 100vw !important;
+}
+
+.lojista-layout-root {
+  overflow: hidden !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-width: 100vw !important;
+}
+
 /* ============================================
    NEXT.JS CONTAINERS
    ============================================ */
@@ -1237,7 +1254,8 @@ aside nav {
   position: relative;
 }
 
-body > div {
+/* Não aplicar overflow visible ao root do layout lojista (evita double scroll) */
+body > div:not(.lojista-layout-root) {
   overflow: visible !important;
 }
 
