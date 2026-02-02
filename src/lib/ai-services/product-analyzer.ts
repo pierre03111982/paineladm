@@ -414,7 +414,7 @@ Retorne APENAS o JSON válido com a seguinte estrutura exata:
   🚨 SE QUALQUER ITEM DE COMPLETUDE ESTIVER FALTANDO, A DESCRIÇÃO ESTÁ INCORRETA E DEVE SER REGENERADA COMPLETA!",
   "suggested_category": "Uma das categorias consolidadas (obrigatório usar exatamente uma delas): Roupas, Calçados, Acessórios, Joias, Praia, Fitness, Cosméticos, Outros. IMPORTANTE: Agrupe produtos similares na mesma categoria (ex: Vestidos, Blusas, Calças, Saias, Shorts, Jaquetas -> Roupas; Tênis, Sapatos, Sandálias -> Calçados; Bolsas, Cintos, Óculos -> Acessórios; Brincos, Colares, Relógios -> Joias; Biquínis, Maiôs -> Praia; Leggings, Tops esportivos -> Fitness).",
   "product_type": "Tipo específico e detalhado do produto analisado na imagem. OBRIGATÓRIO: Deve ser preenchido com o tipo exato (ex: 'Blazer', 'Vestido Midi', 'Tênis Esportivo', 'Bermuda', 'Camisa Social', 'Legging', 'Biquíni', 'Bolsa Tote', 'Jaqueta Jeans', 'Calça Skinny', 'Conjunto Cropped e Shorts', 'Conjunto Blusa e Calça', 'Conjunto Top e Saia'). CRÍTICO: Se a imagem mostra MÚLTIPLAS PEÇAS vendidas juntas (ex: cropped + short, blusa + calça, top + saia), o product_type DEVE ser 'Conjunto [Nome da Peça 1] e [Nome da Peça 2]' (ex: 'Conjunto Cropped e Shorts', 'Conjunto Blusa e Calça'). NÃO identifique apenas uma das peças (ex: não diga apenas 'Short' se houver cropped + short). NÃO deixe vazio.",
-  "detected_fabric": "Tecido/material detectado na imagem. 🚨 OBRIGATÓRIO E CRÍTICO: DEVE ser preenchido SEMPRE. Analise a textura, brilho, espessura e aparência do tecido na imagem. Se não conseguir identificar com 100% de certeza, use uma estimativa baseada na aparência visual (ex: se parecer leve e fluido → 'Viscose' ou 'Chiffon'; se parecer grosso e rústico → 'Algodão' ou 'Linho'; se parecer elástico → 'Malha' ou 'Algodão com Elastano'; se parecer jeans → 'Jeans' ou 'Sarja'). NUNCA deixe vazio. Se realmente não conseguir identificar, use 'Tecido não identificado' mas SEMPRE preencha este campo.",
+  "detected_fabric": "Tecido/material detectado na imagem. 🚨 OBRIGATÓRIO E CRÍTICO: DEVE ser preenchido SEMPRE. Analise a textura, brilho, espessura e aparência do tecido. Linho: aparência rústica, fibras visíveis, caimento estruturado e fresco — use 'Linho' ou 'Linho misto'. Algodão texturizado: mais macio, textura canelada — use só quando identificar claramente. Em dúvida entre linho e algodão texturizado, prefira 'Linho' se o tecido parecer natural e estruturado. Outros: leve e fluido → 'Viscose' ou 'Chiffon'; grosso e rústico → 'Algodão' ou 'Linho'; elástico → 'Malha' ou 'Algodão com Elastano'; jeans → 'Jeans' ou 'Sarja'. NUNCA deixe vazio.",
   "dominant_colors": [
     {"hex": "#000000", "name": "Preto"},
     {"hex": "#FFFFFF", "name": "Branco"}
@@ -486,7 +486,9 @@ IMPORTANTE SOBRE OS CAMPOS OBRIGATÓRIOS:
 - "product_type": DEVE ser preenchido. Analise a imagem e identifique o tipo específico do produto (ex: se for uma camisa, diga "Camisa" ou "Camisa Social", não deixe vazio).
 - "detected_fabric": 🚨 OBRIGATÓRIO E CRÍTICO - DEVE ser preenchido SEMPRE. Analise cuidadosamente a textura, brilho, espessura, caimento e aparência geral do tecido na imagem. Use estas pistas visuais:
   * Textura lisa e brilhante → "Seda" ou "Cetim"
-  * Textura áspera e natural → "Algodão" ou "Linho"
+  * Textura áspera e natural, fibras visíveis, caimento estruturado, aspecto rústico/natural → "Linho" ou "Linho misto" (NÃO confundir com algodão texturizado)
+  * Textura natural mas mais macia, canelada ou levemente texturizada, menos rústica que linho → "Algodão texturizado" ou "Algodão"
+  * DIFERENÇA LINHO vs ALGODÃO TEXTURIZADO: Linho tem aparência mais rústica, fibras naturais visíveis, textura característica (não lisa), caimento mais estruturado e fresco; comum em conjuntos, cropped e peças de verão. Algodão texturizado é mais macio, com textura canelada ou "riscada", menos rústico. Se houver dúvida entre os dois, prefira "Linho" quando o tecido parecer mais natural, estruturado e fresco.
   * Textura elástica e justa → "Malha", "Algodão com Elastano" ou "Viscose com Elastano"
   * Textura grosseira e resistente → "Jeans", "Sarja" ou "Algodão grosso"
   * Textura leve e fluida → "Chiffon", "Viscose" ou "Georgette"
@@ -1593,6 +1595,80 @@ Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explica
           hex: "#000000", // Placeholder - a IA deve retornar hex correto
           name: analysisResult.cor_predominante
         }];
+      }
+
+      // Fallback: extrair tecido e cores da descricao_seo quando a IA não retornar (ou retornar genéricos)
+      const desc = (analysisResult.descricao_seo || "").trim();
+      if (desc.length > 30) {
+        const fabricGeneric = /^(tecido de qualidade|qualidade|não identificado|não especificado|tecido|material)$/i;
+        const needsFabric = !analysisResult.detected_fabric?.trim() || fabricGeneric.test(analysisResult.detected_fabric.trim());
+        if (needsFabric) {
+          const fabricPatterns = [
+            /confeccionad[oa]?\s+em\s+([^.,]+?)(?:\s*,|\s*\.|\s+oferece|\s+e\s+)/i,
+            /(?:em|de)\s+(malha|algodão|viscose|linho|seda|chiffon|elastano|poliamida|nylon|poliéster|cetim|jeans|sarja|moletom)[\s,.]/i,
+            /(malha|algodão|viscose|linho|seda)\s+(?:de|com|leve|macio)/i,
+          ];
+          for (const re of fabricPatterns) {
+            const m = desc.match(re);
+            if (m?.[1]) {
+              const extracted = m[1].trim();
+              if (extracted.length >= 3 && extracted.length <= 50 && !fabricGeneric.test(extracted)) {
+                analysisResult.detected_fabric = extracted.charAt(0).toUpperCase() + extracted.slice(1).toLowerCase();
+                if (analysisResult.tecido_estimado !== undefined) analysisResult.tecido_estimado = analysisResult.detected_fabric;
+                console.log("[ProductAnalyzer] 📎 Tecido extraído da descrição (fallback):", analysisResult.detected_fabric);
+                break;
+              }
+            }
+          }
+        }
+        const needsColors = !analysisResult.dominant_colors?.length;
+        if (needsColors) {
+          const colorPatterns = [
+            /na\s+cor\s+([a-záàâãéêíóôõúç]+)(?:\s*,|\s*\.|\s+transmite)/i,
+            /em\s+([a-záàâãéêíóôõúç]+)\s*,?\s*transmite/i,
+            /(?:cor|tom)\s+([a-záàâãéêíóôõúç]+)(?:\s*[,.]|\s+e)/i,
+            /(rosa|azul|vermelho|verde|preto|branco|bege|lilás|marrom|amarelo|dourado|prateado|bordô|corais?)/i,
+          ];
+          const colorHexMap: Record<string, string> = {
+            rosa: "#FFC0CB", azul: "#0000FF", vermelho: "#FF0000", verde: "#008000", preto: "#000000",
+            branco: "#FFFFFF", bege: "#F5F5DC", lilás: "#E6E6FA", marrom: "#8B4513", amarelo: "#FFFF00",
+            dourado: "#FFD700", prateado: "#C0C0C0", bordô: "#722F37", coral: "#FF7F50", corais: "#FF7F50",
+          };
+          for (const re of colorPatterns) {
+            const m = desc.match(re);
+            if (m?.[1]) {
+              const name = m[1].trim();
+              if (name.length >= 2 && name.length <= 20) {
+                const hex = colorHexMap[name.toLowerCase()] ?? "#808080";
+                const colorName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+                analysisResult.dominant_colors = [{ hex, name: colorName }];
+                analysisResult.cor_predominante = colorName;
+                console.log("[ProductAnalyzer] 📎 Cor extraída da descrição (fallback):", colorName);
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Consistência Linho: se nome/descrição mencionam "linho" e a IA retornou "algodão texturizado" ou "algodão", preferir Linho
+      const textForFabric = ((analysisResult.nome_sugerido || "") + " " + (analysisResult.descricao_seo || "")).toLowerCase();
+      const mentionsLinho = /\blinho\b|\blino\b/i.test(textForFabric);
+      const fabricIsAlgodaoTexturizado = /algodão\s*texturizado|algodao\s*texturizado/i.test(analysisResult.detected_fabric || "");
+      const fabricIsAlgodaoOnly = (analysisResult.detected_fabric || "").toLowerCase().trim() === "algodão" || (analysisResult.detected_fabric || "").toLowerCase().trim() === "algodao";
+      if (mentionsLinho && (fabricIsAlgodaoTexturizado || fabricIsAlgodaoOnly)) {
+        analysisResult.detected_fabric = "Linho misto";
+        if (analysisResult.tecido_estimado !== undefined) analysisResult.tecido_estimado = "Linho misto";
+        console.log("[ProductAnalyzer] 📎 Tecido ajustado para Linho misto (nome/descrição mencionam linho, IA retornou algodão)");
+      } else if (!mentionsLinho && (fabricIsAlgodaoTexturizado || fabricIsAlgodaoOnly)) {
+        // Conjuntos (Cropped e Shorts etc.): em análises anteriores costumavam vir como Linho; preferir Linho misto para consistência
+        const productType = (analysisResult.product_type || "").trim();
+        const isConjuntoCroppedShort = /conjunto/i.test(productType) && /cropped|short/i.test(productType);
+        if (isConjuntoCroppedShort) {
+          analysisResult.detected_fabric = "Linho misto";
+          if (analysisResult.tecido_estimado !== undefined) analysisResult.tecido_estimado = "Linho misto";
+          console.log("[ProductAnalyzer] 📎 Tecido ajustado para Linho misto (conjunto cropped/short, IA retornou algodão texturizado)");
+        }
       }
 
       // Preencher campos obrigatórios com valores padrão se não existirem

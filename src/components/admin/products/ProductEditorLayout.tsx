@@ -10,7 +10,9 @@ import { getPageHeaderColors } from "@/app/(lojista)/components/page-header-colo
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { normalizeCategory, getConsolidatedCategories } from "@/lib/categories/consolidated-categories";
 import { SmartMeasurementEditor } from "./SmartMeasurementEditor";
-import type { SmartGuideData, MeasurementPoint, SizeKey } from "@/types/measurements";
+import type { SmartGuideData, MeasurementPoint, SizeKey, MeasurementGroup } from "@/types/measurements";
+import { analyzeImageForReference } from "@/services/calibrationService";
+import { getStandardMeasurements } from "@/lib/standards/abnt-data";
 
 // Estado consolidado do produto
 export interface ProductEditorState {
@@ -91,6 +93,10 @@ export interface ProductEditorState {
   sizeCategory: 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen'; // Grades dinâmicas
   // Público Alvo
   targetAudience: 'female' | 'male' | 'kids'; // Feminino, Masculino ou Infantil
+  // Calibração por objeto de referência (ex.: cartão) — APENAS na foto frontal (Container 1)
+  // Se encontrado na frente, essa escala é usada como "régua universal" para todo o produto (incl. verso/extras)
+  calibrationScale: number | null; // pixels por cm (quando isCalibratedByCard)
+  isCalibratedByCard: boolean;
 }
 
 interface ProductEditorLayoutProps {
@@ -340,7 +346,7 @@ export function ProductEditorLayout({
   const medidasFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingMedidas, setUploadingMedidas] = useState(false);
 
-  // Ler preferência de Grade de Tamanho do localStorage
+  // Valores fixos no estado inicial para evitar React Hydration Error (localStorage só existe no client)
   const getInitialSizeCategory = (): 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen' => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('lastSizeCategory');
@@ -348,7 +354,7 @@ export function ProductEditorLayout({
         return saved as any;
       }
     }
-    return 'standard'; // Padrão
+    return 'standard';
   };
 
   const getInitialTargetAudience = (): 'female' | 'male' | 'kids' => {
@@ -358,10 +364,10 @@ export function ProductEditorLayout({
         return saved;
       }
     }
-    return 'female'; // Padrão: Feminino
+    return 'female';
   };
 
-  // Estado principal
+  // Estado principal: primeiro render usa sempre os mesmos defaults (evita hydration mismatch)
   const [state, setState] = useState<ProductEditorState>({
     rawImageUrl: initialData?.rawImageUrl || "",
     rawImageFile: initialData?.rawImageFile || null,
@@ -400,9 +406,25 @@ export function ProductEditorLayout({
       { id: "2", variacao: "M", estoque: "", sku: "", equivalence: "" },
       { id: "3", variacao: "G", estoque: "", sku: "", equivalence: "" },
     ],
-    sizeCategory: initialData?.sizeCategory || getInitialSizeCategory(),
-    targetAudience: initialData?.targetAudience || getInitialTargetAudience(),
+    sizeCategory: initialData?.sizeCategory ?? 'standard',
+    targetAudience: initialData?.targetAudience ?? 'female',
+    calibrationScale: initialData?.calibrationScale ?? null,
+    isCalibratedByCard: initialData?.isCalibratedByCard ?? false,
   });
+
+  // Após hidratação, restaurar preferência de público/grade do localStorage (só no client)
+  useEffect(() => {
+    if (typeof window === 'undefined' || (initialData?.targetAudience != null && initialData?.sizeCategory != null)) return;
+    const savedAudience = localStorage.getItem('lastTargetAudience') as 'female' | 'male' | 'kids' | null;
+    const savedCategory = localStorage.getItem('lastSizeCategory');
+    const validAudience = savedAudience === 'female' || savedAudience === 'male' || savedAudience === 'kids';
+    const validCategory = ['standard', 'plus', 'numeric', 'baby', 'kids_numeric', 'teen'].includes(savedCategory || '');
+    setState(prev => ({
+      ...prev,
+      ...(validAudience && initialData?.targetAudience == null && { targetAudience: savedAudience! }),
+      ...(validCategory && initialData?.sizeCategory == null && { sizeCategory: savedCategory as typeof prev.sizeCategory }),
+    }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- só na montagem, sem initialData nas deps para não sobrescrever
 
   // Estados de UI
   const [uploading, setUploading] = useState(false);
@@ -417,6 +439,15 @@ export function ProductEditorLayout({
   const [showManualModal, setShowManualModal] = useState(false);
   const [showAudienceConfirmation, setShowAudienceConfirmation] = useState(false);
   const [creditInfo, setCreditInfo] = useState({ credits: 0, catalogPack: 0 });
+
+  // Caixas 2, 3 e 4: só cabeçalho visível até clicar em "Análise do Produto (IA)"; depois corpo surge (2 com loading, 3 e 4 em sequência)
+  const [showBox2Content, setShowBox2Content] = useState(false);
+  const [showBox3Content, setShowBox3Content] = useState(false);
+  const [showBox4Content, setShowBox4Content] = useState(false);
+  const [animateBox3, setAnimateBox3] = useState(false);
+  const [animateBox4, setAnimateBox4] = useState(false);
+  const [loadingPhraseIndex, setLoadingPhraseIndex] = useState(0);
+  const box2CardRef = useRef<HTMLDivElement | null>(null);
   
   // Estados para o 6-Shot AI Studio
   const [studioImages, setStudioImages] = useState<{
@@ -529,8 +560,67 @@ export function ProductEditorLayout({
   const has429ErrorRef = useRef<boolean>(false); // Ref simples: se houve erro 429, não tentar automaticamente novamente
   const last429ErrorTimeRef = useRef<number>(0); // Timestamp do último erro 429 para permitir nova tentativa após 15 minutos
 
+  // Callbacks estáveis para SmartMeasurementEditor (Regras dos Hooks: sempre no topo, incondicional)
+  const handleMeasurementsChange = useCallback((data: SmartGuideData) => {
+    setState(prev => {
+      const currentBaseImage = prev.smartMeasurements?.baseImage;
+      if (currentBaseImage === data.baseImage &&
+          JSON.stringify(prev.smartMeasurements) === JSON.stringify(data)) {
+        return prev;
+      }
+      const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
+      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+      return {
+        ...prev,
+        smartMeasurements: data,
+        imagemMedidasCustomizada: data.baseImage,
+        persistedMeasurementsByAudience: {
+          ...persistedMeasurements,
+          [measurementKey]: data,
+        },
+      };
+    });
+  }, []);
+
+  const smartMeasurementInitialData = useMemo(() => {
+    const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
+    const persistedMeasurements = state.persistedMeasurementsByAudience || {};
+    const persistedData = persistedMeasurements[measurementKey];
+    const smartData = state.smartMeasurements;
+    const isConjunto = /conjunto/i.test((state.aiAnalysisData?.product_type || '').trim());
+    const smartHasGroups = !!(smartData?.groups && smartData.groups.length > 0);
+    const persistedHasGroups = !!(persistedData?.groups && persistedData.groups.length > 0);
+
+    // Conjunto: priorizar sempre o que tiver groups, para não mostrar flat no lugar de Cropped/Saia
+    if (isConjunto) {
+      if (smartHasGroups) {
+        console.log('[ProductEditor] 📦 Conjunto: usando smartMeasurements com groups');
+        return smartData;
+      }
+      if (persistedHasGroups) {
+        console.log('[ProductEditor] 📦 Conjunto: usando medidas persistidas com groups para', measurementKey);
+        return persistedData;
+      }
+    }
+
+    if (persistedData) {
+      console.log('[ProductEditor] 📦 Usando medidas persistidas para', measurementKey);
+      return persistedData;
+    }
+    console.log('[ProductEditor] 📦 Usando smartMeasurements como initialData:', {
+      hasData: !!smartData,
+      hasSizes: !!(smartData?.sizes && Object.keys(smartData.sizes || {}).length > 0),
+      hasGroups: smartHasGroups,
+    });
+    return smartData;
+  }, [state.smartMeasurements, state.targetAudience, state.sizeCategory, state.persistedMeasurementsByAudience, state.aiAnalysisData?.product_type]);
+
   // === HANDLER DE ANÁLISE IA ===
-  const analyzeImage = async (imageUrl: string) => {
+  // contextOverride: ao refazer análise após confirmação de público/grade, usa esses valores em vez do state
+  const analyzeImage = async (
+    imageUrl: string,
+    contextOverride?: { targetAudience?: 'female' | 'male' | 'kids'; sizeCategory?: 'standard' | 'plus' | 'numeric' | 'baby' | 'kids_numeric' | 'teen' }
+  ) => {
     // Proteção contra chamadas simultâneas
     if (analyzingRef.current) {
       console.warn("[ProductEditor] ⚠️ Análise já em andamento, ignorando chamada duplicada");
@@ -551,40 +641,37 @@ export function ProductEditorLayout({
     try {
       analyzingRef.current = true;
       setAnalyzing(true);
-      console.log("[ProductEditor] 🔍 Iniciando análise com imageUrl:", imageUrl.substring(0, 100) + "...");
-      console.log("[ProductEditor] 🔍 lojistaId:", lojistaId);
+      const effectiveAudience = contextOverride?.targetAudience ?? state.targetAudience;
+      const effectiveSizeCategory = contextOverride?.sizeCategory ?? state.sizeCategory;
+      console.log("[ProductEditor] 🔍 Iniciando análise com imageUrl:", imageUrl.substring(0, 100) + "...", contextOverride ? { contextOverride } : "");
       
-      // Preparar contexto para a análise
+      // Preparar contexto para a análise (usa override quando refaz após confirmação de público)
       const context: {
         audience?: 'KIDS' | 'ADULT';
         sizeSystem?: 'AGE_BASED' | 'LETTER_BASED' | 'NUMERIC';
       } = {};
       
-      // Mapear targetAudience para audience
-      if (state.targetAudience === 'kids') {
+      if (effectiveAudience === 'kids') {
         context.audience = 'KIDS';
-      } else if (state.targetAudience === 'female' || state.targetAudience === 'male') {
+      } else if (effectiveAudience === 'female' || effectiveAudience === 'male') {
         context.audience = 'ADULT';
       }
       
-      // Mapear sizeCategory para sizeSystem (corrigido conforme documento)
-      if (state.targetAudience === 'kids') {
-        // Grades infantis
-        if (state.sizeCategory === 'baby') {
-          context.sizeSystem = 'AGE_BASED'; // Bebê usa meses (idade)
-        } else if (state.sizeCategory === 'kids_numeric' || state.sizeCategory === 'teen') {
-          context.sizeSystem = 'AGE_BASED'; // Infantil/Juvenil usa anos (idade)
+      if (effectiveAudience === 'kids') {
+        if (effectiveSizeCategory === 'baby') {
+          context.sizeSystem = 'AGE_BASED';
+        } else if (effectiveSizeCategory === 'kids_numeric' || effectiveSizeCategory === 'teen') {
+          context.sizeSystem = 'AGE_BASED';
         } else {
-          context.sizeSystem = 'AGE_BASED'; // Padrão para kids
+          context.sizeSystem = 'AGE_BASED';
         }
       } else {
-        // Grades adultas
-        if (state.sizeCategory === 'numeric') {
-          context.sizeSystem = 'NUMERIC'; // Numérica (36, 38, 40)
-        } else if (state.sizeCategory === 'plus') {
-          context.sizeSystem = 'NUMERIC'; // Plus Size usa numérico (G1, G2, etc.)
+        if (effectiveSizeCategory === 'numeric') {
+          context.sizeSystem = 'NUMERIC';
+        } else if (effectiveSizeCategory === 'plus') {
+          context.sizeSystem = 'NUMERIC';
         } else {
-          context.sizeSystem = 'LETTER_BASED'; // Padrão usa letras (P, M, G, GG)
+          context.sizeSystem = 'LETTER_BASED';
         }
       }
       
@@ -693,30 +780,58 @@ export function ProductEditorLayout({
       // Processar cores: usar apenas dados precisos da API
       let processedColors = analysisData.dominant_colors || [];
       
-      // Validar se as cores são precisas (não genéricas)
+      // Validar se as cores são precisas (não genéricas) — rejeitar "Cinza" quando for a única e nome/descrição indicam outra cor
+      const genericColorNames = ["cinza", "gray", "grey", "neutro", "neutral", "não identificad", "não especificad"];
+      const colorWordsInText = (text: string) => {
+        const t = (text || "").toLowerCase();
+        const colorHexMap: Record<string, string> = {
+          lilás: "#E6E6FA", lilas: "#E6E6FA", rosa: "#FFC0CB", azul: "#0000FF", vermelho: "#FF0000", verde: "#008000",
+          preto: "#000000", branco: "#FFFFFF", bege: "#F5F5DC", marrom: "#8B4513", amarelo: "#FFFF00", dourado: "#FFD700",
+          prateado: "#C0C0C0", bordô: "#722F37", bordo: "#722F37", coral: "#FF7F50", corais: "#FF7F50", vinho: "#722F37",
+        };
+        const match = t.match(/(lilás|lilas|rosa|azul|vermelho|verde|preto|branco|bege|marrom|amarelo|dourado|prateado|bordô|bordo|coral|vinho)/i);
+        if (match && match[1]) {
+          const name = match[1].toLowerCase().replace("lilas", "lilás");
+          return { hex: colorHexMap[name] || "#E6E6FA", name: name.charAt(0).toUpperCase() + name.slice(1) };
+        }
+        return null;
+      };
       if (Array.isArray(processedColors) && processedColors.length > 0) {
-        // Filtrar cores genéricas ou sem hex válido
         processedColors = processedColors.filter(color => {
-          // Verificar se tem hex válido e nome não genérico
           const hasValidHex = color.hex && color.hex.startsWith('#') && color.hex.length === 7;
-          const hasValidName = color.name && 
-            !color.name.toLowerCase().includes('não identificad') &&
-            !color.name.toLowerCase().includes('não especificad') &&
-            color.name.trim().length > 0;
-          return hasValidHex && hasValidName;
+          const nameLower = (color.name || "").toLowerCase().trim();
+          const isGenericOnly = genericColorNames.some(g => nameLower === g || nameLower.startsWith(g + " "));
+          const hasValidName = color.name && color.name.trim().length > 0 &&
+            !nameLower.includes('não identificad') &&
+            !nameLower.includes('não especificad');
+          return hasValidHex && hasValidName && !(processedColors.length === 1 && isGenericOnly);
         });
       }
+      // Se sobrou só Cinza/cor genérica ou vazio, tentar extrair cor do nome/descrição (ex.: vestido lilás → Lilás)
+      if (processedColors.length === 0 || (processedColors.length === 1 && genericColorNames.some(g => (processedColors[0]?.name || "").toLowerCase().includes(g)))) {
+        const nome = (analysisData.nome_sugerido || "").toString();
+        const desc = (analysisData.descricao_seo || "").toString();
+        const fromNome = colorWordsInText(nome);
+        const fromDesc = colorWordsInText(desc);
+        const extracted = fromNome || fromDesc;
+        if (extracted) {
+          processedColors = [extracted];
+          console.log("[ProductEditor] 🎨 Cor predominante corrigida a partir do nome/descrição (evitar Cinza incorreto):", extracted.name);
+        }
+      }
       
-      // Se não houver dominant_colors válidos mas houver cor_predominante específica, usar
+      // Se não houver dominant_colors válidos mas houver cor_predominante específica, usar (evitar genéricas)
+      const genericColorNamesFallback = ["cinza", "gray", "grey", "neutro", "neutral"];
       if (processedColors.length === 0 && analysisData.cor_predominante) {
         const corPredominante = analysisData.cor_predominante.trim();
-        // Só usar se não for genérica
-        if (corPredominante && 
-            !corPredominante.toLowerCase().includes('não identificad') &&
-            !corPredominante.toLowerCase().includes('não especificad') &&
-            corPredominante.length > 2) {
+        const cpLower = corPredominante.toLowerCase();
+        const isGeneric = genericColorNamesFallback.some(g => cpLower === g || cpLower.startsWith(g + " "));
+        if (corPredominante && corPredominante.length > 2 &&
+            !cpLower.includes('não identificad') &&
+            !cpLower.includes('não especificad') &&
+            !isGeneric) {
           processedColors = [{
-            hex: "#808080", // Cor padrão cinza se não houver hex específico
+            hex: "#808080",
             name: corPredominante
           }];
         }
@@ -728,33 +843,37 @@ export function ProductEditorLayout({
         .replace(/\[Análise IA[^\]]*\]\s*/g, "") // Remove [Análise IA - data]
         .trim();
       
-      // A IA agora está configurada para gerar textos COMPLETOS dentro de 470 caracteres
-      // Descrição SEO agora não tem limite - manter texto completo
-      
-      // Validação de tecido: usar apenas dados precisos da API
-      const detectedFabric = analysisData.detected_fabric || analysisData.tecido_estimado || "";
-      
-      // Validar se o tecido é preciso (não genérico)
-      let finalDetectedFabric = "";
-      if (detectedFabric && detectedFabric.trim() !== "") {
-        const fabricLower = detectedFabric.toLowerCase().trim();
-        // Verificar se não é genérico
-        const isGeneric = 
-          fabricLower.includes('não identificad') ||
-          fabricLower.includes('não especificad') ||
-          fabricLower.includes('tecido de qualidade') ||
-          fabricLower.includes('material de qualidade') ||
-          fabricLower === 'tecido' ||
-          fabricLower === 'material' ||
-          fabricLower.length < 3;
-        
-        if (!isGeneric) {
-          finalDetectedFabric = detectedFabric.trim();
+      // Incluir cor do produto na descrição comercial quando faltar (para aparecer na Descrição Comercial/SEO)
+      const corParaDescricao = processedColors[0]?.name || colorWordsInText((analysisData.nome_sugerido || "") + " " + descricaoSEOLimpa)?.name;
+      if (corParaDescricao && descricaoSEOLimpa.length > 0) {
+        const descLower = descricaoSEOLimpa.toLowerCase();
+        const corLower = corParaDescricao.toLowerCase();
+        const jaMencionaCor = descLower.includes(corLower) || /(\bna cor\b|\bcor\b|\bdisponível em\b|\blilás\b|\blilas\b|\brosa\b|\bazul\b|\bverde\b|\bvermelho\b|\bpreto\b|\bbranco\b|\bbege\b)/i.test(descricaoSEOLimpa);
+        if (!jaMencionaCor) {
+          descricaoSEOLimpa = descricaoSEOLimpa.trimEnd() + " Disponível na cor " + corParaDescricao + ".";
+          console.log("[ProductEditor] 📝 Cor adicionada à descrição comercial:", corParaDescricao);
         }
       }
       
-      // NÃO usar fallbacks genéricos - deixar vazio se não houver dados precisos
-      // O usuário pode preencher manualmente se necessário
+      // A IA agora está configurada para gerar textos COMPLETOS dentro de 470 caracteres
+      // Descrição SEO agora não tem limite - manter texto completo
+      
+      // Tecido: usar o valor retornado pela API; ignorar frases genéricas que não descrevem o tecido
+      const detectedFabric = analysisData.detected_fabric || analysisData.tecido_estimado || analysisData.material || "";
+      let finalDetectedFabric = (detectedFabric && typeof detectedFabric === "string" && detectedFabric.trim() !== "")
+        ? detectedFabric.trim()
+        : "";
+      const genericFabricPhrases = [
+        "tecido", "material", "tecido de qualidade", "tecido de qualidade.", "qualidade",
+        "não identificado", "não identificada", "não especificado", "não especificada"
+      ];
+      const fabricLower = finalDetectedFabric.toLowerCase();
+      if (genericFabricPhrases.some(p => fabricLower === p || fabricLower.startsWith(p + " ") || fabricLower.endsWith(" " + p))) {
+        finalDetectedFabric = "";
+      }
+      if (finalDetectedFabric && (fabricLower === "tecido" || fabricLower === "material")) {
+        finalDetectedFabric = "";
+      }
       
       // Log de validação dos dados processados
       // Processar colors_by_item para conjuntos (cores separadas por item)
@@ -769,18 +888,25 @@ export function ProductEditorLayout({
       });
       
       if (Array.isArray(processedColorsByItem) && processedColorsByItem.length > 0) {
-        // Validar e filtrar cores por item
-        processedColorsByItem = processedColorsByItem.map(itemData => ({
-          item: itemData.item || "Item",
-          colors: (itemData.colors || []).filter((color: { hex: string; name: string }) => {
+        // Validar e filtrar cores por item; rejeitar "Cinza" quando for a única e nome/descrição indicam outra cor
+        const isOnlyGray = (colors: Array<{ hex?: string; name?: string }>) =>
+          colors.length === 1 && ["cinza", "gray", "grey"].some(g => (colors[0]?.name || "").toLowerCase().includes(g));
+        const colorFromText = colorWordsInText((analysisData.nome_sugerido || "") + " " + (analysisData.descricao_seo || ""));
+        processedColorsByItem = processedColorsByItem.map(itemData => {
+          let colors = (itemData.colors || []).filter((color: { hex: string; name: string }) => {
             const hasValidHex = color?.hex && color.hex.startsWith('#') && color.hex.length === 7;
             const hasValidName = color?.name && 
               !color.name.toLowerCase().includes('não identificad') &&
               !color.name.toLowerCase().includes('não especificad') &&
               color.name.trim().length > 0;
             return hasValidHex && hasValidName;
-          })
-        })).filter(itemData => itemData.colors.length > 0);
+          });
+          if (isOnlyGray(colors) && colorFromText) {
+            colors = [colorFromText];
+            console.log("[ProductEditor] 🎨 Cores por item corrigidas (Cinza → " + colorFromText.name + "):", itemData.item);
+          }
+          return { item: itemData.item || "Item", colors };
+        }).filter(itemData => itemData.colors.length > 0);
         
         console.log("[ProductEditor] 🎨 Cores por item processadas e validadas:", {
           itemsCount: processedColorsByItem.length,
@@ -795,6 +921,95 @@ export function ProductEditorLayout({
           productType: analysisData.product_type,
           hasColorsByItem: !!processedColorsByItem,
         });
+      }
+
+      // Conjunto: se temos dominant_colors mas não colors_by_item, sintetizar por peça para exibir corretamente
+      const isConjuntoType = analysisData.product_type?.toLowerCase().includes("conjunto");
+      const hasDominantColors = Array.isArray(analysisData.dominant_colors) && analysisData.dominant_colors.length > 0;
+      const validProcessedColors = (analysisData.dominant_colors || []).filter(
+        (c: { hex?: string; name?: string }) => c?.hex?.startsWith?.("#") && c?.name?.trim?.()
+      );
+      if (
+        isConjuntoType &&
+        validProcessedColors.length > 0 &&
+        (!Array.isArray(processedColorsByItem) || processedColorsByItem.length === 0)
+      ) {
+        const match = (analysisData.product_type || "").match(/conjunto\s+(.+)\s+e\s+(.+)/i);
+        const part1 = match ? match[1].trim() : "Parte 1";
+        const part2 = match ? match[2].trim() : "Parte 2";
+        processedColorsByItem = [
+          { item: part1, colors: validProcessedColors },
+          { item: part2, colors: validProcessedColors },
+        ];
+        console.log("[ProductEditor] 🎨 colors_by_item sintetizado para conjunto:", processedColorsByItem.map((i: { item: string; colors: unknown[] }) => ({ item: i.item, colorsCount: i.colors.length })));
+      }
+      if (isConjuntoType && processedColors.length === 0 && validProcessedColors.length > 0) {
+        processedColors = validProcessedColors;
+      }
+
+      // Fallback: extrair tecido e cores da descrição SEO quando a API não retornar (ou retornar genéricos)
+      const descricaoParaFallback = (analysisData.descricao_seo || "").toString().replace(/\[Análise IA[^\]]*\]\s*/g, "").trim();
+      if (descricaoParaFallback.length > 20) {
+        if (!finalDetectedFabric) {
+          const fabricPatterns = [
+            /confeccionad[oa]?\s+em\s+([^.,]+?)(?:\s*,|\s*\.|\s+oferece|\s+e\s+)/i,
+            /(?:em|de)\s+(malha|algodão|viscose|linho|seda|chiffon|elastano|poliamida|nylon|poliéster|cetim|jeans|sarja|moletom|malha)[\s,.]/i,
+            /(malha|algodão|viscose|linho|seda)\s+(?:de|com|leve|macio)/i,
+          ];
+          for (const re of fabricPatterns) {
+            const m = descricaoParaFallback.match(re);
+            if (m && m[1]) {
+              const extracted = m[1].trim();
+              if (extracted.length >= 3 && extracted.length <= 50 && !/^(não|nao|qualidade|tecido|material)$/i.test(extracted)) {
+                finalDetectedFabric = extracted.charAt(0).toUpperCase() + extracted.slice(1).toLowerCase();
+                console.log("[ProductEditor] 📎 Tecido extraído da descrição (fallback):", finalDetectedFabric);
+                break;
+              }
+            }
+          }
+        }
+        if (processedColors.length === 0) {
+          const colorPatterns = [
+            /na\s+cor\s+([a-záàâãéêíóôõúç]+)(?:\s*,|\s*\.|\s+transmite)/i,
+            /em\s+([a-záàâãéêíóôõúç]+)\s*,?\s*transmite/i,
+            /(?:cor|tom)\s+([a-záàâãéêíóôõúç]+)(?:\s*[,.]|\s+e)/i,
+            /(rosa|azul|vermelho|verde|preto|branco|bege|lilás|marrom|amarelo|cinza|dourado|prateado|bordô|corais?)/i,
+          ];
+          const colorHexMap: Record<string, string> = {
+            rosa: "#FFC0CB", azul: "#0000FF", vermelho: "#FF0000", verde: "#008000", preto: "#000000",
+            branco: "#FFFFFF", bege: "#F5F5DC", lilás: "#E6E6FA", marrom: "#8B4513", amarelo: "#FFFF00",
+            cinza: "#808080", dourado: "#FFD700", prateado: "#C0C0C0", bordô: "#722F37", coral: "#FF7F50", corais: "#FF7F50",
+          };
+          for (const re of colorPatterns) {
+            const m = descricaoParaFallback.match(re);
+            if (m && m[1]) {
+              const name = m[1].trim();
+              if (name.length >= 2 && name.length <= 20) {
+                const hex = colorHexMap[name.toLowerCase()] || "#808080";
+                processedColors = [{ hex, name: name.charAt(0).toUpperCase() + name.slice(1).toLowerCase() }];
+                console.log("[ProductEditor] 📎 Cor extraída da descrição (fallback):", processedColors[0].name);
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Após fallback: para conjunto, garantir colors_by_item a partir de dominant_colors/processedColors
+      const productTypeForConjunto = analysisData.product_type?.toLowerCase().includes("conjunto");
+      if (
+        productTypeForConjunto &&
+        Array.isArray(processedColors) &&
+        processedColors.length > 0 &&
+        (!Array.isArray(processedColorsByItem) || processedColorsByItem.length === 0)
+      ) {
+        const matchConjunto = (analysisData.product_type || "").match(/conjunto\s+(.+)\s+e\s+(.+)/i);
+        const p1 = matchConjunto ? matchConjunto[1].trim() : "Parte 1";
+        const p2 = matchConjunto ? matchConjunto[2].trim() : "Parte 2";
+        processedColorsByItem = [
+          { item: p1, colors: processedColors },
+          { item: p2, colors: processedColors },
+        ];
       }
       
       console.log("[ProductEditor] 🔍 Validação de dados da análise:", {
@@ -811,23 +1026,57 @@ export function ProductEditorLayout({
         standard_measurements: analysisData.standard_measurements,
       });
       
+      // Aceitar chaves alternativas da API (produto único ou conjunto)
+      const productType = analysisData.product_type || analysisData.tipo_produto || analysisData.productType || "";
+      const standardMeasurementsFromApi = analysisData.standard_measurements || analysisData.medidas_produto || analysisData.standardMeasurements;
+
+      // Inferir público alvo a partir do CONTEÚDO (tipo, descrição, medidas) para o pop-up de confirmação.
+      // A API pode retornar detected_audience alinhado ao contexto enviado (ex.: ADULT quando selecionou Feminino),
+      // então priorizamos a inferência pelo conteúdo para detectar peça infantil e exibir o pop-up.
+      const rawDetected = analysisData.detected_audience;
+      const textToCheck = [
+        productType,
+        mappedCategory,
+        analysisData.nome_sugerido || "",
+        analysisData.descricao_seo || "",
+        (analysisData.suggested_category || analysisData.categoria_sugerida) || "",
+      ].join(" ").toLowerCase();
+      const kidKeywords = ["infantil", "criança", "crianca", "kids", "bebê", "bebe", "infant", "child", "juvenil", "menino", "menina", "berçário", "bercario", "chá de bebê", "cha de bebe", "primeira infância", "0 a 3", "0-3", "2 a 6", "2-6"];
+      const hasKidKeyword = kidKeywords.some(k => textToCheck.includes(k));
+      const sm = standardMeasurementsFromApi;
+      const smallMeasurements = sm && (
+        (typeof sm.bust === 'number' && sm.bust < 55) ||
+        (typeof sm.waist === 'number' && sm.waist < 52) ||
+        (typeof sm.length === 'number' && sm.length < 55)
+      );
+      const inferredFromContent: 'KIDS' | 'ADULT' = (hasKidKeyword || smallMeasurements) ? 'KIDS' : 'ADULT';
+      // Usar inferência quando indica KIDS (para mostrar pop-up mesmo se a API devolveu ADULT por causa do contexto)
+      const effectiveDetectedAudience: 'KIDS' | 'ADULT' = inferredFromContent === 'KIDS'
+        ? 'KIDS'
+        : (rawDetected ?? inferredFromContent);
+      if (inferredFromContent === 'KIDS' && rawDetected === 'ADULT') {
+        console.log("[ProductEditor] 📌 Conteúdo indica KIDS (medidas/texto); API devolveu ADULT por contexto. Usando KIDS para pop-up.", { hasKidKeyword, smallMeasurements, sm });
+      } else if (!rawDetected) {
+        console.log("[ProductEditor] 📌 detected_audience inferido do conteúdo:", effectiveDetectedAudience, { hasKidKeyword, smallMeasurements });
+      }
+
       const newAiAnalysisData = {
         nome_sugerido: analysisData.nome_sugerido || "",
         descricao_seo: descricaoSEOLimpa,
         tags: analysisData.tags || [], // Mantido apenas internamente
         suggested_category: mappedCategory,
         categoria_sugerida: mappedCategory, // Compatibilidade
-        product_type: analysisData.product_type || "",
-        detected_fabric: finalDetectedFabric, // Vazio se não houver dados precisos
-        dominant_colors: processedColors, // Array vazio se não houver cores precisas
+        product_type: productType,
+        detected_fabric: finalDetectedFabric,
+        tecido_estimado: finalDetectedFabric,
+        dominant_colors: processedColors,
         colors_by_item: processedColorsByItem && processedColorsByItem.length > 0 
           ? processedColorsByItem 
-          : undefined, // Cores por item (para conjuntos) - preservar se houver
-        standard_measurements: analysisData.standard_measurements || undefined, // Medidas padrão coletadas da análise
-        cor_predominante: processedColors[0]?.name || "", // Vazio se não houver cor precisa
-        tecido_estimado: finalDetectedFabric, // Vazio se não houver tecido preciso
+          : undefined,
+        standard_measurements: standardMeasurementsFromApi || undefined,
+        cor_predominante: processedColors[0]?.name || "",
         detalhes: analysisData.detalhes || [], // Compatibilidade
-        detected_audience: analysisData.detected_audience, // Público alvo detectado pela IA
+        detected_audience: effectiveDetectedAudience,
       };
       
       console.log("[ProductEditor] 📏 Medidas padrão coletadas da análise:", newAiAnalysisData.standard_measurements);
@@ -840,26 +1089,23 @@ export function ProductEditorLayout({
         colorsByItem: newAiAnalysisData.colors_by_item 
           ? newAiAnalysisData.colors_by_item.map((item: { item: string; colors: Array<{ hex: string; name: string }> }) => `${item.item}: ${item.colors.map((c: { hex: string; name: string }) => c.name).join(", ")}`).join(" | ")
           : "(nenhum conjunto detectado)",
+        detected_audience: newAiAnalysisData.detected_audience,
       });
       
-      // Verificar inconsistência entre público alvo selecionado e detectado pela IA
-      const detectedAudience = analysisData.detected_audience;
+      // Verificar inconsistência entre público alvo selecionado e detectado (ou inferido)
+      const detectedAudience = effectiveDetectedAudience;
       const selectedAudience = state.targetAudience;
       let hasInconsistency = false;
       
       if (detectedAudience) {
-        // Mapear detected_audience para targetAudience
-        // KIDS sempre mapeia para 'kids'
-        // ADULT pode ser 'female' ou 'male' (mantém o selecionado se já for adulto)
         const isSelectedAdult = selectedAudience === 'female' || selectedAudience === 'male';
         const isDetectedAdult = detectedAudience === 'ADULT';
         const isSelectedKids = selectedAudience === 'kids';
         const isDetectedKids = detectedAudience === 'KIDS';
         
-        // Inconsistência: selecionou adulto mas IA detectou kids, ou vice-versa
         if ((isSelectedAdult && isDetectedKids) || (isSelectedKids && isDetectedAdult)) {
           hasInconsistency = true;
-          console.log("[ProductEditor] ⚠️ Inconsistência detectada:", {
+          console.log("[ProductEditor] ⚠️ Inconsistência detectada (público/grade):", {
             selecionado: selectedAudience,
             detectado: detectedAudience,
             isSelectedAdult,
@@ -879,11 +1125,201 @@ export function ProductEditorLayout({
         hasInconsistency,
         fullData: newAiAnalysisData
       });
-      
+
+      // Preencher medidas junto com a análise: uma medida por tamanho da grade (ABNT), usando API só no tamanho de referência
+      let initialSmartMeasurements: SmartGuideData | undefined;
+      const apiStandardMeasurements = newAiAnalysisData.standard_measurements;
+      const productTypeRaw = (newAiAnalysisData.product_type || '').trim();
+      const isConjuntoTypeMeasure = /conjunto/i.test(productTypeRaw);
+      const gradeSizes = getSizesForGrade(effectiveSizeCategory, effectiveAudience);
+      const refIdx = Math.floor(gradeSizes.length / 2);
+      const refSize = gradeSizes[refIdx] || gradeSizes[0];
+      const abntAudience = effectiveAudience === 'kids' ? 'KIDS' : effectiveAudience === 'male' ? 'MALE' : 'FEMALE';
+      if (apiStandardMeasurements && (apiStandardMeasurements.bust != null || apiStandardMeasurements.waist != null || apiStandardMeasurements.hip != null || apiStandardMeasurements.length != null)) {
+        const sizesRecord: Record<string, MeasurementPoint[]> = {};
+        gradeSizes.forEach((sizeKey) => {
+          const abnt = getStandardMeasurements(abntAudience, sizeKey);
+          const useApi = sizeKey === refSize;
+          const bust = useApi && (apiStandardMeasurements.bust != null && apiStandardMeasurements.bust > 0)
+            ? apiStandardMeasurements.bust
+            : (abnt?.bust ?? 0);
+          const waist = useApi && (apiStandardMeasurements.waist != null && apiStandardMeasurements.waist > 0)
+            ? apiStandardMeasurements.waist
+            : (abnt?.waist ?? 0);
+          const hip = useApi && (apiStandardMeasurements.hip != null && apiStandardMeasurements.hip > 0)
+            ? apiStandardMeasurements.hip
+            : (abnt?.hip ?? 0);
+          const length = useApi && (apiStandardMeasurements.length != null && apiStandardMeasurements.length > 0)
+            ? apiStandardMeasurements.length
+            : (abnt?.length ?? 0);
+          const points: MeasurementPoint[] = [];
+          if (bust > 0) points.push({ id: 'bust', label: 'Busto', value: bust, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (waist > 0) points.push({ id: 'waist', label: 'Cintura', value: waist, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (hip > 0) points.push({ id: 'hip', label: 'Quadril', value: hip, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (length > 0) points.push({ id: 'length', label: 'Comprimento', value: length, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (points.length > 0) sizesRecord[sizeKey] = points;
+        });
+        if (Object.keys(sizesRecord).length > 0) {
+          const firstSizeKey = (gradeSizes[0] || refSize) as SizeKey;
+          const isConjunto = isConjuntoTypeMeasure;
+
+          if (isConjunto) {
+            // Conjunto: construir groups (Medidas Cropped, Medidas Saia) na primeira análise
+            let topLabel = 'Parte de cima';
+            let bottomLabel = 'Parte de baixo';
+            const parts = productTypeRaw.split(/\s+e\s+/i);
+            if (parts.length >= 2) {
+              topLabel = (parts[0].replace(/^conjunto\s+/i, '').trim() || topLabel);
+              bottomLabel = (parts[1].trim() || bottomLabel);
+            }
+            if (newAiAnalysisData.colors_by_item?.length >= 2) {
+              topLabel = newAiAnalysisData.colors_by_item[0].item;
+              bottomLabel = newAiAnalysisData.colors_by_item[1].item;
+            }
+
+            const groupsBuild: MeasurementGroup[] = [];
+            // Grupo 1: parte de cima (busto, comprimento)
+            const topSizes: Record<string, MeasurementPoint[]> = {};
+            gradeSizes.forEach((sizeKey) => {
+              const abnt = getStandardMeasurements(abntAudience, sizeKey);
+              const useApi = sizeKey === refSize;
+              const bust = useApi && (apiStandardMeasurements.bust != null && apiStandardMeasurements.bust > 0)
+                ? apiStandardMeasurements.bust
+                : (abnt?.bust ?? 0);
+              const length = useApi && (apiStandardMeasurements.length != null && apiStandardMeasurements.length > 0)
+                ? apiStandardMeasurements.length
+                : (abnt?.length ?? 0);
+              const points: MeasurementPoint[] = [];
+              if (bust > 0) points.push({ id: 'bust', label: 'Busto', value: bust, startX: 0, startY: 0, endX: 0, endY: 0 });
+              if (length > 0) points.push({ id: 'length', label: 'Comprimento', value: length, startX: 0, startY: 0, endX: 0, endY: 0 });
+              if (points.length > 0) topSizes[sizeKey] = points;
+            });
+            if (Object.keys(topSizes).length > 0) {
+              groupsBuild.push({
+                id: 'top',
+                label: topLabel,
+                sizes: topSizes as Record<SizeKey, MeasurementPoint[]>,
+              });
+            }
+
+            // Grupo 2: parte de baixo (cintura, quadril, comprimento)
+            const bottomSizes: Record<string, MeasurementPoint[]> = {};
+            gradeSizes.forEach((sizeKey) => {
+              const abnt = getStandardMeasurements(abntAudience, sizeKey);
+              const useApi = sizeKey === refSize;
+              const waist = useApi && (apiStandardMeasurements.waist != null && apiStandardMeasurements.waist > 0)
+                ? apiStandardMeasurements.waist
+                : (abnt?.waist ?? 0);
+              const hip = useApi && (apiStandardMeasurements.hip != null && apiStandardMeasurements.hip > 0)
+                ? apiStandardMeasurements.hip
+                : (abnt?.hip ?? 0);
+              const length = useApi && (apiStandardMeasurements.length != null && apiStandardMeasurements.length > 0)
+                ? apiStandardMeasurements.length
+                : (abnt?.length ?? 0);
+              const points: MeasurementPoint[] = [];
+              if (waist > 0) points.push({ id: 'waist', label: 'Cintura', value: waist, startX: 0, startY: 0, endX: 0, endY: 0 });
+              if (hip > 0) points.push({ id: 'hip', label: 'Quadril', value: hip, startX: 0, startY: 0, endX: 0, endY: 0 });
+              if (length > 0) points.push({ id: 'length', label: 'Comprimento', value: length, startX: 0, startY: 0, endX: 0, endY: 0 });
+              if (points.length > 0) bottomSizes[sizeKey] = points;
+            });
+            if (Object.keys(bottomSizes).length > 0) {
+              groupsBuild.push({
+                id: 'bottom',
+                label: bottomLabel,
+                sizes: bottomSizes as Record<SizeKey, MeasurementPoint[]>,
+              });
+            }
+
+            if (groupsBuild.length > 0) {
+              initialSmartMeasurements = {
+                baseImage: imageUrl || state.rawImageUrl || '',
+                activeSize: firstSizeKey,
+                autoGrading: true,
+                sizes: {} as Record<SizeKey, MeasurementPoint[]>,
+                groups: groupsBuild,
+              };
+            }
+          }
+
+          if (!initialSmartMeasurements) {
+            initialSmartMeasurements = {
+              baseImage: imageUrl || state.rawImageUrl || '',
+              activeSize: firstSizeKey,
+              autoGrading: true,
+              sizes: sizesRecord as Record<SizeKey, MeasurementPoint[]>,
+            };
+          }
+        }
+      }
+
+      // Fallback para conjuntos: se a API não retornou standard_measurements, construir groups só com ABNT para primeiro carregamento correto (Medidas Cropped / Short)
+      if (isConjuntoTypeMeasure && !initialSmartMeasurements && gradeSizes.length > 0) {
+        let topLabel = 'Parte de cima';
+        let bottomLabel = 'Parte de baixo';
+        const parts = productTypeRaw.split(/\s+e\s+/i);
+        if (parts.length >= 2) {
+          topLabel = (parts[0].replace(/^conjunto\s+/i, '').trim() || topLabel);
+          bottomLabel = (parts[1].trim() || bottomLabel);
+        }
+        if (newAiAnalysisData.colors_by_item?.length >= 2) {
+          topLabel = newAiAnalysisData.colors_by_item[0].item;
+          bottomLabel = newAiAnalysisData.colors_by_item[1].item;
+        }
+        const groupsBuild: MeasurementGroup[] = [];
+        const firstSizeKey = (gradeSizes[0] || refSize) as SizeKey;
+        const topSizes: Record<string, MeasurementPoint[]> = {};
+        gradeSizes.forEach((sizeKey) => {
+          const abnt = getStandardMeasurements(abntAudience, sizeKey);
+          const bust = abnt?.bust ?? 0;
+          const length = abnt?.length ?? 0;
+          const points: MeasurementPoint[] = [];
+          if (bust > 0) points.push({ id: 'bust', label: 'Busto', value: bust, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (length > 0) points.push({ id: 'length', label: 'Comprimento', value: length, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (points.length > 0) topSizes[sizeKey] = points;
+        });
+        if (Object.keys(topSizes).length > 0) {
+          groupsBuild.push({ id: 'top', label: topLabel, sizes: topSizes as Record<SizeKey, MeasurementPoint[]> });
+        }
+        const bottomSizes: Record<string, MeasurementPoint[]> = {};
+        gradeSizes.forEach((sizeKey) => {
+          const abnt = getStandardMeasurements(abntAudience, sizeKey);
+          const waist = abnt?.waist ?? 0;
+          const hip = abnt?.hip ?? 0;
+          const length = abnt?.length ?? 0;
+          const points: MeasurementPoint[] = [];
+          if (waist > 0) points.push({ id: 'waist', label: 'Cintura', value: waist, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (hip > 0) points.push({ id: 'hip', label: 'Quadril', value: hip, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (length > 0) points.push({ id: 'length', label: 'Comprimento', value: length, startX: 0, startY: 0, endX: 0, endY: 0 });
+          if (points.length > 0) bottomSizes[sizeKey] = points;
+        });
+        if (Object.keys(bottomSizes).length > 0) {
+          groupsBuild.push({ id: 'bottom', label: bottomLabel, sizes: bottomSizes as Record<SizeKey, MeasurementPoint[]> });
+        }
+        if (groupsBuild.length > 0) {
+          initialSmartMeasurements = {
+            baseImage: imageUrl || state.rawImageUrl || '',
+            activeSize: firstSizeKey,
+            autoGrading: true,
+            sizes: {} as Record<SizeKey, MeasurementPoint[]>,
+            groups: groupsBuild,
+          };
+          console.log("[ProductEditor] 📦 Conjunto: fallback com groups ABNT (sem standard_measurements da API)");
+        }
+      }
+
       setState(prev => ({
         ...prev,
         aiAnalysisData: newAiAnalysisData,
+        ...(initialSmartMeasurements && { smartMeasurements: initialSmartMeasurements }),
+        ...(contextOverride?.targetAudience != null && { targetAudience: contextOverride.targetAudience }),
+        ...(contextOverride?.sizeCategory != null && { sizeCategory: contextOverride.sizeCategory }),
       }));
+
+      // Só esconder o overlay depois do React aplicar o state (evita tela zerada no primeiro frame)
+      queueMicrotask(() => {
+        analyzingRef.current = false;
+        setAnalyzing(false);
+      });
       
       // Detectar landmarks automaticamente após análise completar
       // Isso carrega as medidas automaticamente
@@ -941,82 +1377,89 @@ export function ProductEditorLayout({
         alert(`Erro ao analisar imagem: ${userFriendlyMessage}`);
       }
     } finally {
-      analyzingRef.current = false;
-      setAnalyzing(false);
+      // Em caso de erro, garantir que o overlay seja desligado (sucesso já desliga via queueMicrotask)
+      if (analyzingRef.current) {
+        analyzingRef.current = false;
+        setAnalyzing(false);
+      }
     }
   };
 
-  // Análise automática quando a imagem for carregada
-  // SIMPLES: Apenas uma tentativa automática. Se der erro 429, parar completamente (mas permitir após 15 minutos).
+  // Análise inteligente NÃO é mais automática: é acionada pelo botão "Análise do Produto (IA)" na Caixa 1 (após Foto Frente e Foto Verso carregadas).
+  // Este useEffect não dispara análise; mantido vazio para referência.
   useEffect(() => {
-    // Verificar se estamos no cliente (evitar problemas de hidratação)
-    if (typeof window === 'undefined') {
-      return;
-    }
-    
-    // Verificar se o erro 429 já expirou (15 minutos)
-    const FIFTEEN_MINUTES = 15 * 60 * 1000;
-    if (has429ErrorRef.current && last429ErrorTimeRef.current > 0) {
-      const timeSinceError = Date.now() - last429ErrorTimeRef.current;
-      if (timeSinceError >= FIFTEEN_MINUTES) {
-        // Erro 429 expirou, permitir nova tentativa automática
-        console.log("[ProductEditor] ⏰ Erro 429 expirou (passaram mais de 15 minutos). Permitindo nova tentativa automática.");
-        has429ErrorRef.current = false;
-        last429ErrorTimeRef.current = 0;
-      } else {
-        const minutesRemaining = Math.ceil((FIFTEEN_MINUTES - timeSinceError) / 1000 / 60);
-        console.log(`[ProductEditor] ⏭️ Erro 429 ainda ativo (${minutesRemaining} minuto(s) restante(s)). Use o botão 'Regenerar Análise' para tentar manualmente.`);
-        return;
+    // Análise apenas via botão "Análise do Produto (IA)" no rodapé da Configuração Inicial.
+  }, []);
+
+  // Caixas 2, 3 e 4 aparecem juntas quando a análise fica pronta (sem efeito escalonado)
+  useEffect(() => {
+    if (!state.aiAnalysisData || analyzing) return;
+    setShowBox3Content(true);
+    setShowBox4Content(true);
+    setAnimateBox3(true);
+    setAnimateBox4(true);
+  }, [state.aiAnalysisData, analyzing]);
+
+  // Frases em rotação no overlay de análise
+  const LOADING_PHRASES = [
+    "Analisando imagem do produto...",
+    "Extraindo características e tecidos...",
+    "Gerando nome e descrição comercial...",
+    "Identificando categorias e medidas ABNT...",
+    "Quase lá, preparando a ficha técnica...",
+  ];
+  useEffect(() => {
+    if (!analyzing) return;
+    const id = setInterval(() => setLoadingPhraseIndex((i) => (i + 1) % LOADING_PHRASES.length), 2200);
+    return () => clearInterval(id);
+  }, [analyzing]);
+
+  // Mostrar overlay até ter análise E medidas com pelo menos um valor não zero (evita tela zerada)
+  const hasSmartMeasurementsData = (() => {
+    const sm = state.smartMeasurements;
+    if (!sm) return false;
+    const hasGroups = (sm.groups?.length ?? 0) > 0;
+    const hasSizes = Object.keys(sm.sizes || {}).length > 0;
+    if (!hasGroups && !hasSizes) return false;
+    const hasNonZero = (points: { value?: number }[]) =>
+      points?.some((p) => typeof p.value === "number" && p.value > 0) ?? false;
+    if (hasGroups && sm.groups) {
+      for (const g of sm.groups) {
+        for (const sizeKey of Object.keys(g.sizes || {})) {
+          if (hasNonZero(g.sizes![sizeKey as SizeKey] || [])) return true;
+        }
       }
     }
-    
-    // VALIDAÇÕES: Se não temos URL, já temos análise, ou está analisando, não fazer nada
-    if (!state.rawImageUrl || state.aiAnalysisData || analyzing || analyzingRef.current) {
-      return;
-    }
-    
-    // Verificar se é uma URL válida
-    if (!state.rawImageUrl.startsWith("http://") && !state.rawImageUrl.startsWith("https://")) {
-      return;
-    }
-    
-    // VERIFICAÇÃO DE DUPLICATAS: Se já está marcado como analisada, não tentar novamente
-    if (state.rawImageUrl === lastAnalyzedUrlRef.current) {
-      console.log("[ProductEditor] ⏭️ Imagem já foi marcada para análise");
-      return;
-    }
-    
-    // Marcar como analisada IMEDIATAMENTE para evitar disparos duplicados
-    lastAnalyzedUrlRef.current = state.rawImageUrl;
-    
-    console.log("[ProductEditor] 📝 Iniciando análise automática da imagem:", state.rawImageUrl.substring(0, 50));
-    
-    // Delay simples de 2 segundos para garantir que o upload foi concluído
-    const timer = setTimeout(() => {
-      // Verificações finais antes de executar
-      if (
-        state.rawImageUrl === lastAnalyzedUrlRef.current && 
-        !state.aiAnalysisData && 
-        !analyzing && 
-        !analyzingRef.current &&
-        !has429ErrorRef.current &&
-        typeof window !== 'undefined'
-      ) {
-        console.log("[ProductEditor] 🔍 Executando análise automática da imagem");
-        analyzeImage(state.rawImageUrl).catch(err => {
-          console.error("[ProductEditor] ❌ Erro na análise automática:", err);
-          // Não fazer nada aqui - o erro já foi tratado no analyzeImage
-        });
-      } else {
-        console.log("[ProductEditor] ⏭️ Análise cancelada - condições mudaram durante o delay");
+    if (hasSizes && sm.sizes) {
+      for (const sizeKey of Object.keys(sm.sizes)) {
+        if (hasNonZero(sm.sizes[sizeKey as SizeKey] || [])) return true;
       }
-    }, 2000);
-    
+    }
+    return false;
+  })();
+  const showBox2LoadingOverlay =
+    analyzing || (showBox2Content && !!state.aiAnalysisData && !hasSmartMeasurementsData);
+
+  // Cursor de espera em toda a página enquanto overlay da Caixa 2 estiver ativo
+  useEffect(() => {
+    if (!showBox2LoadingOverlay) return;
+    const prev = document.body.style.cursor;
+    document.body.style.cursor = "wait";
     return () => {
-      clearTimeout(timer);
+      document.body.style.cursor = prev;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.rawImageUrl, state.aiAnalysisData, analyzing]);
+  }, [showBox2LoadingOverlay]);
+
+  // Centralizar Caixa 2 na janela quando abrir o carregamento (ao clicar em "Análise do Produto")
+  useEffect(() => {
+    if (showBox2LoadingOverlay && box2CardRef.current) {
+      const el = box2CardRef.current;
+      const timer = setTimeout(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showBox2LoadingOverlay]);
 
   const loadCreditInfo = async () => {
     try {
@@ -1036,6 +1479,15 @@ export function ProductEditorLayout({
   // === HANDLERS DE UPLOAD ===
   const handleFileSelect = async (file: File, imageIndex?: number) => {
     if (!file) return;
+    // Fotos Extra 1–4 só podem ser carregadas depois de Foto Frente e Foto Verso
+    if (imageIndex != null && imageIndex >= 3) {
+      const hasFotoFrente = !!state.rawImageUrl;
+      const hasFotoVerso = state.extraImages.some((img) => img.idx === 2 && img.url);
+      if (!hasFotoFrente || !hasFotoVerso) {
+        alert("Carregue primeiro a Foto Frente e a Foto Verso para habilitar as fotos extras.");
+        return;
+      }
+    }
 
     try {
       setUploading(true);
@@ -1057,13 +1509,30 @@ export function ProductEditorLayout({
 
       const data = await response.json();
       
-      // Se for a primeira imagem (Foto Frente)
+      // GATILHO ÚNICO: apenas na primeira imagem (Foto de Frente — Container 1)
       if (imageIndex === undefined || imageIndex === 1) {
         // Resetar referências para permitir nova análise
         lastAnalyzedUrlRef.current = "";
         has429ErrorRef.current = false;
         last429ErrorTimeRef.current = 0;
         analyzingRef.current = false;
+
+        // Calibração por objeto de referência (ex.: cartão) — SOMENTE na foto frontal.
+        // Não rodar na foto de costas nem nas extras; se achar na frente, a escala vale para todo o produto.
+        let calibrationScale: number | null = null;
+        let isCalibratedByCard = false;
+        try {
+          const calibrationResult = await analyzeImageForReference(file);
+          if (calibrationResult.found && calibrationResult.pixelsPerCm != null) {
+            isCalibratedByCard = true;
+            calibrationScale = calibrationResult.pixelsPerCm;
+            console.log("[ProductEditor] 📏 Calibração por cartão (foto frontal): régua universal", { pixelsPerCm: calibrationScale });
+          } else {
+            console.log("[ProductEditor] 📏 Sem objeto de referência na frente; usando ABNT/IA.");
+          }
+        } catch (err) {
+          console.warn("[ProductEditor] Calibração ignorada:", err);
+        }
         
         setState(prev => ({
           ...prev,
@@ -1071,6 +1540,8 @@ export function ProductEditorLayout({
           rawImageFile: file,
           selectedCoverImage: data.imageUrl,
           aiAnalysisData: null,
+          calibrationScale,
+          isCalibratedByCard,
         }));
         
         setViewingImageIndex(0);
@@ -1130,13 +1601,15 @@ export function ProductEditorLayout({
   // Handler para excluir imagem
   const handleDeleteImage = (imageIndex: number) => {
     if (imageIndex === 1) {
-      // Excluir foto frente (rawImageUrl)
+      // Excluir foto frente (rawImageUrl) e resetar calibração
       setState(prev => ({
         ...prev,
         rawImageUrl: "",
         rawImageFile: null,
         selectedCoverImage: null,
         aiAnalysisData: null,
+        calibrationScale: null,
+        isCalibratedByCard: false,
       }));
       setUploadViewerIndex(0);
     } else {
@@ -1146,6 +1619,25 @@ export function ProductEditorLayout({
         extraImages: prev.extraImages.filter(img => img.idx !== imageIndex),
       }));
     }
+  };
+
+  // Limpar campos da Configuração Inicial: fotos, análise e calibração
+  const handleLimparCampos = () => {
+    lastAnalyzedUrlRef.current = "";
+    setUploadViewerIndex(0);
+    setState(prev => ({
+      ...prev,
+      rawImageUrl: "",
+      rawImageFile: null,
+      selectedCoverImage: null,
+      extraImages: [],
+      aiAnalysisData: null,
+      calibrationScale: null,
+      isCalibratedByCard: false,
+      smartMeasurements: undefined,
+      imagemMedidasCustomizada: null,
+      persistedMeasurementsByAudience: undefined,
+    }));
   };
 
   // === HANDLER DE UPLOAD DE IMAGEM DE MEDIDAS ===
@@ -1260,36 +1752,46 @@ export function ProductEditorLayout({
       console.log("[ProductEditor] ✅ Landmarks detectados automaticamente");
       
       // 2. Processar landmarks para criar geometria de medidas
-      // Usar as medidas padrão da análise inteligente se disponíveis
       const standardMeasurements = analysisData.standard_measurements || {};
       console.log("[ProductEditor] 📏 Medidas padrão da análise:", standardMeasurements);
       
-      // Calcular tamanho intermediário da grade ATUAL
       const currentGradeSizes = getSizesForGrade(state.sizeCategory, state.targetAudience);
-      const middleIndex = Math.floor(currentGradeSizes.length / 2);
-      const activeSize = (currentGradeSizes[middleIndex] || 'M') as SizeKey;
+      const activeSize = (currentGradeSizes[0] || 'M') as SizeKey;
       
-      console.log("[ProductEditor] 🎯 Tamanho intermediário da grade:", {
+      console.log("[ProductEditor] 🎯 Primeira medida da grade (padrão):", {
         sizeCategory: state.sizeCategory,
         targetAudience: state.targetAudience,
         gradeSizes: currentGradeSizes,
-        middleIndex,
         activeSize,
       });
       
-      // Converter landmarks para MeasurementPoint
+      // Fallback ABNT quando a análise não traz valor (0 ou ausente) — evita medidas em 0 cm
+      const abntAudience = state.targetAudience === 'kids' ? 'KIDS' : state.targetAudience === 'male' ? 'MALE' : 'FEMALE';
+      const abntFallback = getStandardMeasurements(abntAudience, String(activeSize));
+      const fallback = (key: 'bust' | 'waist' | 'hip' | 'length') => {
+        const fromAnalysis = standardMeasurements[key];
+        if (fromAnalysis != null && fromAnalysis > 0) return fromAnalysis;
+        return abntFallback?.[key] ?? 0;
+      };
+      
+      const pixelsToCm = (start: { x: number; y: number }, end: { x: number; y: number }, pixelsPerCm: number): number => {
+        const dist = Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
+        return Math.round((dist / pixelsPerCm) * 10) / 10;
+      };
+      const scale = state.calibrationScale;
+      const useCalibration = state.isCalibratedByCard && scale != null;
+      
       const measurementPoints: MeasurementPoint[] = [];
       
-      // Processar landmarks de TOPS/DRESS
       if ('bust_start' in landmarksData && 'bust_end' in landmarksData) {
-        const value = standardMeasurements.bust || 0;
-        console.log("[ProductEditor] 📐 Processando busto - valor:", value, "landmarks disponíveis");
-        // SEMPRE criar geometria, mesmo se valor for 0
-        // A geometria permite que o usuário veja onde as medidas devem ser tomadas
+        const value = useCalibration
+          ? pixelsToCm(landmarksData.bust_start, landmarksData.bust_end, scale)
+          : fallback('bust');
+        console.log("[ProductEditor] 📐 Processando busto - valor:", value, useCalibration ? "(calibrado)" : value ? "análise/ABNT" : "landmarks");
         measurementPoints.push({
           id: 'bust',
           label: 'Busto',
-          value: value, // Pode ser 0 se não houver medida da análise
+          value,
           startX: landmarksData.bust_start.x,
           startY: landmarksData.bust_start.y,
           endX: landmarksData.bust_end.x,
@@ -1298,12 +1800,14 @@ export function ProductEditorLayout({
       }
       
       if ('waist_start' in landmarksData && 'waist_end' in landmarksData) {
-        const value = standardMeasurements.waist || 0;
-        console.log("[ProductEditor] 📐 Processando cintura - valor:", value, "landmarks disponíveis");
+        const value = useCalibration
+          ? pixelsToCm(landmarksData.waist_start, landmarksData.waist_end, scale)
+          : fallback('waist');
+        console.log("[ProductEditor] 📐 Processando cintura - valor:", value, useCalibration ? "(calibrado)" : value ? "análise/ABNT" : "landmarks");
         measurementPoints.push({
           id: 'waist',
           label: 'Cintura',
-          value: value, // Pode ser 0 se não houver medida da análise
+          value,
           startX: landmarksData.waist_start.x,
           startY: landmarksData.waist_start.y,
           endX: landmarksData.waist_end.x,
@@ -1312,12 +1816,14 @@ export function ProductEditorLayout({
       }
       
       if ('length_top' in landmarksData && 'length_bottom' in landmarksData) {
-        const value = standardMeasurements.length || 0;
-        console.log("[ProductEditor] 📐 Processando comprimento - valor:", value, "landmarks disponíveis");
+        const value = useCalibration
+          ? pixelsToCm(landmarksData.length_top, landmarksData.length_bottom, scale)
+          : fallback('length');
+        console.log("[ProductEditor] 📐 Processando comprimento - valor:", value, useCalibration ? "(calibrado)" : value ? "análise/ABNT" : "landmarks");
         measurementPoints.push({
           id: 'length',
           label: 'Comprimento',
-          value: value, // Pode ser 0 se não houver medida da análise
+          value,
           startX: landmarksData.length_top.x,
           startY: landmarksData.length_top.y,
           endX: landmarksData.length_bottom.x,
@@ -1325,14 +1831,15 @@ export function ProductEditorLayout({
         });
       }
       
-      // Processar landmarks de BOTTOMS (hip)
       if ('hip_start' in landmarksData && 'hip_end' in landmarksData) {
-        const value = standardMeasurements.hip || 0;
-        console.log("[ProductEditor] 📐 Processando quadril - valor:", value, "landmarks disponíveis");
+        const value = useCalibration
+          ? pixelsToCm(landmarksData.hip_start, landmarksData.hip_end, scale)
+          : fallback('hip');
+        console.log("[ProductEditor] 📐 Processando quadril - valor:", value, useCalibration ? "(calibrado)" : value ? "análise/ABNT" : "landmarks");
         measurementPoints.push({
           id: 'hip',
           label: 'Quadril',
-          value: value, // Pode ser 0 se não houver medida da análise
+          value,
           startX: landmarksData.hip_start.x,
           startY: landmarksData.hip_start.y,
           endX: landmarksData.hip_end.x,
@@ -1348,44 +1855,96 @@ export function ProductEditorLayout({
       console.log("[ProductEditor] ✅ Medidas processadas:", measurementPoints.length, "pontos criados");
       console.log("[ProductEditor] 📊 Valores das medidas:", measurementPoints.map(mp => `${mp.label}: ${mp.value}cm`));
       
-      // 3. Criar SmartGuideData com as medidas processadas
-      // Converter para o formato esperado: Record<SizeKey, MeasurementPoint[]>
-      // Criar estrutura de sizes com todos os tamanhos da grade atual
-      const sizes: Record<string, MeasurementPoint[]> = {};
-      
-      // Inicializar todos os tamanhos da grade atual com as medidas detectadas
-      currentGradeSizes.forEach(size => {
-        sizes[size] = measurementPoints; // Todos começam com os mesmos valores (serão calculados depois com auto-grading)
-      });
-      
-      // Inicializar também tamanhos padrão vazios para compatibilidade
-      const standardSizes: SizeKey[] = ['PP', 'P', 'M', 'G', 'GG', 'XG'];
-      standardSizes.forEach(size => {
-        if (!sizes[size]) {
-          sizes[size] = [];
-        }
-      });
-      
-      // 4. Atualizar estado com medidas processadas
       const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
       const persistedMeasurements = state.persistedMeasurementsByAudience || {};
-      
-      // Criar estrutura compatível com SmartGuideData (aceita qualquer string como chave)
+      const productType = (analysisData.product_type || '').trim();
+      const isConjunto = /conjunto/i.test(productType);
+
+      if (isConjunto) {
+        // Conjunto: manter/criar groups (Medidas Cropped, Medidas Saia/Shorts) em vez de sobrescrever com flat
+        let topLabel = 'Parte de cima';
+        let bottomLabel = 'Parte de baixo';
+        const parts = productType.split(/\s+e\s+/i);
+        if (parts.length >= 2) {
+          topLabel = (parts[0].replace(/^conjunto\s+/i, '').trim() || topLabel);
+          bottomLabel = (parts[1].trim() || bottomLabel);
+        }
+        if (analysisData.colors_by_item?.length >= 2) {
+          topLabel = analysisData.colors_by_item[0].item;
+          bottomLabel = analysisData.colors_by_item[1].item;
+        }
+
+        const topPoints = measurementPoints.filter((p) => p.id === 'bust' || p.id === 'length');
+        const bottomPoints = measurementPoints.filter((p) => p.id === 'waist' || p.id === 'hip' || p.id === 'length');
+        const topSizes: Record<string, MeasurementPoint[]> = {};
+        const bottomSizes: Record<string, MeasurementPoint[]> = {};
+        currentGradeSizes.forEach((size) => {
+          topSizes[size] = topPoints.length > 0 ? topPoints : [];
+          bottomSizes[size] = bottomPoints.length > 0 ? bottomPoints : [];
+        });
+
+        const groupsBuild: MeasurementGroup[] = [];
+        if (Object.keys(topSizes).length > 0 && topPoints.length > 0) {
+          groupsBuild.push({
+            id: 'top',
+            label: topLabel,
+            sizes: topSizes as Record<SizeKey, MeasurementPoint[]>,
+          });
+        }
+        if (Object.keys(bottomSizes).length > 0 && bottomPoints.length > 0) {
+          groupsBuild.push({
+            id: 'bottom',
+            label: bottomLabel,
+            sizes: bottomSizes as Record<SizeKey, MeasurementPoint[]>,
+          });
+        }
+
+        if (groupsBuild.length > 0) {
+          const smartMeasurementsData: any = {
+            baseImage: imageUrl,
+            activeSize: activeSize,
+            autoGrading: true,
+            sizes: {} as Record<SizeKey, MeasurementPoint[]>,
+            groups: groupsBuild,
+          };
+          console.log("[ProductEditor] 📐 Conjunto: medidas em groups (não flat):", groupsBuild.map((g) => g.label));
+          setState((prev) => ({
+            ...prev,
+            smartMeasurements: smartMeasurementsData,
+            persistedMeasurementsByAudience: {
+              ...persistedMeasurements,
+              [measurementKey]: smartMeasurementsData,
+            },
+          }));
+          return;
+        }
+      }
+
+      // 3. Produto único: criar SmartGuideData flat (sizes)
+      const sizes: Record<string, MeasurementPoint[]> = {};
+      currentGradeSizes.forEach((size) => {
+        sizes[size] = measurementPoints;
+      });
+      const standardSizes: SizeKey[] = ['PP', 'P', 'M', 'G', 'GG', 'XG'];
+      standardSizes.forEach((size) => {
+        if (!sizes[size]) sizes[size] = [];
+      });
+
       const smartMeasurementsData: any = {
-        baseImage: imageUrl, // Usar imagem RAW por enquanto (será substituída quando gerar imagem)
-        activeSize: activeSize, // Usar tamanho intermediário da grade atual (ex: '6' para infantil, 'M' para padrão)
+        baseImage: imageUrl,
+        activeSize: activeSize,
         autoGrading: true,
-        sizes: sizes, // Aceita qualquer string como chave (ex: '2', '4', '6', '8', '10' para infantil)
+        sizes,
       };
-      
+
       console.log("[ProductEditor] 📊 Medidas criadas para grade:", {
         grade: state.sizeCategory,
         tamanhos: currentGradeSizes,
         tamanhoIntermediario: activeSize,
-        medidasPorTamanho: Object.keys(sizes).map(size => `${size}: ${sizes[size].length} medidas`),
+        medidasPorTamanho: Object.keys(sizes).map((size) => `${size}: ${sizes[size].length} medidas`),
       });
-      
-      setState(prev => ({
+
+      setState((prev) => ({
         ...prev,
         smartMeasurements: smartMeasurementsData,
         persistedMeasurementsByAudience: {
@@ -1393,10 +1952,10 @@ export function ProductEditorLayout({
           [measurementKey]: smartMeasurementsData,
         },
       }));
-      
+
       console.log("[ProductEditor] ✅ Medidas processadas e carregadas automaticamente:", {
         measurementsCount: measurementPoints.length,
-        measurements: measurementPoints.map(m => `${m.label}: ${m.value}cm`),
+        measurements: measurementPoints.map((m) => `${m.label}: ${m.value}cm`),
       });
     } catch (err: any) {
       console.error("[ProductEditor] ❌ Erro ao detectar landmarks e processar medidas automaticamente:", err);
@@ -2375,14 +2934,21 @@ export function ProductEditorLayout({
                   <span className="text-red-700 font-bold text-sm" style={{ color: '#b91c1c' }}>*</span>
                 </label>
                 <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1">
-                {[
-                  { idx: 1, label: 'Foto Frente', subtitle: '(Calibração Medidas)', required: true },
-                  { idx: 2, label: 'Foto Verso', subtitle: '', required: true },
-                  { idx: 3, label: 'Foto Extra 1', subtitle: '', required: false },
-                  { idx: 4, label: 'Foto Extra 2', subtitle: '', required: false },
-                  { idx: 5, label: 'Foto Extra 3', subtitle: '', required: false },
-                  { idx: 6, label: 'Foto Extra 4', subtitle: '', required: false },
-                ].map(({ idx, label, subtitle, required }) => (
+                {(() => {
+                  const hasFotoFrente = !!state.rawImageUrl;
+                  const hasFotoVerso = state.extraImages.some((img) => img.idx === 2 && img.url);
+                  const extrasHabilitados = hasFotoFrente && hasFotoVerso;
+                  return [
+                    { idx: 1, label: 'Foto Frente', subtitle: '', required: true },
+                    { idx: 2, label: 'Foto Verso', subtitle: '', required: true },
+                    { idx: 3, label: 'Foto Extra 1', subtitle: '', required: false },
+                    { idx: 4, label: 'Foto Extra 2', subtitle: '', required: false },
+                    { idx: 5, label: 'Foto Extra 3', subtitle: '', required: false },
+                    { idx: 6, label: 'Foto Extra 4', subtitle: '', required: false },
+                  ].map(({ idx, label, subtitle, required }) => {
+                    const isExtra = idx >= 3;
+                    const desabilitado = isExtra && !extrasHabilitados;
+                    return (
                   <div
                     key={idx}
                     className="flex flex-col gap-0.5 w-full h-full"
@@ -2392,21 +2958,28 @@ export function ProductEditorLayout({
                         if (idx === 1) dropzoneRef.current = el;
                         dropzoneRefs.current[idx - 1] = el;
                       }}
-                      onDrop={(e) => handleDrop(e, idx)}
+                      onDrop={(e) => {
+                        if (desabilitado) {
+                          e.preventDefault();
+                          return;
+                        }
+                        handleDrop(e, idx);
+                      }}
                       onDragOver={handleDragOver}
                       onClick={() => {
+                        if (desabilitado) return;
                         if (idx === 1) {
                           fileInputRef.current?.click();
                         } else {
                           fileInputRefs.current[idx - 1]?.click();
                         }
                       }}
-                      className="relative flex-1 w-full border-2 border-blue-300 rounded-lg flex items-center justify-center transition-colors bg-white cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 overflow-hidden"
-                      title="Clique para fazer upload"
+                      className={`relative flex-1 w-full border-2 rounded-lg flex items-center justify-center transition-colors overflow-hidden ${desabilitado ? 'bg-slate-100 border-slate-200 cursor-not-allowed opacity-70' : 'bg-white cursor-pointer'} ${!desabilitado && (idx === 1 || idx === 2) ? 'border-red-300 hover:border-red-400 hover:bg-red-50/30' : ''} ${!desabilitado && isExtra ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' : ''}`}
+                      title={desabilitado ? 'Carregue a Foto Frente e a Foto Verso primeiro' : 'Clique para fazer upload'}
                     >
                       {idx === 1 && (
                         <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold shadow-md z-10 whitespace-nowrap" style={{ color: 'white' }}>
-                          Calibração Imagem
+                          Calibrar imagem
                         </div>
                       )}
                       {(idx === 1 && state.rawImageUrl) || (idx > 1 && state.extraImages.find(img => img.idx === idx)?.url) ? (
@@ -2431,7 +3004,12 @@ export function ProductEditorLayout({
                         </>
                       ) : (
                         <>
-                          <ImageIcon className="w-10 h-10 text-gray-300" strokeWidth={2} />
+                          <ImageIcon className="w-10 h-10" strokeWidth={2} style={{ color: '#d1d5db', stroke: '#d1d5db' }} />
+                          {desabilitado && (
+                            <span className="absolute bottom-10 left-1 right-1 text-center text-[10px] text-slate-500 px-1">
+                              Frente e Verso primeiro
+                            </span>
+                          )}
                         </>
                       )}
                       {required && (idx === 1 || idx === 2) && (
@@ -2455,7 +3033,9 @@ export function ProductEditorLayout({
                       </div>
                     </div>
                   </div>
-                ))}
+                    );
+                  });
+                })()}
                 </div>
               </div>
             </div>
@@ -2531,6 +3111,62 @@ export function ProductEditorLayout({
             </div>
           </div>
           
+          {/* Rodapé Caixa 1 - Configuração Inicial: Análise (IA) e Limpar campos */}
+          {(() => {
+            const hasFotoFrente = !!state.rawImageUrl;
+            const hasFotoVerso = state.extraImages.some(img => img.idx === 2 && img.url);
+            const podeAnalisar = hasFotoFrente && hasFotoVerso;
+            return (
+              <div className="mt-2 pt-2 flex gap-3 items-center flex-wrap justify-center">
+                  <button
+                  type="button"
+                  onClick={() => {
+                    const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                    if (!imageUrlToAnalyze) return;
+                    lastAnalyzedUrlRef.current = "";
+                    // 1) Abrir Caixa 2 e mostrar overlay/cursor imediatamente
+                    setShowBox2Content(true);
+                    setAnalyzing(true);
+                    // 2) Deixar o React pintar o overlay e só então iniciar a análise (evita tela em branco sem spinner)
+                    const runAnalysis = async () => {
+                      try {
+                        await analyzeImage(imageUrlToAnalyze);
+                      } catch (error: unknown) {
+                        console.error("[ProductEditor] Erro na análise do produto:", error);
+                        alert(`Erro na análise: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+                      }
+                    };
+                    requestAnimationFrame(() => {
+                      setTimeout(runAnalysis, 0);
+                    });
+                  }}
+                  disabled={!podeAnalisar || analyzing}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-400 text-white text-sm font-semibold rounded-lg shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {analyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Analisando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Análise do Produto (IA)</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLimparCampos}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg border border-slate-300 transition-all"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Limpar campos</span>
+                </button>
+              </div>
+            );
+          })()}
+          
           {/* Input File Hidden */}
           <input
             ref={fileInputRef}
@@ -2560,12 +3196,458 @@ export function ProductEditorLayout({
         </div>
       </AnimatedCard>
       
-      {/* CONTAINER 2: ESTÚDIO CRIATIVO - Tratamento de Imagem */}
+      {/* CONTAINER 2: Análise Inteligente via IA (posição 2) — centralizado na tela ao carregar */}
+      <div ref={box2CardRef} className="scroll-mt-8">
+        <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+        {/* CardHeader */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-4 flex items-center gap-3 border-b border-purple-500/20">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+            2
+          </div>
+          <div className="flex-1 text-white" style={{ color: 'white' }}>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+              <Sparkles className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+              <span style={{ color: 'white' }}>Análise Inteligente via IA</span>
+            </h2>
+            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Análise inteligente, medidas ABNT e informações do produto geradas automaticamente</p>
+          </div>
+        </div>
+        
+        {showBox2Content && (
+        <>
+        {/* Corpo - Duas colunas: esquerda Marketing & SEO + Ficha Técnica | direita Medidas do Produto */}
+        <div
+          className={`p-6 relative ${showBox2LoadingOverlay ? "min-h-[420px]" : ""}`}
+          style={showBox2LoadingOverlay ? { cursor: "wait" } : undefined}
+        >
+          {/* Overlay de carregamento: spinner + cursor de espera até análise e medidas prontos */}
+          {showBox2LoadingOverlay && (
+            <div
+              className="absolute inset-0 z-10 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-lg"
+              style={{ cursor: "wait", minHeight: "400px" }}
+              aria-busy="true"
+              aria-live="polite"
+            >
+              <div className="text-center max-w-md px-8">
+                <div className="relative w-28 h-28 mx-auto mb-8">
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-200" />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin" />
+                  <div className="absolute inset-3 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin" style={{ animationDuration: '1.2s', animationDirection: 'reverse' }} />
+                </div>
+                <p className="text-xl font-bold text-slate-800 mb-3">
+                  IA analisando o produto
+                </p>
+                <p className="text-base text-slate-600 leading-relaxed min-h-10 flex items-center justify-center transition-opacity duration-300">
+                  {LOADING_PHRASES[loadingPhraseIndex]}
+                </p>
+                <p className="text-sm text-slate-500 mt-3">
+                  Fazendo o trabalho pesado e facilitando a vida do lojista
+                </p>
+              </div>
+            </div>
+          )}
+          {/* Conteúdo (Marketing, Ficha Técnica, Medidas) só quando análise E medidas estiverem prontos — tudo de uma vez */}
+          {!showBox2LoadingOverlay && (
+          <div className="w-full flex gap-4 items-start min-w-0 overflow-hidden">
+            {/* Coluna esquerda: Marketing & SEO + Ficha Técnica Automática (mesma largura que a direita) */}
+            <div className="flex-1 min-w-0 basis-0 flex flex-col gap-4">
+              {/* Marketing & SEO */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Marketing & SEO
+                </h3>
+                <div className="space-y-1">
+                  <label className="block text-xs font-medium text-slate-700">Nome Sugerido</label>
+                  {analyzing && !state.aiAnalysisData ? (
+                    <div className="h-8 bg-slate-200 rounded animate-pulse" />
+                  ) : (
+                    <input
+                      type="text"
+                      value={state.aiAnalysisData?.nome_sugerido || ""}
+                      onChange={(e) =>
+                        setState(prev => ({
+                          ...prev,
+                          aiAnalysisData: prev.aiAnalysisData
+                            ? { ...prev.aiAnalysisData, nome_sugerido: e.target.value }
+                            : { nome_sugerido: e.target.value },
+                        }))
+                      }
+                      placeholder={analyzing ? "Analisando..." : "Aguardando análise..."}
+                      className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+                    />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-medium text-slate-700">Descrição Comercial/SEO</label>
+                    <span className="text-xs text-slate-500">{(state.aiAnalysisData?.descricao_seo?.length || 0)} caracteres</span>
+                  </div>
+                  {analyzing && !state.aiAnalysisData ? (
+                    <div className="space-y-1">
+                      <div className="h-3 bg-slate-200 rounded animate-pulse w-full" />
+                      <div className="h-3 bg-slate-200 rounded animate-pulse w-5/6" />
+                    </div>
+                  ) : (
+                    <textarea
+                      value={state.aiAnalysisData?.descricao_seo || ""}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setState(prev => ({
+                          ...prev,
+                          aiAnalysisData: prev.aiAnalysisData
+                            ? { ...prev.aiAnalysisData, descricao_seo: newValue }
+                            : { descricao_seo: newValue },
+                        }));
+                      }}
+                      rows={3}
+                      placeholder={analyzing ? "Analisando imagem..." : "Aguardando análise da imagem..."}
+                      className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y min-h-[72px]"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Ficha Técnica Automática */}
+              <div className="space-y-2 pt-2 border-t border-slate-200">
+                <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Ficha Técnica Automática
+                </h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {/* Categoria (Dropdown) */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Categoria Sugerida
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (
+                      <select
+                        value={state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || ""}
+                        onChange={(e) =>
+                          setState(prev => ({
+                            ...prev,
+                            aiAnalysisData: prev.aiAnalysisData
+                              ? { 
+                                  ...prev.aiAnalysisData, 
+                                  suggested_category: e.target.value,
+                                  categoria_sugerida: e.target.value 
+                                }
+                              : { suggested_category: e.target.value, categoria_sugerida: e.target.value },
+                          }))
+                        }
+                        className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                      >
+                        <option value="">Selecione uma categoria</option>
+                        {AVAILABLE_CATEGORIES.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Tipo de Produto */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Tipo de Produto
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (
+                      <input
+                        type="text"
+                        value={state.aiAnalysisData?.product_type || ""}
+                        onChange={(e) => {
+                          console.log("[ProductEditor] Atualizando product_type:", e.target.value);
+                          setState(prev => ({
+                            ...prev,
+                            aiAnalysisData: prev.aiAnalysisData
+                              ? { ...prev.aiAnalysisData, product_type: e.target.value }
+                              : { product_type: e.target.value },
+                          }));
+                        }}
+                        placeholder="Ex: Blazer, Vestido, Tênis"
+                        className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                      />
+                    )}
+                  </div>
+
+                  {/* Tecido Detectado (para conjunto: mostrar por peça) */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      {(() => {
+                        const pt = (state.aiAnalysisData?.product_type || "").toLowerCase();
+                        return pt.includes("conjunto") ? "Tecido por peça" : "Tecido Detectado";
+                      })()}
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (() => {
+                      const fabric = state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado || "";
+                      const productType = (state.aiAnalysisData?.product_type || "").toLowerCase();
+                      const isConjunto = productType.includes("conjunto");
+                      if (isConjunto && fabric) {
+                        const match = (state.aiAnalysisData?.product_type || "").match(/conjunto\s+(.+)\s+e\s+(.+)/i);
+                        const part1 = match ? match[1].trim() : "Parte 1";
+                        const part2 = match ? match[2].trim() : "Parte 2";
+                        return (
+                          <div className="space-y-2">
+                            <div className="space-y-1.5 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                              <span className="text-xs font-bold text-slate-800 uppercase">{part1}:</span>
+                              <span className="text-sm text-slate-700 ml-1">{fabric}</span>
+                            </div>
+                            <div className="space-y-1.5 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                              <span className="text-xs font-bold text-slate-800 uppercase">{part2}:</span>
+                              <span className="text-sm text-slate-700 ml-1">{fabric}</span>
+                            </div>
+                            <input
+                              type="text"
+                              value={fabric}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setState(prev => ({
+                                  ...prev,
+                                  aiAnalysisData: prev.aiAnalysisData
+                                    ? { ...prev.aiAnalysisData, detected_fabric: v, tecido_estimado: v }
+                                    : { detected_fabric: v, tecido_estimado: v },
+                                }));
+                              }}
+                              placeholder="Editar tecido (aplica às duas peças)"
+                              className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                            />
+                          </div>
+                        );
+                      }
+                      return (
+                        <input
+                          type="text"
+                          value={fabric}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setState(prev => ({
+                              ...prev,
+                              aiAnalysisData: prev.aiAnalysisData
+                                ? { ...prev.aiAnalysisData, detected_fabric: v, tecido_estimado: v }
+                                : { detected_fabric: v, tecido_estimado: v },
+                            }));
+                          }}
+                          placeholder="Ex: Algodão, Linho, Couro"
+                          className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
+                        />
+                      );
+                    })()}
+                  </div>
+
+                  {/* Cores Predominantes */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-medium text-slate-700">
+                      Cores Predominantes
+                    </label>
+                    {analyzing && !state.aiAnalysisData ? (
+                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
+                    ) : (() => {
+                      const rawByItem = state.aiAnalysisData?.colors_by_item;
+                      const rawDominant = state.aiAnalysisData?.dominant_colors || [];
+                      const textForColor = ((state.aiAnalysisData?.nome_sugerido || "") + " " + (state.aiAnalysisData?.descricao_seo || "")).toLowerCase();
+                      const colorHexMap: Record<string, string> = {
+                        lilás: "#E6E6FA", lilas: "#E6E6FA", rosa: "#FFC0CB", azul: "#0000FF", vermelho: "#FF0000", verde: "#008000",
+                        preto: "#000000", branco: "#FFFFFF", bege: "#F5F5DC", marrom: "#8B4513", amarelo: "#FFFF00", dourado: "#FFD700",
+                        prateado: "#C0C0C0", bordô: "#722F37", bordo: "#722F37", coral: "#FF7F50", vinho: "#722F37",
+                      };
+                      // Hex mais saturados/visíveis para as bolinhas (evitar cores lavadas que parecem cinza)
+                      const displayColorHexMap: Record<string, string> = {
+                        lilás: "#B57EDC", lilas: "#B57EDC", rosa: "#E91E8C", azul: "#2563EB", vermelho: "#DC2626", verde: "#16A34A",
+                        preto: "#000000", branco: "#E5E7EB", bege: "#D4B896", marrom: "#78350F", amarelo: "#EAB308", dourado: "#CA8A04",
+                        prateado: "#6B7280", bordô: "#722F37", bordo: "#722F37", coral: "#EA580C", vinho: "#722F37", cinza: "#4B5563",
+                      };
+                      const getDisplayHex = (hex: string, name: string) => {
+                        const key = (name || "").toLowerCase().trim().replace("lilas", "lilás");
+                        if (displayColorHexMap[key]) return displayColorHexMap[key];
+                        // Se o hex for muito claro (luminância alta), escurecer um pouco para a bolinha ficar visível
+                        const h = hex.replace("#", "");
+                        if (h.length === 6) {
+                          const r = parseInt(h.slice(0, 2), 16) / 255, g = parseInt(h.slice(2, 4), 16) / 255, b = parseInt(h.slice(4, 6), 16) / 255;
+                          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                          if (lum > 0.85) {
+                            const darken = (v: number) => Math.round(Math.max(0, v * 255 * 0.7));
+                            return `#${darken(r).toString(16).padStart(2, "0")}${darken(g).toString(16).padStart(2, "0")}${darken(b).toString(16).padStart(2, "0")}`;
+                          }
+                        }
+                        return hex;
+                      };
+                      const colorFromNomeDesc = (): { hex: string; name: string } | null => {
+                        const m = textForColor.match(/(lilás|lilas|rosa|azul|vermelho|verde|preto|branco|bege|marrom|amarelo|dourado|prateado|bordô|bordo|coral|vinho)/i);
+                        if (m && m[1]) {
+                          const key = m[1].toLowerCase().replace("lilas", "lilás");
+                          return { hex: colorHexMap[key] || "#E6E6FA", name: key.charAt(0).toUpperCase() + key.slice(1) };
+                        }
+                        return null;
+                      };
+                      const isOnlyGray = (colors: Array<{ name?: string }>) =>
+                        colors.length === 1 && ["cinza", "gray", "grey"].some(g => (colors[0]?.name || "").toLowerCase().includes(g));
+                      const replacementColor = colorFromNomeDesc();
+                      const dominantColors = (rawDominant.length === 1 && isOnlyGray(rawDominant) && replacementColor)
+                        ? [replacementColor]
+                        : rawDominant;
+                      const colorsByItem = (Array.isArray(rawByItem) && rawByItem.length > 0 && replacementColor && rawByItem.every((item: { colors?: Array<{ name?: string }> }) => isOnlyGray(item.colors || [])))
+                        ? rawByItem.map((item: { item: string; colors: Array<{ hex: string; name: string }> }) => ({ ...item, colors: [replacementColor] }))
+                        : rawByItem;
+                      const productType = (state.aiAnalysisData?.product_type || '').toLowerCase();
+                      const isConjunto = productType.includes('conjunto');
+                      // Conjunto: priorizar colors_by_item; se não tiver, montar a partir de product_type + dominant_colors (duas partes)
+                      let itemsToShow: Array<{ item: string; colors: Array<{ hex: string; name: string }> }> = [];
+                      if (colorsByItem && Array.isArray(colorsByItem) && colorsByItem.length > 0) {
+                        itemsToShow = colorsByItem;
+                      } else if (isConjunto && dominantColors && Array.isArray(dominantColors) && dominantColors.length > 0) {
+                        const match = (state.aiAnalysisData?.product_type || '').match(/conjunto\s+(.+)\s+e\s+(.+)/i);
+                        const part1 = match ? match[1].trim() : 'Parte 1';
+                        const part2 = match ? match[2].trim() : 'Parte 2';
+                        itemsToShow = [
+                          { item: part1, colors: dominantColors },
+                          { item: part2, colors: dominantColors },
+                        ];
+                      }
+                      if (itemsToShow.length > 0) {
+                        return (
+                      /* CONJUNTO: Mostrar cores por item lado a lado */
+                      <div className="flex flex-wrap gap-3 items-stretch">
+                        {itemsToShow.map((itemData: { item: string; colors: Array<{ hex: string; name: string }> }, itemIdx: number) => {
+                          // Validar se há cores válidas neste item
+                          const validColors = (itemData.colors || []).filter(color => 
+                            color?.hex && color.hex.startsWith('#') && 
+                            color?.name && color.name.trim().length > 0
+                          );
+                          
+                          if (validColors.length === 0) return null;
+                          
+                          return (
+                            <div key={itemIdx} className="flex-1 min-w-0 space-y-1.5 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-800 uppercase">
+                                  {itemData.item || `Item ${itemIdx + 1}`}:
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5 items-center">
+                                {validColors.map((color, colorIdx) => {
+                                  const colorHex = color.hex || "#808080";
+                                  const colorName = color.name || "Não especificado";
+                                  const displayHex = getDisplayHex(colorHex, colorName);
+                                  return (
+                                    <div
+                                      key={colorIdx}
+                                      className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-300 rounded shadow-sm hover:shadow-md transition-shadow"
+                                    >
+                                      <div
+                                        className="w-4 h-4 rounded-full border-2 border-slate-300 flex-shrink-0"
+                                        style={{ backgroundColor: displayHex }}
+                                      />
+                                      <span className="text-xs text-slate-700 font-medium">
+                                        {colorName}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                        );
+                      }
+                      if (dominantColors && Array.isArray(dominantColors) && dominantColors.length > 0) {
+                        return (
+                      /* PRODUTO ÚNICO: Mostrar cores gerais (já com correção Cinza → cor do nome/desc) */
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {dominantColors.map((color: { hex?: string; name?: string }, idx: number) => {
+                          const colorHex = color?.hex || "#808080";
+                          const colorName = color?.name || "Não especificado";
+                          const displayHex = getDisplayHex(colorHex, colorName);
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded shadow-sm"
+                            >
+                              <div
+                                className="w-4 h-4 rounded-full border border-slate-200 flex-shrink-0"
+                                style={{ backgroundColor: displayHex }}
+                              />
+                              <span className="text-xs text-slate-700 font-medium">
+                                {colorName}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                        );
+                      }
+                      return (
+                      <p className="text-xs text-slate-500 py-1">
+                        {state.aiAnalysisData ? "Nenhuma cor detectada" : "Cores serão detectadas após a análise"}
+                      </p>
+                      );
+                    })()}
+                  </div>
+                </div>
+                  </div>
+                </div>
+                {/* Coluna direita: MEDIDAS DO PRODUTO (mesma largura que a esquerda) */}
+                <div className="flex-1 min-w-0 basis-0 rounded-lg bg-slate-50/50 border border-slate-200 p-3">
+                  <SmartMeasurementEditor
+                  rawImageUrl={state.rawImageUrl}
+                  rawImageFile={state.rawImageFile}
+                  lojistaId={lojistaId}
+                  produtoId={produtoId}
+                  calibrationScale={state.calibrationScale}
+                  isCalibratedByCard={state.isCalibratedByCard}
+                  productInfo={{
+                    category: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida,
+                    productType: state.aiAnalysisData?.product_type,
+                    color: state.aiAnalysisData?.dominant_colors?.[0]?.name || state.aiAnalysisData?.cor_predominante,
+                    material: state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado,
+                    style: state.aiAnalysisData?.product_type,
+                    standardMeasurements: state.aiAnalysisData?.standard_measurements,
+                  }}
+                  sizeCategory={state.sizeCategory}
+                  targetAudience={state.targetAudience}
+                  variacoes={state.variacoes}
+                  onImageUpload={async (file) => {
+                    await handleMedidasFileSelect(file);
+                  }}
+                  onMeasurementsChange={handleMeasurementsChange}
+                  onSave={async (data) => {
+                    setState(prev => {
+                      const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
+                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
+                      return {
+                        ...prev,
+                        smartMeasurements: data,
+                        imagemMedidasCustomizada: data.baseImage,
+                        persistedMeasurementsByAudience: {
+                          ...persistedMeasurements,
+                          [measurementKey]: data,
+                        },
+                      };
+                    });
+                    console.log('[ProductEditor] Medidas salvas e persistidas:', data);
+                  }}
+                  initialData={smartMeasurementInitialData}
+                  uploading={uploadingMedidas}
+                />
+                </div>
+              </div>
+          )}
+        </div>
+        </>
+        )}
+      </AnimatedCard>
+      </div>
+
+      
+      {/* CONTAINER 3: ESTÚDIO CRIATIVO - Tratamento de Imagem (posição 3) */}
       <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
         {/* CardHeader */}
         <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 flex items-center gap-3 border-b border-emerald-500/20">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
-            2
+            3
           </div>
           <div className="text-white" style={{ color: 'white' }}>
             <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
@@ -2576,6 +3658,8 @@ export function ProductEditorLayout({
           </div>
         </div>
         
+        {showBox3Content && (
+        <div className={`overflow-hidden transition-all duration-500 ease-out ${animateBox3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
         <div className="p-4" style={{ height: '580px' }}>
           {/* LAYOUT EM 3 CAIXAS LADO A LADO */}
           <div className="flex gap-3 items-start">
@@ -2772,6 +3856,8 @@ export function ProductEditorLayout({
             <div className="shrink-0" style={{ width: '282px' }}></div>
           </div>
         </div>
+        </div>
+        )}
         
         {/* Modal de Seleção de Produto Complementar */}
         {showCombinedModal && (
@@ -2830,423 +3916,9 @@ export function ProductEditorLayout({
         )}
       </AnimatedCard>
       
-      {/* CONTAINER 3: ANÁLISE INTELIGENTE - Medidas & Ficha Técnica */}
-      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
-        {/* CardHeader */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-4 flex items-center gap-3 border-b border-purple-500/20">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
-            3
-          </div>
-          <div className="flex-1 text-white" style={{ color: 'white' }}>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
-              <Sparkles className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
-              <span style={{ color: 'white' }}>Medidas & Ficha Técnica</span>
-            </h2>
-            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Análise inteligente, medidas ABNT e informações do produto geradas automaticamente</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {state.aiAnalysisData && (
-              <button
-                    onClick={async () => {
-                      const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
-                      if (!imageUrlToAnalyze) {
-                        alert("Por favor, faça upload de uma imagem primeiro.");
-                        return;
-                      }
-                      try {
-                        console.log("[ProductEditor] 🔄 Nova análise com contexto atualizado");
-                        lastAnalyzedUrlRef.current = "";
-                        setState(prev => ({ ...prev, aiAnalysisData: null }));
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        await analyzeImage(imageUrlToAnalyze);
-                      } catch (error: any) {
-                        console.error("[ProductEditor] Erro ao fazer nova análise:", error);
-                        alert(`Erro ao fazer nova análise: ${error.message || "Erro desconhecido"}`);
-                      }
-                    }}
-                    disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
-                    className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-white bg-white/20 hover:bg-white/30 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/30"
-                  >
-                    {analyzing ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Analisando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3 h-3" />
-                        <span>Nova Análise</span>
-                      </>
-                    )}
-                  </button>
-                )}
-                <button
-                  onClick={async () => {
-                    const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
-                    if (!imageUrlToAnalyze) {
-                      alert("Por favor, faça upload de uma imagem primeiro.");
-                      return;
-                    }
-                    try {
-                      console.log("[ProductEditor] 🔄 Regenerando análise para:", imageUrlToAnalyze);
-                      lastAnalyzedUrlRef.current = "";
-                      await analyzeImage(imageUrlToAnalyze);
-                    } catch (error: any) {
-                      console.error("[ProductEditor] Erro ao regenerar análise:", error);
-                      alert(`Erro ao regenerar análise: ${error.message || "Erro desconhecido"}`);
-                    }
-                  }}
-                  disabled={analyzing || (!state.rawImageUrl && !state.selectedCoverImage)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-purple-100 hover:text-white hover:bg-white/20 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/30"
-                >
-                  {analyzing ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Analisando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Regenerar</span>
-                    </>
-                  )}
-                </button>
-          </div>
-        </div>
-        
-        {/* Corpo - Dados e Formulários */}
-        <div className="p-6">
-          <div className="w-full flex flex-col space-y-4">
-              {/* Subseção: Marketing & SEO */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Marketing & SEO
-                </h3>
-              
-                {/* Nome Sugerido */}
-                <div className="space-y-1">
-                  <label className="block text-xs font-medium text-slate-700">
-                    Nome Sugerido
-                  </label>
-                  {analyzing && !state.aiAnalysisData ? (
-                    <div className="h-9 bg-slate-200 rounded animate-pulse" />
-                  ) : (
-                    <input
-                      type="text"
-                      value={state.aiAnalysisData?.nome_sugerido || ""}
-                      onChange={(e) =>
-                        setState(prev => ({
-                          ...prev,
-                          aiAnalysisData: prev.aiAnalysisData
-                            ? { ...prev.aiAnalysisData, nome_sugerido: e.target.value }
-                            : { nome_sugerido: e.target.value },
-                        }))
-                      }
-                      placeholder={analyzing ? "Analisando..." : "Aguardando análise..."}
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                    />
-                  )}
-                </div>
 
-                {/* Descrição SEO */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-medium text-slate-700">
-                      Descrição Comercial/SEO
-                    </label>
-                    <span className="text-xs font-medium text-slate-500">
-                      {(state.aiAnalysisData?.descricao_seo?.length || 0)} caracteres
-                    </span>
-                  </div>
-                  {analyzing && !state.aiAnalysisData ? (
-                    <div className="space-y-1">
-                      <div className="h-3 bg-slate-200 rounded animate-pulse w-full" />
-                      <div className="h-3 bg-slate-200 rounded animate-pulse w-5/6" />
-                      <div className="h-3 bg-slate-200 rounded animate-pulse w-4/6" />
-                    </div>
-                  ) : (
-                    <textarea
-                      value={state.aiAnalysisData?.descricao_seo || ""}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        setState(prev => ({
-                          ...prev,
-                          aiAnalysisData: prev.aiAnalysisData
-                            ? { ...prev.aiAnalysisData, descricao_seo: newValue }
-                            : { descricao_seo: newValue },
-                        }));
-                      }}
-                      rows={4}
-                      placeholder={analyzing ? "Analisando imagem..." : "Aguardando análise da imagem..."}
-                      className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 resize-y transition-all min-h-[80px]"
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Seção: Ficha Técnica Automática */}
-              <div className="space-y-2 pt-2 border-t border-slate-200">
-                <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Ficha Técnica Automática
-                </h3>
-                
-                <div className="grid grid-cols-1 gap-2">
-                  {/* Categoria (Dropdown) */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-slate-700">
-                      Categoria Sugerida
-                    </label>
-                    {analyzing && !state.aiAnalysisData ? (
-                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
-                    ) : (
-                      <select
-                        value={state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || ""}
-                        onChange={(e) =>
-                          setState(prev => ({
-                            ...prev,
-                            aiAnalysisData: prev.aiAnalysisData
-                              ? { 
-                                  ...prev.aiAnalysisData, 
-                                  suggested_category: e.target.value,
-                                  categoria_sugerida: e.target.value 
-                                }
-                              : { suggested_category: e.target.value, categoria_sugerida: e.target.value },
-                          }))
-                        }
-                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                      >
-                        <option value="">Selecione uma categoria</option>
-                        {AVAILABLE_CATEGORIES.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-
-                  {/* Tipo de Produto */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-slate-700">
-                      Tipo de Produto
-                    </label>
-                    {analyzing && !state.aiAnalysisData ? (
-                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
-                    ) : (
-                      <input
-                        type="text"
-                        value={state.aiAnalysisData?.product_type || ""}
-                        onChange={(e) => {
-                          console.log("[ProductEditor] Atualizando product_type:", e.target.value);
-                          setState(prev => ({
-                            ...prev,
-                            aiAnalysisData: prev.aiAnalysisData
-                              ? { ...prev.aiAnalysisData, product_type: e.target.value }
-                              : { product_type: e.target.value },
-                          }));
-                        }}
-                        placeholder="Ex: Blazer, Vestido, Tênis"
-                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                      />
-                    )}
-                  </div>
-
-                  {/* Tecido Detectado */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-slate-700">
-                      Tecido Detectado
-                    </label>
-                    {analyzing && !state.aiAnalysisData ? (
-                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
-                    ) : (
-                      <input
-                        type="text"
-                        value={state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado || ""}
-                        onChange={(e) => {
-                          console.log("[ProductEditor] Atualizando detected_fabric:", e.target.value);
-                          setState(prev => ({
-                            ...prev,
-                            aiAnalysisData: prev.aiAnalysisData
-                              ? { 
-                                  ...prev.aiAnalysisData, 
-                                  detected_fabric: e.target.value,
-                                  tecido_estimado: e.target.value 
-                                }
-                              : { detected_fabric: e.target.value, tecido_estimado: e.target.value },
-                          }));
-                        }}
-                        placeholder="Ex: Algodão, Linho, Couro"
-                        className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                      />
-                    )}
-                  </div>
-
-                  {/* Cores Predominantes */}
-                  <div className="space-y-1">
-                    <label className="block text-xs font-medium text-slate-700">
-                      Cores Predominantes
-                    </label>
-                    {analyzing && !state.aiAnalysisData ? (
-                      <div className="h-9 bg-slate-200 rounded animate-pulse" />
-                    ) : state.aiAnalysisData?.colors_by_item && Array.isArray(state.aiAnalysisData.colors_by_item) && state.aiAnalysisData.colors_by_item.length > 0 ? (
-                      /* CONJUNTO: Mostrar cores por item (prioridade) */
-                      <div className="space-y-2">
-                        {state.aiAnalysisData.colors_by_item.map((itemData, itemIdx) => {
-                          // Validar se há cores válidas neste item
-                          const validColors = (itemData.colors || []).filter(color => 
-                            color?.hex && color.hex.startsWith('#') && 
-                            color?.name && color.name.trim().length > 0
-                          );
-                          
-                          if (validColors.length === 0) return null;
-                          
-                          return (
-                            <div key={itemIdx} className="space-y-1.5 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-800 uppercase">
-                                  {itemData.item || `Item ${itemIdx + 1}`}:
-                                </span>
-                              </div>
-                              <div className="flex flex-wrap gap-1.5 items-center">
-                                {validColors.map((color, colorIdx) => {
-                                  const colorHex = color.hex || "#808080";
-                                  const colorName = color.name || "Não especificado";
-                                  return (
-                                    <div
-                                      key={colorIdx}
-                                      className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-300 rounded shadow-sm hover:shadow-md transition-shadow"
-                                    >
-                                      <div
-                                        className="w-4 h-4 rounded-full border-2 border-slate-300"
-                                        style={{ backgroundColor: colorHex }}
-                                      />
-                                      <span className="text-xs text-slate-700 font-medium">
-                                        {colorName}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : state.aiAnalysisData?.dominant_colors && Array.isArray(state.aiAnalysisData.dominant_colors) && state.aiAnalysisData.dominant_colors.length > 0 ? (
-                      /* PRODUTO ÚNICO: Mostrar cores gerais */
-                      <div className="flex flex-wrap gap-1.5 items-center">
-                        {state.aiAnalysisData.dominant_colors.map((color, idx) => {
-                          const colorHex = color?.hex || "#808080";
-                          const colorName = color?.name || "Não especificado";
-                          return (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded shadow-sm"
-                            >
-                              <div
-                                className="w-4 h-4 rounded-full border border-slate-200"
-                                style={{ backgroundColor: colorHex }}
-                              />
-                              <span className="text-xs text-slate-700 font-medium">
-                                {colorName}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-500 py-1">
-                        {state.aiAnalysisData ? "Nenhuma cor detectada" : "Cores serão detectadas após a análise"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          
-          {/* Editor de Medidas Inteligente - Abaixo do layout Clean Studio */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <SmartMeasurementEditor
-                  rawImageUrl={state.rawImageUrl}
-                  rawImageFile={state.rawImageFile}
-                  lojistaId={lojistaId}
-                  produtoId={produtoId}
-                  productInfo={{
-                    category: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida,
-                    productType: state.aiAnalysisData?.product_type,
-                    color: state.aiAnalysisData?.dominant_colors?.[0]?.name || state.aiAnalysisData?.cor_predominante,
-                    material: state.aiAnalysisData?.detected_fabric || state.aiAnalysisData?.tecido_estimado,
-                    style: state.aiAnalysisData?.product_type,
-                    standardMeasurements: state.aiAnalysisData?.standard_measurements,
-                  }}
-                  sizeCategory={state.sizeCategory}
-                  targetAudience={state.targetAudience}
-                  variacoes={state.variacoes}
-                  onImageUpload={async (file) => {
-                    await handleMedidasFileSelect(file);
-                  }}
-                  onMeasurementsChange={useCallback((data: SmartGuideData) => {
-                    setState(prev => {
-                      const currentBaseImage = prev.smartMeasurements?.baseImage;
-                      if (currentBaseImage === data.baseImage && 
-                          JSON.stringify(prev.smartMeasurements) === JSON.stringify(data)) {
-                        return prev;
-                      }
-                      
-                      const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
-                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                      
-                      return {
-                        ...prev,
-                        smartMeasurements: data,
-                        imagemMedidasCustomizada: data.baseImage,
-                        persistedMeasurementsByAudience: {
-                          ...persistedMeasurements,
-                          [measurementKey]: data,
-                        },
-                      };
-                    });
-                  }, [])}
-                  onSave={async (data) => {
-                    setState(prev => {
-                      const measurementKey = `${prev.targetAudience}_${prev.sizeCategory}`;
-                      const persistedMeasurements = prev.persistedMeasurementsByAudience || {};
-                      
-                      return {
-                        ...prev,
-                        smartMeasurements: data,
-                        imagemMedidasCustomizada: data.baseImage,
-                        persistedMeasurementsByAudience: {
-                          ...persistedMeasurements,
-                          [measurementKey]: data,
-                        },
-                      };
-                    });
-                    console.log('[ProductEditor] Medidas salvas e persistidas:', data);
-                  }}
-                  initialData={useMemo(() => {
-                    const measurementKey = `${state.targetAudience}_${state.sizeCategory}`;
-                    const persistedMeasurements = state.persistedMeasurementsByAudience || {};
-                    const persistedData = persistedMeasurements[measurementKey];
-                    
-                    if (persistedData) {
-                      console.log('[ProductEditor] 📦 Usando medidas persistidas para', measurementKey);
-                      return persistedData;
-                    }
-                    
-                    const data = state.smartMeasurements;
-                    console.log('[ProductEditor] 📦 Usando smartMeasurements como initialData:', {
-                      hasData: !!data,
-                      hasSizes: !!(data?.sizes && Object.keys(data.sizes).length > 0),
-                      sizesKeys: data?.sizes ? Object.keys(data.sizes) : [],
-                    });
-                    return data;
-                  }, [state.smartMeasurements, state.targetAudience, state.sizeCategory, state.persistedMeasurementsByAudience])}
-                  uploading={uploadingMedidas}
-                />
-          </div>
-        </div>
-      </AnimatedCard>
-
-      {/* CONTAINER 4: DADOS COMERCIAIS - Preço e Estoque */}
+      
+            {/* CONTAINER 4: DADOS COMERCIAIS - Preço e Estoque */}
       <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
         {/* CardHeader */}
         <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center gap-3 border-b border-red-500/20">
@@ -3262,6 +3934,8 @@ export function ProductEditorLayout({
           </div>
         </div>
         
+        {showBox4Content && (
+        <div className={`overflow-hidden transition-all duration-500 ease-out ${animateBox4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
         {/* Corpo - Campos Comerciais */}
         <div className="p-6 space-y-4">
           {/* SEÇÃO: Preenchimento Obrigatório */}
@@ -3545,6 +4219,8 @@ export function ProductEditorLayout({
                   </div>
           </div>
         </div>
+        </div>
+        )}
       </AnimatedCard>
       </div>
 
@@ -3558,117 +4234,112 @@ export function ProductEditorLayout({
         />
       )}
 
-      {/* Modal de Confirmação de Público Alvo */}
-      {showAudienceConfirmation && state.aiAnalysisData?.detected_audience && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">
-                  Confirmação de Público Alvo
-                </h3>
-                <p className="text-xs text-slate-500">
-                  A IA detectou uma possível inconsistência
-                </p>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              <p className="text-sm text-slate-700">
-                A análise detectou que este produto pode ser para um público diferente do que você selecionou. Isso pode afetar a precisão das medidas sugeridas.
-              </p>
-              
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-amber-200">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-700">Você selecionou:</span>
-                  </div>
-                  <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
-                    state.targetAudience === 'female' ? 'bg-pink-100 text-pink-700' :
-                    state.targetAudience === 'male' ? 'bg-blue-100 text-blue-700' :
-                    'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {state.targetAudience === 'female' ? '👩 Feminino' : 
-                     state.targetAudience === 'male' ? '👨 Masculino' : '👶 Infantil'}
-                  </span>
+      {/* Modal: Público/Grade diferente do detectado — confirmar e alterar para refazer análise */}
+      {showAudienceConfirmation && state.aiAnalysisData?.detected_audience && (() => {
+        const detected = state.aiAnalysisData.detected_audience;
+        const selectedLabel = state.targetAudience === 'female' ? 'Feminino' : state.targetAudience === 'male' ? 'Masculino' : 'Infantil';
+        const detectedLabel = detected === 'KIDS' ? 'Infantil' : 'Adulto (Feminino/Masculino)';
+        const suggestedAudience: 'female' | 'male' | 'kids' = detected === 'KIDS' ? 'kids' : (state.targetAudience === 'male' ? 'male' : 'female');
+        const suggestedSizeCategory: typeof state.sizeCategory = detected === 'KIDS' ? 'kids_numeric' : 'standard';
+        const gradeLabel = (id: string) => ({ standard: 'Letras (P, M, G)', numeric: 'Numérica (36, 38...)', plus: 'Plus Size', baby: 'Bebê (meses)', kids_numeric: 'Infantil (anos)', teen: 'Juvenil' })[id] || id;
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
                 </div>
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
-                    <span className="text-sm font-medium text-slate-700">IA detectou:</span>
-                  </div>
-                  <span className="text-sm font-bold px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700">
-                    {state.aiAnalysisData.detected_audience === 'KIDS' ? '👶 Infantil' : '👔 Adulto'}
-                  </span>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">
+                    Público ou grade diferente do selecionado
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    A roupa na foto parece ser de outro público/grade
+                  </p>
                 </div>
               </div>
               
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-800 leading-relaxed">
-                  <strong>💡 Dica:</strong> Se o público alvo estiver incorreto, ajuste o seletor acima e clique em <strong>"Nova Análise"</strong> para recalcular as medidas com o contexto adequado. Isso garante maior precisão nas medidas sugeridas.
+              <div className="space-y-3">
+                <p className="text-sm text-slate-700">
+                  A IA identificou que a roupa na foto parece ser para <strong>{detectedLabel}</strong>, mas você selecionou <strong>{selectedLabel}</strong> e grade <strong>{gradeLabel(state.sizeCategory)}</strong>. Isso pode gerar tipo de produto, tecido e medidas incorretos.
                 </p>
+              
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-amber-200">
+                    <span className="text-sm font-medium text-slate-700">Selecionado agora:</span>
+                    <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
+                      state.targetAudience === 'female' ? 'bg-pink-100 text-pink-700' :
+                      state.targetAudience === 'male' ? 'bg-blue-100 text-blue-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {state.targetAudience === 'female' ? '👩 Feminino' : 
+                       state.targetAudience === 'male' ? '👨 Masculino' : '👶 Infantil'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                      IA detectou na foto:
+                    </span>
+                    <span className="text-sm font-bold px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700">
+                      {detected === 'KIDS' ? '👶 Infantil' : '👔 Adulto'}
+                    </span>
+                  </div>
+                </div>
+              
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-800 leading-relaxed">
+                    <strong>Recomendação:</strong> Alterar para o público e grade sugeridos e refazer a análise automaticamente para gerar tipo de produto, tecido e medidas corretos.
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col gap-2 pt-2">
-              <button
-                onClick={async () => {
-                  setShowAudienceConfirmation(false);
-                  const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
-                  
-                  if (!imageUrlToAnalyze) {
-                    alert("Por favor, faça upload de uma imagem primeiro.");
-                    return;
-                  }
-                  
-                  try {
-                    // Resetar análise anterior
-                    setState(prev => ({
-                      ...prev,
-                      aiAnalysisData: null,
-                    }));
-                    lastAnalyzedUrlRef.current = ""; // Resetar para permitir nova análise
-                    
-                    // Aguardar um momento para o estado atualizar
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    // Fazer nova análise com contexto atual (público alvo já foi ajustado pelo usuário)
-                    await analyzeImage(imageUrlToAnalyze);
-                  } catch (error: any) {
-                    console.error("[ProductEditor] Erro ao fazer nova análise:", error);
-                    alert(`Erro ao fazer nova análise: ${error.message || "Erro desconhecido"}`);
-                  }
-                }}
-                className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-5 h-5" />
-                <span>Nova Análise com Contexto Correto</span>
-              </button>
               
-              <button
-                onClick={() => {
-                  setShowAudienceConfirmation(false);
-                }}
-                className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
-              >
-                Continuar com Análise Atual
-              </button>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={async () => {
+                    const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                    if (!imageUrlToAnalyze) {
+                      alert("Por favor, faça upload de uma imagem primeiro.");
+                      return;
+                    }
+                    setShowAudienceConfirmation(false);
+                    try {
+                      setState(prev => ({
+                        ...prev,
+                        aiAnalysisData: null,
+                        targetAudience: suggestedAudience,
+                        sizeCategory: suggestedSizeCategory,
+                        smartMeasurements: undefined,
+                        persistedMeasurementsByAudience: undefined,
+                      }));
+                      lastAnalyzedUrlRef.current = "";
+                      await new Promise(resolve => setTimeout(resolve, 150));
+                      await analyzeImage(imageUrlToAnalyze, {
+                        targetAudience: suggestedAudience,
+                        sizeCategory: suggestedSizeCategory,
+                      });
+                    } catch (error: any) {
+                      console.error("[ProductEditor] Erro ao refazer análise:", error);
+                      alert(`Erro ao refazer análise: ${error.message || "Erro desconhecido"}`);
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>Sim, alterar para {detected === 'KIDS' ? 'Infantil' : 'Adulto'} e refazer análise</span>
+                </button>
               
-              <button
-                onClick={() => {
-                  setShowAudienceConfirmation(false);
-                }}
-                className="w-full px-4 py-2 text-slate-500 hover:text-slate-700 font-medium rounded-lg transition-colors"
-              >
-                Fechar
-              </button>
+                <button
+                  onClick={() => setShowAudienceConfirmation(false)}
+                  className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors"
+                >
+                  Não, manter como está
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

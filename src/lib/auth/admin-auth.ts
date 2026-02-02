@@ -167,16 +167,12 @@ export async function isSuperAdmin(): Promise<boolean> {
       isSuper,
       isAdminEmail,
       isAuthorized,
-    });
-
-    return isAuthorized;
+    });    return isAuthorized;
   } catch (error) {
     console.error("[isSuperAdmin] Erro ao verificar super_admin:", error);
     return false;
   }
-}
-
-/**
+}/**
  * Requer que o usuário seja super_admin
  * Retorna 403 se não for
  */
@@ -185,9 +181,7 @@ export async function requireSuperAdmin(): Promise<void> {
   if (!isSuper) {
     throw new Error("FORBIDDEN: Apenas super_admin pode executar esta operação");
   }
-}
-
-/**
+}/**
  * Verifica se o usuário tem permissão de super_admin (sem lançar erro)
  * Útil para verificações condicionais
  */
