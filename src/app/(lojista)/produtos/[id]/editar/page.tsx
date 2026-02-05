@@ -140,8 +140,15 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
       detalhes: analiseIASalva.detalhes || [],
       tags: analiseIASalva.tags || (Array.isArray(produtoSerializado.tags) ? produtoSerializado.tags : []),
     },
-    generatedCatalogImage: produtoSerializado.imagemUrlCatalogo || null,
-    generatedCombinedImage: produtoSerializado.imagemUrlCombinada || null,
+    generatedCatalogImage: produtoSerializado.imagemUrlCatalogo || (Array.isArray(produtoSerializado.catalogImageUrls) && produtoSerializado.catalogImageUrls[0]) || null,
+    generatedCombinedImage: produtoSerializado.imagemUrlCombinada || (Array.isArray(produtoSerializado.catalogImageUrls) && produtoSerializado.catalogImageUrls[4]) || null,
+    // Garantir que todas as imagens do catálogo IA apareçam ao editar rascunho: usar catalogImageUrls se existir, senão [imagemUrlCatalogo] para pelo menos slot1
+    catalogImageUrls:
+      Array.isArray(produtoSerializado.catalogImageUrls) && produtoSerializado.catalogImageUrls.length > 0
+        ? produtoSerializado.catalogImageUrls
+        : produtoSerializado.imagemUrlCatalogo
+          ? [produtoSerializado.imagemUrlCatalogo]
+          : undefined,
     selectedCoverImage: produtoSerializado.imagemUrl || produtoSerializado.imagemUrlOriginal || null,
     imagemMedidasCustomizada: produtoSerializado.imagemMedidasCustomizada || null,
     manualData: {
@@ -171,6 +178,12 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
               sku: "",
             }))
           : []),
+    // Status do produto para proteção de navegação (rascunho vs publicado)
+    productStatus: produtoSerializado.status === "draft" ? "draft" as const : ("published" as const),
+    // Foto Costas e extras: restaurar para não perder após redirecionamento do auto-save rascunho
+    extraImages: Array.isArray(produtoSerializado.extraImageUrls) && produtoSerializado.extraImageUrls.length > 0
+      ? produtoSerializado.extraImageUrls.map((e: { idx: number; url: string }) => ({ idx: e.idx, url: e.url, file: null }))
+      : [],
   };
 
   return (

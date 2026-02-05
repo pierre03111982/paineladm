@@ -111,6 +111,20 @@ export async function POST(request: NextRequest) {
         totalCreditsAdded: (lojistaData?.totalCreditsAdded || 0) + amount,
       });
 
+      // Sincronizar com lojas (dashboard, generate-studio e deduct-credits leem de lojas)
+      const lojaDoc = await transaction.get(lojaRef);
+      if (lojaDoc.exists) {
+        const lojaData = lojaDoc.data();
+        const lojaCredits = lojaData?.credits ?? lojaData?.aiCredits ?? lojaData?.saldo ?? 0;
+        const newLojaCredits = lojaCredits + amount;
+        transaction.update(lojaRef, {
+          credits: newLojaCredits,
+          aiCredits: newLojaCredits,
+          saldo: newLojaCredits,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
       return {
         previousCredits: currentCredits,
         newCredits,

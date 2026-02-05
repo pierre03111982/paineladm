@@ -10,6 +10,8 @@ export type ProdutoDoc = {
   imagemUrlOriginal?: string; // Foto original do produto (upload inicial)
   imagemUrlCatalogo?: string; // Foto gerada com IA (imagem principal exibida)
   imagemUrlCombinada?: string; // Look combinado gerado pela IA
+  /** Todas as imagens do Catálogo IA: [Foto Frente, Foto Costas, Modelo Frente, Modelo Costas, Look 1, Look 2] */
+  catalogImageUrls?: string[];
   imagemMedidasCustomizada?: string; // Imagem de medidas inserida manualmente
   descontoProduto?: number; // % de desconto específico deste produto (sobrescreve desconto universal)
   categoria: string;
@@ -49,6 +51,8 @@ export type ProdutoDoc = {
   };
   sku?: string;
   stock_quantity?: number;
+  /** Rascunho (em edição) ou publicado. Omitido = publicado para compatibilidade. */
+  status?: "draft" | "published";
 };
 
 export type DislikeReason = "garment_style" | "fit_issue" | "ai_distortion" | "other";

@@ -439,22 +439,51 @@ async function saveToFirebaseStorage(
   }
 }
 
+/** Opções para geração de imagem de catálogo (Estúdio Criativo: 9:16, qualidade 4K) */
+export interface GenerateCatalogImageOptions {
+  /** Proporção da imagem gerada. 9:16 = Mobile First / vertical. */
+  aspectRatio?: "9:16";
+  /** URL da imagem de referência para cor/iluminação (ex.: foto frente ao gerar costas). Enviada como 2ª imagem. Ignorado se additionalImageUrls for fornecido. */
+  referenceImageUrl?: string;
+  /** URLs das imagens dos produtos complementares (Look Combinado). Enviadas em ordem após a imagem principal. A IA deve replicar a aparência EXATA de cada uma. */
+  additionalImageUrls?: string[];
+  /** Temperatura da geração (0.0–1.0). Mais baixa = mais fidelidade ao input. */
+  temperature?: number;
+  /** Seed fixo para reprodutibilidade. */
+  seed?: number;
+  /** Instrução de sistema para reforçar regras. */
+  systemInstruction?: string;
+}
+
 /**
  * Gera imagem de catálogo para produto (Fase 13)
  * Usa Gemini 2.5 Flash Image conforme documentação oficial
  * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/gemini/2-5-flash-image
+ * Estúdio Criativo: imagens 9x16, Ghost Mannequin Hero 3D, qualidade 4K.
  */
 export async function generateCatalogImage(
   prompt: string,
   productImageUrl: string,
   lojistaId: string,
-  produtoId: string
+  produtoId: string,
+  options?: GenerateCatalogImageOptions
 ): Promise<string> {
+  const aspectRatio = options?.aspectRatio ?? "9:16";
+  const referenceImageUrl = options?.referenceImageUrl;
+  const additionalImageUrls = options?.additionalImageUrls?.filter((u) => u && String(u).trim()) ?? [];
+  const temperature = options?.temperature !== undefined ? Math.max(0, Math.min(1, options.temperature)) : 0.2;
+  const seed = options?.seed;
+  const systemInstruction = options?.systemInstruction?.trim();
   console.log("[GeminiFlashImage] Iniciando geração de imagem de catálogo", {
     promptLength: prompt.length,
     productImageUrl: productImageUrl.substring(0, 100) + "...",
+    hasReferenceImage: !!referenceImageUrl && additionalImageUrls.length === 0,
+    additionalImageCount: additionalImageUrls.length,
     lojistaId,
     produtoId,
+    aspectRatio,
+    temperature,
+    ...(seed !== undefined && seed !== null ? { seed } : {}),
   });
 
   const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID || IMAGEN_CONFIG.projectId;
@@ -500,129 +529,240 @@ export async function generateCatalogImage(
       productImageData.mimeType = "image/jpeg";
     }
 
+    // Segunda imagem: referência (catálogo costas) OU imagens dos produtos complementares (Look Combinado)
+    let referenceImageData: { base64: string; mimeType: string } | null = null;
+    const additionalImageData: Array<{ base64: string; mimeType: string }> = [];
+
+    if (additionalImageUrls.length > 0) {
+      for (let i = 0; i < additionalImageUrls.length; i++) {
+        try {
+          const data = await imageUrlToBase64(additionalImageUrls[i]);
+          if (data.base64) {
+            const mime = data.mimeType?.startsWith("image/") ? data.mimeType : "image/jpeg";
+            additionalImageData.push({ base64: data.base64, mimeType: mime });
+          }
+        } catch (e) {
+          console.warn(`[GeminiFlashImage] Falha ao carregar imagem adicional ${i + 1}, pulando:`, e);
+        }
+      }
+    } else if (referenceImageUrl && referenceImageUrl.trim()) {
+      try {
+        referenceImageData = await imageUrlToBase64(referenceImageUrl.trim());
+        if (!referenceImageData.base64) referenceImageData = null;
+      } catch (e) {
+        console.warn("[GeminiFlashImage] Falha ao carregar imagem de referência, continuando com uma imagem:", e);
+      }
+    }
+
+    // Partes: imagem 1 (base), depois imagens adicionais (produtos) ou referência, depois texto
+    const parts: Array<{ inlineData?: { mimeType: string; data: string }; text?: string }> = [
+      {
+        inlineData: {
+          mimeType: productImageData.mimeType,
+          data: productImageData.base64,
+        },
+      },
+    ];
+    if (additionalImageData.length > 0) {
+      for (const img of additionalImageData) {
+        parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
+      }
+    } else if (referenceImageData) {
+      const mimeRef = referenceImageData.mimeType.startsWith("image/") ? referenceImageData.mimeType : "image/jpeg";
+      parts.push({
+        inlineData: { mimeType: mimeRef, data: referenceImageData.base64 },
+      });
+    }
+    parts.push({ text: prompt });
+
     // Preparar payload conforme documentação do Gemini 2.5 Flash Image
-    // Endpoint: POST .../models/gemini-2.5-flash-image:generateContent
     const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/gemini-2.5-flash-image:generateContent`;
 
-    // Estrutura da requisição conforme documentação:
-    // contents: [{ role: "user", parts: [{ inlineData: {...} }, { text: "..." }] }]
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       contents: [
         {
           role: "user",
-          parts: [
-            // Imagem de entrada (produto)
-            {
-              inlineData: {
-                mimeType: productImageData.mimeType,
-                data: productImageData.base64,
-              },
-            },
-            // Prompt de texto
-            {
-              text: prompt,
-            },
-          ],
+          parts,
         },
       ],
       generationConfig: {
-        // Aumentado para de fato "refazer" como foto de catálogo/ghost mannequin.
-        // Quando a temperatura é muito baixa, o modelo pode devolver praticamente a mesma imagem.
-        temperature: 0.75, // Aumentado para garantir mais transformação da imagem original
+        temperature, // Baixa (ex. 0.05–0.2): fidelidade ao input, menos variação entre gerações.
         topP: 0.95,
         topK: 40,
         maxOutputTokens: 8192,
+        responseModalities: ["IMAGE"],
+        ...(seed !== undefined && seed !== null ? { seed: Math.floor(Number(seed)) } : {}),
       },
-      // NOTA: responseModalities NÃO é suportado e não deve ser incluído
     };
+    if (systemInstruction) {
+      requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+    }
 
+    const lastPart = requestBody.contents[0].parts[requestBody.contents[0].parts.length - 1];
     console.log("[GeminiFlashImage] 📤 Enviando requisição para:", endpoint);
     console.log("[GeminiFlashImage] Estrutura do payload:", {
       contentsCount: requestBody.contents.length,
       partsCount: requestBody.contents[0].parts.length,
       hasImage: !!requestBody.contents[0].parts[0].inlineData,
-      hasPrompt: !!requestBody.contents[0].parts[1].text,
-      promptLength: requestBody.contents[0].parts[1].text?.length || 0,
+      additionalImageCount: additionalImageData.length,
+      hasReferenceImage: !!referenceImageData,
+      hasPrompt: !!(lastPart && "text" in lastPart && lastPart.text),
+      promptLength: (lastPart && "text" in lastPart && lastPart.text) ? lastPart.text.length : 0,
       imageMimeType: requestBody.contents[0].parts[0].inlineData?.mimeType,
     });
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
+    const maxAttempts = 4;
+    const backoffMs = [0, 5000, 15000, 30000]; // 0s, 5s, 15s, 30s
+    let last429Error: Error | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorData: any = {};
-      try {
-        errorData = JSON.parse(errorText);
-      } catch (e) {
-        // Se não conseguir parsear, usar o texto como está
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (backoffMs[attempt] > 0) {
+        console.log(`[GeminiFlashImage] ⏳ Limite temporário (429). Aguardando ${backoffMs[attempt] / 1000}s antes da tentativa ${attempt + 1}/${maxAttempts}...`);
+        await new Promise((r) => setTimeout(r, backoffMs[attempt]));
       }
-      
-      console.error("[GeminiFlashImage] ❌ Erro na resposta da API:", {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData,
-        rawError: errorText,
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
       });
-      
-      // Detectar especificamente erro 429 e propagar de forma mais clara
-      if (response.status === 429 || 
-          errorText.includes("429") || 
-          errorText.includes("Resource exhausted") || 
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorData: any = {};
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          // Se não conseguir parsear, usar o texto como está
+        }
+
+        const is429 =
+          response.status === 429 ||
+          errorText.includes("429") ||
+          errorText.includes("Resource exhausted") ||
           errorText.includes("RESOURCE_EXHAUSTED") ||
           errorData?.error?.code === 429 ||
-          errorData?.error?.status === "RESOURCE_EXHAUSTED") {
-        throw new Error(`429 Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.`);
+          errorData?.error?.status === "RESOURCE_EXHAUSTED";
+
+        if (is429 && attempt < maxAttempts - 1) {
+          last429Error = new Error(`429 Resource exhausted. Please try again later.`);
+          console.warn("[GeminiFlashImage] ⚠️ 429 na tentativa", attempt + 1, "- será feita nova tentativa após backoff.");
+          continue;
+        }
+
+        console.error("[GeminiFlashImage] ❌ Erro na resposta da API:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          rawError: errorText,
+        });
+
+        if (is429) {
+          throw last429Error || new Error(`429 Resource exhausted. Please try again later. Please refer to https://cloud.google.com/vertex-ai/generative-ai/docs/error-code-429 for more details.`);
+        }
+        throw new Error(`Erro ao gerar imagem: ${response.status} - ${errorText}`);
       }
-      
-      throw new Error(`Erro ao gerar imagem: ${response.status} - ${errorText}`);
+
+      const data = await response.json();
+      console.log("[GeminiFlashImage] ✅ Resposta da API recebida");
+
+      // Estrutura da resposta do Gemini:
+      // { candidates: [{ content: { parts: [{ inlineData: { mimeType, data } }] } }] }
+      if (!data.candidates || data.candidates.length === 0) {
+        throw new Error("Nenhuma imagem foi gerada - candidates vazio");
+      }
+
+      const candidate = data.candidates[0];
+      if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+        const finishReason = candidate?.finishReason || candidate?.finish_reason;
+        const safetyRatings = candidate?.safetyRatings || candidate?.safety_ratings;
+        console.error("[GeminiFlashImage] Resposta sem parts:", {
+          finishReason,
+          hasText: !!candidate?.content?.text,
+          safetyRatings,
+          candidateKeys: Object.keys(candidate || {}),
+        });
+        throw new Error("Resposta da API não contém parts");
+      }
+
+      const imagePart = candidate.content.parts.find((part: any) => part.inlineData);
+      if (!imagePart || !imagePart.inlineData || !imagePart.inlineData.data) {
+        throw new Error("Imagem gerada não contém dados base64");
+      }
+
+      const generatedImageBase64 = imagePart.inlineData.data;
+      const generatedMimeType = imagePart.inlineData.mimeType || "image/png";
+
+      console.log("[GeminiFlashImage] ✅ Imagem gerada:", {
+        mimeType: generatedMimeType,
+        base64Length: generatedImageBase64.length,
+      });
+
+      let finalBase64 = generatedImageBase64;
+      if (aspectRatio === "9:16") {
+        try {
+          const buffer = Buffer.from(generatedImageBase64, "base64");
+          const croppedBuffer = await cropImageTo9_16(buffer);
+          if (croppedBuffer) {
+            finalBase64 = croppedBuffer.toString("base64");
+            console.log("[GeminiFlashImage] Imagem recortada para proporção 9:16 (center crop)");
+          }
+        } catch (cropErr: any) {
+          console.warn("[GeminiFlashImage] Falha ao recortar para 9:16, usando imagem original:", cropErr?.message);
+        }
+      }
+
+      const publicUrl = await saveCatalogImageToStorage(
+        finalBase64,
+        lojistaId,
+        produtoId
+      );
+
+      console.log("[GeminiFlashImage] ✅ Imagem de catálogo salva com sucesso:", publicUrl);
+      return publicUrl;
     }
 
-    const data = await response.json();
-    console.log("[GeminiFlashImage] ✅ Resposta da API recebida");
-
-    // Estrutura da resposta do Gemini:
-    // { candidates: [{ content: { parts: [{ inlineData: { mimeType, data } }] } }] }
-    if (!data.candidates || data.candidates.length === 0) {
-      throw new Error("Nenhuma imagem foi gerada - candidates vazio");
-    }
-
-    const candidate = data.candidates[0];
-    if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
-      throw new Error("Resposta da API não contém parts");
-    }
-
-    const imagePart = candidate.content.parts.find((part: any) => part.inlineData);
-    if (!imagePart || !imagePart.inlineData || !imagePart.inlineData.data) {
-      throw new Error("Imagem gerada não contém dados base64");
-    }
-
-    const generatedImageBase64 = imagePart.inlineData.data;
-    const generatedMimeType = imagePart.inlineData.mimeType || "image/png";
-
-    console.log("[GeminiFlashImage] ✅ Imagem gerada:", {
-      mimeType: generatedMimeType,
-      base64Length: generatedImageBase64.length,
-    });
-
-    // Salvar no Firebase Storage
-    const publicUrl = await saveCatalogImageToStorage(
-      generatedImageBase64,
-      lojistaId,
-      produtoId
-    );
-
-    console.log("[GeminiFlashImage] ✅ Imagem de catálogo salva com sucesso:", publicUrl);
-    return publicUrl;
+    throw last429Error || new Error("429 Resource exhausted após várias tentativas. Tente novamente em alguns minutos.");
   } catch (error: any) {
     console.error("[GeminiFlashImage] ❌ Erro ao gerar imagem de catálogo:", error);
     throw error;
+  }
+}
+
+/**
+ * Recorta a imagem para proporção 9:16 (center crop).
+ * Se sharp não estiver disponível ou a imagem já for 9:16, retorna o buffer original ou null.
+ */
+async function cropImageTo9_16(inputBuffer: Buffer): Promise<Buffer | null> {
+  if (!sharp) return null;
+  try {
+    const meta = await sharp(inputBuffer).metadata();
+    const w = meta.width || 1;
+    const h = meta.height || 1;
+    const targetRatio = 9 / 16;
+    const currentRatio = w / h;
+    let left = 0;
+    let top = 0;
+    let width = w;
+    let height = h;
+    if (currentRatio > targetRatio) {
+      width = Math.round(h * targetRatio);
+      left = Math.round((w - width) / 2);
+    } else if (currentRatio < targetRatio) {
+      height = Math.round(w / targetRatio);
+      top = Math.round((h - height) / 2);
+    }
+    if (left === 0 && top === 0 && width === w && height === h) return null;
+    return await sharp(inputBuffer)
+      .extract({ left, top, width, height })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+  } catch (err) {
+    console.warn("[GeminiFlashImage] cropImageTo9_16:", err);
+    return null;
   }
 }
 

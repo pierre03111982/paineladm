@@ -145,9 +145,14 @@ export class ProductAnalyzerService {
   }
 
   /**
-   * Analisa imagem do produto e retorna metadados estruturados
+   * Analisa imagem(ns) do produto e retorna metadados estruturados.
+   * Se imageUrlBack for informado, usa as duas imagens (frente e costas) para análise mais precisa (ex.: identificar Short saia).
    */
-  async analyzeProductImage(imageUrl: string, context?: AnalysisContext): Promise<APIResponse<ProductAnalysisResult>> {
+  async analyzeProductImage(
+    imageUrl: string,
+    context?: AnalysisContext,
+    imageUrlBack?: string
+  ): Promise<APIResponse<ProductAnalysisResult>> {
     const startTime = Date.now();
 
     if (!this.isConfigured()) {
@@ -158,16 +163,30 @@ export class ProductAnalyzerService {
     }
 
     try {
-      console.log("[ProductAnalyzer] 🔍 Iniciando análise de produto:", imageUrl.substring(0, 100) + "...", "context:", context);
+      console.log(
+        "[ProductAnalyzer] 🔍 Iniciando análise de produto:",
+        imageUrl.substring(0, 100) + "...",
+        imageUrlBack ? " + foto costas" : "",
+        "context:",
+        context
+      );
 
       // Obter token de acesso
       const accessToken = await this.getAccessToken();
 
-      // Converter imagem para base64
+      // Converter imagem(ns) para base64
       const imageBase64 = await this.imageUrlToBase64(imageUrl);
+      const base64Data = imageBase64.split(",")[1];
 
-      // Extrair apenas o base64 (sem o prefixo data:)
-      const base64Data = imageBase64.split(',')[1];
+      let base64DataBack: string | undefined;
+      if (imageUrlBack && typeof imageUrlBack === "string" && (imageUrlBack.startsWith("http://") || imageUrlBack.startsWith("https://"))) {
+        try {
+          const backBase64 = await this.imageUrlToBase64(imageUrlBack);
+          base64DataBack = backBase64.split(",")[1];
+        } catch (err) {
+          console.warn("[ProductAnalyzer] ⚠️ Falha ao carregar foto costas, continuando só com frente:", err);
+        }
+      }
 
       // Lógica de retry: tentar até 2 vezes em caso de erro de parsing JSON
       const MAX_RETRIES = 2;
@@ -177,7 +196,7 @@ export class ProductAnalyzerService {
         try {
           console.log(`[ProductAnalyzer] 🔄 Tentativa ${attempt}/${MAX_RETRIES}`);
           
-          const analysisResult = await this.performAnalysis(accessToken, base64Data, context);
+          const analysisResult = await this.performAnalysis(accessToken, base64Data, context, base64DataBack);
           
           // Se chegou aqui, a análise foi bem-sucedida
           const executionTime = Date.now() - startTime;
@@ -240,10 +259,16 @@ export class ProductAnalyzerService {
   }
 
   /**
-   * Realiza a análise do produto (extraído para permitir retry)
+   * Realiza a análise do produto (extraído para permitir retry).
+   * Se base64DataBack for informado, usa as duas imagens (frente + costas) para análise mais precisa (ex.: Short saia).
    * Retorna apenas os dados (ProductAnalysisResult), não APIResponse
    */
-  private async performAnalysis(accessToken: string, base64Data: string, context?: AnalysisContext): Promise<ProductAnalysisResult> {
+  private async performAnalysis(
+    accessToken: string,
+    base64Data: string,
+    context?: AnalysisContext,
+    base64DataBack?: string
+  ): Promise<ProductAnalysisResult> {
     const startTime = Date.now();
 
     try {
@@ -413,7 +438,7 @@ Retorne APENAS o JSON válido com a seguinte estrutura exata:
   
   🚨 SE QUALQUER ITEM DE COMPLETUDE ESTIVER FALTANDO, A DESCRIÇÃO ESTÁ INCORRETA E DEVE SER REGENERADA COMPLETA!",
   "suggested_category": "Uma das categorias consolidadas (obrigatório usar exatamente uma delas): Roupas, Calçados, Acessórios, Joias, Praia, Fitness, Cosméticos, Outros. IMPORTANTE: Agrupe produtos similares na mesma categoria (ex: Vestidos, Blusas, Calças, Saias, Shorts, Jaquetas -> Roupas; Tênis, Sapatos, Sandálias -> Calçados; Bolsas, Cintos, Óculos -> Acessórios; Brincos, Colares, Relógios -> Joias; Biquínis, Maiôs -> Praia; Leggings, Tops esportivos -> Fitness).",
-  "product_type": "Tipo específico e detalhado do produto analisado na imagem. OBRIGATÓRIO: Deve ser preenchido com o tipo exato (ex: 'Blazer', 'Vestido Midi', 'Tênis Esportivo', 'Bermuda', 'Camisa Social', 'Legging', 'Biquíni', 'Bolsa Tote', 'Jaqueta Jeans', 'Calça Skinny', 'Conjunto Cropped e Shorts', 'Conjunto Blusa e Calça', 'Conjunto Top e Saia'). CRÍTICO: Se a imagem mostra MÚLTIPLAS PEÇAS vendidas juntas (ex: cropped + short, blusa + calça, top + saia), o product_type DEVE ser 'Conjunto [Nome da Peça 1] e [Nome da Peça 2]' (ex: 'Conjunto Cropped e Shorts', 'Conjunto Blusa e Calça'). NÃO identifique apenas uma das peças (ex: não diga apenas 'Short' se houver cropped + short). NÃO deixe vazio.",
+  "product_type": "Tipo específico e detalhado do produto analisado na imagem. OBRIGATÓRIO: Deve ser preenchido com o tipo exato (ex: 'Blazer', 'Vestido Midi', 'Tênis Esportivo', 'Bermuda', 'Camisa Social', 'Legging', 'Biquíni', 'Bolsa Tote', 'Jaqueta Jeans', 'Calça Skinny', 'Conjunto Cropped e Shorts', 'Conjunto Blusa e Calça', 'Conjunto Top e Saia', 'Short saia', 'Conjunto Cropped e Short saia'). CRÍTICO: Se a imagem mostra MÚLTIPLAS PEÇAS vendidas juntas (ex: cropped + short, blusa + calça, top + saia), o product_type DEVE ser 'Conjunto [Nome da Peça 1] e [Nome da Peça 2]' (ex: 'Conjunto Cropped e Shorts', 'Conjunto Cropped e Short saia'). SHORT SAIA (short-saia/skort): Se a peça de baixo na FRENTE parece uma saia (painel único, pregas, amarração frontal, botões, recorte assimétrico) e por baixo/atrás tem formato de short (duas pernas, cintura elástica ou estruturada), use 'Short saia' ou 'Conjunto [Top] e Short saia'. NÃO confunda com short comum nem com saia. NÃO deixe vazio.",
   "detected_fabric": "Tecido/material detectado na imagem. 🚨 OBRIGATÓRIO E CRÍTICO: DEVE ser preenchido SEMPRE. Analise a textura, brilho, espessura e aparência do tecido. Linho: aparência rústica, fibras visíveis, caimento estruturado e fresco — use 'Linho' ou 'Linho misto'. Algodão texturizado: mais macio, textura canelada — use só quando identificar claramente. Em dúvida entre linho e algodão texturizado, prefira 'Linho' se o tecido parecer natural e estruturado. Outros: leve e fluido → 'Viscose' ou 'Chiffon'; grosso e rústico → 'Algodão' ou 'Linho'; elástico → 'Malha' ou 'Algodão com Elastano'; jeans → 'Jeans' ou 'Sarja'. NUNCA deixe vazio.",
   "dominant_colors": [
     {"hex": "#000000", "name": "Preto"},
@@ -544,6 +569,13 @@ INSTRUÇÃO CRÍTICA - FOCO APENAS NA ROUPA:
 - Foque exclusivamente nas características da roupa: tecido, cor, corte, estilo, detalhes da peça.
 - **CRÍTICO - CONJUNTOS**: Se houver MÚLTIPLAS PEÇAS DE ROUPA vendidas JUNTAS (ex: cropped + short, blusa + calça, top + saia), identifique como "Conjunto" no product_type e descreva AMBAS as peças no nome_sugerido e descricao_seo. NÃO analise apenas uma das peças - o produto é o CONJUNTO completo.
 
+IDENTIFICAÇÃO — SHORT SAIA (short-saia / skort):
+- O que é: Peça que na FRENTE parece uma saia (painel contínuo, pregas, detalhe transpassado ou assimétrico, amarração frontal, botões) e por baixo/atrás tem formato de SHORTS (duas pernas, cintura alta, praticidade). Nome em português: "Short saia" ou "Short-saia"; em inglês: skort.
+- Como identificar: Frente = aspecto de saia (um painel, pregas, laço, botões). Costas = formato de short (pernas separadas, cintura elástica ou com passantes). Se você receber DUAS imagens (frente e costas), use as duas: frente com aspecto de saia + costas com short = Short saia.
+- Variações: Pode ser em jeans, alfaiataria, neoprene, sarja, linho, etc.
+- Detalhes comuns: cintura alta, amarração frontal, recortes assimétricos, botões na frente.
+- No product_type use "Short saia" ou "Conjunto [Top] e Short saia" quando aplicável. Inclua nas tags: "short saia", "skort".
+
 REGRAS CRÍTICAS PARA TAGS:
 - Se for roupa de banho (biquíni, maiô, sunga) -> DEVE incluir tag "praia" ou "swimwear" (Ativa Bikini Law)
 - Se for roupa de frio/couro (casaco, sobretudo, bota, cachecol) -> DEVE incluir tag "inverno" ou "winter" (Ativa Winter Rule)
@@ -589,22 +621,42 @@ Se alguma resposta for NÃO, REESCREVA o JSON completo antes de enviar.
 
 Retorne APENAS o JSON válido e completo, sem markdown, sem código, sem explicações, sem strings não terminadas.`;
 
+      const twoImageInstruction = base64DataBack
+        ? `
+
+IMPORTANTE — VOCÊ ESTÁ RECEBENDO DUAS IMAGENS:
+- Imagem 1 = FRENTE do produto (foto frente).
+- Imagem 2 = COSTAS do produto (foto verso/costas).
+Use AMBAS as imagens para identificar o produto com precisão. Em especial: se na FRENTE a peça de baixo parece uma SAIA (painel único, pregas, amarração, botões) e na COSTAS a mesma peça tem formato de SHORTS (duas pernas, cintura elástica ou estruturada), classifique como "Short saia" (short-saia/skort). Use product_type "Short saia" ou "Conjunto [Top] e Short saia" e inclua nas tags "short saia" e "skort".`
+        : "";
+
+      const finalPrompt = systemPrompt + twoImageInstruction;
+
+      // Construir parts: uma ou duas imagens + prompt
+      const parts: Array<{ inline_data?: { mime_type: string; data: string }; text?: string }> = [
+        {
+          inline_data: {
+            mime_type: "image/jpeg",
+            data: base64Data,
+          },
+        },
+      ];
+      if (base64DataBack) {
+        parts.push({
+          inline_data: {
+            mime_type: "image/jpeg",
+            data: base64DataBack,
+          },
+        });
+      }
+      parts.push({ text: finalPrompt });
+
       // Construir payload
       const requestBody = {
         contents: [
           {
             role: "user",
-            parts: [
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: base64Data,
-                },
-              },
-              {
-                text: systemPrompt,
-              },
-            ],
+            parts,
           },
         ],
         generationConfig: {

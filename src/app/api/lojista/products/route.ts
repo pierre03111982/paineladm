@@ -101,16 +101,30 @@ export async function POST(request: NextRequest) {
       imagemUrlOriginal,
       imagemUrlCatalogo,
       imagemUrlCombinada,
+      catalogImageUrls,
       imagemMedidasCustomizada,
-      // Novos campos da análise IA
+      // Rascunho: status 'draft' permite criar com dados mínimos
+      status,
+      // Objeto completo da análise IA (rascunho / edição)
+      analiseIA,
+      // Novos campos da análise IA (quando não vem analiseIA)
       product_type,
       detected_fabric,
       dominant_colors,
       // Campo de variações
       variacoes,
+      // Foto Verso e extras (persistir para não perder ao redirecionar após criar rascunho)
+      extraImageUrls,
     } = body;
 
-    if (!nome || !categoria || preco === undefined) {
+    const isDraft = status === "draft";
+    const nomeFinal = (nome && String(nome).trim()) || (isDraft ? "Rascunho" : "");
+    const categoriaFinal = (categoria && String(categoria).trim()) || (isDraft ? "Roupas" : "");
+    const precoFinal = preco !== undefined && preco !== null
+      ? (typeof preco === "string" ? parseFloat(preco.replace(",", ".").replace(/[^\d.,-]/g, "")) : Number(preco))
+      : (isDraft ? 0 : undefined);
+
+    if (!isDraft && (!nomeFinal || !categoriaFinal || precoFinal === undefined)) {
       console.error("[API Products POST] Campos obrigatórios faltando:", { nome, categoria, preco });
       return NextResponse.json(
         { error: "nome, categoria e preco são obrigatórios" },
@@ -119,11 +133,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validar e processar preço
-    const precoNum = typeof preco === 'string' 
-      ? parseFloat(preco.replace(",", ".").replace(/[^\d.,-]/g, "")) 
-      : Number(preco);
-    
-    if (isNaN(precoNum) || precoNum < 0) {
+    const precoNum = isDraft ? (typeof precoFinal === "number" ? precoFinal : 0) : (typeof preco === "string"
+      ? parseFloat(preco.replace(",", ".").replace(/[^\d.,-]/g, ""))
+      : Number(preco));
+    const precoValid = isDraft ? Math.max(0, precoNum) : precoNum;
+    if (!isDraft && (isNaN(precoValid) || precoValid < 0)) {
       console.error("[API Products POST] Preço inválido:", preco);
       return NextResponse.json(
         { error: "Preço inválido" },
@@ -167,9 +181,9 @@ export async function POST(request: NextRequest) {
     }
 
     const produtoData: any = {
-      nome: String(nome).trim(),
-      categoria: String(categoria).trim(),
-      preco: precoNum,
+      nome: nomeFinal,
+      categoria: categoriaFinal,
+      preco: precoValid,
       imagemUrl: imagemUrlFinal,
       cores: Array.isArray(cores) ? cores : (cores && String(cores).trim() ? [String(cores).trim()] : []),
       tamanhos: Array.isArray(tamanhos) ? tamanhos : (tamanhos && String(tamanhos).trim() ? [String(tamanhos).trim()] : []),
@@ -189,29 +203,47 @@ export async function POST(request: NextRequest) {
     if (imagemUrlCombinada) {
       produtoData.imagemUrlCombinada = String(imagemUrlCombinada).trim();
     }
+    if (Array.isArray(catalogImageUrls) && catalogImageUrls.length > 0) {
+      produtoData.catalogImageUrls = catalogImageUrls
+        .filter((u): u is string => typeof u === "string" && u.trim() !== "")
+        .map((u) => u.trim())
+        .slice(0, 6);
+    }
     if (imagemMedidasCustomizada) {
       produtoData.imagemMedidasCustomizada = String(imagemMedidasCustomizada).trim();
     }
+    if (status === "draft" || status === "published") {
+      produtoData.status = status;
+    }
+    if (Array.isArray(extraImageUrls) && extraImageUrls.length > 0) {
+      produtoData.extraImageUrls = extraImageUrls.map((e: any) =>
+        typeof e === "object" && e != null && typeof e.idx === "number" && typeof e.url === "string"
+          ? { idx: e.idx, url: String(e.url).trim() }
+          : null
+      ).filter(Boolean);
+    }
 
-    // Adicionar campos da análise IA se existirem
-    if (product_type) {
-      produtoData.product_type = String(product_type).trim();
-    }
-    if (detected_fabric) {
-      produtoData.detected_fabric = String(detected_fabric).trim();
-    }
-    if (dominant_colors && Array.isArray(dominant_colors)) {
-      produtoData.dominant_colors = dominant_colors;
-    }
-
-    // Salvar também no objeto analiseIA para compatibilidade
-    if (product_type || detected_fabric || dominant_colors) {
-      produtoData.analiseIA = {
-        ...(product_type && { product_type: String(product_type).trim() }),
-        ...(detected_fabric && { detected_fabric: String(detected_fabric).trim(), tecido_estimado: String(detected_fabric).trim() }),
-        ...(dominant_colors && Array.isArray(dominant_colors) && { dominant_colors }),
-        ultimaAtualizacao: new Date().toISOString(),
-      };
+    // Adicionar campos da análise IA: usar objeto completo se enviado (rascunho), senão montar a partir dos campos
+    if (analiseIA && typeof analiseIA === "object" && !Array.isArray(analiseIA)) {
+      produtoData.analiseIA = { ...analiseIA, ultimaAtualizacao: new Date().toISOString() };
+    } else {
+      if (product_type) {
+        produtoData.product_type = String(product_type).trim();
+      }
+      if (detected_fabric) {
+        produtoData.detected_fabric = String(detected_fabric).trim();
+      }
+      if (dominant_colors && Array.isArray(dominant_colors)) {
+        produtoData.dominant_colors = dominant_colors;
+      }
+      if (product_type || detected_fabric || dominant_colors) {
+        produtoData.analiseIA = {
+          ...(product_type && { product_type: String(product_type).trim() }),
+          ...(detected_fabric && { detected_fabric: String(detected_fabric).trim(), tecido_estimado: String(detected_fabric).trim() }),
+          ...(dominant_colors && Array.isArray(dominant_colors) && { dominant_colors }),
+          ultimaAtualizacao: new Date().toISOString(),
+        };
+      }
     }
 
     // Processar variações se fornecidas

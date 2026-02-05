@@ -38,38 +38,40 @@ function ProductGridCard({
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Preparar array de imagens para a galeria (múltiplas imagens)
-  // Ordem: Foto Catálogo (prioridade), Imagem Original, Look Combinado
+  // Preparar array de imagens para a galeria: todas as imagens do Catálogo IA (frente, costas, modelo, look) + fallback
+  const CATALOG_LABELS = ["Foto Frente", "Foto Costas", "Modelo Frente", "Modelo Costas", "Look Combinado (1)", "Look Combinado (2)"];
   const produtoImages = useMemo(() => {
-    const images = [];
-    
-    // 1. Foto Catálogo (prioridade - melhor qualidade)
-    if (produto.imagemUrlCatalogo) {
-      images.push({
-        url: produto.imagemUrlCatalogo,
-        label: "Foto Catálogo"
+    const images: Array<{ url: string; label: string }> = [];
+
+    // 1. Se existir catalogImageUrls (todas as imagens geradas no Catálogo IA), usar na ordem
+    if (Array.isArray(produto.catalogImageUrls) && produto.catalogImageUrls.length > 0) {
+      produto.catalogImageUrls.forEach((url, i) => {
+        if (url && String(url).trim()) {
+          images.push({ url: url.trim(), label: CATALOG_LABELS[i] ?? `Imagem ${i + 1}` });
+        }
       });
     }
-    
-    // 2. Imagem Original (se diferente da catálogo)
-    const imagemOriginal = produto.imagemUrlOriginal || produto.imagemUrl;
-    if (imagemOriginal && imagemOriginal !== produto.imagemUrlCatalogo) {
-      images.push({
-        url: imagemOriginal,
-        label: "Imagem Original"
-      });
+
+    // 2. Fallback: Foto Catálogo e Look Combinado (compatibilidade com produtos antigos)
+    if (images.length === 0) {
+      if (produto.imagemUrlCatalogo) {
+        images.push({ url: produto.imagemUrlCatalogo, label: "Foto Catálogo" });
+      }
+      if (produto.imagemUrlCombinada && produto.imagemUrlCombinada !== produto.imagemUrlCatalogo) {
+        images.push({ url: produto.imagemUrlCombinada, label: "Look Combinado" });
+      }
     }
-    
-    // 3. Look Combinado
-    if (produto.imagemUrlCombinada && produto.imagemUrlCombinada !== produto.imagemUrlCatalogo) {
-      images.push({
-        url: produto.imagemUrlCombinada,
-        label: "Look Combinado"
-      });
+
+    // 3. Fallback: imagem de upload só se não houver nenhuma imagem gerada
+    if (images.length === 0) {
+      const imagemOriginal = produto.imagemUrlOriginal || produto.imagemUrl;
+      if (imagemOriginal) {
+        images.push({ url: imagemOriginal, label: "Imagem Original" });
+      }
     }
-    
+
     return images;
-  }, [produto.imagemUrlOriginal, produto.imagemUrl, produto.imagemUrlCatalogo, produto.imagemUrlCombinada]);
+  }, [produto.imagemUrlOriginal, produto.imagemUrl, produto.imagemUrlCatalogo, produto.imagemUrlCombinada, produto.catalogImageUrls]);
 
   // Calcular desconto total e preço com desconto
   const descontoRedes = descontoRedesSociais || 0;
@@ -184,18 +186,31 @@ function ProductGridCard({
         )}
       </button>
 
-      {/* Product Image Gallery - Múltiplas Imagens com Navegação */}
-      {produtoImages.length > 0 ? (
-        <ProductImageGallery
-          images={produtoImages}
-          aspectRatio="aspect-square"
-          className="w-full"
-        />
-      ) : (
-        <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
-          <Package className="h-12 w-12 text-gray-300" />
-        </div>
-      )}
+      {/* Área da imagem: galeria + badge Rascunho SOBRE a imagem (não acima, para não desalinhar os cards) */}
+      <div className="relative w-full flex-shrink-0">
+        {produtoImages.length > 0 ? (
+          <ProductImageGallery
+            images={produtoImages}
+            aspectRatio="aspect-square"
+            className="w-full"
+          />
+        ) : (
+          <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
+            <Package className="h-12 w-12 text-gray-300" />
+          </div>
+        )}
+        {/* Badge Rascunho - SOBRE a imagem (centrado no topo). Estilo em globals.css [data-badge-rascunho] para garantir fundo laranja. */}
+        {produto.status === "draft" && (
+          <span
+            data-badge-rascunho
+            className="absolute top-2 left-1/2 -translate-x-1/2 z-10 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-xs font-semibold rounded-lg"
+            title="Produto em edição — salve para publicar"
+          >
+            <span aria-hidden>✏️</span>
+            Rascunho
+          </span>
+        )}
+      </div>
 
       {/* Content - Container Flexível com altura mínima */}
       <div className="p-4 flex flex-col flex-1" style={{ display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: '0' }}>
@@ -533,7 +548,13 @@ export function ProductsTable({
       filtered = filtered.filter((p) => p.categoria === categoryFilter);
     }
 
-    return filtered;
+    // Ordenar do mais recente para o mais antigo (updatedAt ou createdAt)
+    const sorted = [...filtered].sort((a, b) => {
+      const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return tB - tA;
+    });
+    return sorted;
   }, [produtos, searchTerm, categoryFilter, showArchived]);
 
   // FORÇA BRUTA: Aplicar estilos diretamente no DOM para garantir texto branco nos cards

@@ -81,7 +81,10 @@ export async function PATCH(
       variacoes,
       unidadeMedida,
       imagemUrlCombinada,
+      catalogImageUrls,
       imagemMedidasCustomizada,
+      status,
+      extraImageUrls,
     } = body;
 
     // Converter imagem de link para PNG se necessário
@@ -144,8 +147,21 @@ export async function PATCH(
     if (imagemUrlCombinada !== undefined) {
       updateData.imagemUrlCombinada = imagemUrlCombinada;
     }
+    if (catalogImageUrls !== undefined) {
+      updateData.catalogImageUrls = Array.isArray(catalogImageUrls)
+        ? catalogImageUrls.filter((u): u is string => typeof u === "string" && u.trim() !== "").map((u) => u.trim()).slice(0, 6)
+        : catalogImageUrls;
+    }
     if (imagemMedidasCustomizada !== undefined) {
       updateData.imagemMedidasCustomizada = imagemMedidasCustomizada;
+    }
+    if (status === "draft" || status === "published") {
+      updateData.status = status;
+    }
+    if (Array.isArray(extraImageUrls)) {
+      updateData.extraImageUrls = extraImageUrls.filter(
+        (e: any) => typeof e === "object" && e != null && typeof e.idx === "number" && typeof e.url === "string"
+      ).map((e: any) => ({ idx: e.idx, url: String(e.url).trim() }));
     }
     if (descontoProduto !== undefined) {
       // Validar que é um número entre 0 e 100

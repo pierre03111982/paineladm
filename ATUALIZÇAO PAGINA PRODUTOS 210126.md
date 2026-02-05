@@ -279,3 +279,55 @@ Garanta que essa seleção seja enviada para a IA calibrar a análise de medidas
 1.  **Grade Infantil:** Agora você terá botões específicos para "2, 4, 6, 8", e a IA saberá que "6" significa "6 anos" e não "Tamanho 6 adulto" (que não existe, mas confundiria o sistema).
 2.  **38 = M:** Com o campo `equivalence`, você atende ao pedido de sinalizar a referência em letras, mantendo a precisão numérica.
 3.  **Provador Preciso:** Ao estruturar os dados assim, o cálculo de "Fit" (Caime
+
+ESPECIFIQUEI CORRETAMNTE O PUBLICO ALVO E AGRADE MAIS SO RETORNOU O COMPRIMENTO DAS MEDIDAS PADRAO DESSE MOLETON. POR SE TRATAR DE UM PRODUTO SIMPLES SEM COMPLEXIDADE E QUE JA TEM NO MERCADO COM SUAS MEDIDAS PADRA PRE DEFINIDAS. PQ A IA NAO COLOCOU CORRETAMNTE AS MEDIDAS. EM TAMANHO ATIVO É PARA APARECER OS BTOES 2 4 6 8 10 POR QUE EU SELECIONEI ANTERIOMENTE ESSAS MEDIDAS. ME AJUDE A REOLVER ISSO
+
+O diagnóstico é claro. Você está enfrentando dois problemas distintos de "Perda de Contexto" no seu código:
+
+Perda de Estado (State Loss): Você selecionou "2, 4, 6..." na tela anterior, mas quando o componente SmartMeasurementEditor carregou, ele "esqueceu" essa escolha e voltou para o padrão ['P', 'M', 'G']. O código não está passando a prop selectedGrid adiante.
+
+Preguiça da IA (Prompt Weakness): A IA viu o moletom, achou o comprimento fácil (topo a base), mas teve "preguiça" ou dificuldade de achar a axila no tecido laranja e não retornou o Busto. Como é um produto padrão de mercado, a IA deveria ter inferido essa medida baseada em tabelas padrão (ABNT) quando a visão falha.
+
+Aqui está o Comando de Correção (Bug Fix) para você passar ao Cursor. Ele ataca esses dois pontos: força a grade correta e obriga a IA a preencher lacunas usando padrões de mercado.
+
+🤖 PROMPT DE CORREÇÃO URGENTE (Copie e Cole no Cursor)
+Markdown
+
+Atue como Senior Frontend & AI Engineer.
+Temos 2 bugs críticos na UX de cadastro de produtos que precisam de correção imediata.
+
+**Contexto:** O usuário está cadastrando um Moletom Infantil.
+**Input do Usuário:** Público Alvo = "Infantil", Grade = "Numérica (2, 4, 6, 8...)".
+**Erro 1 (Frontend):** O `SmartMeasurementEditor` renderizou botões "P, M, G" em vez de "2, 4, 6...".
+**Erro 2 (AI Analysis):** A IA detectou apenas "Comprimento". Para Moletons, é OBRIGATÓRIO retornar "Busto" e "Manga", mesmo que seja estimado.
+
+**TAREFA 1: CORRIGIR A GRADE DE TAMANHOS (Estado)**
+No componente `ProductWizardStep3` (ou onde o Editor é chamado), garanta que a prop `activeSizes` seja passada corretamente.
+1. Verifique a variável `selectedGradeType` (ex: 'kids_numeric', 'adult_letter').
+2. Mapeie isso para o array correto de tamanhos ANTES de montar o componente.
+   - Se `kids_numeric` -> `['2', '4', '6', '8', '10', '12']`
+   - Se `baby` -> `['RN', 'P', 'M', 'G']`
+3. Force o `SmartMeasurementEditor` a inicializar o `activeSize` com o primeiro item desse array (ex: '4' ou '6'), NUNCA com 'P' hardcoded.
+
+**TAREFA 2: FORÇAR MEDIDAS DE MERCADO (AI Fallback)**
+Atualize o prompt do arquivo `detect-landmarks/route.ts` (Gemini Vision).
+Adicione esta instrução explícita no System Prompt:
+
+> "RULE: If the detected category is 'Sweatshirt', 'Hoodie', 'T-Shirt' or 'Top', you MUST return 'bust' (chest width) and 'length'.
+> IF visual detection is low confidence (e.g. difficult contrast), ESTIMATE the measurements based on standard market sizing for the identified target audience (Adult vs Kids).
+> Example: A Kids Size 6 Sweatshirt usually has Chest ~32-34cm and Length ~45-50cm. Use these standards to guide your landmark placement if edges are unclear. DO NOT return incomplete data for standard garments."
+
+**TAREFA 3: AUTO-SELEÇÃO VISUAL**
+No Frontend, se a grade for "Numérica", não mostre "P" na UI. Mostre o número.
+Certifique-se de que o botão "Tamanho Ativo" reflete a string exata do tamanho (ex: "6").
+
+**Resultado Esperado:**
+Ao recarregar a página do Moletom Mickey:
+1. Os botões devem ser: [2] [4] [6] [8]...
+2. A lista de medidas deve ter: Comprimento E Busto (preenchidos).
+O que vai acontecer depois que o Cursor rodar isso:
+Os Botões: O sistema vai parar de "alucinar" o P/M/G. Se você disse que é grade numérica infantil, ele vai inicializar o editor esperando números.
+
+As Medidas: A instrução "Use these standards to guide..." (Use esses padrões para guiar...) é poderosa. Ela diz para a IA: "Eu sei que a foto pode estar difícil, mas isso é um moletom tamanho 6. Coloque a linha do busto onde deveria ser um busto de 34cm".
+
+Resultado: Você verá a linha do busto aparecer magicamente, talvez com um aviso "Estimativa de Mercado", mas preenchida, poupando seu tempo de digitação.

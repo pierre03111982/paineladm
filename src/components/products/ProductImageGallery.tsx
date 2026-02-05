@@ -135,25 +135,25 @@ export function ProductImageGallery({
         />
       </div>
 
-      {/* Seta Esquerda */}
+      {/* Seta Esquerda - sempre visível quando há múltiplas imagens */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           goToPrevious();
         }}
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full z-10 transition-opacity hover:opacity-100"
         aria-label="Imagem anterior"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
 
-      {/* Seta Direita */}
+      {/* Seta Direita - sempre visível quando há múltiplas imagens */}
       <button
         onClick={(e) => {
           e.stopPropagation();
           goToNext();
         }}
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full z-10 transition-opacity hover:opacity-100"
         aria-label="Próxima imagem"
       >
         <ChevronRight className="w-4 h-4" />

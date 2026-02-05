@@ -522,6 +522,11 @@ export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
         createdAt: convertTimestamp(data?.createdAt),
         updatedAt: convertTimestamp(data?.updatedAt),
         arquivado: data?.arquivado === true,
+        status: data?.status === "draft" ? "draft" : data?.status === "published" ? "published" : undefined,
+        imagemUrlCatalogo: typeof data?.imagemUrlCatalogo === "string" ? data.imagemUrlCatalogo : undefined,
+        imagemUrlOriginal: typeof data?.imagemUrlOriginal === "string" ? data.imagemUrlOriginal : undefined,
+        imagemUrlCombinada: typeof data?.imagemUrlCombinada === "string" ? data.imagemUrlCombinada : undefined,
+        catalogImageUrls: Array.isArray(data?.catalogImageUrls) ? data.catalogImageUrls.filter((u: unknown) => typeof u === "string" && (u as string).trim() !== "") : undefined,
         ecommerceSync: data?.ecommerceSync
           ? {
               platform: data.ecommerceSync.platform || "other",
@@ -578,6 +583,12 @@ export async function createProduto(
     tags?: string[];
     observacoes?: string;
     medidas?: string;
+    status?: "draft" | "published";
+    imagemUrlOriginal?: string;
+    imagemUrlCatalogo?: string;
+    imagemUrlCombinada?: string;
+    analiseIA?: Record<string, unknown>;
+    extraImageUrls?: Array<{ idx: number; url: string }>;
   }
 ): Promise<string> {
   try {
@@ -599,9 +610,30 @@ export async function createProduto(
       updatedAt: new Date(),
       arquivado: false,
     };
+    if (produtoData.analiseIA && typeof produtoData.analiseIA === "object") {
+      newProduto.analiseIA = produtoData.analiseIA;
+    }
 
     if (produtoData.estoque !== undefined && produtoData.estoque !== null) {
       newProduto.estoque = produtoData.estoque;
+    }
+    if (produtoData.status === "draft" || produtoData.status === "published") {
+      newProduto.status = produtoData.status;
+    }
+    if (typeof produtoData.imagemUrlOriginal === "string") {
+      newProduto.imagemUrlOriginal = produtoData.imagemUrlOriginal;
+    }
+    if (typeof produtoData.imagemUrlCatalogo === "string") {
+      newProduto.imagemUrlCatalogo = produtoData.imagemUrlCatalogo;
+    }
+    if (typeof produtoData.imagemUrlCombinada === "string") {
+      newProduto.imagemUrlCombinada = produtoData.imagemUrlCombinada;
+    }
+    if (Array.isArray(produtoData.catalogImageUrls) && produtoData.catalogImageUrls.length > 0) {
+      newProduto.catalogImageUrls = produtoData.catalogImageUrls.filter((u: unknown) => typeof u === "string" && (u as string).trim() !== "").slice(0, 6);
+    }
+    if (Array.isArray(produtoData.extraImageUrls) && produtoData.extraImageUrls.length > 0) {
+      newProduto.extraImageUrls = produtoData.extraImageUrls;
     }
 
     const docRef = await lojaRef(lojistaId).collection("produtos").add(newProduto);
@@ -693,6 +725,13 @@ export async function updateProduto(
     observacoes?: string;
     medidas?: string;
     arquivado?: boolean;
+    status?: "draft" | "published";
+    imagemUrlOriginal?: string;
+    imagemUrlCatalogo?: string;
+    imagemUrlCombinada?: string;
+    catalogImageUrls?: string[];
+    analiseIA?: Record<string, unknown>;
+    extraImageUrls?: Array<{ idx: number; url: string }>;
   }
 ): Promise<void> {
   try {
@@ -703,21 +742,29 @@ export async function updateProduto(
     const update: any = {
       updatedAt: new Date(),
     };
-
+    if (updateData.analiseIA !== undefined && typeof updateData.analiseIA === "object") {
+      update.analiseIA = updateData.analiseIA;
+    }
     if (updateData.nome !== undefined) update.nome = updateData.nome;
     if (updateData.categoria !== undefined) update.categoria = updateData.categoria;
     if (updateData.preco !== undefined) update.preco = updateData.preco;
     if (updateData.imagemUrl !== undefined) update.imagemUrl = updateData.imagemUrl;
     if (updateData.medidas !== undefined) update.medidas = updateData.medidas;
-    
+    if (updateData.status !== undefined) update.status = updateData.status;
+    if (updateData.imagemUrlOriginal !== undefined) update.imagemUrlOriginal = updateData.imagemUrlOriginal;
+    if (updateData.imagemUrlCatalogo !== undefined) update.imagemUrlCatalogo = updateData.imagemUrlCatalogo;
+    if (updateData.imagemUrlCombinada !== undefined) update.imagemUrlCombinada = updateData.imagemUrlCombinada;
+    if (updateData.catalogImageUrls !== undefined) update.catalogImageUrls = Array.isArray(updateData.catalogImageUrls) ? updateData.catalogImageUrls.slice(0, 6) : updateData.catalogImageUrls;
+    if (Array.isArray(updateData.extraImageUrls)) update.extraImageUrls = updateData.extraImageUrls;
+
     if (updateData.cores !== undefined) update.cores = updateData.cores;
     if (updateData.tamanhos !== undefined) update.tamanhos = updateData.tamanhos;
     if (updateData.tags !== undefined) update.tags = updateData.tags;
-    
+
     if (updateData.estoque !== undefined && updateData.estoque !== null) {
       update.estoque = updateData.estoque;
     }
-    
+
     if (updateData.observacoes !== undefined) {
       update.obs = updateData.observacoes;
     }

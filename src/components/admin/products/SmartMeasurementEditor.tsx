@@ -2534,7 +2534,7 @@ export function SmartMeasurementEditor({
           <p className="text-xs text-slate-700">
             {hasCompleteAnalysis
               ? "Os campos abaixo permitem definir ou editar as medidas por tamanho. Recalcule a grade quando necessário."
-              : "Para preencher as medidas automaticamente, use o botão «Análise do Produto (IA)» na Configuração Inicial (após enviar Foto Frente e Foto Verso). Os campos abaixo ficam visíveis para edição manual ou serão preenchidos após a análise."}
+              : "Para preencher as medidas automaticamente, use o botão «Análise do Produto (IA)» na Configuração Inicial (após enviar Foto Frente e Foto Costas). Os campos abaixo ficam visíveis para edição manual ou serão preenchidos após a análise."}
           </p>
         </div>
 
@@ -2703,40 +2703,48 @@ export function SmartMeasurementEditor({
                     </span>
                   </div>
                   
-                  {/* Geometria padrão quando ainda não há imagem processada (formulários sempre visíveis) */}
-                  {geometry.length === 0 && (
-                    <div className="space-y-2.5 mb-3">
-                      {(['bust', 'waist', 'hip', 'length'] as const).map((id) => {
-                        const labels: Record<string, string> = { bust: 'Busto', waist: 'Cintura', hip: 'Quadril', length: 'Comprimento' };
-                        const currentValue = getDisplayValueForSize(id, activeSize);
-                        return (
-                          <div key={id} className="space-y-1">
-                            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                              {labels[id]} (cm)
-                              {!isCalibratedByCard && isABNTMeasurement(id, activeSize) && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Padrão ABNT
-                                </span>
-                              )}
-                            </label>
-                            <input
-                              type="number"
-                              value={currentValue}
-                              onChange={(e) => {
-                                const newValue = parseFloat(e.target.value) || 0;
-                                handleMeasurementChange(id, newValue);
-                              }}
-                              min="0"
-                              step="0.5"
-                              placeholder="—"
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {/* Geometria padrão quando ainda não há imagem processada. Após análise inteligente: só exibir campos que têm informação. */}
+                  {geometry.length === 0 && (() => {
+                    const measureIds = ['bust', 'waist', 'hip', 'length'] as const;
+                    const hasAnalysis = !!productInfo?.standardMeasurements;
+                    const idsToShow = hasAnalysis
+                      ? measureIds.filter((id) => getDisplayValueForSize(id, activeSize) !== '')
+                      : measureIds;
+                    if (idsToShow.length === 0) return null;
+                    const labels: Record<string, string> = { bust: 'Busto', waist: 'Cintura', hip: 'Quadril', length: 'Comprimento' };
+                    return (
+                      <div className="space-y-2.5 mb-3">
+                        {idsToShow.map((id) => {
+                          const currentValue = getDisplayValueForSize(id, activeSize);
+                          return (
+                            <div key={id} className="space-y-1">
+                              <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                {labels[id]} (cm)
+                                {!isCalibratedByCard && isABNTMeasurement(id, activeSize) && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    Padrão ABNT
+                                  </span>
+                                )}
+                              </label>
+                              <input
+                                type="number"
+                                value={currentValue}
+                                onChange={(e) => {
+                                  const newValue = parseFloat(e.target.value) || 0;
+                                  handleMeasurementChange(id, newValue);
+                                }}
+                                min="0"
+                                step="0.5"
+                                placeholder="—"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   
                   {/* Status de Calibração: cartão (prioridade) ou método da análise */}
                   {geometry.length > 0 && (isCalibratedByCard ? (
@@ -2772,6 +2780,7 @@ export function SmartMeasurementEditor({
                         : (['bust', 'waist', 'hip', 'length'].includes(geo.id)
                           ? (getDisplayValueForSize(geo.id as 'bust' | 'waist' | 'hip' | 'length', activeSize) || 0)
                           : 0);
+                      if (Number(currentValue) <= 0) return null;
                       return (
                         <div
                           key={geo.id}

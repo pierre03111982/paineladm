@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar imageUrl
-    const { imageUrl, context } = body;
+    // Validar imageUrl (foto frente); imageUrlBack (foto costas) é opcional para análise com duas imagens
+    const { imageUrl, imageUrlBack, context } = body;
 
     if (!imageUrl || typeof imageUrl !== "string") {
       return NextResponse.json(
@@ -55,6 +55,19 @@ export async function POST(request: NextRequest) {
     if (!imageUrl.startsWith("http://") && !imageUrl.startsWith("https://")) {
       return NextResponse.json(
         { error: "imageUrl deve ser uma URL HTTP ou HTTPS válida" },
+        { status: 400 }
+      );
+    }
+
+    if (imageUrlBack != null && typeof imageUrlBack !== "string") {
+      return NextResponse.json(
+        { error: "imageUrlBack deve ser uma string quando informado" },
+        { status: 400 }
+      );
+    }
+    if (imageUrlBack && !imageUrlBack.startsWith("http://") && !imageUrlBack.startsWith("https://")) {
+      return NextResponse.json(
+        { error: "imageUrlBack deve ser uma URL HTTP ou HTTPS válida" },
         { status: 400 }
       );
     }
@@ -75,12 +88,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("[api/products/analyze] Iniciando análise para lojistaId:", lojistaId, "context:", context);
+    console.log("[api/products/analyze] Iniciando análise para lojistaId:", lojistaId, "com foto costas:", !!imageUrlBack, "context:", context);
 
-    // Chamar serviço de análise
+    // Chamar serviço de análise (com uma ou duas imagens: frente + costas para melhor detalhamento, ex. Short saia)
     let analysisResult;
     try {
-      analysisResult = await productAnalyzerService.analyzeProductImage(imageUrl, context);
+      analysisResult = await productAnalyzerService.analyzeProductImage(imageUrl, context, imageUrlBack || undefined);
     } catch (serviceError: any) {
       console.error("[api/products/analyze] Erro no serviço de análise:", serviceError);
       
