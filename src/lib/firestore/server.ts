@@ -587,6 +587,7 @@ export async function createProduto(
     imagemUrlOriginal?: string;
     imagemUrlCatalogo?: string;
     imagemUrlCombinada?: string;
+    catalogImageUrls?: string[];
     analiseIA?: Record<string, unknown>;
     extraImageUrls?: Array<{ idx: number; url: string }>;
   }
