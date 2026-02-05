@@ -576,7 +576,8 @@ Before finalizing, verify:
         const productFidelityBlock = `
 🛡️ PRODUCT FIDELITY (CRITICAL):
 
-- VISUAL CLONING: The clothing worn by the person MUST match the Product Image inputs 100%.
+- CATALOG IMAGES (mannequin/ghost mannequin): Product images [IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, ...] may show the garment on a mannequin or ghost mannequin. You MUST use ONLY the GARMENT/PRODUCT itself: its colors, pattern, logo, texture, and design. Do NOT copy the mannequin's body shape, pose, or silhouette. Do NOT let the mannequin form influence the output. The BODY and POSE must come 100% from Image 1 (the person). Extract the product visually and place it naturally on the person in Image 1, following THEIR body shape and proportions.
+- VISUAL CLONING: The clothing worn by the person MUST match the Product Image inputs 100% (appearance only — garment design, not mannequin form).
 - TEXTURE & PATTERNS: Preserve exact fabric texture (denim, silk, cotton), prints, and patterns. Do not simplify or alter them.
 - LOGOS & DETAILS: If the product has a logo, text, or buttons, they MUST be visible and unchanged. Do not hallucinate new logos or remove existing ones.
 - COLOR ACCURACY: Maintain the exact hue/saturation of the product photo. Do not apply strong filters that change the clothing color.
