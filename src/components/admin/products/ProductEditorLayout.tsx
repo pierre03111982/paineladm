@@ -103,7 +103,14 @@ export interface ProductEditorState {
 interface ProductEditorLayoutProps {
   lojistaId: string;
   produtoId?: string; // Para edição
-  initialData?: Partial<ProductEditorState> & { productStatus?: "draft" | "published"; catalogImageUrls?: string[] };
+  initialData?: Partial<ProductEditorState> & {
+    productStatus?: "draft" | "published";
+    catalogImageUrls?: string[];
+    /** IDs dos produtos usados no Look Combinado 1 — restaurados ao editar */
+    lookCombinado1ProductIds?: string[];
+    /** IDs dos produtos usados no Look Combinado 2 — restaurados ao editar */
+    lookCombinado2ProductIds?: string[];
+  };
   produtoNome?: string; // Para edição, mostrar no título
 }
 
@@ -551,6 +558,46 @@ export function ProductEditorLayout({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.generatedCatalogImage]);
+
+  // Restaurar produtos dos Looks Combinados 1 e 2 ao abrir para editar
+  useEffect(() => {
+    const ids1 = initialData?.lookCombinado1ProductIds;
+    const ids2 = initialData?.lookCombinado2ProductIds;
+    if ((!ids1 || ids1.length === 0) && (!ids2 || ids2.length === 0)) return;
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/lojista/products?lojistaId=${lojistaId}`);
+        if (!res.ok || cancelled) return;
+        const list: any[] = await res.json();
+        const toCombo = (p: any): ProductForCombo => ({
+          id: p.id,
+          nome: p.nome || "Sem nome",
+          catalogImageUrl: p.imagemUrlCatalogo || (Array.isArray(p.catalogImageUrls) && p.catalogImageUrls[0]) || p.imagemUrl || null,
+        });
+        if (ids1 && ids1.length > 0) {
+          const combo1: [ProductForCombo | null, ProductForCombo | null] = [
+            ids1[0] ? (list.find((p) => p.id === ids1[0]) ? toCombo(list.find((p) => p.id === ids1[0])!) : null) : null,
+            ids1[1] ? (list.find((p) => p.id === ids1[1]) ? toCombo(list.find((p) => p.id === ids1[1])!) : null) : null,
+          ];
+          if (!cancelled) setCombo1Products(combo1);
+        }
+        if (ids2 && ids2.length > 0) {
+          const combo2: [ProductForCombo | null, ProductForCombo | null] = [
+            ids2[0] ? (list.find((p) => p.id === ids2[0]) ? toCombo(list.find((p) => p.id === ids2[0])!) : null) : null,
+            ids2[1] ? (list.find((p) => p.id === ids2[1]) ? toCombo(list.find((p) => p.id === ids2[1])!) : null) : null,
+          ];
+          if (!cancelled) setCombo2Products(combo2);
+        }
+      } catch (e) {
+        if (!cancelled) console.warn("[ProductEditor] Erro ao carregar produtos dos looks combinados:", e);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lojistaId, initialData?.lookCombinado1ProductIds?.length, initialData?.lookCombinado2ProductIds?.length]);
 
   // Manter índice do visualizador de catálogo IA dentro dos limites
   useEffect(() => {
@@ -2178,6 +2225,9 @@ export function ProductEditorLayout({
         studioImages.slot5.url,
         studioImages.slot6.url,
       ].filter((u): u is string => !!u),
+      // Produtos usados nos Looks Combinados 1 e 2 (para exibir ao editar)
+      lookCombinado1ProductIds: [combo1Products[0]?.id, combo1Products[1]?.id].filter((id): id is string => !!id),
+      lookCombinado2ProductIds: [combo2Products[0]?.id, combo2Products[1]?.id].filter((id): id is string => !!id),
     };
     if (produtoId) {
       const res = await fetch(`/api/lojista/products/${produtoId}?lojistaId=${lojistaId}`, {
@@ -2201,7 +2251,7 @@ export function ProductEditorLayout({
       const lojistaQ = qs.get("lojistaId") || qs.get("lojistald") || lojistaId;
       router.replace(`/produtos/${newId}/editar?lojistaId=${lojistaQ}`, { scroll: false });
     }
-  }, [lojistaId, produtoId, state.aiAnalysisData, state.manualData, state.rawImageUrl, state.generatedCombinedImage, state.extraImages, studioImages.slot1.url, studioImages.slot2.url, studioImages.slot3?.url, studioImages.slot4.url, studioImages.slot5.url, studioImages.slot6.url, router]);
+  }, [lojistaId, produtoId, state.aiAnalysisData, state.manualData, state.rawImageUrl, state.generatedCombinedImage, state.extraImages, studioImages.slot1.url, studioImages.slot2.url, studioImages.slot3?.url, studioImages.slot4.url, studioImages.slot5.url, studioImages.slot6.url, combo1Products, combo2Products, router]);
 
   // === HANDLER FOTO FRENTE (Estúdio Criativo - uma imagem por vez) ===
   // A imagem gerada para o catálogo "Foto Frente" tem como base a imagem de upload "Foto Frente" (rawImageUrl).

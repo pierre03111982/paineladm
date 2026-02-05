@@ -184,6 +184,13 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
     extraImages: Array.isArray(produtoSerializado.extraImageUrls) && produtoSerializado.extraImageUrls.length > 0
       ? produtoSerializado.extraImageUrls.map((e: { idx: number; url: string }) => ({ idx: e.idx, url: e.url, file: null }))
       : [],
+    // Produtos usados nos Looks Combinados 1 e 2 — exibir ao editar
+    lookCombinado1ProductIds: Array.isArray(produtoSerializado.lookCombinado1ProductIds) && produtoSerializado.lookCombinado1ProductIds.length > 0
+      ? produtoSerializado.lookCombinado1ProductIds
+      : undefined,
+    lookCombinado2ProductIds: Array.isArray(produtoSerializado.lookCombinado2ProductIds) && produtoSerializado.lookCombinado2ProductIds.length > 0
+      ? produtoSerializado.lookCombinado2ProductIds
+      : undefined,
   };
 
   return (

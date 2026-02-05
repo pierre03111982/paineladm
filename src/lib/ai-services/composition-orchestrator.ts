@@ -576,8 +576,8 @@ Before finalizing, verify:
         const productFidelityBlock = `
 🛡️ PRODUCT FIDELITY (CRITICAL):
 
-- CATALOG IMAGES (mannequin/ghost mannequin): Product images [IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, ...] may show the garment on a mannequin or ghost mannequin. You MUST use ONLY the GARMENT/PRODUCT itself: its colors, pattern, logo, texture, and design. Do NOT copy the mannequin's body shape, pose, or silhouette. Do NOT let the mannequin form influence the output. The BODY and POSE must come 100% from Image 1 (the person). Extract the product visually and place it naturally on the person in Image 1, following THEIR body shape and proportions.
-- VISUAL CLONING: The clothing worn by the person MUST match the Product Image inputs 100% (appearance only — garment design, not mannequin form).
+- SOURCE OF PERSON (NON-NEGOTIABLE): The person in the output MUST be 100% the person from IMAGE 1 (the upload photo). Body shape, pose, proportions, face, skin — all from Image 1. NEVER substitute this person with the mannequin or model visible in product images. Product images [IMAGEM_PRODUTO_1, IMAGEM_PRODUTO_2, ...] often show the garment on a mannequin: use from those images ONLY the garment (clothing item) — its colors, pattern, logo, texture. Completely IGNORE the mannequin's body and pose. Then dress the person from Image 1 with that garment, so the garment follows Image 1's body and pose. FORBIDDEN: Taking a product/mannequin photo and only changing the background; the output must show Image 1's person in the scene.
+- VISUAL CLONING: The clothing worn by the person MUST match the Product Image inputs 100%.
 - TEXTURE & PATTERNS: Preserve exact fabric texture (denim, silk, cotton), prints, and patterns. Do not simplify or alter them.
 - LOGOS & DETAILS: If the product has a logo, text, or buttons, they MUST be visible and unchanged. Do not hallucinate new logos or remove existing ones.
 - COLOR ACCURACY: Maintain the exact hue/saturation of the product photo. Do not apply strong filters that change the clothing color.

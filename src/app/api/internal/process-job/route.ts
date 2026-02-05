@@ -344,19 +344,25 @@ export async function POST(req: NextRequest) {
         .map((doc, index) => {
           try {
             const docData = doc.data();
+            // MODELO 2: Usar SOMENTE a Foto Frente do Catálogo (imagemUrlCatalogo) para gerar a composição do look. Desconsiderar costas, catalogImageUrls[1+], imagemUrlOriginal, etc.
+            const imagemUrlCatalogo = typeof docData?.imagemUrlCatalogo === "string" && docData.imagemUrlCatalogo.trim() ? docData.imagemUrlCatalogo : null;
+            const fallbackImagem = docData?.imagemUrl || docData?.imagem_url || docData?.imageUrl || docData?.image_url || null;
+            const fallbackProductUrl = docData?.productUrl || docData?.product_url || null;
+            // Para composição: apenas foto frente; fallback só quando produto não tiver imagemUrlCatalogo
+            const urlParaComposicao = imagemUrlCatalogo || fallbackProductUrl || fallbackImagem;
             const productData = {
               id: doc.id,
               nome: docData?.nome || docData?.name || `Produto ${index + 1}`,
               preco: docData?.preco || docData?.price || 0,
-              productUrl: docData?.productUrl || docData?.product_url || null,
-              imagemUrl: docData?.imagemUrl || docData?.imagem_url || docData?.imageUrl || docData?.image_url || null,
+              productUrl: urlParaComposicao,
+              imagemUrl: urlParaComposicao,
               categoria: docData?.categoria || docData?.category || "Geral",
               ...docData, // Incluir outros campos para compatibilidade
             };
             
             // Validar que pelo menos uma URL existe
             if (!productData.productUrl && !productData.imagemUrl) {
-              console.warn(`[process-job] ⚠️ Produto ${productData.id} não tem productUrl nem imagemUrl`);
+              console.warn(`[process-job] ⚠️ Produto ${productData.id} não tem imagemUrlCatalogo, productUrl nem imagemUrl`);
             }
             
             return productData;

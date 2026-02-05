@@ -85,6 +85,8 @@ export async function PATCH(
       imagemMedidasCustomizada,
       status,
       extraImageUrls,
+      lookCombinado1ProductIds,
+      lookCombinado2ProductIds,
     } = body;
 
     // Converter imagem de link para PNG se necessário
@@ -162,6 +164,12 @@ export async function PATCH(
       updateData.extraImageUrls = extraImageUrls.filter(
         (e: any) => typeof e === "object" && e != null && typeof e.idx === "number" && typeof e.url === "string"
       ).map((e: any) => ({ idx: e.idx, url: String(e.url).trim() }));
+    }
+    if (Array.isArray(lookCombinado1ProductIds)) {
+      updateData.lookCombinado1ProductIds = lookCombinado1ProductIds.filter((id: unknown) => typeof id === "string" && id.trim() !== "").slice(0, 2);
+    }
+    if (Array.isArray(lookCombinado2ProductIds)) {
+      updateData.lookCombinado2ProductIds = lookCombinado2ProductIds.filter((id: unknown) => typeof id === "string" && id.trim() !== "").slice(0, 2);
     }
     if (descontoProduto !== undefined) {
       // Validar que é um número entre 0 e 100

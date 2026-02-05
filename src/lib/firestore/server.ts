@@ -733,6 +733,10 @@ export async function updateProduto(
     catalogImageUrls?: string[];
     analiseIA?: Record<string, unknown>;
     extraImageUrls?: Array<{ idx: number; url: string }>;
+    /** IDs dos produtos usados no Look Combinado 1 (slot5) */
+    lookCombinado1ProductIds?: string[];
+    /** IDs dos produtos usados no Look Combinado 2 (slot6) */
+    lookCombinado2ProductIds?: string[];
   }
 ): Promise<void> {
   try {
@@ -757,6 +761,8 @@ export async function updateProduto(
     if (updateData.imagemUrlCombinada !== undefined) update.imagemUrlCombinada = updateData.imagemUrlCombinada;
     if (updateData.catalogImageUrls !== undefined) update.catalogImageUrls = Array.isArray(updateData.catalogImageUrls) ? updateData.catalogImageUrls.slice(0, 6) : updateData.catalogImageUrls;
     if (Array.isArray(updateData.extraImageUrls)) update.extraImageUrls = updateData.extraImageUrls;
+    if (Array.isArray(updateData.lookCombinado1ProductIds)) update.lookCombinado1ProductIds = updateData.lookCombinado1ProductIds.slice(0, 2);
+    if (Array.isArray(updateData.lookCombinado2ProductIds)) update.lookCombinado2ProductIds = updateData.lookCombinado2ProductIds.slice(0, 2);
 
     if (updateData.cores !== undefined) update.cores = updateData.cores;
     if (updateData.tamanhos !== undefined) update.tamanhos = updateData.tamanhos;
