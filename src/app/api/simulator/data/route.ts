@@ -65,23 +65,22 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Transformar produtos para o formato esperado (apenas produtos ativos)
-    // Incluir produtos sem status definido (assumir que são ativos)
+    // Transformar produtos para o formato esperado: apenas publicados (nunca rascunho)
+    // No detalhe do produto o app usa só fotos do studio criativo IA (imagemUrlCatalogo / catalogImageUrls)
     const produtosFormatados = produtos
-      .filter((produto) => {
-        return !produto.arquivado;
-      })
+      .filter((p) => !p.arquivado && p.status !== "draft")
       .map((produto) => ({
         id: produto.id,
         nome: produto.nome,
         preco: produto.preco || 0,
-        imagemUrl: produto.imagemUrl || "",
+        imagemUrl: produto.imagemUrlCatalogo || produto.imagemUrl || "",
         categoria: produto.categoria || "Outros",
         tamanhos: produto.tamanhos || [],
         cores: produto.cores || [],
         medidas: produto.medidas || undefined,
         estoque: produto.estoque || null,
         obs: produto.obs || undefined,
+        catalogImageUrls: Array.isArray(produto.catalogImageUrls) ? produto.catalogImageUrls : undefined,
       }));
 
     console.log("[API Simulator] Produtos formatados:", {

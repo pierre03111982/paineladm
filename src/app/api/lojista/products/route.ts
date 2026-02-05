@@ -44,9 +44,12 @@ export async function GET(request: NextRequest) {
     const produtos = await fetchProdutos(lojistaId);
     
     // Filtrar arquivados se necessário
-    const filteredProdutos = includeArchived 
+    let filteredProdutos = includeArchived 
       ? produtos 
       : produtos.filter((p) => !p.arquivado);
+
+    // Catálogo do app cliente: só produtos salvos (publicados), nunca rascunho
+    filteredProdutos = filteredProdutos.filter((p) => p.status !== "draft");
 
     // Retornar array direto para compatibilidade com appmelhorado
     // Garantir que sempre retornamos um array, mesmo que vazio
