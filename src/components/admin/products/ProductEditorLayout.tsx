@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby, UserCircle, User, Star } from "lucide-react";
 import { MANNEQUIN_STYLES } from "@/lib/ai-services/mannequin-prompts";
 import { ManualCombinationModal } from "./ManualCombinationModal";
+import { OutroProdutoModal, type ProductForCombo } from "./OutroProdutoModal";
 import { IconPageHeader } from "@/app/(lojista)/components/icon-page-header";
 import { getPageHeaderColors } from "@/app/(lojista)/components/page-header-colors";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
@@ -23,7 +24,7 @@ export interface ProductEditorState {
   generatedCombinedImage: string | null;
   selectedCoverImage: string | null;
   imagemMedidasCustomizada: string | null; // Imagem de medidas inserida manualmente
-  extraImages: Array<{ idx: number; url: string; file: File | null }>; // Imagens extras (Foto Verso, Extra 1-4)
+  extraImages: Array<{ idx: number; url: string; file: File | null }>; // Imagens extras (Foto Costas, Extra 1-4)
   smartMeasurements?: SmartGuideData; // Dados do editor inteligente de medidas
   
   // Persistência de medidas por público alvo e grade
@@ -94,7 +95,7 @@ export interface ProductEditorState {
   // Público Alvo
   targetAudience: 'female' | 'male' | 'kids'; // Feminino, Masculino ou Infantil
   // Calibração por objeto de referência (ex.: cartão) — APENAS na foto frontal (Container 1)
-  // Se encontrado na frente, essa escala é usada como "régua universal" para todo o produto (incl. verso/extras)
+  // Se encontrado na frente, essa escala é usada como "régua universal" para todo o produto (incl. costas/extras)
   calibrationScale: number | null; // pixels por cm (quando isCalibratedByCard)
   isCalibratedByCard: boolean;
 }
@@ -102,7 +103,7 @@ export interface ProductEditorState {
 interface ProductEditorLayoutProps {
   lojistaId: string;
   produtoId?: string; // Para edição
-  initialData?: Partial<ProductEditorState>;
+  initialData?: Partial<ProductEditorState> & { productStatus?: "draft" | "published"; catalogImageUrls?: string[] };
   produtoNome?: string; // Para edição, mostrar no título
 }
 
@@ -375,7 +376,9 @@ export function ProductEditorLayout({
     generatedCombinedImage: initialData?.generatedCombinedImage || null,
     selectedCoverImage: initialData?.selectedCoverImage || null,
     imagemMedidasCustomizada: initialData?.imagemMedidasCustomizada || null,
-    extraImages: [],
+    extraImages: Array.isArray(initialData?.extraImages) && initialData.extraImages.length > 0
+      ? initialData.extraImages.map((e: { idx: number; url: string }) => ({ idx: e.idx, url: e.url, file: null }))
+      : [],
     aiAnalysisData: initialData?.aiAnalysisData || null,
     selectedMannequinId: initialData?.selectedMannequinId || MANNEQUIN_STYLES[0]?.id || null,
     combinationMode: initialData?.combinationMode || null,
@@ -436,9 +439,16 @@ export function ProductEditorLayout({
   const [viewingImageIndex, setViewingImageIndex] = useState(0); // Índice da imagem sendo visualizada
   const [viewingImageTab, setViewingImageTab] = useState<'original' | 'catalog' | 'combined' | 'measurements'>('original'); // Aba ativa no Passo 2
   const [uploadViewerIndex, setUploadViewerIndex] = useState(0); // Índice da imagem na visualização de uploads
+  const [catalogViewerIndex, setCatalogViewerIndex] = useState(0); // Índice na visualização de fotos catálogo IA
   const [showManualModal, setShowManualModal] = useState(false);
+  const [showOutroProdutoModal, setShowOutroProdutoModal] = useState(false);
+  const [combo1Products, setCombo1Products] = useState<[ProductForCombo | null, ProductForCombo | null]>([null, null]);
+  const [showOutroProdutoModalCombo2, setShowOutroProdutoModalCombo2] = useState(false);
+  const [combo2Products, setCombo2Products] = useState<[ProductForCombo | null, ProductForCombo | null]>([null, null]);
   const [showAudienceConfirmation, setShowAudienceConfirmation] = useState(false);
   const [creditInfo, setCreditInfo] = useState({ credits: 0, catalogPack: 0 });
+  const [currentModelSeed, setCurrentModelSeed] = useState<string | null>(null); // Seed Locking do Lifestyle (Foto 3 -> Foto 4)
+  const [currentLifestyleScenarioKey, setCurrentLifestyleScenarioKey] = useState<string | null>(null); // Cenário travado da Frente para Costas (auto)
 
   // Caixas 2, 3 e 4: só cabeçalho visível até clicar em "Análise do Produto (IA)"; depois corpo surge (2 com loading, 3 e 4 em sequência)
   const [showBox2Content, setShowBox2Content] = useState(false);
@@ -460,13 +470,20 @@ export function ProductEditorLayout({
   }>({
     slot1: { url: null, generating: false },
     slot2: { url: null, generating: false },
-    slot3: { url: null, generating: false, scenario: 'urbano', model: 'morena' },
+    slot3: { url: null, generating: false, scenario: 'auto', model: 'morena' },
     slot4: { url: null, generating: false },
     slot5: { url: null, generating: false, combinedProductId: null },
     slot6: { url: null, generating: false },
   });
   const [showCombinedModal, setShowCombinedModal] = useState(false);
   const [selectedSlotForCombined, setSelectedSlotForCombined] = useState<5 | 6 | null>(null);
+
+  // Rascunho: status do produto para proteção de navegação e auto-save
+  const [productStatus, setProductStatus] = useState<"draft" | "published" | undefined>(
+    () => (initialData as { productStatus?: "draft" | "published" })?.productStatus
+  );
+  const [showDraftConfirmModal, setShowDraftConfirmModal] = useState(false);
+  const allowLeaveRef = useRef(false);
 
   // Ref para preservar variações quando o switch é desativado
   const variacoesPreservadasRef = useRef<Array<{ id: string; variacao: string; estoque: string; sku: string; equivalence?: string }>>(
@@ -485,6 +502,78 @@ export function ProductEditorLayout({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Apenas na montagem inicial
+
+  // Abrir caixas Análise Inteligente e Estúdio Criativo quando produto carregado já tem dados salvos (ex.: rascunho)
+  useEffect(() => {
+    const a = initialData?.aiAnalysisData;
+    const hasAnalysis = a && (a.nome_sugerido || a.suggested_category || a.categoria_sugerida || a.product_type || (a.tags && a.tags.length > 0));
+    if (hasAnalysis) {
+      setShowBox2Content(true);
+    }
+    if (initialData?.generatedCatalogImage || initialData?.generatedCombinedImage) {
+      setShowBox3Content(true);
+      setShowBox4Content(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Apenas na montagem inicial
+
+  // Restaurar TODAS as imagens do Catálogo IA ao abrir rascunho/produto (catalogImageUrls ou generatedCatalogImage)
+  // Também restaura o seed da modelo (slot3) para permitir regenerar Modelo Costas após salvar/editar
+  useEffect(() => {
+    const urls =
+      Array.isArray(initialData?.catalogImageUrls) && initialData.catalogImageUrls.length > 0
+        ? initialData.catalogImageUrls
+        : initialData?.generatedCatalogImage
+          ? [initialData.generatedCatalogImage]
+          : null;
+    if (!urls?.length) return;
+    setStudioImages((prev) => ({
+      ...prev,
+      slot1: { ...prev.slot1, url: urls[0] || null },
+      slot2: { ...prev.slot2, url: urls[1] || null },
+      slot3: { ...prev.slot3, url: urls[2] || null },
+      slot4: { ...prev.slot4, url: urls[3] || null },
+      slot5: { ...prev.slot5, url: urls[4] || null },
+      slot6: { ...prev.slot6, url: urls[5] || null },
+    }));
+    // Permitir regenerar Modelo Costas após editar: usar Modelo Frente (slot3) como seed
+    if (urls[2]) setCurrentModelSeed(urls[2]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData?.catalogImageUrls?.length, initialData?.generatedCatalogImage]);
+
+  // Sincronizar imagem de catálogo existente no slot Foto Frente (ao editar produto sem catalogImageUrls)
+  useEffect(() => {
+    if (state.generatedCatalogImage && !studioImages.slot1.url) {
+      setStudioImages((prev) => ({
+        ...prev,
+        slot1: { ...prev.slot1, url: state.generatedCatalogImage! },
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.generatedCatalogImage]);
+
+  // Manter índice do visualizador de catálogo IA dentro dos limites
+  useEffect(() => {
+    const urls = [
+      studioImages.slot1.url,
+      studioImages.slot2.url,
+      studioImages.slot3?.url,
+      studioImages.slot4.url,
+      studioImages.slot5.url,
+      studioImages.slot6.url,
+    ].filter((u): u is string => !!u);
+    if (urls.length > 0 && catalogViewerIndex >= urls.length) {
+      setCatalogViewerIndex(0);
+    }
+  }, [
+    studioImages.slot1.url,
+    studioImages.slot2.url,
+    studioImages.slot3,
+    studioImages.slot4.url,
+    studioImages.slot5.url,
+    studioImages.slot6.url,
+    catalogViewerIndex,
+  ]);
 
   // Atualizar índice quando nova imagem de medidas for gerada
   useEffect(() => {
@@ -675,13 +764,18 @@ export function ProductEditorLayout({
         }
       }
       
-      const requestBody = { 
-        imageUrl: imageUrl,
-        context: Object.keys(context).length > 0 ? context : undefined
+      // Incluir foto costas quando existir para análise com duas imagens (ex.: identificar Short saia)
+      const fotoCostasUrl = state.extraImages.find((img) => img.idx === 2)?.url;
+      const requestBody: { imageUrl: string; imageUrlBack?: string; context?: typeof context } = {
+        imageUrl,
+        context: Object.keys(context).length > 0 ? context : undefined,
       };
+      if (fotoCostasUrl && (fotoCostasUrl.startsWith("http://") || fotoCostasUrl.startsWith("https://"))) {
+        requestBody.imageUrlBack = fotoCostasUrl;
+      }
       console.log("[ProductEditor] 📤 Enviando requisição:", {
         url: `/api/lojista/products/analyze?lojistaId=${lojistaId}`,
-        body: requestBody,
+        body: { ...requestBody, imageUrl: requestBody.imageUrl?.substring(0, 80) + "...", imageUrlBack: requestBody.imageUrlBack ? "(foto costas)" : undefined },
       });
       
       const response = await fetch(
@@ -1059,7 +1153,7 @@ export function ProductEditorLayout({
       } else if (!rawDetected) {
         console.log("[ProductEditor] 📌 detected_audience inferido do conteúdo:", effectiveDetectedAudience, { hasKidKeyword, smallMeasurements });
       }
-
+      
       const newAiAnalysisData = {
         nome_sugerido: analysisData.nome_sugerido || "",
         descricao_seo: descricaoSEOLimpa,
@@ -1306,7 +1400,7 @@ export function ProductEditorLayout({
           console.log("[ProductEditor] 📦 Conjunto: fallback com groups ABNT (sem standard_measurements da API)");
         }
       }
-
+      
       setState(prev => ({
         ...prev,
         aiAnalysisData: newAiAnalysisData,
@@ -1379,13 +1473,13 @@ export function ProductEditorLayout({
     } finally {
       // Em caso de erro, garantir que o overlay seja desligado (sucesso já desliga via queueMicrotask)
       if (analyzingRef.current) {
-        analyzingRef.current = false;
-        setAnalyzing(false);
+      analyzingRef.current = false;
+      setAnalyzing(false);
       }
     }
   };
 
-  // Análise inteligente NÃO é mais automática: é acionada pelo botão "Análise do Produto (IA)" na Caixa 1 (após Foto Frente e Foto Verso carregadas).
+  // Análise inteligente NÃO é mais automática: é acionada pelo botão "Análise do Produto (IA)" na Caixa 1 (após Foto Frente e Foto Costas carregadas).
   // Este useEffect não dispara análise; mantido vazio para referência.
   useEffect(() => {
     // Análise apenas via botão "Análise do Produto (IA)" no rodapé da Configuração Inicial.
@@ -1437,8 +1531,8 @@ export function ProductEditorLayout({
     }
     return false;
   })();
-  const showBox2LoadingOverlay =
-    analyzing || (showBox2Content && !!state.aiAnalysisData && !hasSmartMeasurementsData);
+  // Overlay só enquanto a análise está rodando; não travar esperando "medidas" (evita tela presa após gerar Foto Frente)
+  const showBox2LoadingOverlay = analyzing;
 
   // Cursor de espera em toda a página enquanto overlay da Caixa 2 estiver ativo
   useEffect(() => {
@@ -1454,7 +1548,7 @@ export function ProductEditorLayout({
   useEffect(() => {
     if (showBox2LoadingOverlay && box2CardRef.current) {
       const el = box2CardRef.current;
-      const timer = setTimeout(() => {
+    const timer = setTimeout(() => {
         el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
       }, 100);
       return () => clearTimeout(timer);
@@ -1479,12 +1573,12 @@ export function ProductEditorLayout({
   // === HANDLERS DE UPLOAD ===
   const handleFileSelect = async (file: File, imageIndex?: number) => {
     if (!file) return;
-    // Fotos Extra 1–4 só podem ser carregadas depois de Foto Frente e Foto Verso
+    // Fotos Extra 1–4 só podem ser carregadas depois de Foto Frente e Foto Costas
     if (imageIndex != null && imageIndex >= 3) {
       const hasFotoFrente = !!state.rawImageUrl;
       const hasFotoVerso = state.extraImages.some((img) => img.idx === 2 && img.url);
       if (!hasFotoFrente || !hasFotoVerso) {
-        alert("Carregue primeiro a Foto Frente e a Foto Verso para habilitar as fotos extras.");
+        alert("Carregue primeiro a Foto Frente e a Foto Costas para habilitar as fotos extras.");
         return;
       }
     }
@@ -1936,14 +2030,14 @@ export function ProductEditorLayout({
         autoGrading: true,
         sizes,
       };
-
+      
       console.log("[ProductEditor] 📊 Medidas criadas para grade:", {
         grade: state.sizeCategory,
         tamanhos: currentGradeSizes,
         tamanhoIntermediario: activeSize,
         medidasPorTamanho: Object.keys(sizes).map((size) => `${size}: ${sizes[size].length} medidas`),
       });
-
+      
       setState((prev) => ({
         ...prev,
         smartMeasurements: smartMeasurementsData,
@@ -1952,7 +2046,7 @@ export function ProductEditorLayout({
           [measurementKey]: smartMeasurementsData,
         },
       }));
-
+      
       console.log("[ProductEditor] ✅ Medidas processadas e carregadas automaticamente:", {
         measurementsCount: measurementPoints.length,
         measurements: measurementPoints.map((m) => `${m.label}: ${m.value}cm`),
@@ -2030,6 +2124,382 @@ export function ProductEditorLayout({
       alert(`Erro ao gerar catálogo: ${error.message}`);
     } finally {
       setGeneratingCatalog(false);
+    }
+  };
+
+  // === AUTO-SAVE RASCUNHO (após Foto 1 gerada) — salva todas as informações: análise IA, imagens, manualData ===
+  const saveDraftAsProduct = useCallback(async (imagemUrlCatalogo: string) => {
+    const a = state.aiAnalysisData;
+    const nome = a?.nome_sugerido || "Rascunho";
+    const categoria = a?.suggested_category || a?.categoria_sugerida || "Roupas";
+    const preco = parseFloat(String(state.manualData.preco).replace(",", ".")) || 0;
+    const analiseIA = a ? {
+      nome_sugerido: a.nome_sugerido,
+      descricao_seo: a.descricao_seo,
+      suggested_category: a.suggested_category || a.categoria_sugerida,
+      categoria_sugerida: a.categoria_sugerida || a.suggested_category,
+      product_type: a.product_type,
+      detected_fabric: a.detected_fabric || a.tecido_estimado,
+      tecido_estimado: a.tecido_estimado || a.detected_fabric,
+      dominant_colors: a.dominant_colors,
+      cor_predominante: a.cor_predominante,
+      detalhes: a.detalhes,
+      tags: a.tags,
+      ultimaAtualizacao: new Date().toISOString(),
+    } : undefined;
+    const payload = {
+      nome,
+      categoria,
+      preco,
+      status: "draft" as const,
+      imagemUrl: imagemUrlCatalogo,
+      imagemUrlOriginal: state.rawImageUrl || undefined,
+      imagemUrlCatalogo,
+      imagemUrlCombinada: state.generatedCombinedImage || undefined,
+      tags: a?.tags || [],
+      observacoes: (a?.descricao_seo || "").replace(/\[Análise IA[^\]]*\]\s*/g, "").trim() || undefined,
+      analiseIA,
+      // manualData para restaurar na edição
+      cores: state.manualData.cores,
+      tamanhos: state.manualData.tamanhos,
+      estoque: state.manualData.estoque ? parseInt(state.manualData.estoque, 10) : undefined,
+      sku: state.manualData.sku || undefined,
+      precoPromocional: state.manualData.precoPromocional
+        ? parseFloat(String(state.manualData.precoPromocional).replace(",", "."))
+        : undefined,
+      // Foto Costas e extras: persistir para não perder ao redirecionar após criar rascunho
+      extraImageUrls: state.extraImages.map(({ idx, url }) => ({ idx, url })),
+      // Todas as imagens do Catálogo IA: frente, costas, modelo frente/costas, look 1/2
+      catalogImageUrls: [
+        studioImages.slot1.url,
+        studioImages.slot2.url,
+        studioImages.slot3?.url,
+        studioImages.slot4.url,
+        studioImages.slot5.url,
+        studioImages.slot6.url,
+      ].filter((u): u is string => !!u),
+    };
+    if (produtoId) {
+      const res = await fetch(`/api/lojista/products/${produtoId}?lojistaId=${lojistaId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Erro ao salvar rascunho");
+      return;
+    }
+    const res = await fetch(`/api/lojista/products?lojistaId=${lojistaId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Erro ao criar rascunho");
+    const json = await res.json();
+    const newId = json.productId;
+    if (newId) {
+      const qs = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+      const lojistaQ = qs.get("lojistaId") || qs.get("lojistald") || lojistaId;
+      router.replace(`/produtos/${newId}/editar?lojistaId=${lojistaQ}`, { scroll: false });
+    }
+  }, [lojistaId, produtoId, state.aiAnalysisData, state.manualData, state.rawImageUrl, state.generatedCombinedImage, state.extraImages, studioImages.slot1.url, studioImages.slot2.url, studioImages.slot3?.url, studioImages.slot4.url, studioImages.slot5.url, studioImages.slot6.url, router]);
+
+  // === HANDLER FOTO FRENTE (Estúdio Criativo - uma imagem por vez) ===
+  // A imagem gerada para o catálogo "Foto Frente" tem como base a imagem de upload "Foto Frente" (rawImageUrl).
+  // Gera imagem profissional 3D: manequim invisível (ghost mannequin) com volume, caimento e profundidade
+  const handleGenerateFotoFrente = async () => {
+    const imagemUrl = state.rawImageUrl;
+    if (!imagemUrl) {
+      alert("Envie a Foto Frente do produto antes de gerar a imagem de catálogo Foto Frente.");
+      return;
+    }
+    const mannequinId = state.selectedMannequinId || "modelo_5_classico";
+    if (studioImages.slot1.generating) return;
+
+    try {
+      setStudioImages((prev) => ({
+        ...prev,
+        slot1: { ...prev.slot1, generating: true },
+      }));
+      // Usar Análise Inteligente para ancorar a geração (reduz oscilação e melhora fidelidade)
+      const a = state.aiAnalysisData;
+      const productType = a?.product_type;
+      const detectedFabric = a?.detected_fabric || a?.tecido_estimado;
+      const partsSummary = [productType, detectedFabric ? `Tecido: ${detectedFabric}` : null].filter(Boolean);
+      const analysisSummary =
+        (partsSummary.length ? partsSummary.join(". ") + ". " : "") +
+        (a?.descricao_seo ? String(a.descricao_seo).slice(0, 220) : "");
+      const analysisSummaryTrim = analysisSummary.trim();
+
+      // Foto Costas (upload ou gerada) como referência de cor/tecido para a IA alinhar frente e costas
+      const fotoCostasUrl =
+        studioImages.slot2?.url ||
+        state.extraImages.find((img) => img.idx === 2)?.url;
+      const fotoCostasUrlValid =
+        typeof fotoCostasUrl === "string" &&
+        (fotoCostasUrl.startsWith("http://") || fotoCostasUrl.startsWith("https://"));
+
+      const response = await fetch(
+        `/api/lojista/products/generate-studio?lojistaId=${lojistaId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mannequinId,
+            tipo: "catalog",
+            variante: "frente",
+            imagemUrl,
+            ...(fotoCostasUrlValid ? { fotoCostasUrl } : {}),
+            targetAudience: state.targetAudience === "kids" ? "infantil" : state.targetAudience === "male" ? "adulto" : "adulto",
+            nome: a?.nome_sugerido || "Produto",
+            categoria: a?.suggested_category || a?.categoria_sugerida || "Roupas",
+            preco: parseFloat(String(state.manualData.preco).replace(",", ".")) || 0,
+            precoPromocional: state.manualData.precoPromocional
+              ? parseFloat(String(state.manualData.precoPromocional).replace(",", "."))
+              : null,
+            produtoId: produtoId || undefined,
+            lojistaId,
+            tags: a?.tags || [],
+            productType: productType || undefined,
+            detectedFabric: detectedFabric || undefined,
+            analysisSummary: analysisSummaryTrim || undefined,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao gerar Foto Frente");
+      }
+      const data = await response.json();
+      setStudioImages((prev) => ({
+        ...prev,
+        slot1: { ...prev.slot1, url: data.imageUrl, generating: false },
+      }));
+      setCatalogViewerIndex(0); // Foto Frente na frente na caixa Visualizar Fotos Catálogo IA
+      setState((prev) => ({
+        ...prev,
+        generatedCatalogImage: data.imageUrl,
+        selectedCoverImage: data.imageUrl,
+      }));
+      setProductStatus("draft");
+      loadCreditInfo();
+      // Auto-save como rascunho para não perder a imagem gerada
+      try {
+        await saveDraftAsProduct(data.imageUrl);
+      } catch (draftErr: any) {
+        console.warn("[ProductEditor] Auto-save rascunho falhou (imagem já está na tela):", draftErr?.message);
+      }
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar Foto Frente:", error);
+      alert(error.message || "Erro ao gerar Foto Frente");
+      setStudioImages((prev) => ({
+        ...prev,
+        slot1: { ...prev.slot1, generating: false },
+      }));
+    }
+  };
+
+  // === HANDLER FOTO COSTAS (Estúdio Criativo) ===
+  // Mesmas configurações da Foto Frente (Ghost Mannequin Hero 3D, 9:16, 4k), usando a Foto Costas (upload idx 2) como referência.
+  const handleGenerateFotoCostas = async () => {
+    const rawImageVersoUrl = state.extraImages.find((img) => img.idx === 2)?.url;
+    if (!rawImageVersoUrl) {
+      alert("Envie a Foto Costas do produto antes de gerar a imagem de catálogo (Ghost Mannequin Costas).");
+      return;
+    }
+    const mannequinId = state.selectedMannequinId || "modelo_5_classico";
+    if (studioImages.slot2.generating) return;
+    // Enviar Foto Frente gerada como referência de ângulo para a IA replicar (reta e centralizada)
+    const fotoFrenteUrl = studioImages.slot1?.url || undefined;
+
+    try {
+      setStudioImages((prev) => ({
+        ...prev,
+        slot2: { ...prev.slot2, generating: true },
+      }));
+      // Usar Análise Inteligente para consistência com a foto frente (productType, tecido, resumo)
+      const aCostas = state.aiAnalysisData;
+      const productTypeCostas = aCostas?.product_type;
+      const detectedFabricCostas = aCostas?.detected_fabric || aCostas?.tecido_estimado;
+      const partsCostas = [productTypeCostas, detectedFabricCostas ? `Tecido: ${detectedFabricCostas}` : null].filter(Boolean);
+      const analysisSummaryCostas =
+        (partsCostas.length ? partsCostas.join(". ") + ". " : "") +
+        (aCostas?.descricao_seo ? String(aCostas.descricao_seo).slice(0, 220) : "");
+      const analysisSummaryCostasTrim = analysisSummaryCostas.trim();
+
+      const response = await fetch(
+        `/api/lojista/products/generate-studio?lojistaId=${lojistaId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mannequinId,
+            tipo: "catalog",
+            variante: "costas",
+            imagemUrl: rawImageVersoUrl,
+            fotoFrenteUrl,
+            targetAudience: state.targetAudience === "kids" ? "infantil" : state.targetAudience === "male" ? "adulto" : "adulto",
+            nome: aCostas?.nome_sugerido || "Produto",
+            categoria: aCostas?.suggested_category || aCostas?.categoria_sugerida || "Roupas",
+            preco: parseFloat(String(state.manualData.preco).replace(",", ".")) || 0,
+            precoPromocional: state.manualData.precoPromocional
+              ? parseFloat(String(state.manualData.precoPromocional).replace(",", "."))
+              : null,
+            produtoId: produtoId || undefined,
+            lojistaId,
+            tags: aCostas?.tags || [],
+            productType: productTypeCostas || undefined,
+            detectedFabric: detectedFabricCostas || undefined,
+            analysisSummary: analysisSummaryCostasTrim || undefined,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao gerar Foto Costas");
+      }
+      const data = await response.json();
+      setStudioImages((prev) => ({
+        ...prev,
+        slot2: { ...prev.slot2, url: data.imageUrl, generating: false },
+      }));
+      setCatalogViewerIndex(studioImages.slot1?.url ? 1 : 0); // Foto Costas na frente na caixa Visualizar Fotos Catálogo IA
+      loadCreditInfo();
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar Foto Costas:", error);
+      alert(error.message || "Erro ao gerar Foto Costas");
+      setStudioImages((prev) => ({
+        ...prev,
+        slot2: { ...prev.slot2, generating: false },
+      }));
+    }
+  };
+
+  // === HANDLER MODELO LIFESTYLE (Slot 3: Frente) ===
+  // Fonte: Ghost Mannequin Frente (slot1). Ao regenerar, limpa seed e a imagem de costas.
+  const handleGenerateModeloLifestyleFrente = async () => {
+    const ghostFrontUrl = studioImages.slot1.url;
+    if (!ghostFrontUrl) {
+      alert("Gere primeiro a Foto Frente (Ghost Mannequin) antes de gerar o Modelo Lifestyle Frente.");
+      return;
+    }
+    if (studioImages.slot3.generating) return;
+
+    try {
+      // Regenerar frente deve limpar seed + costas
+      setCurrentModelSeed(null);
+      setCurrentLifestyleScenarioKey(null);
+      setStudioImages((prev) => ({
+        ...prev,
+        slot3: { ...prev.slot3, generating: true, url: null },
+        slot4: { ...prev.slot4, url: null, generating: false },
+      }));
+
+      const response = await fetch(`/api/lojista/products/generate-lifestyle?lojistaId=${lojistaId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lojistaId,
+          produtoId: produtoId || undefined,
+          ghostImageUrl: ghostFrontUrl,
+          view: "front",
+          scenarioKey: "auto",
+          targetAudience: state.targetAudience,
+          sizeCategory: state.sizeCategory,
+          productDescription: state.aiAnalysisData?.nome_sugerido || "garment",
+          productCategory: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || "",
+          productType: state.aiAnalysisData?.product_type || "",
+          tags: state.aiAnalysisData?.tags || [],
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao gerar Modelo Lifestyle Frente");
+      }
+
+      const data = await response.json();
+      setStudioImages((prev) => ({
+        ...prev,
+        slot3: { ...prev.slot3, url: data.imageUrl, generating: false },
+      }));
+      setCatalogViewerIndex(
+        (studioImages.slot1?.url ? 1 : 0) + (studioImages.slot2?.url ? 1 : 0)
+      ); // Modelo Frente na frente na caixa Visualizar Fotos Catálogo IA
+      setCurrentModelSeed(data.seed || data.imageUrl);
+      setCurrentLifestyleScenarioKey(data.scenarioKey || null);
+      loadCreditInfo();
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar Modelo Lifestyle Frente:", error);
+      alert(error.message || "Erro ao gerar Modelo Lifestyle Frente");
+      setStudioImages((prev) => ({
+        ...prev,
+        slot3: { ...prev.slot3, generating: false },
+      }));
+    }
+  };
+
+  // === HANDLER MODELO LIFESTYLE (Slot 4: Costas/Detalhe) ===
+  // Fonte: Ghost Mannequin Costas (slot2). Consistência: usa seed (URL da Frente Lifestyle) como referência obrigatória.
+  const handleGenerateModeloLifestyleCostas = async () => {
+    const ghostBackUrl = studioImages.slot2.url;
+    if (!ghostBackUrl) {
+      alert("Gere primeiro a Foto Costas (Ghost Mannequin) antes de gerar o Modelo Lifestyle Costas.");
+      return;
+    }
+    if (!currentModelSeed) {
+      alert("Gere primeiro o Modelo Lifestyle Frente (Slot 3) para travar a seed/identidade antes de gerar as Costas.");
+      return;
+    }
+    if (studioImages.slot4.generating) return;
+
+    try {
+      setStudioImages((prev) => ({
+        ...prev,
+        slot4: { ...prev.slot4, generating: true },
+      }));
+
+      const response = await fetch(`/api/lojista/products/generate-lifestyle?lojistaId=${lojistaId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lojistaId,
+          produtoId: produtoId || undefined,
+          ghostImageUrl: ghostBackUrl,
+          view: "back",
+          scenarioKey: currentLifestyleScenarioKey || "auto",
+          targetAudience: state.targetAudience,
+          sizeCategory: state.sizeCategory,
+          seedImageUrl: currentModelSeed,
+          productDescription: state.aiAnalysisData?.nome_sugerido || "garment",
+          productCategory: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || "",
+          productType: state.aiAnalysisData?.product_type || "",
+          tags: state.aiAnalysisData?.tags || [],
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Erro ao gerar Modelo Lifestyle Costas");
+      }
+
+      const data = await response.json();
+      setStudioImages((prev) => ({
+        ...prev,
+        slot4: { ...prev.slot4, url: data.imageUrl, generating: false },
+      }));
+      setCatalogViewerIndex(
+        (studioImages.slot1?.url ? 1 : 0) +
+          (studioImages.slot2?.url ? 1 : 0) +
+          (studioImages.slot3?.url ? 1 : 0)
+      ); // Modelo Costas na frente na caixa Visualizar Fotos Catálogo IA
+      loadCreditInfo();
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar Modelo Lifestyle Costas:", error);
+      alert(error.message || "Erro ao gerar Modelo Lifestyle Costas");
+      setStudioImages((prev) => ({
+        ...prev,
+        slot4: { ...prev.slot4, generating: false },
+      }));
     }
   };
 
@@ -2443,6 +2913,147 @@ export function ProductEditorLayout({
     }
   };
 
+  /** Gerar Look 1: usa a Foto Modelo Frente (slot3) como base; mantém o produto que já está nela e adiciona os produtos do Combo #1. */
+  const handleGerarLook1 = async () => {
+    const fotoModeloFrente = studioImages.slot3?.url ?? studioImages.slot1?.url;
+    if (!fotoModeloFrente) {
+      alert("Gere primeiro a Foto Modelo Frente (Modelo Virtual) ou a Foto Frente para usar como base do look.");
+      return;
+    }
+    const ids = [combo1Products[0]?.id, combo1Products[1]?.id].filter(Boolean) as string[];
+    if (ids.length === 0) {
+      alert("Clique em \"ESCOLHER PRODUTO\" e selecione até 2 produtos para combinar.");
+      return;
+    }
+    if (!state.selectedMannequinId) {
+      alert("Selecione um manequim no passo anterior.");
+      return;
+    }
+    try {
+      setGeneratingCombined(true);
+      setStudioImages((prev) => ({ ...prev, slot5: { ...prev.slot5, generating: true } }));
+      const response = await fetch(
+        `/api/lojista/products/generate-studio?lojistaId=${lojistaId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mannequinId: state.selectedMannequinId,
+            tipo: "combined",
+            imagemUrl: fotoModeloFrente,
+            nome: state.aiAnalysisData?.nome_sugerido || "Produto",
+            categoria: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || "Roupas",
+            preco: parseFloat(state.manualData.preco.replace(",", ".")) || 0,
+            produtoId: produtoId,
+            lojistaId: lojistaId,
+            productIds: ids,
+            tags: state.aiAnalysisData?.tags || [],
+            detalhes: state.aiAnalysisData?.detalhes || [],
+            cor_predominante: state.aiAnalysisData?.cor_predominante,
+            tecido_estimado: state.aiAnalysisData?.tecido_estimado,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao gerar look combinado");
+      }
+      const data = await response.json();
+      setState((prev) => ({
+        ...prev,
+        generatedCombinedImage: data.imageUrl,
+        selectedCoverImage: data.imageUrl,
+        combinationMode: "manual",
+      }));
+      setStudioImages((prev) => ({
+        ...prev,
+        slot5: { ...prev.slot5, url: data.imageUrl, generating: false, combinedProductId: prev.slot5.combinedProductId },
+      }));
+      // Mostrar Look 1 na caixa "Visualizar Fotos Catálogo IA" (índice = quantos slots 1–4 têm URL)
+      const indexLook1 =
+        (studioImages.slot1?.url ? 1 : 0) +
+        (studioImages.slot2?.url ? 1 : 0) +
+        (studioImages.slot3?.url ? 1 : 0) +
+        (studioImages.slot4?.url ? 1 : 0);
+      setCatalogViewerIndex(indexLook1);
+      loadCreditInfo();
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar Look 1:", error);
+      alert(`Erro ao gerar look combinado: ${error.message}`);
+      setStudioImages((prev) => ({ ...prev, slot5: { ...prev.slot5, generating: false } }));
+    } finally {
+      setGeneratingCombined(false);
+      setStudioImages((prev) => ({ ...prev, slot5: { ...prev.slot5, generating: false } }));
+    }
+  };
+
+  /** Gerar Look 2: mesma regra do Look 1 — usa Foto Modelo Frente (slot3) ou Foto Frente (slot1) como base; resultado em slot6. */
+  const handleGerarLook2 = async () => {
+    const fotoModeloFrente = studioImages.slot3?.url ?? studioImages.slot1?.url;
+    if (!fotoModeloFrente) {
+      alert("Gere primeiro a Foto Modelo Frente (Modelo Virtual) ou a Foto Frente para usar como base do look.");
+      return;
+    }
+    const ids = [combo2Products[0]?.id, combo2Products[1]?.id].filter(Boolean) as string[];
+    if (ids.length === 0) {
+      alert("Clique em \"ESCOLHER PRODUTO\" e selecione até 2 produtos para combinar.");
+      return;
+    }
+    if (!state.selectedMannequinId) {
+      alert("Selecione um manequim no passo anterior.");
+      return;
+    }
+    try {
+      setStudioImages((prev) => ({ ...prev, slot6: { ...prev.slot6, generating: true } }));
+      const response = await fetch(
+        `/api/lojista/products/generate-studio?lojistaId=${lojistaId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mannequinId: state.selectedMannequinId,
+            tipo: "combined",
+            imagemUrl: fotoModeloFrente,
+            nome: state.aiAnalysisData?.nome_sugerido || "Produto",
+            categoria: state.aiAnalysisData?.suggested_category || state.aiAnalysisData?.categoria_sugerida || "Roupas",
+            preco: parseFloat(state.manualData.preco.replace(",", ".")) || 0,
+            produtoId: produtoId,
+            lojistaId: lojistaId,
+            productIds: ids,
+            tags: state.aiAnalysisData?.tags || [],
+            detalhes: state.aiAnalysisData?.detalhes || [],
+            cor_predominante: state.aiAnalysisData?.cor_predominante,
+            tecido_estimado: state.aiAnalysisData?.tecido_estimado,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao gerar look combinado");
+      }
+      const data = await response.json();
+      setStudioImages((prev) => ({
+        ...prev,
+        slot6: { ...prev.slot6, url: data.imageUrl, generating: false },
+      }));
+      // Mostrar Look 2 na caixa "Visualizar Fotos Catálogo IA" (índice = quantos slots 1–5 têm URL)
+      const indexLook2 =
+        (studioImages.slot1?.url ? 1 : 0) +
+        (studioImages.slot2?.url ? 1 : 0) +
+        (studioImages.slot3?.url ? 1 : 0) +
+        (studioImages.slot4?.url ? 1 : 0) +
+        (studioImages.slot5?.url ? 1 : 0);
+      setCatalogViewerIndex(indexLook2);
+      loadCreditInfo();
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar Look 2:", error);
+      alert(`Erro ao gerar look combinado: ${error.message}`);
+      setStudioImages((prev) => ({ ...prev, slot6: { ...prev.slot6, generating: false } }));
+    } finally {
+      setStudioImages((prev) => (prev.slot6.generating ? { ...prev, slot6: { ...prev.slot6, generating: false } } : prev));
+    }
+  };
+
   // === HANDLER DE SALVAMENTO ===
   const handleSave = async () => {
     // Validações
@@ -2473,9 +3084,18 @@ export function ProductEditorLayout({
           : null,
         imagemUrl: state.selectedCoverImage || state.rawImageUrl,
         imagemUrlOriginal: state.rawImageUrl,
-        imagemUrlCatalogo: state.generatedCatalogImage || null,
-        imagemUrlCombinada: state.generatedCombinedImage || null,
+        imagemUrlCatalogo: studioImages.slot1.url || state.generatedCatalogImage || null,
+        imagemUrlCombinada: studioImages.slot5.url || state.generatedCombinedImage || null,
+        catalogImageUrls: [
+          studioImages.slot1.url,
+          studioImages.slot2.url,
+          studioImages.slot3?.url,
+          studioImages.slot4.url,
+          studioImages.slot5.url,
+          studioImages.slot6.url,
+        ].filter((u): u is string => !!u),
         imagemMedidasCustomizada: state.imagemMedidasCustomizada || null,
+        status: "published",
         tamanhos: state.manualData.tamanhos,
         cores: state.manualData.cores,
         estoque: state.manualData.estoque ? parseInt(state.manualData.estoque) : 0,
@@ -2505,6 +3125,7 @@ export function ProductEditorLayout({
           tags: state.aiAnalysisData?.tags || [],
           ultimaAtualizacao: new Date().toISOString(),
         },
+        extraImageUrls: state.extraImages.map(({ idx, url }) => ({ idx, url })),
       };
 
       // Se produto tem variações, processar e salvar grade de estoque
@@ -2550,6 +3171,7 @@ export function ProductEditorLayout({
         throw new Error(errorData.error || "Erro ao salvar produto");
       }
 
+      setProductStatus("published");
       // Redirecionar para a lista de produtos
       router.push(`/produtos?lojistaId=${lojistaId}`);
     } catch (error: any) {
@@ -2608,12 +3230,53 @@ export function ProductEditorLayout({
       setViewingImageIndex(index);
     }
   };
+
+  /** Índice na caixa "Visualizar Fotos Catálogo IA" para o slot 1–6 (ordem: Foto Frente, Costas, Modelo Frente, Costas, Look 1, Look 2). */
+  const getCatalogViewerIndexForSlot = (slot: 1 | 2 | 3 | 4 | 5 | 6): number => {
+    const s = studioImages;
+    switch (slot) {
+      case 1: return 0;
+      case 2: return (s.slot1?.url ? 1 : 0);
+      case 3: return (s.slot1?.url ? 1 : 0) + (s.slot2?.url ? 1 : 0);
+      case 4: return (s.slot1?.url ? 1 : 0) + (s.slot2?.url ? 1 : 0) + (s.slot3?.url ? 1 : 0);
+      case 5: return (s.slot1?.url ? 1 : 0) + (s.slot2?.url ? 1 : 0) + (s.slot3?.url ? 1 : 0) + (s.slot4?.url ? 1 : 0);
+      case 6: return (s.slot1?.url ? 1 : 0) + (s.slot2?.url ? 1 : 0) + (s.slot3?.url ? 1 : 0) + (s.slot4?.url ? 1 : 0) + (s.slot5?.url ? 1 : 0);
+      default: return 0;
+    }
+  };
   
   const currentViewingImage = availableImages[viewingImageIndex] || null;
 
   const colors = getPageHeaderColors('/produtos');
 
+  // Proteção de navegação: antes de sair com rascunho, mostrar modal
+  useEffect(() => {
+    if (productStatus !== "draft") return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [productStatus]);
+
   const handleGoBack = () => {
+    if (productStatus === "draft") {
+      setShowDraftConfirmModal(true);
+      return;
+    }
+    const lojistaIdFromUrl = new URLSearchParams(window.location.search).get("lojistaId") || 
+                             new URLSearchParams(window.location.search).get("lojistald");
+    if (lojistaIdFromUrl) {
+      router.push(`/produtos?lojistaId=${lojistaIdFromUrl}`);
+    } else {
+      router.push("/produtos");
+    }
+  };
+
+  const handleConfirmLeaveDraft = () => {
+    setShowDraftConfirmModal(false);
+    allowLeaveRef.current = true;
     const lojistaIdFromUrl = new URLSearchParams(window.location.search).get("lojistaId") || 
                              new URLSearchParams(window.location.search).get("lojistald");
     if (lojistaIdFromUrl) {
@@ -2624,7 +3287,7 @@ export function ProductEditorLayout({
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 -mt-4 pt-4">
+    <div className="w-full flex flex-col gap-2">
       {/* === CABEÇALHO === */}
       <div className="w-full">
         <IconPageHeader
@@ -2940,11 +3603,11 @@ export function ProductEditorLayout({
                   const extrasHabilitados = hasFotoFrente && hasFotoVerso;
                   return [
                     { idx: 1, label: 'Foto Frente', subtitle: '', required: true },
-                    { idx: 2, label: 'Foto Verso', subtitle: '', required: true },
-                    { idx: 3, label: 'Foto Extra 1', subtitle: '', required: false },
-                    { idx: 4, label: 'Foto Extra 2', subtitle: '', required: false },
-                    { idx: 5, label: 'Foto Extra 3', subtitle: '', required: false },
-                    { idx: 6, label: 'Foto Extra 4', subtitle: '', required: false },
+                  { idx: 2, label: 'Foto Costas', subtitle: '', required: true },
+                  { idx: 3, label: 'Foto Extra 1', subtitle: '', required: false },
+                  { idx: 4, label: 'Foto Extra 2', subtitle: '', required: false },
+                  { idx: 5, label: 'Foto Extra 3', subtitle: '', required: false },
+                  { idx: 6, label: 'Foto Extra 4', subtitle: '', required: false },
                   ].map(({ idx, label, subtitle, required }) => {
                     const isExtra = idx >= 3;
                     const desabilitado = isExtra && !extrasHabilitados;
@@ -2975,7 +3638,7 @@ export function ProductEditorLayout({
                         }
                       }}
                       className={`relative flex-1 w-full border-2 rounded-lg flex items-center justify-center transition-colors overflow-hidden ${desabilitado ? 'bg-slate-100 border-slate-200 cursor-not-allowed opacity-70' : 'bg-white cursor-pointer'} ${!desabilitado && (idx === 1 || idx === 2) ? 'border-red-300 hover:border-red-400 hover:bg-red-50/30' : ''} ${!desabilitado && isExtra ? 'border-blue-300 hover:border-blue-400 hover:bg-blue-50/30' : ''}`}
-                      title={desabilitado ? 'Carregue a Foto Frente e a Foto Verso primeiro' : 'Clique para fazer upload'}
+                      title={desabilitado ? 'Carregue a Foto Frente e a Foto Costas primeiro' : 'Clique para fazer upload'}
                     >
                       {idx === 1 && (
                         <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-semibold shadow-md z-10 whitespace-nowrap" style={{ color: 'white' }}>
@@ -3007,7 +3670,7 @@ export function ProductEditorLayout({
                           <ImageIcon className="w-10 h-10" strokeWidth={2} style={{ color: '#d1d5db', stroke: '#d1d5db' }} />
                           {desabilitado && (
                             <span className="absolute bottom-10 left-1 right-1 text-center text-[10px] text-slate-500 px-1">
-                              Frente e Verso primeiro
+                              Frente e Costas primeiro
                             </span>
                           )}
                         </>
@@ -3088,12 +3751,12 @@ export function ProductEditorLayout({
                           </div>
                         )}
                         
-                        {/* Container da imagem com zoom hover */}
+                        {/* Container da imagem: ocupa todo o espaço da caixa (object-cover) */}
                         <div className="absolute inset-0 flex items-center justify-center overflow-hidden group">
                           <img
                             src={currentImage}
                             alt={`Foto ${uploadViewerIndex + 1}`}
-                            className="max-w-full max-h-full object-contain transition-transform duration-300 ease-in-out group-hover:scale-150 cursor-zoom-in"
+                            className="w-full h-full object-cover object-center transition-transform duration-300 ease-in-out group-hover:scale-150 cursor-zoom-in"
                             draggable={false}
                           />
                         </div>
@@ -3198,7 +3861,7 @@ export function ProductEditorLayout({
       
       {/* CONTAINER 2: Análise Inteligente via IA (posição 2) — centralizado na tela ao carregar */}
       <div ref={box2CardRef} className="scroll-mt-8">
-        <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
         {/* CardHeader */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-4 flex items-center gap-3 border-b border-purple-500/20">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
@@ -3233,7 +3896,7 @@ export function ProductEditorLayout({
                   <div className="absolute inset-0 rounded-full border-4 border-purple-200" />
                   <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin" />
                   <div className="absolute inset-3 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin" style={{ animationDuration: '1.2s', animationDirection: 'reverse' }} />
-                </div>
+              </div>
                 <p className="text-xl font-bold text-slate-800 mb-3">
                   IA analisando o produto
                 </p>
@@ -3243,9 +3906,9 @@ export function ProductEditorLayout({
                 <p className="text-sm text-slate-500 mt-3">
                   Fazendo o trabalho pesado e facilitando a vida do lojista
                 </p>
-              </div>
             </div>
-          )}
+          </div>
+        )}
           {/* Conteúdo (Marketing, Ficha Técnica, Medidas) só quando análise E medidas estiverem prontos — tudo de uma vez */}
           {!showBox2LoadingOverlay && (
           <div className="w-full flex gap-4 items-start min-w-0 overflow-hidden">
@@ -3399,14 +4062,14 @@ export function ProductEditorLayout({
                               <span className="text-xs font-bold text-slate-800 uppercase">{part2}:</span>
                               <span className="text-sm text-slate-700 ml-1">{fabric}</span>
                             </div>
-                            <input
-                              type="text"
+                      <input
+                        type="text"
                               value={fabric}
-                              onChange={(e) => {
+                        onChange={(e) => {
                                 const v = e.target.value;
-                                setState(prev => ({
-                                  ...prev,
-                                  aiAnalysisData: prev.aiAnalysisData
+                          setState(prev => ({
+                            ...prev,
+                            aiAnalysisData: prev.aiAnalysisData
                                     ? { ...prev.aiAnalysisData, detected_fabric: v, tecido_estimado: v }
                                     : { detected_fabric: v, tecido_estimado: v },
                                 }));
@@ -3428,11 +4091,11 @@ export function ProductEditorLayout({
                               aiAnalysisData: prev.aiAnalysisData
                                 ? { ...prev.aiAnalysisData, detected_fabric: v, tecido_estimado: v }
                                 : { detected_fabric: v, tecido_estimado: v },
-                            }));
-                          }}
-                          placeholder="Ex: Algodão, Linho, Couro"
+                          }));
+                        }}
+                        placeholder="Ex: Algodão, Linho, Couro"
                           className="w-full px-2.5 py-1.5 text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-all"
-                        />
+                      />
                       );
                     })()}
                   </div>
@@ -3572,11 +4235,11 @@ export function ProductEditorLayout({
                               />
                               <span className="text-xs text-slate-700 font-medium">
                                 {colorName}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                         );
                       }
                       return (
@@ -3587,11 +4250,11 @@ export function ProductEditorLayout({
                     })()}
                   </div>
                 </div>
-                  </div>
-                </div>
+              </div>
+            </div>
                 {/* Coluna direita: MEDIDAS DO PRODUTO (mesma largura que a esquerda) */}
                 <div className="flex-1 min-w-0 basis-0 rounded-lg bg-slate-50/50 border border-slate-200 p-3">
-                  <SmartMeasurementEditor
+            <SmartMeasurementEditor
                   rawImageUrl={state.rawImageUrl}
                   rawImageFile={state.rawImageFile}
                   lojistaId={lojistaId}
@@ -3664,79 +4327,199 @@ export function ProductEditorLayout({
           {/* LAYOUT EM 3 CAIXAS LADO A LADO */}
           <div className="flex gap-3 items-start">
             {/* CAIXA 2: Estrutura de grid 3x2 (trocada para posição 1) */}
-            <div className="flex-1 border-2 border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col min-w-0" style={{ height: '502.4px' }}>
-              <div className="flex-1 flex flex-col">
+            <div className="flex-1 border-2 border-slate-200 rounded-lg p-2 bg-slate-50 flex flex-col min-w-0 overflow-hidden" style={{ height: '502.4px' }}>
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <div className="flex text-xs font-semibold mb-1 px-2 py-2 rounded-lg bg-red-100 border-2 border-red-300 shadow-sm items-center justify-center gap-1.5">
                   CATÁLOGO IA
                 </div>
-                <div className="flex-1 grid grid-cols-3 grid-rows-2 gap-1 items-stretch" style={{ gridAutoRows: '1fr' }}>
-                  {/* Linha 1 */}
-                  {/* Botão 1: FOTO FRENTE (IA) */}
-                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
-                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
-                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
-                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
-                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
-                          FOTO FRENTE
-                        </div>
+                {/* Ordem como na imagem: 1) Área branca (ícone centralizado) 2) Caixa título (FOTO FRENTE etc) 3) Botão GERAR IMAGEM */}
+                <div className="flex-1 min-h-0 grid grid-cols-3 grid-rows-2 gap-1 items-stretch overflow-hidden" style={{ gridAutoRows: '1fr' }}>
+                  {/* Caixa 1: área branca no topo + caixa FOTO FRENTE + botão GERAR IMAGEM */}
+                  <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {studioImages.slot1.generating && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm rounded-lg">
+                        <Loader2 className="w-12 h-12 animate-spin shrink-0 text-purple-600" stroke="#7c3aed" strokeWidth={2} />
+                        <p className="text-[10px] text-slate-600 text-center px-2">Gerando... Aguarde.</p>
+                      </div>
+                    )}
+                    {/* Container 9:16: imagem ocupa todo o espaço da caixa (object-cover); clicável para ver na caixa de visualização */}
+                    <div
+                      className={`relative flex-1 min-h-0 w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center ${studioImages.slot1.url ? "cursor-pointer" : ""}`}
+                      onClick={studioImages.slot1.url ? () => setCatalogViewerIndex(getCatalogViewerIndexForSlot(1)) : undefined}
+                      role={studioImages.slot1.url ? "button" : undefined}
+                      title={studioImages.slot1.url ? "Clique para ver na caixa de visualização" : undefined}
+                    >
+                      {studioImages.slot1.url && (
+                        <img
+                          src={studioImages.slot1.url}
+                          alt="Foto Frente - Ghost Mannequin"
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                          style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.15))' }}
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {!studioImages.slot1.generating && !studioImages.slot1.url && (
+                          <Sparkles className="w-8 h-8 text-purple-500 shrink-0" stroke="#7c3aed" fill="none" strokeWidth={2} />
+                        )}
                       </div>
                     </div>
+                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-purple-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>FOTO FRENTE</div>
+                    <button type="button" onClick={handleGenerateFotoFrente} disabled={studioImages.slot1.generating || !state.rawImageUrl} className="shrink-0 min-h-[32px] py-2 px-2 w-full rounded-lg bg-gradient-to-b from-blue-900 via-blue-600 to-blue-900 hover:from-blue-800 hover:via-blue-500 hover:to-blue-800 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-[10px] font-semibold transition-all" style={{ color: '#ffffff' }} title="Gerar Ghost Mannequin">GERAR IMAGEM</button>
                   </div>
-                  {/* Botão 2: FOTO COSTAS (IA) */}
-                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
-                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
-                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
-                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
-                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
-                          FOTO COSTAS
-                        </div>
+                  {/* Caixa 2: Foto Costas — referência = Foto Costas (extraImages idx 2) */}
+                  <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {studioImages.slot2.generating && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm rounded-lg">
+                        <Loader2 className="w-12 h-12 animate-spin shrink-0 text-teal-600" stroke="#0d9488" strokeWidth={2} />
+                        <p className="text-[10px] text-slate-600 text-center px-2">Gerando... Aguarde.</p>
+                      </div>
+                    )}
+                    <div
+                      className={`relative flex-1 min-h-0 w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center ${studioImages.slot2.url ? "cursor-pointer" : ""}`}
+                      onClick={studioImages.slot2.url ? () => setCatalogViewerIndex(getCatalogViewerIndexForSlot(2)) : undefined}
+                      role={studioImages.slot2.url ? "button" : undefined}
+                      title={studioImages.slot2.url ? "Clique para ver na caixa de visualização" : undefined}
+                    >
+                      {studioImages.slot2.url && (
+                        <img
+                          src={studioImages.slot2.url}
+                          alt="Foto Costas - Ghost Mannequin"
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                          style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.15))' }}
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {!studioImages.slot2.generating && !studioImages.slot2.url && (
+                          <Sparkles className="w-8 h-8 text-teal-500 shrink-0" stroke="#0d9488" fill="none" strokeWidth={2} />
+                        )}
                       </div>
                     </div>
+                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-teal-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>FOTO COSTAS</div>
+                    <button type="button" onClick={handleGenerateFotoCostas} disabled={studioImages.slot2.generating || !state.extraImages.find((img) => img.idx === 2)?.url} className="shrink-0 min-h-[32px] py-2 px-2 w-full rounded-lg bg-gradient-to-b from-teal-800 via-teal-600 to-teal-800 hover:from-teal-700 hover:via-teal-500 hover:to-teal-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-[10px] font-semibold transition-all" style={{ color: '#ffffff' }} title="Gerar Ghost Mannequin Costas (referência: Foto Costas)">GERAR IMAGEM</button>
                   </div>
-                  {/* Botão 3: MODELO FRENTE (IA) */}
-                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
-                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
-                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
-                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
-                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
-                          MODELO FRENTE
-                        </div>
+                  {/* Caixa 3 */}
+                  <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {studioImages.slot3.generating && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm rounded-lg">
+                        <Loader2 className="w-12 h-12 animate-spin shrink-0 text-blue-600" stroke="#3b82f6" strokeWidth={2} />
+                        <p className="text-[10px] text-slate-600 text-center px-2">Gerando... Aguarde.</p>
+                      </div>
+                    )}
+                    <div
+                      className={`relative flex-1 min-h-0 w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center ${studioImages.slot3?.url ? "cursor-pointer" : ""}`}
+                      onClick={studioImages.slot3?.url ? () => setCatalogViewerIndex(getCatalogViewerIndexForSlot(3)) : undefined}
+                      role={studioImages.slot3?.url ? "button" : undefined}
+                      title={studioImages.slot3?.url ? "Clique para ver na caixa de visualização" : undefined}
+                    >
+                      {studioImages.slot3.url && (
+                        <img
+                          src={studioImages.slot3.url}
+                          alt="Modelo Lifestyle Frente"
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                          style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.15))" }}
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {!studioImages.slot3.generating && !studioImages.slot3.url && (
+                          <Sparkles className="w-8 h-8 text-blue-500 shrink-0" stroke="#3b82f6" fill="none" strokeWidth={2} />
+                        )}
                       </div>
                     </div>
+                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-blue-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO FRENTE</div>
+                    <button
+                      type="button"
+                      onClick={handleGenerateModeloLifestyleFrente}
+                      disabled={studioImages.slot3.generating || !studioImages.slot1.url}
+                      className="shrink-0 min-h-[32px] py-2 px-2 w-full rounded-lg bg-gradient-to-b from-blue-900 via-blue-600 to-blue-900 hover:from-blue-800 hover:via-blue-500 hover:to-blue-800 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-[10px] font-semibold transition-all"
+                      style={{ color: "#ffffff" }}
+                      title="Gerar Modelo Lifestyle Frente (fonte: Ghost Mannequin Frente)"
+                    >
+                      GERAR IMAGEM
+                    </button>
                   </div>
-                  {/* Linha 2 */}
-                  {/* Botão 4: MODELO COSTAS (IA) */}
-                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
-                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
-                      <Sparkles className="w-8 h-8" stroke="#7c3aed" fill="none" />
-                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
-                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
-                          MODELO COSTAS
-                        </div>
+                  {/* Caixa 4 */}
+                  <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {studioImages.slot4.generating && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white/90 backdrop-blur-sm rounded-lg">
+                        <Loader2 className="w-12 h-12 animate-spin shrink-0 text-amber-600" stroke="#f59e0b" strokeWidth={2} />
+                        <p className="text-[10px] text-slate-600 text-center px-2">Gerando... Aguarde.</p>
+                      </div>
+                    )}
+                    <div
+                      className={`relative flex-1 min-h-0 w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center ${studioImages.slot4.url ? "cursor-pointer" : ""}`}
+                      onClick={studioImages.slot4.url ? () => setCatalogViewerIndex(getCatalogViewerIndexForSlot(4)) : undefined}
+                      role={studioImages.slot4.url ? "button" : undefined}
+                      title={studioImages.slot4.url ? "Clique para ver na caixa de visualização" : undefined}
+                    >
+                      {studioImages.slot4.url && (
+                        <img
+                          src={studioImages.slot4.url}
+                          alt="Modelo Lifestyle Costas"
+                          className="absolute inset-0 w-full h-full object-cover object-center"
+                          style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.15))" }}
+                        />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        {!studioImages.slot4.generating && !studioImages.slot4.url && (
+                          <Sparkles className="w-8 h-8 text-amber-500 shrink-0" stroke="#f59e0b" fill="none" strokeWidth={2} />
+                        )}
                       </div>
                     </div>
+                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-amber-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO COSTAS</div>
+                    <button
+                      type="button"
+                      onClick={handleGenerateModeloLifestyleCostas}
+                      disabled={studioImages.slot4.generating || !studioImages.slot2.url || !currentModelSeed}
+                      className="shrink-0 min-h-[32px] py-2 px-2 w-full rounded-lg bg-gradient-to-b from-amber-800 via-amber-600 to-amber-800 hover:from-amber-700 hover:via-amber-500 hover:to-amber-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-[10px] font-semibold transition-all"
+                      style={{ color: "#ffffff" }}
+                      title={!currentModelSeed ? "Gere primeiro a Frente (Slot 3) para travar a seed" : "Gerar Costas com Seed Locking (fonte: Ghost Mannequin Costas + seed da Frente)"}
+                    >
+                      GERAR IMAGEM
+                    </button>
                   </div>
-                  {/* Botão 5: LOOK COMBINADO (IA) */}
-                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
-                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
-                      <Sparkles className="w-8 h-8 z-0" stroke="#7c3aed" fill="none" />
-                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
-                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
-                          LOOK COMBINADO
-                        </div>
+                  {/* Caixa 5 */}
+                  <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {studioImages.slot5.generating && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg">
+                        <Loader2 className="w-10 h-10 animate-spin shrink-0 text-rose-600" stroke="#f43f5e" strokeWidth={2} />
+                        <p className="text-[10px] text-slate-600 text-center px-2">Gerando... Aguarde.</p>
                       </div>
+                    )}
+                    <div
+                      className={`relative flex-1 min-h-[72px] w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center ${studioImages.slot5.url ? "cursor-pointer" : ""}`}
+                      onClick={studioImages.slot5.url ? () => setCatalogViewerIndex(getCatalogViewerIndexForSlot(5)) : undefined}
+                      role={studioImages.slot5.url ? "button" : undefined}
+                      title={studioImages.slot5.url ? "Clique para ver na caixa de visualização" : undefined}
+                    >
+                      {studioImages.slot5.url ? (
+                        <img src={studioImages.slot5.url} alt="Look Combinado 1" className="absolute inset-0 w-full h-full object-cover object-center" style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.15))' }} />
+                      ) : (
+                        <Sparkles className="w-8 h-8 text-rose-500 shrink-0" stroke="#f43f5e" fill="none" strokeWidth={2} />
+                      )}
                     </div>
+                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-rose-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>LOOK COMBINADO (1)</div>
                   </div>
-                  {/* Botão 6: LOOK COMBINADO (IA) */}
-                  <div className="flex flex-col gap-0.5 w-full h-full min-h-0">
-                    <div className="relative flex-1 w-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-white overflow-hidden">
-                      <Sparkles className="w-8 h-8 z-0" stroke="#7c3aed" fill="none" />
-                      <div className="absolute bottom-0 left-0 right-0 text-center" style={{ height: '42.5px' }}>
-                        <div className="text-[10px] font-semibold leading-tight px-1 py-0.5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-200 shadow-sm rounded-b-lg h-full flex items-center justify-center">
-                          LOOK COMBINADO
-                        </div>
+                  {/* Caixa 6 */}
+                  <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {studioImages.slot6.generating && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg">
+                        <Loader2 className="w-10 h-10 animate-spin shrink-0 text-indigo-600" stroke="#6366f1" strokeWidth={2} />
+                        <p className="text-[10px] text-slate-600 text-center px-2">Gerando... Aguarde.</p>
                       </div>
+                    )}
+                    <div
+                      className={`relative flex-1 min-h-[72px] w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center ${studioImages.slot6.url ? "cursor-pointer" : ""}`}
+                      onClick={studioImages.slot6.url ? () => setCatalogViewerIndex(getCatalogViewerIndexForSlot(6)) : undefined}
+                      role={studioImages.slot6.url ? "button" : undefined}
+                      title={studioImages.slot6.url ? "Clique para ver na caixa de visualização" : undefined}
+                    >
+                      {studioImages.slot6.url ? (
+                        <img src={studioImages.slot6.url} alt="Look Combinado 2" className="absolute inset-0 w-full h-full object-cover object-center" style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.15))' }} />
+                      ) : (
+                        <Sparkles className="w-8 h-8 text-indigo-500 shrink-0" stroke="#6366f1" fill="none" strokeWidth={2} />
+                      )}
                     </div>
+                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-indigo-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>LOOK COMBINADO (2)</div>
                   </div>
                 </div>
               </div>
@@ -3754,37 +4537,79 @@ export function ProductEditorLayout({
                   {/* Coluna Direita: Controles do Combo #1 */}
                   <div className="flex-1 flex flex-col shrink-0 min-w-0">
                     <div className="flex flex-col border-2 border-slate-200 rounded-lg p-1.5 bg-white h-full min-w-0 overflow-hidden">
-                      <div className="text-[10px] font-bold text-slate-700 mb-1.5 px-1">Controles do Combo #1</div>
+                      <div className="text-xs font-bold text-center bg-rose-500 py-1.5 px-2 rounded-b-lg mb-1.5" style={{ color: '#ffffff' }}>LOOK COMBINADO (1)</div>
                       
-                      <div className="grid grid-cols-3 gap-1.5 mb-2 justify-items-stretch min-w-0 w-full flex-1">
-                        {/* Miniatura Principal */}
-                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
-                          <div className="w-full h-full border-2 border-yellow-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
-                            <Star className="w-8 h-8 !text-yellow-500" style={{ color: '#eab308' }} />
+                      <div className="flex gap-2 items-stretch min-w-0 w-full flex-1 min-h-0">
+                        {/* Caixas de produtos (mesmo “peso” visual das miniaturas do Catálogo IA) */}
+                        <div className="grid grid-cols-2 gap-1.5 justify-items-stretch min-w-0 flex-1 min-h-0">
+                          {/* Produto 1 — preenchido ao selecionar em "Outro Produto" */}
+                          <div className="flex flex-col gap-1 items-center w-full min-w-0 min-h-0">
+                            <div
+                              className="w-full border-2 border-blue-500 rounded-lg bg-white flex items-center justify-center overflow-hidden"
+                              style={{ aspectRatio: "9/16" }}
+                            >
+                              {combo1Products[0]?.catalogImageUrl ? (
+                                <img
+                                  src={combo1Products[0].catalogImageUrl}
+                                  alt={combo1Products[0].nome}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <Package className="w-8 h-8 !text-blue-500" style={{ color: "#3b82f6" }} />
+                              )}
+                            </div>
+                            <div className="text-[8px] font-medium text-slate-600 text-center leading-tight truncate w-full">Produto 1</div>
                           </div>
-                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Principal</div>
+
+                          {/* Produto 2 — esmaecido quando não há 2 produtos selecionados */}
+                          <div
+                            className={`flex flex-col gap-1 items-center w-full min-w-0 min-h-0 transition-opacity ${!combo1Products[1] ? "opacity-50" : ""}`}
+                          >
+                            <div
+                              className="w-full border-2 border-red-500 rounded-lg bg-white flex items-center justify-center overflow-hidden"
+                              style={{ aspectRatio: "9/16" }}
+                            >
+                              {combo1Products[1]?.catalogImageUrl ? (
+                                <img
+                                  src={combo1Products[1].catalogImageUrl}
+                                  alt={combo1Products[1].nome}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <Package className="w-8 h-8 !text-red-500" style={{ color: "#ef4444" }} />
+                              )}
+                            </div>
+                            <div className="text-[8px] font-medium text-slate-600 text-center leading-tight truncate w-full">Produto 2</div>
+                          </div>
                         </div>
-                        
-                        {/* Miniatura Produto 1 */}
-                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
-                          <div className="w-full h-full border-2 border-blue-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
-                            <Package className="w-8 h-8 !text-blue-500" style={{ color: '#3b82f6' }} />
-                          </div>
-                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 1</div>
-                        </div>
-                        
-                        {/* Miniatura Produto 2 */}
-                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
-                          <div className="w-full h-full border-2 border-red-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
-                            <Package className="w-8 h-8 !text-red-500" style={{ color: '#ef4444' }} />
-                          </div>
-                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 2</div>
+
+                        {/* Dois botões: Outro Produto (abre modal) e Gerar Look 1 */}
+                        <div className="flex flex-col gap-1.5 w-[120px] shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setShowOutroProdutoModal(true)}
+                            className="rounded-lg bg-slate-100 border-2 border-slate-300 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-all px-2 py-2"
+                          >
+                            ESCOLHER PRODUTO
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleGerarLook1}
+                            disabled={generatingCombined || (!combo1Products[0] && !combo1Products[1])}
+                            className="rounded-lg bg-gradient-to-b from-rose-700 via-rose-600 to-rose-700 hover:from-rose-600 hover:via-rose-500 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed !text-white text-[10px] font-semibold transition-all shadow-md px-2 py-2"
+                            style={{ color: "#ffffff" }}
+                          >
+                            {generatingCombined ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin inline mr-0.5" />
+                                Gerando...
+                              </>
+                            ) : (
+                              <>Gerar Look 1</>
+                            )}
+                          </button>
                         </div>
                       </div>
-                      
-                      <button className="w-full py-1.5 px-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 !text-white text-[10px] font-semibold rounded transition-all shadow-md mt-auto" style={{ color: '#ffffff' }}>
-                        Selecionar Look Combinado
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -3794,50 +4619,137 @@ export function ProductEditorLayout({
                   {/* Coluna Direita: Controles do Combo #2 */}
                   <div className="flex-1 flex flex-col shrink-0 min-w-0">
                     <div className="flex flex-col border-2 border-slate-200 rounded-lg p-1.5 bg-white h-full min-w-0 overflow-hidden">
-                      <div className="text-[10px] font-bold text-slate-700 mb-1.5 px-1">Controles do Combo #2</div>
+                      <div className="text-xs font-bold text-center bg-indigo-500 py-1.5 px-2 rounded-b-lg mb-1.5" style={{ color: '#ffffff' }}>LOOK COMBINADO (2)</div>
                       
-                      <div className="grid grid-cols-3 gap-1.5 mb-2 justify-items-stretch min-w-0 w-full flex-1">
-                        {/* Miniatura Principal */}
-                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
-                          <div className="w-full h-full border-2 border-yellow-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
-                            <Star className="w-8 h-8 !text-yellow-500" style={{ color: '#eab308' }} />
+                      <div className="flex gap-2 items-stretch min-w-0 w-full flex-1 min-h-0">
+                        {/* Caixas de produtos (mesmo “peso” visual das miniaturas do Catálogo IA) */}
+                        <div className="grid grid-cols-2 gap-1.5 justify-items-stretch min-w-0 flex-1 min-h-0">
+                          {/* Produto 1 — Combo #2 */}
+                          <div className="flex flex-col gap-1 items-center w-full min-w-0 min-h-0">
+                            <div
+                              className="w-full border-2 border-blue-500 rounded-lg bg-white flex items-center justify-center overflow-hidden"
+                              style={{ aspectRatio: "9/16" }}
+                            >
+                              {combo2Products[0]?.catalogImageUrl ? (
+                                <img src={combo2Products[0].catalogImageUrl} alt={combo2Products[0].nome} className="w-full h-full object-contain" />
+                              ) : (
+                                <Package className="w-8 h-8 !text-blue-500" style={{ color: "#3b82f6" }} />
+                              )}
+                            </div>
+                            <div className="text-[8px] font-medium text-slate-600 text-center leading-tight truncate w-full">Produto 1</div>
                           </div>
-                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Principal</div>
+
+                          {/* Produto 2 — esmaecido quando não há 2 selecionados */}
+                          <div className={`flex flex-col gap-1 items-center w-full min-w-0 min-h-0 transition-opacity ${!combo2Products[1] ? "opacity-50" : ""}`}>
+                            <div
+                              className="w-full border-2 border-red-500 rounded-lg bg-white flex items-center justify-center overflow-hidden"
+                              style={{ aspectRatio: "9/16" }}
+                            >
+                              {combo2Products[1]?.catalogImageUrl ? (
+                                <img src={combo2Products[1].catalogImageUrl} alt={combo2Products[1].nome} className="w-full h-full object-contain" />
+                              ) : (
+                                <Package className="w-8 h-8 !text-red-500" style={{ color: "#ef4444" }} />
+                              )}
+                            </div>
+                            <div className="text-[8px] font-medium text-slate-600 text-center leading-tight truncate w-full">Produto 2</div>
+                          </div>
                         </div>
-                        
-                        {/* Miniatura Produto 1 */}
-                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
-                          <div className="w-full h-full border-2 border-blue-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
-                            <Package className="w-8 h-8 !text-blue-500" style={{ color: '#3b82f6' }} />
-                          </div>
-                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 1</div>
-                        </div>
-                        
-                        {/* Miniatura Produto 2 */}
-                        <div className="flex flex-col gap-1 items-center w-full min-w-0 h-full">
-                          <div className="w-full h-full border-2 border-red-500 rounded-lg bg-white flex items-center justify-center min-h-[80px]">
-                            <Package className="w-8 h-8 !text-red-500" style={{ color: '#ef4444' }} />
-                          </div>
-                          <div className="text-[8px] font-medium text-slate-600 text-center leading-tight">Produto 2</div>
+
+                        <div className="flex flex-col gap-1.5 w-[120px] shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setShowOutroProdutoModalCombo2(true)}
+                            className="rounded-lg bg-slate-100 border-2 border-slate-300 hover:bg-slate-200 text-slate-700 text-[10px] font-semibold transition-all px-2 py-2"
+                          >
+                            ESCOLHER PRODUTO
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleGerarLook2}
+                            disabled={studioImages.slot6.generating || (!combo2Products[0] && !combo2Products[1])}
+                            className="rounded-lg bg-gradient-to-b from-indigo-800 via-indigo-600 to-indigo-800 hover:from-indigo-700 hover:via-indigo-500 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed !text-white text-[10px] font-semibold transition-all shadow-md px-2 py-2"
+                            style={{ color: "#ffffff" }}
+                          >
+                            {studioImages.slot6.generating ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin inline mr-0.5" />
+                                Gerando...
+                              </>
+                            ) : (
+                              <>Gerar Look 2</>
+                            )}
+                          </button>
                         </div>
                       </div>
-                      
-                      <button className="w-full py-1.5 px-1.5 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 !text-white text-[10px] font-semibold rounded transition-all shadow-md mt-auto" style={{ color: '#ffffff' }}>
-                        Selecionar Look Combinado
-                      </button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            {/* CAIXA 3: Estrutura de visualização */}
+            {/* CAIXA 3: Visualizar Fotos Catálogo IA - mesmas funcionalidades da caixa "Visualizar fotos originais" (zoom, setas, contador) */}
             <div className="border-2 border-slate-200 rounded-lg p-3 bg-slate-50 flex flex-col shrink-0" style={{ width: '282px', flexShrink: 0 }}>
-              <div className="block text-xs font-semibold mb-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 shadow-sm">
+              <div className="block text-xs font-semibold mb-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 shadow-sm">
                 Visualizar Fotos Catálogo IA
               </div>
               <div className="flex items-center justify-center relative shrink-0" style={{ width: '250px', height: '444px' }}>
-                <div className="relative w-full h-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-gray-50"></div>
+                {(() => {
+                  const allCatalogImages: string[] = [
+                    studioImages.slot1.url,
+                    studioImages.slot2.url,
+                    studioImages.slot3?.url,
+                    studioImages.slot4.url,
+                    studioImages.slot5.url,
+                    studioImages.slot6.url,
+                  ].filter((url): url is string => !!url);
+                  const currentCatalogImage = allCatalogImages[catalogViewerIndex];
+
+                  if (currentCatalogImage) {
+                    return (
+                      <div className="relative w-full h-full border-2 border-purple-400 rounded-lg overflow-hidden bg-gray-50 p-4">
+                        {allCatalogImages.length > 1 && (
+                          <>
+                            <button
+                              onClick={() => setCatalogViewerIndex(prev => (prev - 1 + allCatalogImages.length) % allCatalogImages.length)}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                              title="Imagem anterior"
+                            >
+                              <ChevronLeft className="w-5 h-5 text-gray-700" />
+                            </button>
+                            <button
+                              onClick={() => setCatalogViewerIndex(prev => (prev + 1) % allCatalogImages.length)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+                              title="Próxima imagem"
+                            >
+                              <ChevronRight className="w-5 h-5 text-gray-700" />
+                            </button>
+                          </>
+                        )}
+                        {allCatalogImages.length > 1 && (
+                          <div className="absolute top-2 right-2 z-10 bg-white/90 rounded-full px-3 py-1 shadow-md">
+                            <span className="text-xs font-semibold text-gray-700">
+                              {catalogViewerIndex + 1} / {allCatalogImages.length}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center overflow-hidden group">
+                          <img
+                            src={currentCatalogImage}
+                            alt={`Catálogo IA ${catalogViewerIndex + 1}`}
+                            className="w-full h-full object-cover object-center transition-transform duration-300 ease-in-out group-hover:scale-150 cursor-zoom-in"
+                            style={{ filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.15))' }}
+                            draggable={false}
+                          />
+                        </div>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="relative w-full h-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-gray-50 rounded-b-lg">
+                      <p className="text-xs text-gray-400 text-center px-2">As imagens geradas (Foto Frente, etc.) aparecerão aqui</p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -3881,13 +4793,13 @@ export function ProductEditorLayout({
                     type="text"
                     placeholder="Buscar produtos..."
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
+                />
+          </div>
                 <div className="grid grid-cols-2 gap-4">
                   {/* TODO: Listar produtos do catálogo aqui */}
                   <div className="text-center py-8 text-slate-400 text-sm">
                     Lista de produtos será carregada aqui
-                  </div>
+        </div>
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-2">
@@ -3917,8 +4829,8 @@ export function ProductEditorLayout({
       </AnimatedCard>
       
 
-      
-            {/* CONTAINER 4: DADOS COMERCIAIS - Preço e Estoque */}
+
+      {/* CONTAINER 4: DADOS COMERCIAIS - Preço e Estoque */}
       <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
         {/* CardHeader */}
         <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center gap-3 border-b border-red-500/20">
@@ -4234,6 +5146,67 @@ export function ProductEditorLayout({
         />
       )}
 
+      {/* Modal ESCOLHER PRODUTO — Combo #1 */}
+      {showOutroProdutoModal && (
+        <OutroProdutoModal
+          lojistaId={lojistaId}
+          onClose={() => setShowOutroProdutoModal(false)}
+          onConfirm={(selected) => {
+            setCombo1Products(selected);
+            setShowOutroProdutoModal(false);
+          }}
+        />
+      )}
+
+      {/* Modal ESCOLHER PRODUTO — Combo #2 */}
+      {showOutroProdutoModalCombo2 && (
+        <OutroProdutoModal
+          lojistaId={lojistaId}
+          onClose={() => setShowOutroProdutoModalCombo2(false)}
+          onConfirm={(selected) => {
+            setCombo2Products(selected);
+            setShowOutroProdutoModalCombo2(false);
+          }}
+        />
+      )}
+
+      {/* Modal: Salvando progresso (rascunho) — ao sair da página com rascunho ativo */}
+      {showDraftConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" role="dialog" aria-labelledby="draft-modal-title">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                <Info className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 id="draft-modal-title" className="text-lg font-bold text-slate-800">
+                  Salvando seu progresso...
+                </h3>
+              </div>
+            </div>
+            <p className="text-sm text-slate-700 leading-relaxed">
+              Não se preocupe! Para garantir que você não perca as imagens geradas, estamos salvando este produto automaticamente como <strong>Rascunho</strong>. Você pode continuar a edição mais tarde na sua lista de produtos.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleConfirmLeaveDraft}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold hover:from-indigo-500 hover:to-blue-500 transition-colors"
+              >
+                OK, entendi
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDraftConfirmModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border-2 border-slate-300 bg-white text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+              >
+                Ficar e Continuar Editando
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Público/Grade diferente do detectado — confirmar e alterar para refazer análise */}
       {showAudienceConfirmation && state.aiAnalysisData?.detected_audience && (() => {
         const detected = state.aiAnalysisData.detected_audience;
@@ -4243,70 +5216,70 @@ export function ProductEditorLayout({
         const suggestedSizeCategory: typeof state.sizeCategory = detected === 'KIDS' ? 'kids_numeric' : 'standard';
         const gradeLabel = (id: string) => ({ standard: 'Letras (P, M, G)', numeric: 'Numérica (36, 38...)', plus: 'Plus Size', baby: 'Bebê (meses)', kids_numeric: 'Infantil (anos)', teen: 'Juvenil' })[id] || id;
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-800">
-                    Público ou grade diferente do selecionado
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    A roupa na foto parece ser de outro público/grade
-                  </p>
-                </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
               </div>
-              
-              <div className="space-y-3">
-                <p className="text-sm text-slate-700">
-                  A IA identificou que a roupa na foto parece ser para <strong>{detectedLabel}</strong>, mas você selecionou <strong>{selectedLabel}</strong> e grade <strong>{gradeLabel(state.sizeCategory)}</strong>. Isso pode gerar tipo de produto, tecido e medidas incorretos.
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">
+                    Público ou grade diferente do selecionado
+                </h3>
+                <p className="text-xs text-slate-500">
+                    A roupa na foto parece ser de outro público/grade
                 </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-sm text-slate-700">
+                  A IA identificou que a roupa na foto parece ser para <strong>{detectedLabel}</strong>, mas você selecionou <strong>{selectedLabel}</strong> e grade <strong>{gradeLabel(state.sizeCategory)}</strong>. Isso pode gerar tipo de produto, tecido e medidas incorretos.
+              </p>
               
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between py-2 border-b border-amber-200">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-amber-200">
                     <span className="text-sm font-medium text-slate-700">Selecionado agora:</span>
-                    <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
-                      state.targetAudience === 'female' ? 'bg-pink-100 text-pink-700' :
-                      state.targetAudience === 'male' ? 'bg-blue-100 text-blue-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {state.targetAudience === 'female' ? '👩 Feminino' : 
-                       state.targetAudience === 'male' ? '👨 Masculino' : '👶 Infantil'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between py-2">
+                  <span className={`text-sm font-bold px-3 py-1 rounded-lg ${
+                    state.targetAudience === 'female' ? 'bg-pink-100 text-pink-700' :
+                    state.targetAudience === 'male' ? 'bg-blue-100 text-blue-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  }`}>
+                    {state.targetAudience === 'female' ? '👩 Feminino' : 
+                     state.targetAudience === 'male' ? '👨 Masculino' : '👶 Infantil'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2">
                     <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
                       IA detectou na foto:
                     </span>
-                    <span className="text-sm font-bold px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700">
+                  <span className="text-sm font-bold px-3 py-1 rounded-lg bg-indigo-100 text-indigo-700">
                       {detected === 'KIDS' ? '👶 Infantil' : '👔 Adulto'}
-                    </span>
-                  </div>
-                </div>
-              
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    <strong>Recomendação:</strong> Alterar para o público e grade sugeridos e refazer a análise automaticamente para gerar tipo de produto, tecido e medidas corretos.
-                  </p>
+                  </span>
                 </div>
               </div>
               
-              <div className="flex flex-col gap-2 pt-2">
-                <button
-                  onClick={async () => {
-                    const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
-                    if (!imageUrlToAnalyze) {
-                      alert("Por favor, faça upload de uma imagem primeiro.");
-                      return;
-                    }
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-800 leading-relaxed">
+                    <strong>Recomendação:</strong> Alterar para o público e grade sugeridos e refazer a análise automaticamente para gerar tipo de produto, tecido e medidas corretos.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                onClick={async () => {
+                  const imageUrlToAnalyze = state.rawImageUrl || state.selectedCoverImage;
+                  if (!imageUrlToAnalyze) {
+                    alert("Por favor, faça upload de uma imagem primeiro.");
+                    return;
+                  }
                     setShowAudienceConfirmation(false);
-                    try {
-                      setState(prev => ({
-                        ...prev,
-                        aiAnalysisData: null,
+                  try {
+                    setState(prev => ({
+                      ...prev,
+                      aiAnalysisData: null,
                         targetAudience: suggestedAudience,
                         sizeCategory: suggestedSizeCategory,
                         smartMeasurements: undefined,
@@ -4318,26 +5291,26 @@ export function ProductEditorLayout({
                         targetAudience: suggestedAudience,
                         sizeCategory: suggestedSizeCategory,
                       });
-                    } catch (error: any) {
+                  } catch (error: any) {
                       console.error("[ProductEditor] Erro ao refazer análise:", error);
                       alert(`Erro ao refazer análise: ${error.message || "Erro desconhecido"}`);
-                    }
-                  }}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-5 h-5" />
+                  }
+                }}
+                className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-lg transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
                   <span>Sim, alterar para {detected === 'KIDS' ? 'Infantil' : 'Adulto'} e refazer análise</span>
-                </button>
+              </button>
               
-                <button
+              <button
                   onClick={() => setShowAudienceConfirmation(false)}
                   className="w-full px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors"
                 >
                   Não, manter como está
-                </button>
-              </div>
+              </button>
             </div>
           </div>
+        </div>
         );
       })()}
     </div>
