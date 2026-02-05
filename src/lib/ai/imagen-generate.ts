@@ -578,13 +578,14 @@ export async function generateCatalogImage(
     // Preparar payload conforme documentação do Gemini 2.5 Flash Image
     const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/gemini-2.5-flash-image:generateContent`;
 
+    type GeminiContentPart = { inlineData?: { mimeType: string; data: string }; text?: string };
+    type GeminiContent = { role: string; parts: GeminiContentPart[] };
+    const contents: GeminiContent[] = [
+      { role: "user", parts },
+    ];
+
     const requestBody: Record<string, unknown> = {
-      contents: [
-        {
-          role: "user",
-          parts,
-        },
-      ],
+      contents,
       generationConfig: {
         temperature, // Baixa (ex. 0.05–0.2): fidelidade ao input, menos variação entre gerações.
         topP: 0.95,
@@ -598,17 +599,18 @@ export async function generateCatalogImage(
       requestBody.systemInstruction = { parts: [{ text: systemInstruction }] };
     }
 
-    const lastPart = requestBody.contents[0].parts[requestBody.contents[0].parts.length - 1];
+    const firstContent = contents[0];
+    const lastPart = firstContent.parts[firstContent.parts.length - 1];
     console.log("[GeminiFlashImage] 📤 Enviando requisição para:", endpoint);
     console.log("[GeminiFlashImage] Estrutura do payload:", {
-      contentsCount: requestBody.contents.length,
-      partsCount: requestBody.contents[0].parts.length,
-      hasImage: !!requestBody.contents[0].parts[0].inlineData,
+      contentsCount: contents.length,
+      partsCount: firstContent.parts.length,
+      hasImage: !!firstContent.parts[0]?.inlineData,
       additionalImageCount: additionalImageData.length,
       hasReferenceImage: !!referenceImageData,
       hasPrompt: !!(lastPart && "text" in lastPart && lastPart.text),
       promptLength: (lastPart && "text" in lastPart && lastPart.text) ? lastPart.text.length : 0,
-      imageMimeType: requestBody.contents[0].parts[0].inlineData?.mimeType,
+      imageMimeType: firstContent.parts[0]?.inlineData?.mimeType,
     });
 
     const maxAttempts = 4;
