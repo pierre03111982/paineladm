@@ -51,7 +51,7 @@ export function LojistaHeaderWithSidebar({
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.7)",
           }}
         >
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-8 pt-4 pb-8">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-8 pr-10 pt-4 pb-12">
             <AnimatedPageWrapper>{children}</AnimatedPageWrapper>
           </div>
         </main>

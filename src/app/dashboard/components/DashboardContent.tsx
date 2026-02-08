@@ -275,7 +275,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
   const colors = getPageHeaderColors('/dashboard');
 
   return (
-    <div className="space-y-3 pb-6 min-w-0 max-w-full">
+    <div className="dashboard-page space-y-3 pb-6 min-w-0 max-w-full overflow-visible">
       {/* Caixa da logo: 67.67 × 67.67 px; logo ajustada dentro */}
       <div className="flex items-start gap-3 w-full mb-2">
         <div
@@ -308,9 +308,9 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
         </div>
       </div>
 
-      {/* Grid único 12 colunas: linha 1 = 6 KPIs (2 col cada), linha 2 = 4 widgets (3 col cada). Mesma largura total, alinhado. */}
+      {/* Grid único 12 colunas: overflow-visible para as sombras das caixas não serem cortadas. */}
       <section
-        className="grid grid-cols-12 gap-4 w-full min-w-0 max-w-full overflow-hidden mt-4"
+        className="grid grid-cols-12 gap-4 w-full min-w-0 max-w-full overflow-visible mt-4"
         style={{ gridTemplateColumns: "repeat(12, minmax(0, 1fr))" }}
       >
         {/* ——— Linha 1: 6 KPIs (cada um 2/12 da largura) ——— */}
@@ -318,8 +318,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0 }}
-          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
-          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
+          className="col-span-2 min-w-0 rounded-xl bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 text-white">
             <TrendingUp className="h-5 w-5" />
@@ -334,8 +333,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
-          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
+          className="col-span-2 min-w-0 rounded-xl bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 text-white">
             <MonitorSmartphone className="h-5 w-5" />
@@ -350,8 +348,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
-          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
+          className="col-span-2 min-w-0 rounded-xl bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 p-2.5 text-white">
             <Heart className="h-5 w-5" />
@@ -366,8 +363,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
-          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
-          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
+          className="col-span-2 min-w-0 rounded-xl bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 p-2.5 text-white">
             <Share2 className="h-5 w-5" />
@@ -382,8 +378,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
-          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
+          className="col-span-2 min-w-0 rounded-xl bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 text-white">
             <ShoppingCart className="h-5 w-5" />
@@ -398,8 +393,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.25 }}
-          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
-          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
+          className="col-span-2 min-w-0 rounded-xl bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
         >
           <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 p-2.5 text-white">
             <Package className="h-5 w-5" />

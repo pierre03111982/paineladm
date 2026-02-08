@@ -303,13 +303,52 @@ body:has(.lojista-layout-root) {
    CARDS E CONTAINERS
    ============================================ */
 /* AnimatedCard com cor de borda específica */
+/* Caixas do dashboard (gráficos etc.): sombra bem escura para efeito de flutuação */
 .animated-card-border {
-  border-color: oklch(67.3% 0.182 276.935) !important;
+  border: none !important;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38) !important;
 }
 
-/* Cartões KPI do dashboard: borda azul igual ao restante da página */
+/* Cartões KPI do dashboard: sombra bem escura para efeito de flutuação */
 .dashboard-kpi-card {
-  border-color: #3b82f6 !important;
+  border: none !important;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38) !important;
+}
+
+/* Cada caixa do dashboard: acima das sombras das outras (estático) + transição para o hover */
+.dashboard-page .dashboard-kpi-card,
+.dashboard-page .animated-card-border,
+.dashboard-page .neon-card {
+  position: relative !important;
+  z-index: 1 !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.dashboard-page .dashboard-kpi-card:hover,
+.dashboard-page .animated-card-border:hover,
+.dashboard-page .neon-card:hover {
+  z-index: 2 !important;
+}
+
+.dashboard-page .dashboard-kpi-card:hover,
+.dashboard-page .animated-card-border:hover {
+  transform: translateY(-6px) !important;
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.22),
+    0 28px 56px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dashboard-page .neon-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.22),
+    0 28px 56px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(99, 102, 241, 0.25),
+    0 0 40px rgba(99, 102, 241, 0.1) !important;
 }
 
 /* Regras removidas - não são mais necessárias pois seguimos o padrão de "Últimas Atividades" */
@@ -468,9 +507,11 @@ header[class*="bg-\[#"]:not(.lojista-topbar) {
 }
 
 /* Barra superior lojista: fundo branco, uma única barra; borda inferior grossa e cinza claro */
+/* Sombra contida para não sobrepor a caixa Dashboard abaixo (só desloca um pouco para baixo) */
 .lojista-topbar {
   background-color: #ffffff !important;
   border-bottom: 3px solid #e5e7eb !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* ============================================
@@ -478,11 +519,11 @@ header[class*="bg-\[#"]:not(.lojista-topbar) {
    ============================================ */
 .neon-card {
   background: #FFFFFF !important;
-  border: 1px solid rgba(99, 102, 241, 0.5) !important;
+  border: none !important;
   border-radius: 0.75rem;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38),
     0 0 20px rgba(99, 102, 241, 0.25),
     0 0 40px rgba(99, 102, 241, 0.1) !important;
   color: #1E293B !important;
@@ -513,49 +554,49 @@ header[class*="bg-\[#"]:not(.lojista-topbar) {
 /* Bordas neon coloridas por tipo */
 .neon-card[class*="indigo"],
 .neon-card[class*="purple"] {
-  border-color: rgba(99, 102, 241, 0.6) !important;
+  border: none !important;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38),
     0 0 25px rgba(99, 102, 241, 0.3),
     0 0 50px rgba(99, 102, 241, 0.15) !important;
 }
 
 .neon-card[class*="emerald"],
 .neon-card[class*="green"] {
-  border-color: rgba(16, 185, 129, 0.6) !important;
+  border: none !important;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38),
     0 0 25px rgba(16, 185, 129, 0.3),
     0 0 50px rgba(16, 185, 129, 0.15) !important;
 }
 
 .neon-card[class*="amber"],
 .neon-card[class*="orange"] {
-  border-color: rgba(245, 158, 11, 0.6) !important;
+  border: none !important;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38),
     0 0 25px rgba(245, 158, 11, 0.3),
     0 0 50px rgba(245, 158, 11, 0.15) !important;
 }
 
 .neon-card[class*="sky"],
 .neon-card[class*="blue"] {
-  border-color: rgba(14, 165, 233, 0.6) !important;
+  border: none !important;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38),
     0 0 25px rgba(14, 165, 233, 0.3),
     0 0 50px rgba(14, 165, 233, 0.15) !important;
 }
 
 .neon-card[class*="red"] {
-  border-color: rgba(239, 68, 68, 0.6) !important;
+  border: none !important;
   box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.05),
-    0 4px 6px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.38),
     0 0 25px rgba(239, 68, 68, 0.3),
     0 0 50px rgba(239, 68, 68, 0.15) !important;
 }
