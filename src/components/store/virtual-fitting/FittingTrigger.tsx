@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Ruler, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FittingModal } from "./FittingModal";
@@ -10,6 +10,8 @@ interface FittingTriggerProps {
   productId: string;
   productMeasurements?: Record<string, Record<string, number>>; // { "P": { "Busto": 88, "Cintura": 72 }, ... }
   sizeOrder?: string[];
+  /** Se true, o modal abre automaticamente ao montar (ex.: link direto "Testar Ajustador") */
+  defaultOpen?: boolean;
   userProfile?: {
     measurements?: {
       height?: number;
@@ -39,11 +41,16 @@ export function FittingTrigger({
   productId,
   productMeasurements = {},
   sizeOrder = ["PP", "P", "M", "G", "GG", "XG", "XXG"],
+  defaultOpen = false,
   userProfile,
   onSaveMeasurements,
   className = "",
 }: FittingTriggerProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen) setIsModalOpen(true);
+  }, [defaultOpen]);
 
   // Se o usuário já tem medidas salvas, podemos mostrar uma recomendação rápida
   const hasSavedMeasurements = !!(

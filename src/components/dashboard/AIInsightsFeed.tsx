@@ -157,9 +157,12 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
 
     fetchInsights();
 
-    // Auto-refresh a cada 60 segundos
-    const interval = setInterval(fetchInsights, 60000);
-    return () => clearInterval(interval);
+    // Recarregar só quando o usuário voltar à aba (abrir a janela), sem loop
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchInsights();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [lojistaId]);
 
   // Converter InsightDoc para DisplayInsight

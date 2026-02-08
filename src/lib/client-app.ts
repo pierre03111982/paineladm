@@ -31,6 +31,39 @@ export function buildClientAppUrl(path: string = ""): string {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/** URL do app cliente (loja online) por modelo — usado no header "Ver Loja" e em app-cliente */
+export function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" = "1"): string {
+  const isDev =
+    (typeof window === "undefined" && process.env.NODE_ENV === "development") ||
+    (typeof window !== "undefined" && window.location?.hostname === "localhost");
+
+  const modeloSubdomains: Record<"1" | "2" | "3", string> = {
+    "1": process.env.NEXT_PUBLIC_MODELO_1_URL || process.env.NEXT_PUBLIC_MODELO_1_SUBDOMAIN || "app1.experimenteai.com.br",
+    "2": process.env.NEXT_PUBLIC_MODELO_2_URL || process.env.NEXT_PUBLIC_MODELO_2_SUBDOMAIN || "app2.experimenteai.com.br",
+    "3": process.env.NEXT_PUBLIC_MODELO_3_URL || process.env.NEXT_PUBLIC_MODELO_3_SUBDOMAIN || "app3.experimenteai.com.br",
+  };
+
+  const portMap: Record<"1" | "2" | "3", string> = {
+    "1": process.env.NEXT_PUBLIC_MODELO_1_PORT || "3004",
+    "2": process.env.NEXT_PUBLIC_MODELO_2_PORT || process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005",
+    "3": process.env.NEXT_PUBLIC_MODELO_3_PORT || "3010",
+  };
+
+  let baseUrl: string;
+  if (isDev) {
+    const devSubdomain = modeloSubdomains[modelo];
+    if (devSubdomain && !devSubdomain.includes("experimenteai.com.br")) {
+      baseUrl = `http://${devSubdomain}`;
+    } else {
+      baseUrl = `http://localhost:${portMap[modelo]}`;
+    }
+  } else {
+    const subdomain = modeloSubdomains[modelo];
+    baseUrl = subdomain.startsWith("http") ? subdomain : `https://${subdomain}`;
+  }
+  return `${baseUrl}/${lojistaId}/login`;
+}
+
 export function buildClientAppShareUrl(lojistaId?: string | null): string {
   const base = buildClientAppUrl();
   if (!lojistaId) {

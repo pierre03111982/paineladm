@@ -307,6 +307,11 @@ body:has(.lojista-layout-root) {
   border-color: oklch(67.3% 0.182 276.935) !important;
 }
 
+/* Cartões KPI do dashboard: borda azul igual ao restante da página */
+.dashboard-kpi-card {
+  border-color: #3b82f6 !important;
+}
+
 /* Regras removidas - não são mais necessárias pois seguimos o padrão de "Últimas Atividades" */
 
 /* Borda laranja apenas para o container principal AnimatedCard */
@@ -410,8 +415,8 @@ body:has(.lojista-layout-root) {
 .rounded-2xl[class*="bg-white"]:not(.animated-card-border):not(button),
 .rounded-2xl[class*="bg-slate"]:not(.animated-card-border):not(button),
 .rounded-2xl[class*="bg-gray"]:not(.animated-card-border):not(button),
-.rounded-xl[class*="bg-white"]:not(.animated-card-border):not(button),
-[class*="bg-white"][class*="shadow"]:not(.animated-card-border):not(button) {
+.rounded-xl[class*="bg-white"]:not(.animated-card-border):not(button):not(.dashboard-kpi-card),
+[class*="bg-white"][class*="shadow"]:not(.animated-card-border):not(button):not(.dashboard-kpi-card) {
   background-color: var(--card-bg) !important;
   border-color: var(--card-border) !important;
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
@@ -448,13 +453,24 @@ button[title="Excluir"] {
   color: inherit;
 }
 
-aside[class*="bg-white"],
-aside[class*="bg-\[#"],
-header[class*="bg-white"],
-header[class*="bg-\[#"] {
+aside[class*="bg-white"]:not(.lojista-sidebar),
+aside[class*="bg-\[#"]:not(.lojista-sidebar),
+header[class*="bg-white"]:not(.lojista-topbar),
+header[class*="bg-\[#"]:not(.lojista-topbar) {
   background-color: var(--card-bg) !important;
   border-color: var(--card-border) !important;
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Barra lateral lojista: azul caneta sólido (não sobrescrever com tema claro) */
+.lojista-sidebar {
+  background-color: #1e3a8a !important;
+}
+
+/* Barra superior lojista: fundo branco, uma única barra; borda inferior grossa e cinza claro */
+.lojista-topbar {
+  background-color: #ffffff !important;
+  border-bottom: 3px solid #e5e7eb !important;
 }
 
 /* ============================================

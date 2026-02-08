@@ -1,6 +1,7 @@
 import { DashboardWrapper } from "./DashboardWrapper";
 import { getDashboardData } from "@/lib/dashboard/build";
 import { getCurrentLojistaId } from "@/lib/auth/lojista-auth";
+import { fetchLojaPerfil } from "@/lib/firestore/server";
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,22 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }
 
   try {
-    const data = await getDashboardData(lojistaId);
-    return <DashboardWrapper data={data} lojistaId={lojistaId} />;
+    const [data, perfil] = await Promise.all([
+      getDashboardData(lojistaId),
+      fetchLojaPerfil(lojistaId).catch(() => null),
+    ]);
+    const lojaNome = perfil?.nome || "";
+    const lojaLogo = perfil?.logoUrl || null;
+    const initials = lojaNome.split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() || "EA";
+    return (
+      <DashboardWrapper
+        data={data}
+        lojistaId={lojistaId}
+        lojaLogo={lojaLogo}
+        lojaNome={lojaNome}
+        initials={initials}
+      />
+    );
   } catch (error: any) {
     console.error("[DashboardPage] Erro ao carregar dados:", error);
     return (

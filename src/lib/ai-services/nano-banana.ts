@@ -1,7 +1,13 @@
 /**
- * Serviço de integração com Google Vertex AI Imagen 3.0/4.0
- * Para geração de cenários/backgrounds personalizados
- * Documentação:
+ * Serviço Vertex AI Imagen 3.0/4.0 — apenas cenários e composição de óculos.
+ *
+ * IMPORTANTE: A imagem principal da composição (Look) no App Modelo 2 é gerada pelo
+ * Gemini 2.5 Flash Image (gemini-flash-image.ts), NÃO por este serviço.
+ * Este arquivo (nano-banana / Imagen) é usado só para:
+ * - Geração de cenários/backgrounds (generateScene)
+ * - Composição pessoa + óculos (generateOculosComposition)
+ *
+ * Documentação Imagen:
  * - Imagen 4.0: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/models/imagen/4-0-generate-001
  * - Imagen 3.0: https://cloud.google.com/vertex-ai/docs/generative-ai/image/generate-images
  */
@@ -9,26 +15,19 @@
 import { APIResponse, SceneGenerationParams, SceneGenerationResult } from "./types";
 
 /**
- * Configuração do Google Imagen
- * Suporta Imagen 3.0 e 4.0
+ * Configuração do Vertex Imagen (usado só para cenários/óculos)
  */
 const IMAGEN_CONFIG = {
   projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || "",
   location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
-  // Pode usar Imagen 4.0 se disponível, senão usa 3.0
-  modelVersion: process.env.IMAGEN_MODEL_VERSION || "imagen-4.0-generate-001", // Imagen 4.0
-  fallbackModelVersion: "imagen-3.0-capability-001", // Fallback para 3.0
-  // Custo oficial por imagem (em USD)
-  // Fonte: https://cloud.google.com/vertex-ai/generative-ai/pricing
-  // Imagen 3: $0.04 por imagem
-  // Imagen 4: Verificar preços atualizados
+  modelVersion: process.env.IMAGEN_MODEL_VERSION || "imagen-4.0-generate-001",
+  fallbackModelVersion: "imagen-3.0-capability-001",
   costPerRequest: parseFloat(process.env.IMAGEN_COST || "0.04"),
 };
 
 /**
- * Cliente para Google Vertex AI Imagen 3.0/4.0
- * Por padrão usa Imagen 4.0 (imagen-4.0-generate-001)
- * Pode ser configurado via IMAGEN_MODEL_VERSION
+ * Cliente Vertex AI Imagen 3.0/4.0. Uso: cenários e óculos apenas.
+ * Imagem da composição (Look) = Gemini 2.5 Flash Image (gemini-flash-image.ts).
  */
 export class ImagenService {
   private projectId: string;
@@ -40,18 +39,12 @@ export class ImagenService {
     this.projectId = IMAGEN_CONFIG.projectId;
     this.location = IMAGEN_CONFIG.location;
     this.modelVersion = IMAGEN_CONFIG.modelVersion;
-    
-    // Monta o endpoint do Imagen conforme documentação oficial
-    // Imagen 4.0: imagen-4.0-generate-001
-    // Imagen 3.0: imagen-3.0-capability-001
     this.endpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this.modelVersion}:predict`;
 
     if (!this.projectId) {
-      console.warn(
-        "[Imagen] GOOGLE_CLOUD_PROJECT_ID não configurado. Serviço em modo mock."
-      );
+      console.warn("[Imagen] GOOGLE_CLOUD_PROJECT_ID não configurado. Serviço em modo mock.");
     } else {
-      console.log(`[Imagen] Usando modelo: ${this.modelVersion}`);
+      console.log(`[Imagen] Vertex Imagen (cenários/óculos): ${this.modelVersion}. Imagem da composição usa Gemini 2.5 Flash Image.`);
     }
   }
 
@@ -102,6 +95,31 @@ export class ImagenService {
         throw new Error("Falha na autenticação. Configure as credenciais do Firebase Admin SDK.");
       }
     }
+  }
+
+  /**
+   * Extrai URL de imagem da prediction do Imagen (suporta bytesBase64Encoded e imageUri).
+   * Imagen 4 pode retornar formato diferente do 3.
+   */
+  private async extractImageUrlFromPrediction(prediction: any, context: string): Promise<string> {
+    const mimeType = prediction.mimeType || "image/png";
+    if (prediction.bytesBase64Encoded) {
+      return `data:${mimeType};base64,${prediction.bytesBase64Encoded}`;
+    }
+    if (prediction.imageUri) {
+      try {
+        const imageResponse = await fetch(prediction.imageUri);
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64 = buffer.toString("base64");
+        return `data:${mimeType};base64,${base64}`;
+      } catch (e) {
+        console.warn("[Imagen] Falha ao baixar imageUri, retornando URI como URL:", e);
+        return prediction.imageUri;
+      }
+    }
+    console.error("[Imagen] ❌ Prediction sem bytesBase64Encoded nem imageUri (" + context + "). Keys:", prediction ? Object.keys(prediction) : []);
+    throw new Error("Resposta da API Imagen não contém imagem gerada. Verifique os logs (prediction keys) e tente outra foto ou prompt.");
   }
 
   /**
@@ -187,17 +205,13 @@ export class ImagenService {
 
       const responseData = await response.json();
       
-      // Processa a resposta
       if (!responseData.predictions || responseData.predictions.length === 0) {
-        throw new Error("Nenhuma imagem gerada pela API");
+        console.error("[Imagen] ❌ Resposta sem predictions. Keys:", Object.keys(responseData));
+        throw new Error("Nenhuma imagem gerada pela API (sem predictions). Verifique conteúdo bloqueado ou limite.");
       }
 
       const prediction = responseData.predictions[0];
-      const imageBase64 = prediction.bytesBase64Encoded;
-
-      // TODO: Fazer upload da imagem para Firebase Storage
-      // Por enquanto, retorna a imagem em base64
-      const imageUrl = `data:${prediction.mimeType || 'image/png'};base64,${imageBase64}`;
+      const imageUrl = await this.extractImageUrlFromPrediction(prediction, "cenário");
 
       const executionTime = Date.now() - startTime;
 
@@ -357,12 +371,12 @@ export class ImagenService {
       const responseData = await response.json();
       
       if (!responseData.predictions || responseData.predictions.length === 0) {
-        throw new Error("Nenhuma imagem gerada pela API");
+        console.error("[Imagen] ❌ Resposta sem predictions (óculos). Keys:", Object.keys(responseData));
+        throw new Error("Nenhuma imagem gerada pela API (sem predictions).");
       }
 
       const prediction = responseData.predictions[0];
-      const imageBase64 = prediction.bytesBase64Encoded;
-      const imageUrl = `data:${prediction.mimeType || 'image/png'};base64,${imageBase64}`;
+      const imageUrl = await this.extractImageUrlFromPrediction(prediction, "óculos");
 
       const executionTime = Date.now() - startTime;
 

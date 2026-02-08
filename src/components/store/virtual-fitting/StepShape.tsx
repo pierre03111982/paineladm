@@ -56,9 +56,10 @@ export function StepShape({
   onNext,
   onBack,
 }: StepShapeProps) {
-  const [bustAdjustment, setBustAdjustment] = useState<number>(initialBust);
-  const [waistAdjustment, setWaistAdjustment] = useState<number>(initialWaist);
-  const [hipAdjustment, setHipAdjustment] = useState<number>(initialHip);
+  const clampToLevel = (v: number): number => Math.max(-2, Math.min(2, Math.round(v)));
+  const [bustAdjustment, setBustAdjustment] = useState<number>(clampToLevel(initialBust));
+  const [waistAdjustment, setWaistAdjustment] = useState<number>(clampToLevel(initialWaist));
+  const [hipAdjustment, setHipAdjustment] = useState<number>(clampToLevel(initialHip));
   const [skinTone, setSkinTone] = useState<string>(initialSkinTone);
 
   // Calcular valores de medida (1-5) a partir dos ajustes (-2 a +2)
@@ -78,9 +79,9 @@ export function StepShape({
     );
   }, [skinToneIndex, height, weight, age, busto, cintura, quadril]);
 
-  const adjustValue = (current: number, delta: number, min: number = -2, max: number = 2): number => {
-    return Math.max(min, Math.min(max, current + delta));
-  };
+  // 5 níveis discretos: -2, -1, 0, +1, +2 (como na referência)
+  const LEVELS = [-2, -1, 0, 1, 2] as const;
+  const adjustByLevel = (current: number, delta: number): number => clampToLevel(current + delta);
 
   const SliderControl = ({
     label,
@@ -91,46 +92,69 @@ export function StepShape({
     value: number;
     onChange: (newValue: number) => void;
   }) => {
-    const percentage = ((value + 2) / 4) * 100; // Converter -2 a +2 para 0-100%
+    const levelIndex = LEVELS.indexOf(clampToLevel(value) as typeof LEVELS[number]);
+    const safeIndex = levelIndex === -1 ? 2 : levelIndex; // 2 = meio (0)
+    const percentage = (safeIndex / (LEVELS.length - 1)) * 100; // 0, 25, 50, 75, 100
 
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium text-slate-700">{label}</label>
-        </div>
+        <label className="block text-sm font-medium text-slate-700">{label}</label>
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => onChange(adjustValue(value, -0.5))}
+            onClick={() => onChange(adjustByLevel(value, -1))}
             disabled={value <= -2}
-            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+            aria-label={`Diminuir ${label}`}
           >
             <Minus className="w-4 h-4" />
           </button>
-          
-          <div className="flex-1 relative">
-            <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+
+          {/* Trilho com 5 marcas (níveis) e handle */}
+          <div className="flex-1 relative flex items-center">
+            <div className="relative w-full h-4 flex items-center">
+              {/* Linha de fundo do trilho */}
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full h-1.5 bg-slate-200 rounded-full" />
+              </div>
+              {/* 5 marcas verticais (ticks) */}
+              <div className="absolute inset-0 flex justify-between items-center px-0.5">
+                {LEVELS.map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-0.5 h-3 bg-slate-400 rounded-full shrink-0"
+                    style={{ marginLeft: i === 0 ? 0 : undefined }}
+                  />
+                ))}
+              </div>
+              {/* Preenchimento até o nível atual (rosa suave) */}
               <div
-                className="h-full bg-gradient-to-r from-red-400 to-pink-500 rounded-full transition-all duration-200"
+                className="absolute left-0 h-1.5 rounded-full bg-rose-300 transition-all duration-200 pointer-events-none"
                 style={{ width: `${percentage}%` }}
               />
+              {/* Handle (bolinha preta) no nível atual */}
+              <div
+                className="absolute w-5 h-5 rounded-full bg-slate-800 border-2 border-white shadow-md transition-all duration-200 pointer-events-none -ml-2.5"
+                style={{ left: `${percentage}%` }}
+              />
+              <input
+                type="range"
+                min={-2}
+                max={2}
+                step={1}
+                value={clampToLevel(value)}
+                onChange={(e) => onChange(clampToLevel(Number(e.target.value)))}
+                className="absolute top-0 left-0 w-full h-4 opacity-0 cursor-pointer"
+              />
             </div>
-            <input
-              type="range"
-              min="-2"
-              max="2"
-              step="0.1"
-              value={value}
-              onChange={(e) => onChange(Number(e.target.value))}
-              className="absolute top-0 left-0 w-full h-3 opacity-0 cursor-pointer"
-            />
           </div>
 
           <button
             type="button"
-            onClick={() => onChange(adjustValue(value, 0.5))}
+            onClick={() => onChange(adjustByLevel(value, 1))}
             disabled={value >= 2}
-            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+            aria-label={`Aumentar ${label}`}
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -140,25 +164,25 @@ export function StepShape({
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Cabeçalho */}
-      <div>
-        <h2 className="text-2xl font-bold text-red-600 mb-2">
+    <div className="h-full flex flex-col p-4 overflow-hidden">
+      {/* Cabeçalho compacto */}
+      <div className="shrink-0 mb-3">
+        <h2 className="text-lg font-bold text-slate-800 mb-1">
           Ajuste o formato do corpo
         </h2>
-        <p className="text-sm text-slate-600">
+        <p className="text-xs text-slate-600">
           Este é o formato aproximado do corpo que geramos com suas medidas. Ajuste somente se for necessário.
         </p>
       </div>
 
-      {/* Layout: Manequim à esquerda, Controles à direita */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Manequim - Imagem Real */}
-        <div className="flex items-center justify-center bg-white rounded-lg p-4 border border-gray-200 min-h-[400px]">
+      {/* Layout: Manequim à esquerda, Controles à direita — sem scroll */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+        {/* Manequim — altura limitada para caber na tela */}
+        <div className="flex items-center justify-center bg-slate-50 rounded-lg p-3 border border-slate-200 min-h-0 max-h-[280px] md:max-h-[320px]">
           <img
             src={mannequinImagePath}
             alt={`Manequim - Pele ${skinToneIndex}, Medidas B${busto}C${cintura}Q${quadril}`}
-            className="max-w-full max-h-[500px] object-contain"
+            className="max-w-full max-h-full object-contain"
             onError={(e) => {
               // Fallback: tentar outras pastas se a imagem não carregar
               const folders = ['A', 'B', 'C', 'D', 'E'];
@@ -176,23 +200,23 @@ export function StepShape({
           />
         </div>
 
-        {/* Controles */}
-        <div className="space-y-6">
-          {/* Paleta de Tons de Pele */}
+        {/* Controles — compactos */}
+        <div className="space-y-3 min-h-0 overflow-auto">
+          {/* Paleta de Tons de Pele (referência imagens) */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
+            <label className="block text-xs font-medium text-slate-700 mb-2">
               Tom de Pele
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {SKIN_TONE_PALETTE.map((tone, index) => (
                 <button
                   key={index}
                   type="button"
                   onClick={() => setSkinTone(tone)}
-                  className={`w-10 h-10 rounded-full border-2 transition-all ${
+                  className={`w-8 h-8 rounded-full border-2 transition-all shrink-0 ${
                     skinTone === tone
-                      ? "border-gray-800 scale-110"
-                      : "border-gray-300"
+                      ? "border-slate-500 scale-110 ring-2 ring-offset-1 ring-slate-300"
+                      : "border-slate-200"
                   }`}
                   style={{ backgroundColor: tone }}
                   title={`Tom ${index + 1}`}
@@ -201,8 +225,8 @@ export function StepShape({
             </div>
           </div>
 
-          {/* Sliders de Ajuste */}
-          <div className="space-y-4">
+          {/* Sliders Busto, Cintura, Quadril */}
+          <div className="space-y-3">
             <SliderControl
               label="Busto"
               value={bustAdjustment}
@@ -222,22 +246,22 @@ export function StepShape({
         </div>
       </div>
 
-      {/* Indicadores de Progresso */}
-      <div className="flex items-center justify-center gap-2 pt-4">
-        <div className="w-3 h-3 rounded-full bg-gray-300" />
-        <div className="w-3 h-3 rounded-full bg-red-500" />
+      {/* Indicadores de progresso — cores suaves */}
+      <div className="flex items-center justify-center gap-2 pt-2 shrink-0">
+        <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+        <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
       </div>
 
-      {/* Botões de Navegação */}
-      <div className="flex gap-3 pt-4">
+      {/* Voltar (fundo claro + letra escura) e Próximo (rosa suave) */}
+      <div className="flex gap-3 pt-3 shrink-0">
         {onBack && (
           <Button
             type="button"
             variant="outline"
             onClick={onBack}
-            className="flex-1"
+            className="flex-1 bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200 hover:text-slate-900 font-semibold"
           >
-            VOLTAR
+            Voltar
           </Button>
         )}
         <Button
@@ -250,9 +274,9 @@ export function StepShape({
               skinTone,
             })
           }
-          className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold"
+          className="flex-1 bg-rose-400 hover:bg-rose-500 text-white font-semibold"
         >
-          PRÓXIMO
+          Próximo
         </Button>
       </div>
     </div>

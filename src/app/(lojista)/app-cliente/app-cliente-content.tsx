@@ -4,67 +4,12 @@ import { useState, useEffect } from "react";
 import { ExternalLink, Copy, Check, QrCode, Smartphone, Download, Star } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { buildClientAppUrlWithModel } from "@/lib/client-app";
 
 type AppClienteContentProps = {
   lojistaId: string;
   perfil: any;
 };
-
-// Função para construir URL do app cliente baseado no modelo
-function buildClientAppUrlWithModel(lojistaId: string, modelo: "1" | "2" | "3" = "1"): string {
-  // Detectar ambiente (client-side e server-side)
-  const isDev = 
-    (typeof window === "undefined" && process.env.NODE_ENV === "development") ||
-    (typeof window !== "undefined" && window.location.hostname === "localhost");
-  
-  // Mapeamento de subdomínios por modelo (PROFISSIONAL)
-  // Prioridade: Variável de ambiente > Subdomínio padrão > Fallback localhost
-  const modeloSubdomains: Record<"1" | "2" | "3", string> = {
-    "1": process.env.NEXT_PUBLIC_MODELO_1_URL || process.env.NEXT_PUBLIC_MODELO_1_SUBDOMAIN || "app1.experimenteai.com.br",
-    "2": process.env.NEXT_PUBLIC_MODELO_2_URL || process.env.NEXT_PUBLIC_MODELO_2_SUBDOMAIN || "app2.experimenteai.com.br",
-    "3": process.env.NEXT_PUBLIC_MODELO_3_URL || process.env.NEXT_PUBLIC_MODELO_3_SUBDOMAIN || "app3.experimenteai.com.br",
-  };
-
-  // Mapeamento de portas por modelo (apenas para desenvolvimento local)
-  const portMap: Record<"1" | "2" | "3", string> = {
-    "1": process.env.NEXT_PUBLIC_MODELO_1_PORT || "3004",
-    "2": process.env.NEXT_PUBLIC_MODELO_2_PORT || process.env.NEXT_PUBLIC_MODELO_2_PORT || "3005",
-    "3": process.env.NEXT_PUBLIC_MODELO_3_PORT || "3010",
-  };
-
-  let baseUrl: string;
-  
-  if (isDev) {
-    // Em desenvolvimento, verificar se há variável de ambiente para subdomínio local
-    // Se não houver, usar localhost com porta
-    const devSubdomain = modeloSubdomains[modelo];
-    if (devSubdomain && !devSubdomain.includes("experimenteai.com.br")) {
-      // Se a variável apontar para um subdomínio local (ex: modelo1.local)
-      baseUrl = `http://${devSubdomain}`;
-    } else {
-      // Fallback: usar localhost com porta
-      baseUrl = `http://localhost:${portMap[modelo]}`;
-    }
-  } else {
-    // Em produção, usar subdomínios profissionais
-    const subdomain = modeloSubdomains[modelo];
-    // Garantir que tenha protocolo https
-    baseUrl = subdomain.startsWith("http") ? subdomain : `https://${subdomain}`;
-  }
-  
-  // Log para debug (apenas em desenvolvimento)
-  if (isDev) {
-    console.log(`[buildClientAppUrlWithModel] Modelo ${modelo}:`, {
-      isDev,
-      baseUrl,
-      lojistaId,
-      finalUrl: `${baseUrl}/${lojistaId}/login`
-    });
-  }
-  
-  // A URL padrão já inclui o ID e acessa os dados da loja
-  return `${baseUrl}/${lojistaId}/login`;
-}
 
 export function AppClienteContent({ lojistaId, perfil }: AppClienteContentProps) {
   // Obter modelo do perfil (padrão: modelo 1)

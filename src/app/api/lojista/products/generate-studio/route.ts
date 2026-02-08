@@ -427,8 +427,8 @@ export async function POST(request: NextRequest) {
         }).join("\n");
         
         const regraCalçadoEPernas = hasCalçado ? `
-**REGRA ESPECIAL — CALÇADO E PERNAS:**
-Se a Imagem 1 (base) NÃO mostrar pernas ou pés: complete o corpo com pernas proporcionais, uma calça que combine e coloque o calçado da(s) imagem(ns) de produto nos pés com APARÊNCIA EXATA (cor, modelo, logotipo, detalhes). Não invente outro calçado.` : "";
+**REGRA ESPECIAL — CALÇADO E PERNAS (proporção corporal natural):**
+Se a Imagem 1 (base) NÃO mostrar pernas ou pés: complete o corpo com ANATOMIA HUMANA NATURAL — pernas com comprimento proporcional ao torso (cerca de metade da altura total do corpo), joelhos e tornozelos em posição correta, pés em escala real em relação ao corpo. NÃO desenhe pernas curtas, distorcidas, grossas demais ou desproporcionais; a figura deve parecer uma pessoa real da cabeça aos pés. Adicione uma calça que combine e coloque o calçado da(s) imagem(ns) de produto nos pés com APARÊNCIA EXATA (cor, modelo, logotipo, detalhes). Não invente outro calçado.` : "";
 
         const refImagens = complementaryProductImageUrls.length > 0
           ? `
@@ -441,6 +441,7 @@ A semelhança dos produtos com as Imagens 2${complementaryProductImageUrls.lengt
         finalPrompt = `**INSTRUÇÃO MESTRE - LOOK COMBINADO — PRODUTO É A PRIORIDADE**
 
 Você recebeu a Foto Modelo Frente (base) e as imagens dos produtos complementares. Sua tarefa: montar um look realista em um cenário que combine, PRIORIZANDO A SEMELHANÇA EXATA DOS PRODUTOS às imagens fornecidas.
+**PROPORÇÃO CORPORAL:** Se a base NÃO mostrar pernas ou pés, complete a figura com ANATOMIA HUMANA NATURAL — pernas com comprimento proporcional ao torso (cerca de metade da altura total do corpo), joelhos e tornozelos em posição correta, pés em escala real. A figura deve parecer uma pessoa real da cabeça aos pés; NÃO pernas curtas, distorcidas ou desproporcionais.
 ${refImagens}
 
 **PRODUTO JÁ NA BASE (não alterar):** ${produtoNome} (${produtoCategoria}).
@@ -451,10 +452,10 @@ ${regraCalçadoEPernas}
 
 **REGRAS OBRIGATÓRIAS:**
 1. **Fidelidade às imagens dos produtos:** Cada produto cuja imagem foi enviada deve aparecer no resultado com a MESMA aparência (cores, formato, logotipos, detalhes). Ex.: se a Imagem 2 é um tênis branco e azul com um logo X, o modelo deve usar exatamente esse tênis, não um similar.
-2. **Completar pernas/calçado:** Se a base não mostra pernas/pés e há calçado nas imagens de produtos: gere pernas proporcionais, uma calça que combine e coloque o calçado com aparência idêntica à imagem do produto.
+2. **Completar pernas/calçado com proporção natural:** Se a base não mostra pernas/pés: gere pernas com ANATOMIA HUMANA NATURAL — comprimento das pernas proporcional ao torso (cerca de metade da altura total), joelhos e tornozelos em posição correta, pés em escala real. NÃO pernas curtas, distorcidas ou desproporcionais. Adicione uma calça que combine e coloque o calçado com aparência idêntica à imagem do produto.
 3. **Cenário:** Pode manter o cenário da base ou usar outro coerente (interior, exterior, estúdio). ${cenarioSelecionado}
 
-**VALIDAÇÕES:** Produto principal preservado; produtos complementares com aparência EXATA das imagens; look completo e natural.`;
+**VALIDAÇÕES:** Produto principal preservado; produtos complementares com aparência EXATA das imagens; look completo e natural; figura com proporção corporal real da cabeça aos pés.`;
       } else {
         // Se não encontrar complementares, usar apenas o manequim
         finalPrompt = mannequinPrompt;
@@ -494,9 +495,9 @@ ${regraCalçadoEPernas}
     // Instrução de sistema para catálogo: regras do manequim E fidelidade ao produto (repetidas para reforço).
     const CATALOG_SYSTEM_INSTRUCTION =
       "You generate catalog product images. RULE 1 — MANNEQUIN: Head and arms are allowed. Legs only 30 cm from waist then cut (no knees, no feet) so the mannequin floats. No visible floor; pure white background #FFFFFF. RULE 2 — PRODUCT: Copy the garment from the input image EXACTLY. Same design, color, texture, straps, buttons, details. On back view: copy straps (alças) exactly, both symmetrical, no distortion at shoulders. Both rules are non-negotiable.";
-    // Look combinado: quando imagens dos produtos são enviadas (Imagem 2, 3...), copiar aparência EXATA. Prioridade = fidelidade aos produtos.
+    // Look combinado: quando imagens dos produtos são enviadas (Imagem 2, 3...), copiar aparência EXATA. Prioridade = fidelidade aos produtos. Proporção corporal natural ao completar pernas.
     const COMBINED_SYSTEM_INSTRUCTION =
-      "You generate a combined look. Image 1 is the base (model wearing main product). If more images are provided (Image 2, 3, ...), they are the COMPLEMENTARY PRODUCTS: you MUST place them on the model with EXACT appearance — same colors, design, logos, and details as in those images. Do NOT substitute with similar or generic items; product fidelity is the top priority. If the base does not show legs/feet and a product image is footwear: complete the body with proportional legs, add complementary pants, and show that exact footwear. Scene may match the base or be another coherent setting. Output: one single coherent photo.";
+      "You generate a combined look. Image 1 is the base (model wearing main product). If more images are provided (Image 2, 3, ...), they are the COMPLEMENTARY PRODUCTS: you MUST place them on the model with EXACT appearance — same colors, design, logos, and details as in those images. Do NOT substitute with similar or generic items; product fidelity is the top priority. BODY PROPORTIONS (when base has no legs/feet): If the base does not show legs or feet, you MUST complete the body with NATURAL HUMAN PROPORTIONS: leg length roughly half of total body height; correct anatomy (thighs, knees, calves, ankles, feet) in correct scale relative to the torso and head; do NOT draw shortened, distorted, oversized, or stubby legs; the figure must look like a real person from head to toe. Add complementary pants/skirt if needed and show the exact footwear from the product image. Scene may match the base or be another coherent setting. Output: one single coherent photo.";
     const catalogOptions =
       tipo === "catalog"
         ? {

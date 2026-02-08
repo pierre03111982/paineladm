@@ -218,14 +218,16 @@ export class VertexTryOnService {
         hasPredictions: !!data.predictions,
         predictionsCount: data.predictions?.length || 0,
         firstPredictionKeys: data.predictions?.[0] ? Object.keys(data.predictions[0]) : [],
+        error: data.error ? String(data.error.message || data.error) : undefined,
       });
       
-      // Log completo da resposta para debug (limitado a 2000 caracteres)
-      const responseStr = JSON.stringify(data, null, 2);
-      console.log("[VertexTryOn] Resposta completa (primeiros 2000 chars):", responseStr.substring(0, 2000));
+      if (data.error?.message) {
+        const msg = data.error.message || "Erro retornado pela API Try-On.";
+        console.error("[VertexTryOn] ❌", msg, data.error);
+        throw new Error(msg);
+      }
 
       // Extrai a imagem gerada da resposta
-      // O Try-On retorna as imagens em predictions[0].bytesBase64Encoded ou predictions[0].imageUri
       const prediction = data.predictions?.[0];
       let imageUrl: string | null = null;
 
@@ -237,37 +239,36 @@ export class VertexTryOnService {
           imageObjectKeys: prediction.image ? Object.keys(prediction.image) : [],
         });
         
-        // Pode retornar como base64 direto
         if (prediction.bytesBase64Encoded) {
           imageUrl = `data:image/png;base64,${prediction.bytesBase64Encoded}`;
-          console.log("[VertexTryOn] ✅ Imagem encontrada em prediction.bytesBase64Encoded, tamanho:", prediction.bytesBase64Encoded.length);
+          console.log("[VertexTryOn] ✅ Imagem em bytesBase64Encoded, tamanho:", prediction.bytesBase64Encoded.length);
         }
-        // Ou como URI do Cloud Storage
         else if (prediction.imageUri) {
           imageUrl = prediction.imageUri;
-          console.log("[VertexTryOn] ✅ Imagem encontrada em prediction.imageUri:", prediction.imageUri.substring(0, 100) + "...");
+          console.log("[VertexTryOn] ✅ Imagem em imageUri:", prediction.imageUri.substring(0, 100) + "...");
         }
-        // Ou dentro de um objeto image
         else if (prediction.image?.bytesBase64Encoded) {
           imageUrl = `data:image/png;base64,${prediction.image.bytesBase64Encoded}`;
-          console.log("[VertexTryOn] ✅ Imagem encontrada em prediction.image.bytesBase64Encoded, tamanho:", prediction.image.bytesBase64Encoded.length);
+          console.log("[VertexTryOn] ✅ Imagem em image.bytesBase64Encoded");
         }
-        // Ou dentro de um objeto imageUri
         else if (prediction.image?.imageUri) {
           imageUrl = prediction.image.imageUri;
-          console.log("[VertexTryOn] ✅ Imagem encontrada em prediction.image.imageUri:", prediction.image.imageUri.substring(0, 100) + "...");
+          console.log("[VertexTryOn] ✅ Imagem em image.imageUri");
         }
         else {
-          console.warn("[VertexTryOn] ⚠️ Nenhum formato de imagem conhecido encontrado na prediction");
-          console.warn("[VertexTryOn] Prediction keys:", Object.keys(prediction));
+          console.warn("[VertexTryOn] ⚠️ Nenhum formato conhecido. Prediction keys:", Object.keys(prediction));
         }
       } else {
-        console.error("[VertexTryOn] ❌ Nenhuma prediction encontrada na resposta!");
+        console.error("[VertexTryOn] ❌ Nenhuma prediction na resposta. Keys:", Object.keys(data));
       }
 
       if (!imageUrl) {
-        console.error("[VertexTryOn] ❌ Resposta completa (para debug):", JSON.stringify(data, null, 2));
-        throw new Error("Resposta da API não contém imagem gerada. Verifique os logs para mais detalhes.");
+        console.error("[VertexTryOn] ❌ Resposta (resumo):", {
+          topKeys: Object.keys(data),
+          predictionsLength: data.predictions?.length,
+          firstPredictionKeys: data.predictions?.[0] ? Object.keys(data.predictions[0]) : [],
+        });
+        throw new Error("Resposta da API não contém imagem gerada. Verifique os logs (prediction keys) e tente outra foto ou peça.");
       }
       
       console.log("[VertexTryOn] ✅ Imagem extraída com sucesso, tipo:", imageUrl.startsWith("data:") ? "base64" : "URI");

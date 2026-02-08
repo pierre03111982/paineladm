@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
 import { getMannequinImagePath } from "@/lib/mannequin-selector";
 import { SKIN_TONE_PALETTE } from "./DynamicMannequin";
 import type { UserPhysicalCharacteristics } from "@/lib/mannequin-selector";
@@ -93,88 +92,6 @@ function getTensionColor(status: TensionStatus): { bg: string; opacity: number }
 // TensionBand removido - agora usamos FitOverlay com SVG
 
 /**
- * Componente de Indicador Lateral (Side Label)
- */
-function SideLabel({
-  top,
-  status,
-  zone,
-}: {
-  top: string;
-  status: TensionStatus | null;
-  zone: "bust" | "waist" | "hip";
-}) {
-  if (!status) return null;
-
-  const labelTexts: Record<TensionStatus, string> = {
-    ideal: "ideal",
-    "levemente justo": "levemente justo",
-    justo: "justo",
-    folgado: "folgado",
-  };
-
-  const iconColors: Record<TensionStatus, string> = {
-    ideal: "bg-green-500",
-    "levemente justo": "bg-yellow-500",
-    justo: "bg-red-500",
-    folgado: "bg-blue-500",
-  };
-
-  const arrowsDirection = status === "folgado" ? "outward" : "inward";
-
-  return (
-    <motion.div
-      className="absolute flex items-center gap-2 -right-[140px]"
-      style={{ top: `calc(${top} - 12px)` }}
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, delay: 0.2 }}
-    >
-      {/* Ícone de Setas */}
-      <div className={`rounded-full p-1.5 ${iconColors[status]}`}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          className="text-white"
-        >
-          {arrowsDirection === "inward" ? (
-            // Setas apontando para dentro <- ->
-            <>
-              <path
-                d="M6 8L4 6M6 8L4 10M10 8L12 6M10 8L12 10"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="8" cy="8" r="1" fill="currentColor" />
-            </>
-          ) : (
-            // Setas apontando para fora -> <-
-            <>
-              <path
-                d="M4 8L6 6M4 8L6 10M12 8L10 6M12 8L10 10"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="8" cy="8" r="1" fill="currentColor" />
-            </>
-          )}
-        </svg>
-      </div>
-      {/* Texto */}
-      <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
-        {labelTexts[status]}
-      </span>
-    </motion.div>
-  );
-}
-
-/**
  * Passo 3: Resultado da recomendação com feedback visual de ajuste
  */
 export function StepResult({
@@ -203,216 +120,157 @@ export function StepResult({
     estimatedMeasurements
   );
 
-  const getFitIcon = (fit: string) => {
-    switch (fit) {
-      case "ideal":
-        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-      case "levemente justo":
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
-      case "justo":
-        return <AlertCircle className="w-5 h-5 text-orange-500" />;
-      case "folgado":
-        return <Info className="w-5 h-5 text-blue-500" />;
-      default:
-        return null;
-    }
-  };
-
   const getFitText = (fit: string) => {
     switch (fit) {
       case "ideal":
-        return "Ideal";
+        return "ideal";
       case "levemente justo":
-        return "Levemente justo";
+        return "levemente justo";
       case "justo":
-        return "Justo";
+        return "apertado";
       case "folgado":
-        return "Folgadinho";
+        return "levemente folgado";
       default:
         return "";
     }
   };
 
+  /** Legenda ao lado do manequim (uma linha por zona) — como nas imagens de referência */
+  const FitLegendLine = ({ status }: { status: TensionStatus | null }) => {
+    if (!status) return null;
+    const iconColors: Record<TensionStatus, string> = {
+      ideal: "bg-green-500",
+      "levemente justo": "bg-amber-500",
+      justo: "bg-red-500",
+      folgado: "bg-amber-500",
+    };
+    return (
+      <div className="flex items-center gap-2">
+        <div className={`rounded-full p-1 ${iconColors[status]}`}>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="text-white">
+            <path d="M4 8L6 6M4 8L6 10M12 8L10 6M12 8L10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <span className="text-xs text-slate-700">{getFitText(status)}</span>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6 p-6">
-      {/* Título da Recomendação */}
-      <div className="text-center">
-        <p className="text-sm font-medium text-slate-600 mb-2">
+    <div className="h-full flex flex-col p-4 overflow-hidden">
+      {/* 1) MELHOR OPÇÃO — só título + card do tamanho + Editar Medidas */}
+      <div className="shrink-0 flex flex-col items-center mb-3">
+        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">
           MELHOR OPÇÃO
         </p>
         {recommendedSize ? (
-          <div className="relative inline-block">
-            <div className="w-32 h-32 bg-white border-2 border-gray-300 rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-5xl font-bold text-slate-900">
-                {recommendedSize}
-              </span>
+          <>
+            <div className="relative">
+              <div className="w-20 h-20 bg-white border-2 border-slate-300 rounded-xl flex items-center justify-center shadow-sm">
+                <span className="text-3xl font-bold text-slate-900">{recommendedSize}</span>
+              </div>
+              <div className="absolute -top-0.5 -right-0.5">
+                <CheckCircle2 className="w-5 h-5 text-green-500 bg-white rounded-full" />
+              </div>
             </div>
-            <div className="absolute -top-2 -right-2">
-              <CheckCircle2 className="w-8 h-8 text-green-500 bg-white rounded-full" />
-            </div>
-          </div>
+            {onEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onEdit}
+                className="mt-2 px-4 py-1.5 text-xs bg-white border-slate-300 text-slate-800 hover:bg-slate-50"
+              >
+                Editar Medidas
+              </Button>
+            )}
+          </>
         ) : (
-          <p className="text-lg text-slate-600">
-            Não foi possível calcular uma recomendação precisa
-          </p>
+          <p className="text-sm text-slate-500">Não foi possível calcular.</p>
         )}
       </div>
 
-      {/* Botão Editar Medidas */}
-      {onEdit && (
-        <div className="flex justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onEdit}
-            className="px-6"
-          >
-            Editar Medidas
-          </Button>
-        </div>
-      )}
-
-      {/* Visualização do Manequim com Faixas de Tensão */}
+      {/* 2) Manequim maior + legenda à direita (faixas mudam conforme tamanho selecionado) */}
       {selectedSize && productMeasurements?.[selectedSize] && userCharacteristics && (
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <MannequinWithTensionBands
-            userCharacteristics={userCharacteristics}
-            skinTone={skinTone || SKIN_TONE_PALETTE[0]}
-            shapeAdjustments={shapeAdjustments || { bust: 0, waist: 0, hip: 0 }}
-            userMeasurements={estimatedMeasurements}
-            productMeasurements={productMeasurements[selectedSize]}
-            bustStatus={bustStatus}
-            waistStatus={waistStatus}
-            hipStatus={hipStatus}
-          />
-        </div>
-      )}
-
-      {/* Feedback de Tensão/Ajuste */}
-      {recommendedSize && productMeasurements?.[recommendedSize] && (
-        <div className="space-y-3 bg-slate-50 rounded-lg p-4 border border-gray-200">
-          <h3 className="text-sm font-semibold text-slate-700">
-            Ajuste em diferentes partes:
-          </h3>
-          
-          <div className="space-y-2">
-            {/* Busto */}
-            {productMeasurements[recommendedSize]["Busto"] && (() => {
-              const status = calculateTensionStatus(
-                estimatedMeasurements.bust,
-                productMeasurements[recommendedSize]["Busto"] || productMeasurements[recommendedSize]["bust"]
-              );
-              if (!status) return null;
-              return (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Busto</span>
-                  <div className="flex items-center gap-2">
-                    {getFitIcon(status)}
-                    <span className="text-slate-700">
-                      {getFitText(status)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Cintura */}
-            {productMeasurements[recommendedSize]["Cintura"] && (() => {
-              const status = calculateTensionStatus(
-                estimatedMeasurements.waist,
-                productMeasurements[recommendedSize]["Cintura"] || productMeasurements[recommendedSize]["waist"]
-              );
-              if (!status) return null;
-              return (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Cintura</span>
-                  <div className="flex items-center gap-2">
-                    {getFitIcon(status)}
-                    <span className="text-slate-700">
-                      {getFitText(status)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Quadril */}
-            {productMeasurements[recommendedSize]["Quadril"] && (() => {
-              const status = calculateTensionStatus(
-                estimatedMeasurements.hip,
-                productMeasurements[recommendedSize]["Quadril"] || productMeasurements[recommendedSize]["hip"]
-              );
-              if (!status) return null;
-              return (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Quadril</span>
-                  <div className="flex items-center gap-2">
-                    {getFitIcon(status)}
-                    <span className="text-slate-700">
-                      {getFitText(status)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
+        <div className="flex-1 min-h-0 flex gap-4 items-stretch">
+          <div className="flex-1 min-w-0 flex items-center justify-center min-h-[200px] max-h-[320px] rounded-lg overflow-hidden bg-slate-50/50">
+            <MannequinWithTensionBands
+              userCharacteristics={userCharacteristics}
+              skinTone={skinTone || SKIN_TONE_PALETTE[0]}
+              shapeAdjustments={shapeAdjustments || { bust: 0, waist: 0, hip: 0 }}
+              userMeasurements={estimatedMeasurements}
+              productMeasurements={productMeasurements[selectedSize]}
+              bustStatus={bustStatus}
+              waistStatus={waistStatus}
+              hipStatus={hipStatus}
+            />
+          </div>
+          <div className="shrink-0 flex flex-col justify-center gap-3">
+            <FitLegendLine status={bustStatus ?? null} />
+            <FitLegendLine status={waistStatus ?? null} />
+            <FitLegendLine status={hipStatus ?? null} />
           </div>
         </div>
       )}
 
-      {/* Seletor de Tamanhos - "Prove Também os Tamanhos" */}
-      {productMeasurements && Object.keys(productMeasurements).length > 0 && (
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-600 text-center">
-            Prove também os tamanhos:
-          </p>
-          <div className="flex items-center justify-center gap-3 overflow-x-auto pb-2 flex-wrap">
-            {Object.keys(productMeasurements).map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => {
-                  setSelectedSize(size);
-                  onTrySize?.(size);
-                }}
-                className={`flex-shrink-0 w-16 h-16 rounded-lg border-2 flex items-center justify-center font-semibold transition-all ${
-                  size === selectedSize
-                    ? "border-slate-900 bg-white text-slate-900 shadow-lg"
-                    : "border-gray-300 bg-transparent text-slate-700 hover:border-red-500"
-                }`}
-              >
-                {size}
+      {/* 3) Prove também os tamanhos — setas + check no recomendado */}
+      {productMeasurements && Object.keys(productMeasurements).length > 0 && (() => {
+        const sizes = Object.keys(productMeasurements);
+        const currentIndex = sizes.indexOf(selectedSize || sizes[0]);
+        const goPrev = () => {
+          const idx = currentIndex <= 0 ? sizes.length - 1 : currentIndex - 1;
+          setSelectedSize(sizes[idx]);
+          onTrySize?.(sizes[idx]);
+        };
+        const goNext = () => {
+          const idx = currentIndex >= sizes.length - 1 ? 0 : currentIndex + 1;
+          setSelectedSize(sizes[idx]);
+          onTrySize?.(sizes[idx]);
+        };
+        return (
+          <div className="shrink-0 space-y-1.5 mt-2">
+            <p className="text-xs font-medium text-slate-600">Prove também os tamanhos:</p>
+            <div className="flex items-center justify-center gap-1">
+              <button type="button" onClick={goPrev} className="p-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 shrink-0" aria-label="Anterior">
+                <ChevronLeft className="w-5 h-5" />
               </button>
-            ))}
+              <div className="flex gap-2 flex-wrap justify-center min-w-0">
+                {sizes.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => { setSelectedSize(size); onTrySize?.(size); }}
+                    className={`relative shrink-0 w-11 h-11 rounded-lg border-2 flex items-center justify-center text-sm font-semibold transition-all ${
+                      size === selectedSize ? "border-slate-600 bg-slate-50 text-slate-800" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    {size}
+                    {size === recommendedSize && (
+                      <span className="absolute -top-0.5 -right-0.5">
+                        <CheckCircle2 className="w-4 h-4 text-green-500 bg-white rounded-full" />
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={goNext} className="p-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 shrink-0" aria-label="Próximo">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
-      {/* Medidas Estimadas (Info) */}
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-        <p className="text-xs text-blue-800 font-medium mb-2">
-          Medidas estimadas:
-        </p>
-        <div className="grid grid-cols-3 gap-2 text-xs text-blue-700">
-          <div>
-            <span className="font-medium">Busto:</span> {estimatedMeasurements.bust}cm
-          </div>
-          <div>
-            <span className="font-medium">Cintura:</span> {estimatedMeasurements.waist}cm
-          </div>
-          <div>
-            <span className="font-medium">Quadril:</span> {estimatedMeasurements.hip}cm
-          </div>
-        </div>
+      {/* 4) Uma linha de medidas (corpo do cliente) */}
+      <div className="shrink-0 flex justify-center gap-4 text-[11px] text-slate-600 mt-1">
+        <span>Busto: {estimatedMeasurements.bust} cm</span>
+        <span>Cintura: {estimatedMeasurements.waist} cm</span>
+        <span>Quadril: {estimatedMeasurements.hip} cm</span>
       </div>
 
-      {/* Botão Fechar */}
+      {/* 5) Fechar */}
       {onClose && (
-        <Button
-          type="button"
-          onClick={onClose}
-          className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold"
-        >
-          FECHAR
+        <Button type="button" onClick={onClose} className="w-full shrink-0 bg-rose-400 hover:bg-rose-500 text-white font-semibold py-2 mt-2">
+          Fechar
         </Button>
       )}
     </div>
@@ -477,17 +335,21 @@ function MannequinWithTensionBands({
   const finalHipStatus = hipStatus ?? calculatedHipStatus;
 
   return (
-    <div className="relative w-full min-h-[400px] flex items-center justify-center">
-      {/* Container principal com posicionamento relativo */}
-      <div className="relative w-64 h-[500px] mx-auto flex items-center justify-center">
-        {/* 1. Imagem Base do Manequim Real */}
+    <div className="relative w-full h-full min-h-[200px] flex items-center justify-center">
+      <div
+        className="relative w-48 md:w-56 lg:w-60 h-full max-h-[300px] mx-auto flex items-center justify-center overflow-hidden"
+        style={{
+          maskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent 100%)",
+        }}
+      >
+        {/* 1. Imagem Base do Manequim */}
         <div className="absolute inset-0 flex items-center justify-center">
           <img
             src={mannequinImagePath}
             alt={`Manequim - Pele ${skinToneIndex}, Medidas B${busto}C${cintura}Q${quadril}`}
-            className="max-w-full max-h-[500px] object-contain"
+            className="max-w-full max-h-full object-contain"
             onError={(e) => {
-              // Fallback: tentar outras pastas se a imagem não carregar
               const folders = ['A', 'B', 'C', 'D', 'E'];
               const currentPath = mannequinImagePath;
               const match = currentPath.match(/f([A-E])/);
@@ -503,17 +365,12 @@ function MannequinWithTensionBands({
           />
         </div>
 
-        {/* 2. Faixas de Tensão (Overlays) - SVG com curvas estilo fita */}
+        {/* 2. Faixas de Tensão — cores mudam conforme tamanho selecionado vs corpo */}
         <FitOverlay
           bustStatus={finalBustStatus}
           waistStatus={finalWaistStatus}
           hipStatus={finalHipStatus}
         />
-
-        {/* 3. Indicadores Laterais (Side Labels) */}
-        <SideLabel top="22%" status={finalBustStatus} zone="bust" />
-        <SideLabel top="38%" status={finalWaistStatus} zone="waist" />
-        <SideLabel top="51%" status={finalHipStatus} zone="hip" />
       </div>
     </div>
   );

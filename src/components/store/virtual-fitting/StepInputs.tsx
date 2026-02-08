@@ -66,18 +66,18 @@ export function StepInputs({
   };
 
   return (
-    <div className="space-y-4 p-4 md:p-5">
-      <div>
-        <h2 className="text-xl md:text-2xl font-bold text-blue-700 mb-1">
+    <div className="h-full flex flex-col p-4 md:p-5 overflow-hidden">
+      <div className="shrink-0">
+        <h2 className="text-base md:text-lg font-bold text-slate-800 mb-0.5">
           Provador Virtual
         </h2>
-        <p className="text-sm text-slate-900">
+        <p className="text-xs text-slate-600">
           Preencha os dados para experimentar este produto
         </p>
       </div>
 
       {/* Seleção de Gênero */}
-      <div>
+      <div className="shrink-0">
         <label className="block text-sm font-semibold text-slate-900 mb-2">
           Gênero
         </label>
@@ -87,8 +87,8 @@ export function StepInputs({
             onClick={() => setGender("female")}
             className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
               gender === "female"
-                ? "bg-linear-to-r from-rose-500 to-pink-500 text-white border border-rose-400 shadow-md"
-                : "bg-slate-50 text-slate-900 border border-slate-400 hover:bg-rose-50"
+                ? "bg-rose-200 text-rose-900 border border-rose-300 shadow-sm"
+                : "bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100"
             }`}
           >
             Feminino
@@ -98,8 +98,8 @@ export function StepInputs({
             onClick={() => setGender("male")}
             className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
               gender === "male"
-                ? "bg-linear-to-r from-sky-500 to-indigo-600 text-white border border-sky-400 shadow-md"
-                : "bg-slate-50 text-slate-900 border border-slate-400 hover:bg-sky-50"
+                ? "bg-sky-200 text-sky-900 border border-sky-300 shadow-sm"
+                : "bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100"
             }`}
           >
             Masculino
@@ -107,7 +107,7 @@ export function StepInputs({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-3 shrink-0">
         {/* Altura */}
         <div>
           <label className="block text-sm font-semibold text-slate-900 mb-1.5">
@@ -182,31 +182,31 @@ export function StepInputs({
         </div>
       </div>
 
-      {/* Indicadores de Progresso */}
-      <div className="flex items-center justify-center gap-2 pt-4">
-        <div className="w-3 h-3 rounded-full bg-red-500" />
-        <div className="w-3 h-3 rounded-full bg-gray-300" />
+      {/* Indicadores de progresso (passo 1 ativo) — cores suaves */}
+      <div className="flex items-center justify-center gap-2 pt-2 shrink-0">
+        <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+        <div className="w-2.5 h-2.5 rounded-full bg-slate-200" />
       </div>
 
-      {/* Botões de Navegação */}
-      <div className="flex gap-3 pt-4">
+      {/* Botões de navegação — contraste legível */}
+      <div className="flex gap-3 pt-3 mt-auto shrink-0">
         {onCancel && (
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="flex-1"
+            className="flex-1 bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200"
           >
-            VOLTAR
+            Voltar
           </Button>
         )}
         <Button
           type="button"
           onClick={handleNext}
-          className="flex-1 bg-linear-to-r from-indigo-600 via-fuchsia-600 to-rose-500 hover:from-indigo-700 hover:via-fuchsia-700 hover:to-rose-600 text-white font-semibold shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex-1 bg-rose-400 hover:bg-rose-500 text-white font-semibold shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
           disabled={!isValid}
         >
-          PRÓXIMO
+          Próximo
         </Button>
       </div>
     </div>

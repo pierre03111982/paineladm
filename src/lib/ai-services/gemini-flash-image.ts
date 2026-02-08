@@ -29,6 +29,28 @@ const GEMINI_FLASH_IMAGE_CONFIG = {
 };
 
 /**
+ * Mensagem amigável quando a API bloqueia por conteúdo (IMAGE_PROHIBITED_CONTENT, SAFETY, etc.)
+ */
+function getBlockedContentUserMessage(finishReason: string | undefined): string {
+  const blocked = (finishReason || "").toUpperCase();
+  if (
+    blocked.includes("IMAGE_PROHIBITED_CONTENT") ||
+    blocked.includes("SAFETY") ||
+    blocked.includes("PROHIBITED")
+  ) {
+    return (
+      "Os filtros de segurança bloquearam a geração. " +
+      "Na maioria das vezes o bloqueio é pelo tipo de produto (ex.: peças de praia). Tente outro produto (blusa, vestido, short etc.). " +
+      "Se persistir: use outra foto (rosto visível, fundo neutro, roupa casual)."
+    );
+  }
+  return (
+    `Resposta da API não contém imagem gerada.${finishReason ? ` Motivo: ${finishReason}.` : ""} ` +
+    "Verifique os logs e tente outra foto ou produtos."
+  );
+}
+
+/**
  * Fila Global para Serializar Requisições de Geração de Imagem
  * Garante que nunca ultrapassemos o limite de 5 RPM (1 requisição a cada 12 segundos)
  */
@@ -417,6 +439,9 @@ export class GeminiFlashImageService {
           // Removido responseModalities - não é suportado pelo Vertex AI endpoint
           // O modelo detecta automaticamente que deve gerar imagens quando recebe imagens de entrada
         },
+        // Google pode ter endurecido os filtros recentemente. Para moda/retail (incl. praia),
+        // relaxamos SEXUALLY_EXPLICIT para BLOCK_ONLY_HIGH: bloqueia só conteúdo realmente explícito,
+        // permite fotos de produto de moda praia (biquíni, maiô) no contexto de provador virtual.
         safetySettings: params.safetySettings || [
           {
             category: "HARM_CATEGORY_HATE_SPEECH",
@@ -432,7 +457,7 @@ export class GeminiFlashImageService {
           },
           {
             category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE",
+            threshold: "BLOCK_ONLY_HIGH", // Moda/retail: permite swimwear; bloqueia apenas conteúdo explícito
           },
         ],
       };
@@ -486,12 +511,27 @@ export class GeminiFlashImageService {
         executionTime,
       });
 
+      // Verificar bloqueio ou erro no nível da resposta (promptFeedback, error)
+      const promptFeedback = data.promptFeedback as any;
+      if (promptFeedback?.blockReason) {
+        const msg = `API bloqueou a geração (${promptFeedback.blockReason}). Tente outro prompt ou imagem.`;
+        console.error("[GeminiFlashImage] ❌", msg, promptFeedback);
+        throw new Error(msg);
+      }
+      if (data.error?.message) {
+        const msg = data.error.message || "Erro retornado pela API.";
+        console.error("[GeminiFlashImage] ❌", msg, data.error);
+        throw new Error(msg);
+      }
+
       // Extrair a imagem gerada da resposta
       let imageUrl: string | null = null;
+      const finishReason = data.candidates?.[0]?.finishReason;
 
       console.log("[GeminiFlashImage] 🔍 Analisando estrutura da resposta:", {
         hasCandidates: !!data.candidates,
         candidatesLength: data.candidates?.length || 0,
+        finishReason,
         firstCandidate: data.candidates?.[0] ? {
           hasContent: !!data.candidates[0].content,
           hasParts: !!data.candidates[0].content?.parts,
@@ -502,7 +542,6 @@ export class GeminiFlashImageService {
       if (data.candidates && data.candidates.length > 0) {
         const candidate = data.candidates[0];
         
-        // Verificar se há finishReason que indique bloqueio
         if (candidate.finishReason && candidate.finishReason !== "STOP") {
           console.warn("[GeminiFlashImage] ⚠️ FinishReason não é STOP:", candidate.finishReason);
         }
@@ -522,7 +561,7 @@ export class GeminiFlashImageService {
           });
 
           for (const part of candidate.content.parts) {
-            // Tentar encontrar imagem em inlineData
+            // Imagem em inlineData.data (formato padrão)
             if (part.inlineData?.data) {
               const mimeType = part.inlineData.mimeType || "image/png";
               imageUrl = `data:${mimeType};base64,${part.inlineData.data}`;
@@ -532,15 +571,21 @@ export class GeminiFlashImageService {
               });
               break;
             }
-            
-            // Verificar se há texto que possa conter URL de imagem
+            // Alternativa: bytesBase64Encoded (algumas APIs Vertex)
+            const base64 = part.inlineData?.bytesBase64Encoded ?? part.inlineData?.bytesBase64;
+            if (base64) {
+              const mimeType = part.inlineData?.mimeType || "image/png";
+              imageUrl = `data:${mimeType};base64,${base64}`;
+              console.log("[GeminiFlashImage] ✅ Imagem encontrada em bytesBase64Encoded");
+              break;
+            }
+            // URL no texto
             if (part.text) {
-              console.log("[GeminiFlashImage] 📝 Texto encontrado na resposta:", part.text.substring(0, 200));
-              // Se o texto contém uma URL de imagem, usar ela
+              console.log("[GeminiFlashImage] 📝 Texto na resposta:", part.text.substring(0, 200));
               const urlMatch = part.text.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp)/i);
               if (urlMatch) {
                 imageUrl = urlMatch[0];
-                console.log("[GeminiFlashImage] ✅ URL de imagem encontrada no texto:", imageUrl);
+                console.log("[GeminiFlashImage] ✅ URL de imagem no texto:", imageUrl);
                 break;
               }
             }
@@ -549,17 +594,15 @@ export class GeminiFlashImageService {
       }
 
       if (!imageUrl) {
-        console.error("[GeminiFlashImage] ❌ Resposta completa da API:", JSON.stringify(data, null, 2));
-        console.error("[GeminiFlashImage] ❌ Estrutura da resposta:", {
-          topLevelKeys: Object.keys(data),
-          candidates: data.candidates?.map((c: any) => ({
-            finishReason: c.finishReason,
-            hasContent: !!c.content,
-            contentKeys: c.content ? Object.keys(c.content) : [],
-            partsCount: c.content?.parts?.length || 0,
-          })),
-        });
-        throw new Error("Resposta da API não contém imagem gerada. Verifique os logs para mais detalhes.");
+        console.error("[GeminiFlashImage] ❌ Resposta sem imagem. finishReason:", finishReason);
+        if (data.candidates?.[0]) {
+          console.error("[GeminiFlashImage] ❌ candidate[0]:", {
+            finishReason: data.candidates[0].finishReason,
+            safetyRatings: data.candidates[0].safetyRatings,
+          });
+        }
+        const userMessage = getBlockedContentUserMessage(finishReason);
+        throw new Error(userMessage);
       }
 
       console.log("[GeminiFlashImage] ✅ Imagem gerada com sucesso", {

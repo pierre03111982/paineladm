@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type IconPageHeaderProps = {
   icon: LucideIcon;
@@ -9,6 +10,7 @@ type IconPageHeaderProps = {
   gradientTo: string;
   shadowColor: string;
   actions?: ReactNode;
+  noMargin?: boolean;
 };
 
 export function IconPageHeader({
@@ -19,11 +21,11 @@ export function IconPageHeader({
   gradientTo,
   shadowColor,
   actions,
+  noMargin,
 }: IconPageHeaderProps) {
   return (
     <div className="w-full">
-      {/* Backdrop para o conteúdo rolar por baixo sem “vazar” */}
-      <div className="neon-card rounded-2xl p-2 mb-2 w-full">
+      <div className={cn("neon-card rounded-2xl p-2 w-full", !noMargin && "mb-2")}>
         <div className="flex items-start gap-2 w-full">
           <div 
             className="rounded-xl p-2 shadow-lg text-white flex-shrink-0"

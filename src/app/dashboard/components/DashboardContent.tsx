@@ -8,6 +8,7 @@ import {
   ExperimentPoint,
   ProductBreakdown,
 } from "../../../lib/mocks/dashboard";
+import Image from "next/image";
 import {
   ArrowUpRight,
   Heart,
@@ -56,6 +57,9 @@ import { StaggeredItem } from "@/components/ui/StaggeredItem";
 type DashboardContentProps = {
   data: DashboardMock;
   lojistaId?: string;
+  lojaLogo?: string | null;
+  lojaNome?: string;
+  initials?: string;
 };
 
 function ExperimentsLineChart({ points }: { points: ExperimentPoint[] }) {
@@ -178,34 +182,16 @@ function CustomersList({ customers }: { customers: ActiveCustomer[] }) {
   );
 }
 
-export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
+export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, initials = "EA" }: DashboardContentProps) {
   const router = useRouter();
 
   // Estados para métricas avançadas
   const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([]);
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(true);
 
-  // FORÇA BRUTA: Aplicar estilos diretamente no DOM para garantir que funcionem
+  // Estilos forçados apenas para cards de produto e elementos com data-force-white (não mexe no grid das métricas)
   useEffect(() => {
     const forceStyles = () => {
-      // Forçar container das métricas a não quebrar linha
-      const metricsContainer = document.querySelector('[data-metrics-container]') as HTMLElement
-      if (metricsContainer) {
-        metricsContainer.style.setProperty('display', 'flex', 'important')
-        metricsContainer.style.setProperty('flex-wrap', 'nowrap', 'important')
-        metricsContainer.style.setProperty('flex-direction', 'row', 'important')
-        metricsContainer.style.setProperty('width', '100%', 'important')
-        metricsContainer.style.setProperty('gap', '8px', 'important')
-      }
-
-      // Forçar largura dos cards de métrica
-      const metricCards = document.querySelectorAll('[data-metric-card]') as NodeListOf<HTMLElement>
-      metricCards.forEach((card) => {
-        card.style.setProperty('width', '16%', 'important')
-        card.style.setProperty('min-width', '120px', 'important')
-        card.style.setProperty('flex-shrink', '0', 'important')
-      })
-
       // Forçar texto branco nos cards de produto
       const productCards = document.querySelectorAll('[data-product-card]') as NodeListOf<HTMLElement>
       productCards.forEach((card) => {
@@ -241,27 +227,26 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     }
   }, [])
 
-  // Auto-refresh do dashboard a cada 20 segundos
+  // Atualizar dados ao abrir a janela/aba (sem loop)
   useEffect(() => {
     if (!lojistaId) return;
 
     const refreshDashboard = () => {
       try {
-        console.log("[DashboardContent] Atualizando dados do dashboard...");
-        // Usar router.refresh() para atualizar os dados do servidor sem recarregar a página inteira
         router.refresh();
       } catch (error) {
         console.error("[DashboardContent] Erro ao atualizar dashboard:", error);
       }
     };
 
-    // Atualizar a cada 15 segundos para garantir que novas imagens apareçam rapidamente
-    const intervalId = setInterval(refreshDashboard, 15000);
-    
-    return () => clearInterval(intervalId);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshDashboard();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [lojistaId, router]);
 
-  // Carregar métricas avançadas
+  // Carregar métricas ao montar e ao voltar à aba (sem loop)
   useEffect(() => {
     const loadMetrics = async () => {
       try {
@@ -279,208 +264,156 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
     };
 
     loadMetrics();
-    
-    // Atualizar métricas a cada 20 segundos também
-    const metricsInterval = setInterval(loadMetrics, 20000);
-    return () => clearInterval(metricsInterval);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadMetrics();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   const colors = getPageHeaderColors('/dashboard');
 
   return (
-    <div className="space-y-3 pb-6">
-      <IconPageHeader
-        icon={LayoutDashboard}
-        title="Dashboard"
-        description="Acompanhe métricas, estatísticas e insights sobre o desempenho da sua loja no provador virtual."
-        gradientFrom={colors.from}
-        gradientTo={colors.to}
-        shadowColor={colors.shadow}
-      />
+    <div className="space-y-3 pb-6 min-w-0 max-w-full">
+      {/* Caixa da logo: 67.67 × 67.67 px; logo ajustada dentro */}
+      <div className="flex items-start gap-3 w-full mb-2">
+        <div
+          className="relative rounded-xl bg-blue-900/30 backdrop-blur-sm shadow-lg border border-blue-800/30 flex items-center justify-center overflow-hidden shrink-0"
+          style={{ width: 67.67, height: 67.67 }}
+        >
+          {lojaLogo ? (
+            <Image
+              src={lojaLogo}
+              alt={lojaNome || "Logo"}
+              fill
+              className="object-contain"
+              sizes="68px"
+              unoptimized={lojaLogo?.startsWith("data:") || lojaLogo?.includes("blob:")}
+            />
+          ) : (
+            <span className="text-white text-sm font-bold">{initials}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0 flex">
+          <IconPageHeader
+            icon={LayoutDashboard}
+            title="Dashboard"
+            description="Acompanhe métricas, estatísticas e insights sobre o desempenho da sua loja no provador virtual."
+            gradientFrom={colors.from}
+            gradientTo={colors.to}
+            shadowColor={colors.shadow}
+            noMargin
+          />
+        </div>
+      </div>
 
-      {/* FASE 1: Pequenas Caixas Coloridas (KPIs) - Estilo Neon NO TOPO */}
-      <section 
-        data-metrics-container
-        style={{ display: 'flex', flexWrap: 'nowrap', gap: '8px', width: '100%' }}
-        className="w-full"
+      {/* Grid único 12 colunas: linha 1 = 6 KPIs (2 col cada), linha 2 = 4 widgets (3 col cada). Mesma largura total, alinhado. */}
+      <section
+        className="grid grid-cols-12 gap-4 w-full min-w-0 max-w-full overflow-hidden mt-4"
+        style={{ gridTemplateColumns: "repeat(12, minmax(0, 1fr))" }}
       >
-        {/* KPI 1: Experimentações Hoje - Verde */}
-        <motion.div 
-          data-metric-card
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0, ease: "easeOut" }}
-          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-emerald-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(16, 185, 129, 0.4), 0 0 60px rgba(16, 185, 129, 0.2)',
-            width: '16%',
-            minWidth: '120px',
-            flexShrink: 0
-          }}
+        {/* ——— Linha 1: 6 KPIs (cada um 2/12 da largura) ——— */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0 }}
+          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
+          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
         >
-          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 shadow-lg shadow-emerald-500/30 text-white">
-            <TrendingUp className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 text-white">
+            <TrendingUp className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
-              {data.metrics.experimentToday}
-            </p>
-            <p className="text-sm font-medium text-slate-600 truncate">
-              Exp. hoje
-            </p>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-2xl font-bold text-slate-900 leading-none truncate">{data.metrics.experimentToday}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">Exp. hoje</p>
           </div>
         </motion.div>
 
-        {/* KPI 2: Últimos 7 Dias - Azul */}
-        <motion.div 
-          data-metric-card
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-blue-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(59, 130, 246, 0.4), 0 0 60px rgba(59, 130, 246, 0.2)',
-            width: '16%',
-            minWidth: '120px',
-            flexShrink: 0
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
+          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
         >
-          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 shadow-lg shadow-blue-500/30 text-white">
-            <MonitorSmartphone className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 text-white">
+            <MonitorSmartphone className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
-              {data.metrics.experimentWeek}
-            </p>
-            <p className="text-sm font-medium text-slate-600 truncate">
-              Últimos 7 dias
-            </p>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-2xl font-bold text-slate-900 leading-none truncate">{data.metrics.experimentWeek}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">Últimos 7 dias</p>
           </div>
         </motion.div>
 
-        {/* KPI 3: Like - Vermelho */}
-        <motion.div 
-          data-metric-card
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-red-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(239, 68, 68, 0.4), 0 0 60px rgba(239, 68, 68, 0.2)',
-            width: '16%',
-            minWidth: '120px',
-            flexShrink: 0
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
+          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
         >
-          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 p-2.5 shadow-lg shadow-red-500/30 text-white">
-            <Heart className="h-5 w-5" style={{ color: '#FFFFFF', fill: '#FFFFFF', stroke: '#FFFFFF' }} />
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 p-2.5 text-white">
+            <Heart className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
-              {data.metrics.likedTotal}
-            </p>
-            <p className="text-sm font-medium text-slate-600 truncate">
-              Like
-            </p>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-2xl font-bold text-slate-900 leading-none truncate">{data.metrics.likedTotal}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">Like</p>
           </div>
         </motion.div>
 
-        {/* KPI 4: Compartilhamentos - Ciano */}
-        <motion.div 
-          data-metric-card
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
-          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-cyan-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(6, 182, 212, 0.4), 0 0 60px rgba(6, 182, 212, 0.2)',
-            width: '16%',
-            minWidth: '120px',
-            flexShrink: 0
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
+          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
         >
-          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 p-2.5 shadow-lg shadow-cyan-500/30 text-white">
-            <Share2 className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-cyan-400 to-cyan-600 p-2.5 text-white">
+            <Share2 className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
-              {data.metrics.sharesTotal}
-            </p>
-            <p className="text-sm font-medium text-slate-600 truncate">
-              Compartilh.
-            </p>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-2xl font-bold text-slate-900 leading-none truncate">{data.metrics.sharesTotal}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">Compartilh.</p>
           </div>
         </motion.div>
 
-        {/* KPI 5: Checkouts - Âmbar */}
-        <motion.div 
-          data-metric-card
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.4, ease: "easeOut" }}
-          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-amber-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.2)',
-            width: '16%',
-            minWidth: '120px',
-            flexShrink: 0
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
+          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
         >
-          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 shadow-lg shadow-amber-500/30 text-white">
-            <ShoppingCart className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 p-2.5 text-white">
+            <ShoppingCart className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
-              {data.metrics.checkoutTotal}
-            </p>
-            <p className="text-sm font-medium text-slate-600 truncate">
-              Checkouts
-            </p>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-2xl font-bold text-slate-900 leading-none truncate">{data.metrics.checkoutTotal}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">Checkouts</p>
           </div>
         </motion.div>
 
-        {/* KPI 6: Total de Produtos - Roxo/Violeta */}
-        <motion.div 
-          data-metric-card
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
-          whileHover={{ y: -2, scale: 1.02, transition: { duration: 0.2 } }}
-          className="neon-card p-4 border-purple-500/70 hover:shadow-lg transition-shadow h-28 flex items-center gap-3" 
-          style={{ 
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.03), 0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(168, 85, 247, 0.2)',
-            width: '16%',
-            minWidth: '120px',
-            flexShrink: 0
-          }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25 }}
+          className="col-span-2 min-w-0 rounded-xl border-2 bg-white p-4 h-28 flex items-center gap-3 transition-shadow dashboard-kpi-card"
+          style={{ boxShadow: "none", borderColor: "#3b82f6" }}
         >
-          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 p-2.5 shadow-lg shadow-purple-500/30 text-white">
-            <Package className="h-5 w-5" style={{ color: '#FFFFFF', stroke: '#FFFFFF' }} />
+          <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 p-2.5 text-white">
+            <Package className="h-5 w-5" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-2xl font-bold text-slate-900 leading-none mb-1">
-              {data.metrics.totalProdutos || 0}
-            </p>
-            <p className="text-sm font-medium text-slate-600 truncate">
-              Produtos
-            </p>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <p className="text-2xl font-bold text-slate-900 leading-none truncate">{data.metrics.totalProdutos ?? 0}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">Produtos</p>
           </div>
         </motion.div>
-      </section>
 
-      {/* FASE 2: Novo Widget Financeiro + Performance Rápida - Todas alinhadas em 4 colunas */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Widget Financeiro */}
-        <div className="h-56">
+        {/* ——— Linha 2: 4 widgets (cada um 3/12 da largura), mesma largura total da linha de cima ——— */}
+        <div className="col-span-12 md:col-span-3 min-w-0 h-56">
           {lojistaId && <FinancialWidget lojistaId={lojistaId} />}
         </div>
-
-        {/* Performance Rápida - Mini Gráficos (3 cards individuais renderizados diretamente) */}
         <DashboardMiniCharts
           experimentsTrend={data.experimentsTrend}
           productBreakdown={data.productBreakdown}
@@ -492,6 +425,7 @@ export function DashboardContent({ data, lojistaId }: DashboardContentProps) {
             checkoutTotal: data.metrics.checkoutTotal,
           }}
           inlineMode={true}
+          gridCellClassName="col-span-12 md:col-span-3 min-w-0"
         />
       </section>
 

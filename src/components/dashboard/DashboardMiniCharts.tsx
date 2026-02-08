@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   AreaChart,
   Area,
@@ -30,6 +31,8 @@ type DashboardMiniChartsProps = {
     checkoutTotal?: number;
   };
   inlineMode?: boolean;
+  /** Em inlineMode: classe da célula no grid do pai (ex.: col-span-3) para alinhar borda direita com a linha de cima */
+  gridCellClassName?: string;
 };
 
 // Cores vibrantes e tecnológicas para o Donut
@@ -47,7 +50,11 @@ export function DashboardMiniCharts({
   productBreakdown,
   metrics,
   inlineMode = false,
+  gridCellClassName,
 }: DashboardMiniChartsProps) {
+  const CellWrapper = gridCellClassName
+    ? ({ children }: { children: ReactNode }) => <div className={`${gridCellClassName} min-w-0`}>{children}</div>
+    : ({ children }: { children: ReactNode }) => <>{children}</>;
   // Validar e preparar dados do gráfico de área
   const trendData = Array.isArray(experimentsTrend) && experimentsTrend.length > 0
     ? experimentsTrend
@@ -102,16 +109,16 @@ export function DashboardMiniCharts({
   // Calcular máximo para o YAxis do bar chart
   const maxValue = Math.max(...approvalData.map(d => d.value), 10);
 
-  // Se inlineMode, retornar os cards diretamente (sem wrapper)
+  // Se inlineMode, retornar os cards (cada um opcionalmente em célula do grid do pai para alinhar à direita)
   if (inlineMode) {
     return (
       <>
-        {/* Card 1: Fluxo de Acessos (Area Chart) */}
+        <CellWrapper>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0 }}
-          className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
+          className="w-full min-w-0 bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
           style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
         >
           <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
@@ -202,13 +209,14 @@ export function DashboardMiniCharts({
             </ResponsiveContainer>
           </div>
         </motion.div>
+        </CellWrapper>
 
-        {/* Card 2: O que eles provam? (Donut Chart) */}
+        <CellWrapper>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
+          className="w-full min-w-0 bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
           style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
         >
           <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
@@ -288,13 +296,14 @@ export function DashboardMiniCharts({
             </div>
           )}
         </motion.div>
+        </CellWrapper>
 
-        {/* Card 3: Aprovação dos Looks (Bar Chart Horizontal) */}
+        <CellWrapper>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
+          className="w-full min-w-0 bg-white rounded-xl shadow-sm p-4 h-56 animated-card-border"
           style={{ border: '1px solid oklch(67.3% 0.182 276.935)', backgroundColor: 'white' }}
         >
           <h3 className="text-sm font-bold text-blue-600 mb-3 flex items-center gap-2">
@@ -383,6 +392,7 @@ export function DashboardMiniCharts({
             </ResponsiveContainer>
           </div>
         </motion.div>
+        </CellWrapper>
       </>
     );
   }

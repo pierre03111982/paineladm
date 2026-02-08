@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const lojistaIdFromQuery = searchParams.get("lojistaId");
     const includeArchived = searchParams.get("includeArchived") === "true";
+    const includeDraft = searchParams.get("includeDraft") === "true";
     
     // Prioridade: query string (modo admin) > usuário logado > env var
     const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
@@ -48,8 +49,10 @@ export async function GET(request: NextRequest) {
       ? produtos 
       : produtos.filter((p) => !p.arquivado);
 
-    // Catálogo do app cliente: só produtos salvos (publicados), nunca rascunho
-    filteredProdutos = filteredProdutos.filter((p) => p.status !== "draft");
+    // Catálogo do app cliente: só produtos publicados. Para editor (ex.: miniaturas look combinado) incluir rascunhos.
+    if (!includeDraft) {
+      filteredProdutos = filteredProdutos.filter((p) => p.status !== "draft");
+    }
 
     // Retornar array direto para compatibilidade com appmelhorado
     // Garantir que sempre retornamos um array, mesmo que vazio

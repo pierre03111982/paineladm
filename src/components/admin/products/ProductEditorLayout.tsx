@@ -559,7 +559,7 @@ export function ProductEditorLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.generatedCatalogImage]);
 
-  // Restaurar produtos dos Looks Combinados 1 e 2 ao abrir para editar
+  // Restaurar produtos dos Looks Combinados 1 e 2 ao abrir para editar (miniaturas nas caixas)
   useEffect(() => {
     const ids1 = initialData?.lookCombinado1ProductIds;
     const ids2 = initialData?.lookCombinado2ProductIds;
@@ -568,7 +568,8 @@ export function ProductEditorLayout({
     let cancelled = false;
     const run = async () => {
       try {
-        const res = await fetch(`/api/lojista/products?lojistaId=${lojistaId}`);
+        // includeDraft=true para que produtos em rascunho também apareçam nas miniaturas
+        const res = await fetch(`/api/lojista/products?lojistaId=${encodeURIComponent(lojistaId)}&includeDraft=true`);
         if (!res.ok || cancelled) return;
         const list: any[] = await res.json();
         const toCombo = (p: any): ProductForCombo => ({
@@ -596,8 +597,7 @@ export function ProductEditorLayout({
     };
     run();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lojistaId, initialData?.lookCombinado1ProductIds?.length, initialData?.lookCombinado2ProductIds?.length]);
+  }, [lojistaId, initialData?.lookCombinado1ProductIds, initialData?.lookCombinado2ProductIds]);
 
   // Manter índice do visualizador de catálogo IA dentro dos limites
   useEffect(() => {
@@ -3176,6 +3176,9 @@ export function ProductEditorLayout({
           ultimaAtualizacao: new Date().toISOString(),
         },
         extraImageUrls: state.extraImages.map(({ idx, url }) => ({ idx, url })),
+        // Produtos usados nos Looks Combinados 1 e 2 — para exibir miniaturas ao editar
+        lookCombinado1ProductIds: [combo1Products[0]?.id, combo1Products[1]?.id].filter((id): id is string => !!id),
+        lookCombinado2ProductIds: [combo2Products[0]?.id, combo2Products[1]?.id].filter((id): id is string => !!id),
       };
 
       // Se produto tem variações, processar e salvar grade de estoque
@@ -4413,7 +4416,7 @@ export function ProductEditorLayout({
                         )}
                       </div>
                     </div>
-                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-purple-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>FOTO FRENTE</div>
+                    <div className="shrink-0 h-11 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-purple-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>FOTO FRENTE</div>
                     <button type="button" onClick={handleGenerateFotoFrente} disabled={studioImages.slot1.generating || !state.rawImageUrl} className="shrink-0 min-h-[32px] py-2 px-2 w-full rounded-lg bg-gradient-to-b from-blue-900 via-blue-600 to-blue-900 hover:from-blue-800 hover:via-blue-500 hover:to-blue-800 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-[10px] font-semibold transition-all" style={{ color: '#ffffff' }} title="Gerar Ghost Mannequin">GERAR IMAGEM</button>
                   </div>
                   {/* Caixa 2: Foto Costas — referência = Foto Costas (extraImages idx 2) */}
@@ -4444,7 +4447,7 @@ export function ProductEditorLayout({
                         )}
                       </div>
                     </div>
-                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-teal-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>FOTO COSTAS</div>
+                    <div className="shrink-0 h-11 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-teal-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>FOTO COSTAS</div>
                     <button type="button" onClick={handleGenerateFotoCostas} disabled={studioImages.slot2.generating || !state.extraImages.find((img) => img.idx === 2)?.url} className="shrink-0 min-h-[32px] py-2 px-2 w-full rounded-lg bg-gradient-to-b from-teal-800 via-teal-600 to-teal-800 hover:from-teal-700 hover:via-teal-500 hover:to-teal-700 disabled:from-slate-400 disabled:via-slate-400 disabled:to-slate-400 disabled:cursor-not-allowed text-[10px] font-semibold transition-all" style={{ color: '#ffffff' }} title="Gerar Ghost Mannequin Costas (referência: Foto Costas)">GERAR IMAGEM</button>
                   </div>
                   {/* Caixa 3 */}
@@ -4475,7 +4478,7 @@ export function ProductEditorLayout({
                         )}
                       </div>
                     </div>
-                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-blue-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO FRENTE</div>
+                    <div className="shrink-0 h-11 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-blue-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO FRENTE</div>
                     <button
                       type="button"
                       onClick={handleGenerateModeloLifestyleFrente}
@@ -4515,7 +4518,7 @@ export function ProductEditorLayout({
                         )}
                       </div>
                     </div>
-                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-amber-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO COSTAS</div>
+                    <div className="shrink-0 h-11 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-amber-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO COSTAS</div>
                     <button
                       type="button"
                       onClick={handleGenerateModeloLifestyleCostas}
@@ -4547,7 +4550,7 @@ export function ProductEditorLayout({
                         <Sparkles className="w-8 h-8 text-rose-500 shrink-0" stroke="#f43f5e" fill="none" strokeWidth={2} />
                       )}
                     </div>
-                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-rose-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>LOOK COMBINADO (1)</div>
+                    <div className="shrink-0 h-11 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-rose-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>LOOK COMBINADO (1)</div>
                   </div>
                   {/* Caixa 6 */}
                   <div className="relative flex flex-col w-full h-full min-h-0 border-2 border-slate-200 rounded-lg overflow-hidden">
@@ -4569,7 +4572,7 @@ export function ProductEditorLayout({
                         <Sparkles className="w-8 h-8 text-indigo-500 shrink-0" stroke="#6366f1" fill="none" strokeWidth={2} />
                       )}
                     </div>
-                    <div className="shrink-0 min-h-[38px] w-full flex items-center justify-center px-2 py-2 text-[10px] font-semibold text-center bg-indigo-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>LOOK COMBINADO (2)</div>
+                    <div className="shrink-0 h-11 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-indigo-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>LOOK COMBINADO (2)</div>
                   </div>
                 </div>
               </div>
@@ -4808,10 +4811,16 @@ export function ProductEditorLayout({
           <div className="mt-4 flex gap-3 items-start">
             {/* Espaçador para alinhar com CAIXA 2 */}
             <div className="flex-1"></div>
-            {/* Botão com largura da CAIXA 1 */}
+            {/* Botão com largura da CAIXA 1 — salva imagens do catálogo + IDs dos looks combinados */}
             <div className="flex-1">
-              <button className="w-full py-2 px-6 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 !text-white text-sm font-bold rounded transition-all shadow-md" style={{ color: '#ffffff' }}>
-                Aprovar e Salvar Todas as Imagens
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full py-2 px-6 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 disabled:opacity-60 disabled:cursor-not-allowed !text-white text-sm font-bold rounded transition-all shadow-md"
+                style={{ color: '#ffffff' }}
+              >
+                {saving ? "Salvando..." : "Aprovar e Salvar Todas as Imagens"}
               </button>
             </div>
             {/* Espaçador para alinhar com CAIXA 3 */}

@@ -1,115 +1,222 @@
- "use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/nav-items";
 
+const FOOTER_HREFS = ["/configuracoes"];
+const MAIN_ITEMS = NAV_ITEMS.filter((i) => !FOOTER_HREFS.includes(i.href));
+const FOOTER_ITEMS = NAV_ITEMS.filter((i) => FOOTER_HREFS.includes(i.href));
+
 type LojistaNavProps = {
   collapsed?: boolean;
+  iconOnly?: boolean;
 };
 
-export default function LojistaNav({ collapsed = false }: LojistaNavProps) {
+function NavItemContent({
+  item,
+  href,
+  active,
+  iconOnly,
+  collapsed,
+}: {
+  item: (typeof NAV_ITEMS)[0];
+  href: string;
+  active: boolean;
+  iconOnly: boolean;
+  collapsed?: boolean;
+}) {
+  const Icon = item.icon;
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  if (iconOnly) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          "relative flex items-center justify-center w-12 h-12 rounded-xl transition-colors",
+          active
+            ? "bg-white/20 text-white"
+            : "text-blue-200 hover:bg-white/10 hover:text-white"
+        )}
+        title={item.label}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        aria-label={item.label}
+      >
+        {active && (
+          <motion.span
+            layoutId="icon-sidebar-active"
+            className="absolute inset-0 rounded-xl bg-white/20"
+            initial={false}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            aria-hidden
+          />
+        )}
+        <Icon className="relative z-10 h-6 w-6 shrink-0" />
+        {/* Tooltip à direita do ícone */}
+        {showTooltip && (
+          <span
+            className="absolute left-full ml-3 z-50 px-2.5 py-1.5 rounded-md bg-slate-800 text-white text-xs font-medium whitespace-nowrap shadow-lg pointer-events-none"
+            role="tooltip"
+          >
+            {item.label}
+          </span>
+        )}
+      </Link>
+    );
+  }
+
+  const isCollapsed = collapsed ?? false;
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "relative flex items-center text-sm font-medium transition-all duration-300 w-full",
+        isCollapsed ? "justify-center px-0 py-1.5" : "gap-2.5 px-3 py-1.5",
+        active
+          ? isCollapsed
+            ? "text-white font-bold"
+            : "text-[#113574] font-bold"
+          : "text-blue-200 hover:text-white hover:translate-x-1"
+      )}
+      style={{ zIndex: 30, position: "relative" }}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-start shrink-0 relative",
+          isCollapsed ? "w-10 h-5 justify-center" : "w-5 h-5"
+        )}
+      >
+        <Icon
+          className={cn(
+            "transition-colors relative z-10 h-5 w-5",
+            active ? (isCollapsed ? "text-white" : "text-[#113574]") : "text-blue-200"
+          )}
+        />
+      </div>
+      {!isCollapsed ? (
+        <span className="truncate flex-1 relative z-10">{item.label}</span>
+      ) : (
+        <span className="hidden" aria-hidden="true">
+          {item.label}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+export default function LojistaNav({ collapsed = false, iconOnly = false }: LojistaNavProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Tentar ler tanto lojistaId quanto lojistald (para compatibilidade com typos)
   const lojistaId = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
 
+  const renderItem = (item: (typeof NAV_ITEMS)[0]) => {
+    const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const href = lojistaId ? `${item.href}?lojistaId=${lojistaId}` : item.href;
+
+    if (iconOnly) {
+      return (
+        <div key={item.href} className="mb-1">
+          <NavItemContent item={item} href={href} active={active} iconOnly />
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={item.href}
+        className="relative"
+        style={{ position: "relative", width: "100%" }}
+      >
+        {active && !collapsed && (
+          <motion.div
+            layoutId="active-nav-background"
+            className="absolute bg-[#f3f4f6]"
+            style={{
+              top: "0",
+              bottom: "0",
+              left: "-16px",
+              right: "-16px",
+              width: "calc(100% + 32px)",
+              borderRadius: "0",
+              zIndex: 1,
+              pointerEvents: "none",
+            }}
+            initial={false}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          />
+        )}
+        <NavItemContent
+          item={item}
+          href={href}
+          active={active}
+          iconOnly={false}
+          collapsed={collapsed}
+        />
+      </div>
+    );
+  };
+
+  if (iconOnly) {
+    return (
+      <nav className="flex flex-1 flex-col items-center w-full" style={{ position: "relative" }}>
+        {/* Menu principal — ícones com espaçamento generoso */}
+        <div className="flex flex-col items-center gap-0">
+          {MAIN_ITEMS.map(renderItem)}
+        </div>
+        {/* Espaço flex para empurrar o menu inferior para a base */}
+        <div className="flex-1 min-h-[24px]" aria-hidden />
+        {/* Menu inferior — configurações fixo na base */}
+        <div className="flex flex-col items-center gap-0 pt-4 border-t border-blue-800/50 w-full">
+          {FOOTER_ITEMS.map(renderItem)}
+        </div>
+      </nav>
+    );
+  }
+
   return (
-    <nav className={cn(
-      "flex flex-col gap-0 relative",
-      collapsed ? "px-0 mt-0" : "px-0 mt-0" // Padding removido, controlado pelo SidebarWrapper
-    )} style={{ position: 'relative' }}>
+    <nav
+      className={cn(
+        "flex flex-col gap-0 relative",
+        collapsed ? "px-0 mt-0" : "px-0 mt-0"
+      )}
+      style={{ position: "relative" }}
+    >
       {NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-        // Preservar lojistaId na URL se estiver presente
-        const href = lojistaId 
-          ? `${item.href}?lojistaId=${lojistaId}`
-          : item.href;
-
+        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const href = lojistaId ? `${item.href}?lojistaId=${lojistaId}` : item.href;
         return (
-          <div key={item.href} className="relative" style={{ position: 'relative', width: '100%' }}>
-            {/* Fundo Ativo (Liquid Tab Effect) - APENAS quando NÃO collapsed */}
+          <div
+            key={item.href}
+            className="relative"
+            style={{ position: "relative", width: "100%" }}
+          >
             {active && !collapsed && (
               <motion.div
                 layoutId="active-nav-background"
                 className="absolute bg-[#f3f4f6]"
                 style={{
-                  // Modo expandido: aba larga arredondada na esquerda
-                  top: '0',
-                  bottom: '0',
-                  left: '-16px',
-                  right: '-16px',
-                  width: 'calc(100% + 32px)',
-                  borderTopLeftRadius: '12px',
-                  borderBottomLeftRadius: '12px',
-                  borderTopRightRadius: '0px',
-                  borderBottomRightRadius: '0px',
+                  top: "0",
+                  bottom: "0",
+                  left: "-16px",
+                  right: "-16px",
+                  width: "calc(100% + 32px)",
+                  borderRadius: "0",
                   zIndex: 1,
-                  pointerEvents: 'none' // Não interceptar cliques
+                  pointerEvents: "none",
                 }}
                 initial={false}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
             )}
-
-            {/* Link com ícone e texto */}
-            <Link
-              href={href}
-              className={cn(
-                "relative flex items-center text-sm font-medium transition-all duration-300 w-full",
-                collapsed 
-                  ? "justify-center px-0 py-1.5" // Centralizado quando collapsed
-                  : "gap-2.5 px-3 py-1.5", // Normal quando expandido - ajustado para caber todas as abas
-                active
-                  ? collapsed 
-                    ? "text-white font-bold" // Branco quando collapsed e ativo
-                    : "text-[#113574] font-bold" // Azul escuro quando expandido e ativo
-                  : "text-blue-200 hover:text-white hover:translate-x-1"
-              )}
-              style={{ zIndex: 30, position: 'relative' }}
-            >
-              {/* Container do ícone com largura fixa para evitar layout shift */}
-              <div className={cn(
-                "flex items-center justify-start shrink-0 relative",
-                collapsed ? "w-10 h-5 justify-center" : "w-5 h-5"
-              )}>
-                <Icon className={cn(
-                  "transition-colors relative z-10",
-                  "h-5 w-5",
-                  active 
-                    ? collapsed 
-                      ? "text-white" // Branco quando collapsed e ativo
-                      : "text-[#113574]" // Azul escuro quando expandido e ativo
-                    : "text-blue-200"
-                )} />
-              </div>
-              
-              {/* Texto - oculto quando collapsed */}
-              {!collapsed ? (
-                <span className="truncate flex-1 relative z-10">
-                  {item.label}
-                </span>
-              ) : (
-                <span className="hidden" aria-hidden="true">
-                  {item.label}
-                </span>
-              )}
-            </Link>
+            <NavItemContent item={item} href={href} active={active} iconOnly={false} collapsed={collapsed} />
           </div>
         );
       })}
     </nav>
   );
 }
-
-
-
-
-
-
-

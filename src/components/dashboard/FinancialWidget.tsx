@@ -68,12 +68,15 @@ export function FinancialWidget({ lojistaId }: FinancialWidgetProps) {
   };
 
   useEffect(() => {
-    if (lojistaId) {
-      loadFinancialData();
-      // Auto-refresh a cada 30 segundos
-      const interval = setInterval(loadFinancialData, 30000);
-      return () => clearInterval(interval);
-    }
+    if (!lojistaId) return;
+    loadFinancialData();
+
+    // Recarregar só quando o usuário voltar à aba (abrir a janela), sem loop
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") loadFinancialData();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, [lojistaId]);
 
   if (loading) {
