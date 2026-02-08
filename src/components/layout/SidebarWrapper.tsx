@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { ChevronLeft, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,7 @@ export function SidebarWrapper({
   return (
     <motion.aside
       className="lojista-sidebar hidden md:flex flex-col relative z-20 h-full min-h-full overflow-x-visible overflow-y-hidden bg-[#1e3a8a]"
-      animate={{ width: isCollapsed ? "80px" : "256px" }}
+      animate={{ width: isCollapsed ? "96px" : "256px" }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       {/* Botão recolher — na borda direita da sidebar, centralizado na barra superior (h-16) */}
@@ -44,9 +45,44 @@ export function SidebarWrapper({
         )}
       </button>
 
+      {/* Logo acima do Dashboard */}
       <div
         className={cn(
-          "flex-1 pt-24 pb-1 relative",
+          "shrink-0 flex items-center justify-center border-b border-blue-800/40",
+          isCollapsed ? "py-4 px-2" : "py-5 px-4"
+        )}
+      >
+        {lojaLogo ? (
+          <div
+            className={cn(
+              "relative rounded-lg overflow-hidden border-2 border-[#1e3a8a]",
+              "shadow-[0_6px_20px_rgba(0,0,0,0.9)]",
+              isCollapsed ? "h-10 w-10" : "h-16 w-16"
+            )}
+          >
+            <Image
+              src={lojaLogo}
+              alt={lojaNome}
+              fill
+              className="object-cover"
+              sizes="(max-width: 256px) 56px, 56px"
+            />
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "rounded-lg flex items-center justify-center font-bold text-white bg-blue-900/60 shadow-inner border-2 border-[#1e3a8a] shadow-[0_6px_20px_rgba(0,0,0,0.9)]",
+              isCollapsed ? "h-10 w-10 text-sm" : "h-16 w-16 text-base"
+            )}
+          >
+            {isCollapsed ? initials.slice(0, 1) : initials}
+          </div>
+        )}
+      </div>
+
+      <div
+        className={cn(
+          "flex-1 pt-3 pb-1 relative",
           isCollapsed ? "px-2" : "px-4"
         )}
         style={{ overflowY: "auto", overflowX: "hidden" }}
