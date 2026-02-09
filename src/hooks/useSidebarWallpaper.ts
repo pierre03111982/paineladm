@@ -47,7 +47,7 @@ export function useWallpaperOptions() {
 
 type SidebarWallpaperContextType = {
   wallpaper: string | null; // filename ou null para padrão
-  previewWallpaper: string | null; // preview temporário (não salvo ainda)
+  previewWallpaper: string | null | undefined; // preview temporário (undefined = sem preview, null = padrão, string = wallpaper customizado)
   setPreviewWallpaper: (filename: string | null) => void;
   saveWallpaper: (lojistaId: string) => Promise<void>;
   loadWallpaper: (lojistaId: string) => Promise<void>;
@@ -57,7 +57,7 @@ const SidebarWallpaperContext = createContext<SidebarWallpaperContextType | null
 
 export function SidebarWallpaperProvider({ children, lojistaId }: { children: React.ReactNode; lojistaId?: string | null }) {
   const [wallpaper, setWallpaper] = useState<string | null>(null);
-  const [previewWallpaper, setPreviewWallpaper] = useState<string | null>(null);
+  const [previewWallpaper, setPreviewWallpaper] = useState<string | null | undefined>(undefined);
 
   // Carregar wallpaper salvo do Firestore
   const loadWallpaper = async (lojistaId: string) => {
@@ -74,7 +74,7 @@ export function SidebarWallpaperProvider({ children, lojistaId }: { children: Re
 
   // Salvar wallpaper no Firestore
   const saveWallpaper = async (lojistaId: string) => {
-    const wallpaperToSave = previewWallpaper;
+    const wallpaperToSave = previewWallpaper !== undefined ? previewWallpaper : wallpaper;
     try {
       const res = await fetch("/api/lojista/sidebar-wallpaper", {
         method: "POST",
@@ -83,7 +83,7 @@ export function SidebarWallpaperProvider({ children, lojistaId }: { children: Re
       });
       if (res.ok) {
         setWallpaper(wallpaperToSave);
-        setPreviewWallpaper(null); // Limpar preview após salvar
+        setPreviewWallpaper(undefined); // Limpar preview após salvar (voltar para undefined = sem preview)
       } else {
         throw new Error("Erro ao salvar wallpaper");
       }
@@ -100,8 +100,9 @@ export function SidebarWallpaperProvider({ children, lojistaId }: { children: Re
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lojistaId]);
 
-  // Usar preview se existir, senão usar o wallpaper salvo
-  const activeWallpaper = previewWallpaper !== null ? previewWallpaper : wallpaper;
+  // Usar preview se existir (mesmo que seja null para padrão), senão usar o wallpaper salvo
+  // Se previewWallpaper foi definido (undefined = sem preview, null = padrão, string = customizado), usar ele; caso contrário usar wallpaper salvo
+  const activeWallpaper = previewWallpaper !== undefined ? previewWallpaper : wallpaper;
 
   const contextValue: SidebarWallpaperContextType = {
     wallpaper: activeWallpaper,

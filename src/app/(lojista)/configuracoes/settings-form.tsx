@@ -398,7 +398,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {/* Logo da Loja */}
       <div className="neon-card rounded-2xl p-6">
         <div className="flex items-start gap-6">
@@ -669,7 +669,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
       </div>
 
       {/* FASE 5: Card de Assinatura */}
-      <Link href="/configuracoes/assinatura">
+      <Link href="/configuracoes/assinatura" className="block mt-8">
         <div className="neon-card rounded-2xl p-6 hover:shadow-lg transition-all cursor-pointer border-2 border-indigo-200 hover:border-indigo-400">
           <div className="flex items-start gap-6">
             <div className="flex-shrink-0">
@@ -715,8 +715,17 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         ) : (
           <div className="flex flex-wrap gap-0.5 mb-4">
             {wallpaperOptions.map((option) => {
-              const isSelected = (previewWallpaper !== null ? previewWallpaper : perfil?.settings?.sidebarWallpaper || null) === option.filename;
               const isDefault = option.id === "default";
+              // Determinar qual wallpaper está ativo: preview temporário ou o salvo no perfil
+              // Se previewWallpaper é undefined, não há preview ativo, usar o salvo
+              // Se previewWallpaper é null, está em preview de padrão
+              // Se previewWallpaper é string, está em preview de wallpaper customizado
+              const activeWallpaper = previewWallpaper !== undefined ? previewWallpaper : (perfil?.settings?.sidebarWallpaper || null);
+              // Para "Padrão", está selecionado se activeWallpaper for null ou vazio
+              // Para outros, está selecionado se o filename corresponder
+              const isSelected = isDefault 
+                ? (activeWallpaper === null || activeWallpaper === "")
+                : (activeWallpaper === option.filename);
               
               return (
                 <button
@@ -731,9 +740,18 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
                   style={{ width: '140px', flexShrink: 0 }}
                 >
                   {isDefault ? (
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-900 flex items-center justify-center">
-                      <span className="text-white text-[11px] font-semibold px-1 text-center">Padrão</span>
-                    </div>
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center">
+                        <span className="text-white text-[11px] font-semibold px-1 text-center drop-shadow-lg">Padrão</span>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 bg-indigo-500 rounded-full p-1 shadow-lg">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <>
                       <div className="absolute inset-0 w-full h-full">
@@ -773,7 +791,7 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
         )}
 
         {/* Botão Salvar Wallpaper */}
-        {previewWallpaper !== null && previewWallpaper !== (perfil?.settings?.sidebarWallpaper || null) && (
+        {previewWallpaper !== undefined && previewWallpaper !== (perfil?.settings?.sidebarWallpaper || null) && (
           <div className="flex justify-end gap-3 mb-4">
             <Button
               type="button"
