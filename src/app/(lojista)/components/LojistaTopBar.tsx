@@ -2,42 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
-import { Search, Zap, Eye, Plus, ChevronRight } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Search, Zap, Eye, Plus, LayoutDashboard } from "lucide-react";
 import { buildClientAppUrlWithModel } from "@/lib/client-app";
 import { cn } from "@/lib/utils";
-
-const BREADCRUMB_LABELS: Record<string, string> = {
-  dashboard: "Dashboard",
-  produtos: "Produtos",
-  novo: "Novo",
-  editar: "Editar",
-  clientes: "Clientes",
-  pedidos: "Pedidos",
-  crm: "Radar",
-  composicoes: "Composições",
-  simulador: "Simulador",
-  configuracoes: "Configurações",
-  assinatura: "Assinatura",
-  display: "Display",
-  "app-cliente": "App Cliente",
-  integracoes: "Integrações",
-  monitoramento: "Monitoramento",
-  "redes-sociais": "Redes Sociais",
-  compartilhamento: "Compartilhamento",
-};
-
-function getBreadcrumbs(pathname: string): { href: string; label: string }[] {
-  const segments = pathname.split("/").filter(Boolean);
-  const result: { href: string; label: string }[] = [{ href: "/dashboard", label: "Home" }];
-  let acc = "";
-  for (const seg of segments) {
-    acc += `/${seg}`;
-    const label = BREADCRUMB_LABELS[seg] || seg;
-    result.push({ href: acc, label });
-  }
-  return result;
-}
 
 type LojistaTopBarProps = {
   isCollapsed: boolean;
@@ -52,15 +20,12 @@ export function LojistaTopBar({
   lojistaId,
   appModel = "1",
 }: LojistaTopBarProps) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const lojistaIdFromUrl = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
   const effectiveLojistaId = lojistaIdFromUrl || lojistaId;
 
   const [credits, setCredits] = useState<number | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(false);
-
-  const breadcrumbs = getBreadcrumbs(pathname || "/dashboard");
 
   const fetchCredits = useCallback(async () => {
     if (!effectiveLojistaId) return;
@@ -84,27 +49,42 @@ export function LojistaTopBar({
 
   return (
     <header className="lojista-topbar shrink-0 h-16 w-full min-w-0 flex items-center z-30 overflow-x-hidden bg-white">
-      {/* ESQUERDA: Breadcrumbs — margem esquerda para não ficar embaixo do botão recolher */}
-      <div className="flex items-center min-w-0 shrink-0 w-[min(28rem,100%)] pl-10 pr-4">
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1 min-w-0">
-          {breadcrumbs.map((item, i) => (
-            <span key={`${item.href}-${i}`} className="flex items-center gap-1 min-w-0">
-              {i > 0 && (
-                <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" aria-hidden />
-              )}
-              {i === breadcrumbs.length - 1 ? (
-                <span className="text-sm font-medium text-gray-900 truncate">{item.label}</span>
-              ) : (
-                <Link
-                  href={item.href}
-                  className="text-sm text-gray-500 hover:text-gray-700 truncate"
-                >
-                  {item.label}
-                </Link>
-              )}
-            </span>
-          ))}
-        </nav>
+      {/* ESQUERDA: Título Painel do Lojista */}
+      <div className="flex items-center min-w-0 shrink-0 pl-10 pr-4">
+        <svg width="0" height="0" style={{ position: "absolute" }}>
+          <defs>
+            <linearGradient id="gradient-icon" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#06b6d4" />
+              <stop offset="50%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="flex items-center gap-2.5">
+          <div 
+            className="h-5 w-5 shrink-0"
+            style={{
+              color: "transparent",
+            }}
+          >
+            <LayoutDashboard 
+              className="h-5 w-5" 
+              strokeWidth={2}
+              style={{
+                stroke: "url(#gradient-icon)",
+                fill: "none",
+              }}
+            />
+          </div>
+          <h1 
+            className="text-lg font-semibold bg-clip-text text-transparent"
+            style={{
+              backgroundImage: "linear-gradient(135deg, #06b6d4, #3b82f6, #a855f7)",
+            }}
+          >
+            Painel do Lojista
+          </h1>
+        </div>
       </div>
 
       {/* CENTRO: Busca global — lupa em coluna à esquerda para nunca sobrepor o texto */}

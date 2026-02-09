@@ -198,6 +198,15 @@ export function SidebarWrapper({
       >
         <LojistaNav collapsed={isCollapsed} />
       </div>
+
+      {/* Rodapé: Powered by Experimente AI ® */}
+      {!isCollapsed && (
+        <div className="shrink-0 px-4 pb-4 pt-2 relative z-10 border-t border-white/10">
+          <p className="text-xs text-white/60 text-center">
+            Powered by <span className="font-semibold text-white/80">Experimente AI</span> ®
+          </p>
+        </div>
+      )}
     </motion.aside>
   );
 }

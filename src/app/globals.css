@@ -1253,8 +1253,16 @@ header h1.text-3xl {
   -webkit-text-stroke: none !important;
   text-stroke: none !important;
   background: none !important;
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
+}
+
+/* Exceção para o título do Painel do Lojista - gradiente colorido sem sombra */
+.lojista-topbar h1 {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+  background: linear-gradient(135deg, #06b6d4, #3b82f6, #a855f7) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
 }
 
 /* ============================================
