@@ -53,6 +53,8 @@ export type ProdutoDoc = {
   stock_quantity?: number;
   /** Rascunho (em edição) ou publicado. Omitido = publicado para compatibilidade. */
   status?: "draft" | "published";
+  /** Exibir este produto no display da loja (slides de promoção). Imagem usada: Modelo Frente (catalogImageUrls[2]). */
+  exibirNoDisplay?: boolean;
 };
 
 export type DislikeReason = "garment_style" | "fit_issue" | "ai_distortion" | "other";

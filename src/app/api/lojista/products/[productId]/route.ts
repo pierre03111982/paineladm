@@ -83,6 +83,7 @@ export async function PATCH(
       imagemUrlCombinada,
       catalogImageUrls,
       imagemMedidasCustomizada,
+      exibirNoDisplay,
       status,
       extraImageUrls,
       lookCombinado1ProductIds,
@@ -159,6 +160,9 @@ export async function PATCH(
     }
     if (status === "draft" || status === "published") {
       updateData.status = status;
+    }
+    if (typeof exibirNoDisplay === "boolean") {
+      updateData.exibirNoDisplay = exibirNoDisplay;
     }
     if (Array.isArray(extraImageUrls)) {
       updateData.extraImageUrls = extraImageUrls.filter(

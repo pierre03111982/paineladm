@@ -164,6 +164,7 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
           : []),
       ativo: produtoSerializado.ativo !== undefined ? produtoSerializado.ativo : true,
       destaquePromocional: produtoSerializado.destaquePromocional || false,
+      exibirNoDisplay: produtoSerializado.exibirNoDisplay || false,
       unidadeMedida: produtoSerializado.unidadeMedida || "UN",
     },
     // Carregar variações e estado de variações

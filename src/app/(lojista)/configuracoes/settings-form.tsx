@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Image as ImageIcon, MessageCircle, ShoppingCart, Loader2, CreditCard, ArrowRight } from "lucide-react";
+import { Upload, X, Image as ImageIcon, MessageCircle, ShoppingCart, Loader2, CreditCard, ArrowRight, Palette } from "lucide-react";
 import { ModeloAppSelector } from "./components/modelo-app-selector";
 import Link from "next/link";
+import { useSidebarWallpaper, useWallpaperOptions } from "@/hooks/useSidebarWallpaper";
 
 type LojaPerfil = {
   nome?: string | null;
@@ -40,6 +41,13 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
   const [appIconPreview, setAppIconPreview] = useState<string | null>(perfil?.app_icon_url || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const appIconInputRef = useRef<HTMLInputElement>(null);
+  
+  // Hook para gerenciar wallpaper da sidebar
+  const { previewWallpaper, setPreviewWallpaper, saveWallpaper } = useSidebarWallpaper();
+  const [isSavingWallpaper, setIsSavingWallpaper] = useState(false);
+  
+  // Carregar wallpapers dinamicamente da pasta
+  const { wallpapers: wallpaperOptions, loading: loadingWallpapers } = useWallpaperOptions();
   
   // Formatação: nome em caixa alta
   const handleNomeChange = (value: string) => {
@@ -680,6 +688,123 @@ export function ConfiguracoesForm({ lojistaId, perfil }: ConfiguracoesFormProps)
           </div>
         </div>
       </Link>
+
+      {/* Seção de Aparência - Wallpaper da Sidebar */}
+      <div className="neon-card rounded-2xl p-6">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 p-3 shadow-lg shadow-purple-500/30 text-white">
+            <Palette className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-[var(--text-main)] mb-2">Aparência da Sidebar</h3>
+            <p className="text-sm font-medium text-[var(--text-secondary)] leading-relaxed">
+              Escolha um papel de parede personalizado para a barra lateral. Clique em uma miniatura para visualizar e depois clique em "Salvar" para aplicar.
+            </p>
+          </div>
+        </div>
+
+        {/* Grid de Miniaturas */}
+        {loadingWallpapers ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+            <span className="ml-2 text-sm text-gray-600">Carregando wallpapers...</span>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-0.5 mb-4">
+            {wallpaperOptions.map((option) => {
+              const isSelected = (previewWallpaper !== null ? previewWallpaper : perfil?.settings?.sidebarWallpaper || null) === option.filename;
+              const isDefault = option.id === "default";
+              
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setPreviewWallpaper(isDefault ? null : option.filename)}
+                  className={`relative group rounded-lg overflow-hidden border-2 transition-all aspect-[9/16] p-0 ${
+                    isSelected
+                      ? "border-indigo-500 ring-2 ring-indigo-500/50 shadow-lg"
+                      : "border-gray-300 hover:border-indigo-400"
+                  }`}
+                  style={{ width: '140px', flexShrink: 0 }}
+                >
+                  {isDefault ? (
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-900 flex items-center justify-center">
+                      <span className="text-white text-[11px] font-semibold px-1 text-center">Padrão</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 w-full h-full">
+                        <img
+                          src={encodeURI(option.thumbnail)}
+                          alt={`Wallpaper ${option.id}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback se a imagem não existir
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                            const parent = target.parentElement;
+                            if (parent && !parent.querySelector(".error-message")) {
+                              const errorDiv = document.createElement("div");
+                              errorDiv.className = "error-message w-full h-full bg-gray-200 flex items-center justify-center text-[10px] text-gray-500";
+                              errorDiv.textContent = "Imagem não encontrada";
+                              parent.appendChild(errorDiv);
+                            }
+                          }}
+                        />
+                        {/* Overlay escuro para preview */}
+                        <div className="absolute inset-0 bg-black/60" />
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 bg-indigo-500 rounded-full p-1 shadow-lg">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Botão Salvar Wallpaper */}
+        {previewWallpaper !== null && previewWallpaper !== (perfil?.settings?.sidebarWallpaper || null) && (
+          <div className="flex justify-end gap-3 mb-4">
+            <Button
+              type="button"
+              onClick={async () => {
+                setIsSavingWallpaper(true);
+                try {
+                  await saveWallpaper(lojistaId);
+                  alert("Wallpaper salvo com sucesso!");
+                  // Recarregar a página para atualizar o perfil
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 500);
+                } catch (error) {
+                  console.error("[SettingsForm] Erro ao salvar wallpaper:", error);
+                  alert("Erro ao salvar wallpaper. Tente novamente.");
+                } finally {
+                  setIsSavingWallpaper(false);
+                }
+              }}
+              disabled={isSavingWallpaper}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold px-6 py-2 rounded-xl transition-all shadow-lg shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSavingWallpaper ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar Wallpaper"
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Botão Salvar */}
       <div className="flex justify-end gap-3">

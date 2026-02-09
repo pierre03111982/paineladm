@@ -251,7 +251,7 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
   };
 
   return (
-    <AnimatedCard className="p-5 mb-4 bg-white border border-slate-200/80">
+    <AnimatedCard className="p-5 mb-4 bg-white border border-slate-200/80 h-full flex flex-col">
       {/* Header com Ícone de IA */}
       <div className="flex items-center gap-3 mb-5">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100/50">

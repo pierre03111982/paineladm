@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       imagemUrlCombinada,
       catalogImageUrls,
       imagemMedidasCustomizada,
+      exibirNoDisplay,
       // Rascunho: status 'draft' permite criar com dados mínimos
       status,
       // Objeto completo da análise IA (rascunho / edição)
@@ -220,6 +221,9 @@ export async function POST(request: NextRequest) {
     }
     if (status === "draft" || status === "published") {
       produtoData.status = status;
+    }
+    if (typeof exibirNoDisplay === "boolean") {
+      produtoData.exibirNoDisplay = exibirNoDisplay;
     }
     if (Array.isArray(extraImageUrls) && extraImageUrls.length > 0) {
       produtoData.extraImageUrls = extraImageUrls.map((e: any) =>

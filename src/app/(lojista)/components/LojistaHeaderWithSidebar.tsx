@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 import { LojistaTopBar } from "./LojistaTopBar";
 import { AnimatedPageWrapper } from "./AnimatedPageWrapper";
+import { SidebarWallpaperProvider } from "@/hooks/useSidebarWallpaper";
 
 type LojistaHeaderWithSidebarProps = {
   blueGradient: string;
@@ -27,16 +28,17 @@ export function LojistaHeaderWithSidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
-      <div className="shrink-0 h-full relative z-40">
-        <SidebarWrapper
-          lojaLogo={lojaLogo}
-          lojaNome={lojaNome}
-          initials={initials}
-          isCollapsed={isCollapsed}
-          onToggleSidebar={() => setIsCollapsed((v) => !v)}
-        />
-      </div>
+    <SidebarWallpaperProvider lojistaId={lojistaId}>
+      <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
+        <div className="shrink-0 h-full relative z-40">
+          <SidebarWrapper
+            lojaLogo={lojaLogo}
+            lojaNome={lojaNome}
+            initials={initials}
+            isCollapsed={isCollapsed}
+            onToggleSidebar={() => setIsCollapsed((v) => !v)}
+          />
+        </div>
 
       <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden">
         <LojistaTopBar
@@ -46,7 +48,7 @@ export function LojistaHeaderWithSidebar({
           appModel={appModel}
         />
         <main
-          className="flex-1 min-h-0 flex flex-col overflow-hidden bg-[#f3f4f6] relative z-10"
+          className="flex-1 min-h-0 flex flex-col overflow-hidden bg-white relative z-10"
           style={{
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.7)",
           }}
@@ -56,6 +58,7 @@ export function LojistaHeaderWithSidebar({
           </div>
         </main>
       </div>
-    </div>
+      </div>
+    </SidebarWallpaperProvider>
   );
 }

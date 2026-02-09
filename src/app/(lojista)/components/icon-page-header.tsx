@@ -13,7 +13,7 @@ type IconPageHeaderProps = {
   noMargin?: boolean;
 };
 
-export function IconPageHeader({
+function IconPageHeader({
   icon: Icon,
   title,
   description,
@@ -53,3 +53,4 @@ export function IconPageHeader({
   );
 }
 
+export { IconPageHeader };

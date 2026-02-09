@@ -302,21 +302,15 @@ body:has(.lojista-layout-root) {
 /* ============================================
    CARDS E CONTAINERS
    ============================================ */
-/* AnimatedCard com cor de borda específica */
-/* Caixas do dashboard (gráficos etc.): sombra bem escura para efeito de flutuação */
-.animated-card-border {
+/* Contorno atrás (caixa deslocada) + elevação suave em TODOS os cards do dashboard */
+.animated-card-border,
+.dashboard-kpi-card,
+.neon-card {
   border: none !important;
   box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.18),
-    0 18px 40px rgba(0, 0, 0, 0.38) !important;
-}
-
-/* Cartões KPI do dashboard: sombra bem escura para efeito de flutuação */
-.dashboard-kpi-card {
-  border: none !important;
-  box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.18),
-    0 18px 40px rgba(0, 0, 0, 0.38) !important;
+    4px 4px 0px 0px rgba(0, 0, 0, 0.18),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* Cada caixa do dashboard: acima das sombras das outras (estático) + transição para o hover */
@@ -338,15 +332,17 @@ body:has(.lojista-layout-root) {
 .dashboard-page .animated-card-border:hover {
   transform: translateY(-6px) !important;
   box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.22),
-    0 28px 56px rgba(0, 0, 0, 0.45) !important;
+    6px 10px 0px 0px rgba(0, 0, 0, 0.2),
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 25px rgba(0, 0, 0, 0.08) !important;
 }
 
 .dashboard-page .neon-card:hover {
   transform: translateY(-6px) !important;
   box-shadow:
-    0 14px 28px rgba(0, 0, 0, 0.22),
-    0 28px 56px rgba(0, 0, 0, 0.45),
+    6px 10px 0px 0px rgba(0, 0, 0, 0.2),
+    0 4px 6px rgba(0, 0, 0, 0.07),
+    0 10px 25px rgba(0, 0, 0, 0.08),
     0 0 20px rgba(99, 102, 241, 0.25),
     0 0 40px rgba(99, 102, 241, 0.1) !important;
 }
@@ -501,9 +497,9 @@ header[class*="bg-\[#"]:not(.lojista-topbar) {
   transition: background-color 0.3s ease, border-color 0.3s ease !important;
 }
 
-/* Barra lateral lojista: azul caneta sólido (não sobrescrever com tema claro) */
+/* Barra lateral lojista: fundo com gradiente escuro e blobs geométricos (permitir estilo inline) */
 .lojista-sidebar {
-  background-color: #1e3a8a !important;
+  /* Background será definido inline no componente para permitir gradiente + blobs */
 }
 
 /* Barra superior lojista: fundo branco, uma única barra; borda inferior grossa e cinza claro */
@@ -529,6 +525,14 @@ header[class*="bg-\[#"]:not(.lojista-topbar) {
   color: #1E293B !important;
   transition: all 0.2s ease;
   position: relative;
+}
+
+/* Dashboard: card do título e demais neon-cards com o mesmo contorno deslocado (caixa atrás) */
+.dashboard-page .neon-card {
+  box-shadow:
+    4px 4px 0px 0px rgba(0, 0, 0, 0.18),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(0, 0, 0, 0.06) !important;
 }
 
 .neon-card > div,

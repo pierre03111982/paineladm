@@ -70,6 +70,7 @@ export interface ProductEditorState {
     cores: string[];
     ativo: boolean;
     destaquePromocional: boolean;
+    exibirNoDisplay: boolean;
     unidadeMedida?: string;
     descontoProduto?: string;
     tags?: string;
@@ -399,6 +400,7 @@ export function ProductEditorLayout({
       cores: [],
       ativo: true,
       destaquePromocional: false,
+      exibirNoDisplay: false,
       unidadeMedida: "UN",
       descontoProduto: "",
       tags: "",
@@ -2228,6 +2230,7 @@ export function ProductEditorLayout({
       // Produtos usados nos Looks Combinados 1 e 2 (para exibir ao editar)
       lookCombinado1ProductIds: [combo1Products[0]?.id, combo1Products[1]?.id].filter((id): id is string => !!id),
       lookCombinado2ProductIds: [combo2Products[0]?.id, combo2Products[1]?.id].filter((id): id is string => !!id),
+      exibirNoDisplay: state.manualData.exibirNoDisplay,
     };
     if (produtoId) {
       const res = await fetch(`/api/lojista/products/${produtoId}?lojistaId=${lojistaId}`, {
@@ -3154,6 +3157,7 @@ export function ProductEditorLayout({
         sku: state.manualData.sku || "",
         ativo: state.manualData.ativo,
         destaquePromocional: state.manualData.destaquePromocional,
+        exibirNoDisplay: state.manualData.exibirNoDisplay,
         unidadeMedida: state.manualData.unidadeMedida || "UN",
         lojistaId: lojistaId,
         // Campos individuais da análise IA (compatibilidade)
@@ -5183,6 +5187,30 @@ export function ProductEditorLayout({
                         <span
                           className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
                             state.manualData.destaquePromocional ? "translate-x-6" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-slate-700">
+                        Exibir no display da loja
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setState(prev => ({
+                            ...prev,
+                            manualData: { ...prev.manualData, exibirNoDisplay: !prev.manualData.exibirNoDisplay },
+                          }))
+                        }
+                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                          state.manualData.exibirNoDisplay ? "bg-blue-500" : "bg-slate-300"
+                        }`}
+                        title="Ativa este produto para aparecer nos slides do display (usa imagem Modelo Frente)"
+                      >
+                        <span
+                          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                            state.manualData.exibirNoDisplay ? "translate-x-6" : "translate-x-0"
                           }`}
                         />
                       </button>

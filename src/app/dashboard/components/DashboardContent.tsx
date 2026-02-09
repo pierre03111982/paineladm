@@ -48,6 +48,7 @@ import {
   Bar,
 } from "recharts";
 import { AIInsightsFeed } from "@/components/dashboard/AIInsightsFeed";
+import { DisplayPreview } from "@/components/dashboard/DisplayPreview";
 import { DashboardMiniCharts } from "@/components/dashboard/DashboardMiniCharts";
 import { FinancialWidget } from "@/components/dashboard/FinancialWidget";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
@@ -423,8 +424,19 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
         />
       </section>
 
-      {/* FASE 2: Cérebro da Loja - Feed de Insights da IA */}
-      {lojistaId && <AIInsightsFeed lojistaId={lojistaId} />}
+      {/* FASE 2: Insights + Display lado a lado — bases alinhadas (mesma altura, Display encostado embaixo) */}
+      {lojistaId && (
+        <section className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+          <div className="flex-1 min-w-0 order-2 lg:order-1 flex flex-col min-h-0">
+            <div className="flex-1 min-h-0">
+              <AIInsightsFeed lojistaId={lojistaId} />
+            </div>
+          </div>
+          <div className="shrink-0 order-1 lg:order-2 flex flex-col justify-end">
+            <DisplayPreview lojistaId={lojistaId} />
+          </div>
+        </section>
+      )}
 
       {/* FASE 2: Grid 3 Caixas Lado a Lado - 4-4-4 colunas */}
       <section className="grid grid-cols-12 gap-3 h-[500px]">

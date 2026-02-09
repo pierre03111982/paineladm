@@ -62,6 +62,9 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
   // Debug fields
   _debugSource?: string;
   _rawAppModel?: any;
+  settings?: {
+    sidebarWallpaper?: string | null;
+  } | null;
 } | null> {
   try {
     if (!lojistaId) {
@@ -95,6 +98,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         planBillingStatus: data?.financials?.billing_status || data?.planBillingStatus || null,
         subscription: data?.subscription || null,
         usageMetrics: data?.usageMetrics || null,
+        settings: data?.settings || null,
         _debugSource: "perfil/dados",
         _rawAppModel: data?.appModel
       };
@@ -124,6 +128,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         planBillingStatus: lojaData?.financials?.billing_status || lojaData?.planBillingStatus || null,
         subscription: lojaData?.subscription || null,
         usageMetrics: lojaData?.usageMetrics || null,
+        settings: lojaData?.settings || null,
         _debugSource: "lojas/{id}",
         _rawAppModel: lojaData?.appModel
         };
@@ -153,6 +158,7 @@ export async function fetchLojaPerfil(lojistaId: string): Promise<{
         planBillingStatus: data?.financials?.billing_status || data?.planBillingStatus || null,
         subscription: data?.subscription || null,
         usageMetrics: data?.usageMetrics || null,
+        settings: data?.settings || null,
         _debugSource: "perfil/publico",
         _rawAppModel: data?.appModel
       };
@@ -189,6 +195,9 @@ export async function updateLojaPerfil(
       salesWhatsapp?: string | null;
       checkoutLink?: string | null;
       whatsappMessageTemplate?: string | null;
+    };
+    settings?: {
+      sidebarWallpaper?: string | null;
     };
   }
 ): Promise<void> {
@@ -237,6 +246,18 @@ export async function updateLojaPerfil(
         salesWhatsapp: updateData.salesConfig.salesWhatsapp || null,
         checkoutLink: updateData.salesConfig.checkoutLink || null,
         whatsappMessageTemplate: updateData.salesConfig.whatsappMessageTemplate || null,
+      };
+    }
+
+    // Settings (incluindo sidebarWallpaper) - fazer merge com settings existentes
+    if (updateData.settings !== undefined) {
+      // Buscar settings existentes para fazer merge
+      const perfilAtual = await fetchLojaPerfil(lojistaId);
+      const settingsExistentes = perfilAtual?.settings || {};
+      
+      cleanData.settings = {
+        ...settingsExistentes,
+        ...(updateData.settings.sidebarWallpaper !== undefined && { sidebarWallpaper: updateData.settings.sidebarWallpaper }),
       };
     }
 
@@ -523,6 +544,7 @@ export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
         updatedAt: convertTimestamp(data?.updatedAt),
         arquivado: data?.arquivado === true,
         status: data?.status === "draft" ? "draft" : data?.status === "published" ? "published" : undefined,
+        exibirNoDisplay: data?.exibirNoDisplay === true,
         imagemUrlCatalogo: typeof data?.imagemUrlCatalogo === "string" ? data.imagemUrlCatalogo : undefined,
         imagemUrlOriginal: typeof data?.imagemUrlOriginal === "string" ? data.imagemUrlOriginal : undefined,
         imagemUrlCombinada: typeof data?.imagemUrlCombinada === "string" ? data.imagemUrlCombinada : undefined,
@@ -584,6 +606,7 @@ export async function createProduto(
     observacoes?: string;
     medidas?: string;
     status?: "draft" | "published";
+    exibirNoDisplay?: boolean;
     imagemUrlOriginal?: string;
     imagemUrlCatalogo?: string;
     imagemUrlCombinada?: string;
@@ -620,6 +643,9 @@ export async function createProduto(
     }
     if (produtoData.status === "draft" || produtoData.status === "published") {
       newProduto.status = produtoData.status;
+    }
+    if (produtoData.exibirNoDisplay === true) {
+      newProduto.exibirNoDisplay = true;
     }
     if (typeof produtoData.imagemUrlOriginal === "string") {
       newProduto.imagemUrlOriginal = produtoData.imagemUrlOriginal;
@@ -727,6 +753,7 @@ export async function updateProduto(
     medidas?: string;
     arquivado?: boolean;
     status?: "draft" | "published";
+    exibirNoDisplay?: boolean;
     imagemUrlOriginal?: string;
     imagemUrlCatalogo?: string;
     imagemUrlCombinada?: string;
@@ -756,6 +783,7 @@ export async function updateProduto(
     if (updateData.imagemUrl !== undefined) update.imagemUrl = updateData.imagemUrl;
     if (updateData.medidas !== undefined) update.medidas = updateData.medidas;
     if (updateData.status !== undefined) update.status = updateData.status;
+    if (updateData.exibirNoDisplay !== undefined) update.exibirNoDisplay = !!updateData.exibirNoDisplay;
     if (updateData.imagemUrlOriginal !== undefined) update.imagemUrlOriginal = updateData.imagemUrlOriginal;
     if (updateData.imagemUrlCatalogo !== undefined) update.imagemUrlCatalogo = updateData.imagemUrlCatalogo;
     if (updateData.imagemUrlCombinada !== undefined) update.imagemUrlCombinada = updateData.imagemUrlCombinada;
