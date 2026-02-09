@@ -26,6 +26,9 @@ type LojaPerfil = {
     checkoutLink?: string | null;
     whatsappMessageTemplate?: string | null;
   } | null;
+  settings?: {
+    sidebarWallpaper?: string | null;
+  } | null;
 };
 
 type ConfiguracoesFormProps = {

@@ -228,26 +228,7 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
     }
   }, [])
 
-  // Atualizar dados ao abrir a janela/aba (sem loop)
-  useEffect(() => {
-    if (!lojistaId) return;
-
-    const refreshDashboard = () => {
-      try {
-        router.refresh();
-      } catch (error) {
-        console.error("[DashboardContent] Erro ao atualizar dashboard:", error);
-      }
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") refreshDashboard();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [lojistaId, router]);
-
-  // Carregar métricas ao montar e ao voltar à aba (sem loop)
+  // Carregar métricas apenas uma vez ao montar o componente
   useEffect(() => {
     const loadMetrics = async () => {
       try {
@@ -264,13 +245,15 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
       }
     };
 
+    // Carregar apenas uma vez ao montar
     loadMetrics();
 
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") loadMetrics();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
+    // Atualizar apenas a cada 5 minutos (sem piscar)
+    const intervalId = setInterval(() => {
+      loadMetrics();
+    }, 5 * 60 * 1000); // 5 minutos
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const colors = getPageHeaderColors('/dashboard');

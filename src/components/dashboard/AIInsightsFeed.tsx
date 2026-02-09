@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   AlertTriangle, 
   TrendingUp, 
@@ -39,134 +39,10 @@ type DisplayInsight = {
 export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
   const [insights, setInsights] = useState<DisplayInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  useEffect(() => {
-    const fetchInsights = async () => {
-      if (!lojistaId) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-
-        const response = await fetch(`/api/ai/insights?lojistaId=${encodeURIComponent(lojistaId)}&limit=3`);
-        
-        if (!response.ok) {
-          throw new Error("Erro ao carregar insights");
-        }
-
-        const data = await response.json();
-        let insightsData: InsightDoc[] = data.insights || [];
-
-        console.log("[AIInsightsFeed] Insights recebidos do Firestore:", {
-          count: insightsData.length,
-          lojistaId,
-        });
-
-        // SEMPRE tentar gerar novos insights primeiro (forçar uso do novo motor)
-        // Isso garante que sempre usaremos dados reais atualizados
-        console.log("[AIInsightsFeed] 🔄 Forçando regeneração com novo motor de inteligência...");
-        
-        try {
-          const generateResponse = await fetch('/api/ai/generate-insights', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lojistaId }),
-          });
-          
-          if (generateResponse.ok) {
-            const generateData = await generateResponse.json();
-            console.log("[AIInsightsFeed] ✅ Novos insights gerados:", {
-              insightsCreated: generateData.insightsCreated,
-              insightsCount: generateData.insights?.length || 0,
-            });
-            
-            if (generateData.insights && generateData.insights.length > 0) {
-              // Usar insights diretamente da resposta (gerados com o novo motor)
-              const displayInsights = generateData.insights.map((insight: any) => {
-                return convertToDisplayInsight({
-                  id: insight.id || `new-${Date.now()}-${Math.random()}`,
-                  type: insight.type,
-                  title: insight.title,
-                  message: insight.message,
-                  priority: insight.priority,
-                  createdAt: new Date(),
-                  expiresAt: new Date(Date.now() + (insight.expiresInDays || 7) * 24 * 60 * 60 * 1000),
-                  isRead: false,
-                } as InsightDoc);
-              });
-              
-              console.log("[AIInsightsFeed] ✅ Exibindo novos insights gerados:", displayInsights.length);
-              setInsights(displayInsights);
-              setLoading(false);
-              return;
-            }
-          } else {
-            const errorData = await generateResponse.json().catch(() => ({}));
-            console.error("[AIInsightsFeed] ❌ Erro ao gerar insights:", errorData);
-            
-            // Se falhar na geração, buscar insights do Firestore (fallback)
-            // Mas filtrar apenas os mais recentes (últimas 2 horas)
-            const now = new Date();
-            const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-            const recentInsights = insightsData.filter(insight => {
-              const createdAt = insight.createdAt instanceof Date ? insight.createdAt : new Date(insight.createdAt);
-              return createdAt >= twoHoursAgo;
-            });
-            
-            if (recentInsights.length > 0) {
-              console.log("[AIInsightsFeed] ⚠️ Usando insights recentes do Firestore como fallback:", recentInsights.length);
-              const displayInsights = recentInsights.map(insight => convertToDisplayInsight(insight));
-              setInsights(displayInsights);
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (generateError) {
-          console.error("[AIInsightsFeed] ❌ Erro ao gerar insights:", generateError);
-          
-          // Fallback: usar insights recentes se houver
-          const now = new Date();
-          const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-          const recentInsights = insightsData.filter(insight => {
-            const createdAt = insight.createdAt instanceof Date ? insight.createdAt : new Date(insight.createdAt);
-            return createdAt >= twoHoursAgo;
-          });
-          
-          if (recentInsights.length > 0) {
-            console.log("[AIInsightsFeed] ⚠️ Usando insights recentes como fallback:", recentInsights.length);
-            const displayInsights = recentInsights.map(insight => convertToDisplayInsight(insight));
-            setInsights(displayInsights);
-            setLoading(false);
-            return;
-          }
-        }
-        
-        // Se não houver insights gerados nem recentes, mostrar mensagem informativa
-        console.log("[AIInsightsFeed] ⚠️ Nenhum insight disponível, exibindo mensagem informativa");
-        setInsights([getInfoMessage()]);
-      } catch (err: any) {
-        console.error("[AIInsightsFeed] Erro ao carregar insights:", err);
-        // Em caso de erro, mostrar mensagem informativa
-        setInsights([getInfoMessage()]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInsights();
-
-    // Recarregar só quando o usuário voltar à aba (abrir a janela), sem loop
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") fetchInsights();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [lojistaId]);
-
-  // Converter InsightDoc para DisplayInsight
-  const convertToDisplayInsight = (insight: InsightDoc): DisplayInsight => {
+  // Converter InsightDoc para DisplayInsight (memoizado)
+  const convertToDisplayInsight = useCallback((insight: InsightDoc): DisplayInsight => {
     const typeMap: Record<InsightType, { icon: "alert" | "user" | "trending", color: any }> = {
       risk: {
         icon: "alert",
@@ -219,7 +95,123 @@ export function AIInsightsFeed({ lojistaId }: AIInsightsFeedProps) {
       description: insight.message,
       color: config.color
     };
-  };
+  }, []);
+
+  // Carregar insights apenas uma vez ao montar o componente
+  useEffect(() => {
+    if (!lojistaId || hasLoaded) return;
+
+    const fetchInsights = async () => {
+      try {
+        setLoading(true);
+
+        // Buscar insights existentes primeiro (mais rápido)
+        const response = await fetch(`/api/ai/insights?lojistaId=${encodeURIComponent(lojistaId)}&limit=3`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          let insightsData: InsightDoc[] = data.insights || [];
+
+          // Filtrar apenas insights recentes (últimas 6 horas)
+          const now = new Date();
+          const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+          const recentInsights = insightsData.filter(insight => {
+            const createdAt = insight.createdAt instanceof Date ? insight.createdAt : new Date(insight.createdAt);
+            return createdAt >= sixHoursAgo;
+          });
+
+          if (recentInsights.length > 0) {
+            console.log("[AIInsightsFeed] ✅ Usando insights recentes:", recentInsights.length);
+            const displayInsights = recentInsights.map(insight => convertToDisplayInsight(insight));
+            setInsights(displayInsights);
+            setLoading(false);
+            setHasLoaded(true);
+            return;
+          }
+        }
+
+        // Se não houver insights recentes, tentar gerar novos (apenas uma vez)
+        console.log("[AIInsightsFeed] 🔄 Gerando novos insights...");
+        try {
+          const generateResponse = await fetch('/api/ai/generate-insights', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lojistaId }),
+          });
+          
+          if (generateResponse.ok) {
+            const generateData = await generateResponse.json();
+            
+            if (generateData.insights && generateData.insights.length > 0) {
+              const displayInsights = generateData.insights.map((insight: any) => {
+                return convertToDisplayInsight({
+                  id: insight.id || `new-${Date.now()}-${Math.random()}`,
+                  type: insight.type,
+                  title: insight.title,
+                  message: insight.message,
+                  priority: insight.priority,
+                  createdAt: new Date(),
+                  expiresAt: new Date(Date.now() + (insight.expiresInDays || 7) * 24 * 60 * 60 * 1000),
+                  isRead: false,
+                } as InsightDoc);
+              });
+              
+              setInsights(displayInsights);
+              setLoading(false);
+              setHasLoaded(true);
+              return;
+            }
+          }
+        } catch (generateError) {
+          console.error("[AIInsightsFeed] ❌ Erro ao gerar insights:", generateError);
+        }
+        
+        // Se não houver insights, mostrar mensagem informativa
+        setInsights([getInfoMessage()]);
+      } catch (err: any) {
+        console.error("[AIInsightsFeed] Erro ao carregar insights:", err);
+        setInsights([getInfoMessage()]);
+      } finally {
+        setLoading(false);
+        setHasLoaded(true);
+      }
+    };
+
+    fetchInsights();
+  }, [lojistaId, hasLoaded, convertToDisplayInsight]);
+
+  // Atualizar apenas a cada 5 minutos (sem piscar) - apenas após o primeiro carregamento
+  useEffect(() => {
+    if (!hasLoaded || !lojistaId) return;
+
+    const fetchInsights = async () => {
+      try {
+        const response = await fetch(`/api/ai/insights?lojistaId=${encodeURIComponent(lojistaId)}&limit=3`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          let insightsData: InsightDoc[] = data.insights || [];
+
+          const now = new Date();
+          const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+          const recentInsights = insightsData.filter(insight => {
+            const createdAt = insight.createdAt instanceof Date ? insight.createdAt : new Date(insight.createdAt);
+            return createdAt >= sixHoursAgo;
+          });
+
+          if (recentInsights.length > 0) {
+            const displayInsights = recentInsights.map(insight => convertToDisplayInsight(insight));
+            setInsights(displayInsights);
+          }
+        }
+      } catch (err) {
+        console.error("[AIInsightsFeed] Erro ao atualizar insights:", err);
+      }
+    };
+
+    const intervalId = setInterval(fetchInsights, 5 * 60 * 1000); // 5 minutos
+    return () => clearInterval(intervalId);
+  }, [hasLoaded, lojistaId, convertToDisplayInsight]);
 
   // Mensagem informativa quando não houver insights
   const getInfoMessage = (): DisplayInsight => {

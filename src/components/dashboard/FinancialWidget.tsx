@@ -69,14 +69,16 @@ export function FinancialWidget({ lojistaId }: FinancialWidgetProps) {
 
   useEffect(() => {
     if (!lojistaId) return;
+    
+    // Carregar apenas uma vez ao montar o componente
     loadFinancialData();
 
-    // Recarregar só quando o usuário voltar à aba (abrir a janela), sem loop
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") loadFinancialData();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
+    // Atualizar apenas a cada 3 minutos (sem piscar)
+    const intervalId = setInterval(() => {
+      loadFinancialData();
+    }, 3 * 60 * 1000); // 3 minutos
+
+    return () => clearInterval(intervalId);
   }, [lojistaId]);
 
   if (loading) {
