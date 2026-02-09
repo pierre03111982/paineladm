@@ -151,37 +151,43 @@ export function SidebarWrapper({
       {/* Logo acima do Dashboard */}
       <div
         className={cn(
-          "shrink-0 flex items-center justify-center border-b border-blue-800/40 relative z-10",
+          "shrink-0 flex items-center justify-center relative z-10",
           isCollapsed ? "py-4 px-2" : "py-5 px-4"
         )}
       >
         {lojaLogo ? (
           <div
             className={cn(
-              "relative rounded-lg overflow-hidden border-2 border-[#1e3a8a]",
-              "shadow-[0_6px_20px_rgba(0,0,0,0.9)]",
-              isCollapsed ? "h-10 w-10" : "h-16 w-16"
+              "relative overflow-visible bg-transparent",
+              isCollapsed ? "h-14 w-14" : "h-28 w-28"
             )}
+            style={{ backgroundColor: 'transparent' }}
           >
             <Image
               src={lojaLogo}
               alt={lojaNome}
               fill
-              className="object-cover"
-              sizes="(max-width: 256px) 56px, 56px"
+              className="object-contain"
+              sizes="(max-width: 256px) 112px, 112px"
+              style={{ backgroundColor: 'transparent' }}
             />
           </div>
         ) : (
           <div
             className={cn(
-              "rounded-lg flex items-center justify-center font-bold text-white bg-blue-900/60 shadow-inner border-2 border-[#1e3a8a] shadow-[0_6px_20px_rgba(0,0,0,0.9)]",
-              isCollapsed ? "h-10 w-10 text-sm" : "h-16 w-16 text-base"
+              "rounded-lg flex items-center justify-center font-bold text-white bg-blue-900/60 shadow-[0_6px_20px_rgba(0,0,0,0.9)]",
+              isCollapsed ? "h-14 w-14 text-sm" : "h-28 w-28 text-lg"
             )}
           >
             {isCollapsed ? initials.slice(0, 1) : initials}
           </div>
         )}
       </div>
+
+      {/* Linha abaixo da logo */}
+      {!isCollapsed && (
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-white/50 to-transparent mb-2" style={{ zIndex: 10 }} />
+      )}
 
       <div
         className={cn(

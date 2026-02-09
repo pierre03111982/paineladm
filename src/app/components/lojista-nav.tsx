@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/nav-items";
@@ -114,9 +115,10 @@ export default function LojistaNav({ collapsed = false, iconOnly = false }: Loji
   const searchParams = useSearchParams();
   const lojistaId = searchParams?.get("lojistaId") || searchParams?.get("lojistald");
 
-  const renderItem = (item: (typeof NAV_ITEMS)[0]) => {
+  const renderItem = (item: (typeof NAV_ITEMS)[0], index?: number, totalItems?: number) => {
     const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
     const href = lojistaId ? `${item.href}?lojistaId=${lojistaId}` : item.href;
+    const isLastItem = index !== undefined && totalItems !== undefined && index === totalItems - 1;
 
     if (iconOnly) {
       return (
@@ -135,7 +137,7 @@ export default function LojistaNav({ collapsed = false, iconOnly = false }: Loji
         {active && !collapsed && (
           <motion.div
             layoutId="active-nav-background"
-            className="absolute bg-[#f3f4f6]"
+            className="absolute"
             style={{
               top: "0",
               bottom: "0",
@@ -145,6 +147,8 @@ export default function LojistaNav({ collapsed = false, iconOnly = false }: Loji
               borderRadius: "0",
               zIndex: 1,
               pointerEvents: "none",
+              backgroundColor: "#ffffff",
+              boxShadow: "inset -10px 0 20px -6px rgba(0, 0, 0, 0.7)",
             }}
             initial={false}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -166,13 +170,13 @@ export default function LojistaNav({ collapsed = false, iconOnly = false }: Loji
       <nav className="flex flex-1 flex-col items-center w-full" style={{ position: "relative" }}>
         {/* Menu principal — ícones com espaçamento generoso */}
         <div className="flex flex-col items-center gap-0">
-          {MAIN_ITEMS.map(renderItem)}
+          {MAIN_ITEMS.map((item, index) => renderItem(item, index, MAIN_ITEMS.length))}
         </div>
         {/* Espaço flex para empurrar o menu inferior para a base */}
         <div className="flex-1 min-h-[24px]" aria-hidden />
         {/* Menu inferior — configurações fixo na base */}
         <div className="flex flex-col items-center gap-0 pt-4 border-t border-blue-800/50 w-full">
-          {FOOTER_ITEMS.map(renderItem)}
+          {FOOTER_ITEMS.map((item, index) => renderItem(item, index, FOOTER_ITEMS.length))}
         </div>
       </nav>
     );
@@ -186,35 +190,49 @@ export default function LojistaNav({ collapsed = false, iconOnly = false }: Loji
       )}
       style={{ position: "relative" }}
     >
-      {NAV_ITEMS.map((item) => {
+      {NAV_ITEMS.map((item, index) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         const href = lojistaId ? `${item.href}?lojistaId=${lojistaId}` : item.href;
+        const isLastItem = index === NAV_ITEMS.length - 1;
+        
         return (
-          <div
-            key={item.href}
-            className="relative"
-            style={{ position: "relative", width: "100%" }}
-          >
-            {active && !collapsed && (
-              <motion.div
-                layoutId="active-nav-background"
-                className="absolute bg-[#f3f4f6]"
+          <React.Fragment key={item.href}>
+            <div
+              className="relative"
+              style={{ position: "relative", width: "100%" }}
+            >
+              {active && !collapsed && (
+                <motion.div
+                  layoutId="active-nav-background"
+                  className="absolute"
+                  style={{
+                    top: "0",
+                    bottom: "0",
+                    left: "-16px",
+                    right: "-16px",
+                    width: "calc(100% + 32px)",
+                    borderRadius: "0",
+                    zIndex: 1,
+                    pointerEvents: "none",
+                    backgroundColor: "#ffffff",
+                    boxShadow: "inset -10px 0 20px -6px rgba(0, 0, 0, 0.7)",
+                  }}
+                  initial={false}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <NavItemContent item={item} href={href} active={active} iconOnly={false} collapsed={collapsed} />
+            </div>
+            {!collapsed && !isLastItem && (
+              <div 
+                className="h-px w-full bg-gradient-to-r from-transparent via-white/50 to-transparent"
                 style={{
-                  top: "0",
-                  bottom: "0",
-                  left: "-16px",
-                  right: "-16px",
-                  width: "calc(100% + 32px)",
-                  borderRadius: "0",
-                  zIndex: 1,
-                  pointerEvents: "none",
+                  zIndex: 30,
+                  position: 'relative'
                 }}
-                initial={false}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
             )}
-            <NavItemContent item={item} href={href} active={active} iconOnly={false} collapsed={collapsed} />
-          </div>
+          </React.Fragment>
         );
       })}
     </nav>

@@ -260,36 +260,17 @@ export function DashboardContent({ data, lojistaId, lojaLogo = null, lojaNome, i
 
   return (
     <div className="dashboard-page space-y-3 pb-6 min-w-0 max-w-full overflow-visible">
-      {/* Caixa da logo: 67.67 × 67.67 px; logo ajustada dentro */}
-      <div className="flex items-start gap-3 w-full mb-2">
-        <div
-          className="relative rounded-xl bg-blue-900/30 backdrop-blur-sm shadow-lg border border-blue-800/30 flex items-center justify-center overflow-hidden shrink-0"
-          style={{ width: 67.67, height: 67.67 }}
-        >
-          {lojaLogo ? (
-            <Image
-              src={lojaLogo}
-              alt={lojaNome || "Logo"}
-              fill
-              className="object-contain"
-              sizes="68px"
-              unoptimized={lojaLogo?.startsWith("data:") || lojaLogo?.includes("blob:")}
-            />
-          ) : (
-            <span className="text-white text-sm font-bold">{initials}</span>
-          )}
-        </div>
-        <div className="flex-1 min-w-0 flex">
-          <IconPageHeader
-            icon={LayoutDashboard}
-            title="Dashboard"
-            description="Acompanhe métricas, estatísticas e insights sobre o desempenho da sua loja no provador virtual."
-            gradientFrom={colors.from}
-            gradientTo={colors.to}
-            shadowColor={colors.shadow}
-            noMargin
-          />
-        </div>
+      {/* Header do Dashboard */}
+      <div className="w-full mb-2">
+        <IconPageHeader
+          icon={LayoutDashboard}
+          title="Dashboard"
+          description="Acompanhe métricas, estatísticas e insights sobre o desempenho da sua loja no provador virtual."
+          gradientFrom={colors.from}
+          gradientTo={colors.to}
+          shadowColor={colors.shadow}
+          noMargin
+        />
       </div>
 
       {/* Grid único 12 colunas: overflow-visible para as sombras das caixas não serem cortadas. */}
