@@ -141,9 +141,9 @@ export function ProductMediaCard({
           transition={{ duration: crossFadeDuration, ease: "easeInOut" }}
         >
           <video
-            key={videoUrl}
+            key={videoUrl ?? ""}
             ref={videoRef}
-            src={videoUrl}
+            src={videoUrl ?? undefined}
             className={`product-video absolute inset-0 w-full h-full ${objectFitClass}`}
             style={{
               objectFit: "cover",
