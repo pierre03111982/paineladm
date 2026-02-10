@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 /* ============================================
+   PRODUCT MEDIA CARD — Vídeo (evitar fundo "pular" no cross-fade)
+   ============================================ */
+.product-video {
+  object-fit: cover;
+  transform: scale(1.01); /* micro-zoom para alinhar bordas com a foto estática */
+  /* sharpness não existe em CSS; no componente usamos filter: contrast(1.03) */
+}
+
+/* ============================================
    ANIMAÇÃO DE ÍCONES - INICIA E PAUSA
    ============================================ */
 @keyframes iconPulse {

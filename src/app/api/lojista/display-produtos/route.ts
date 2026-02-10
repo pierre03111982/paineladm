@@ -11,6 +11,8 @@ export type DisplayProdutoItem = {
   id: string;
   nome: string;
   imagemModeloFrente: string;
+  /** URL do vídeo gerado pela IA, quando existir. */
+  videoUrl?: string | null;
 };
 
 export async function GET(request: NextRequest) {
@@ -35,6 +37,7 @@ export async function GET(request: NextRequest) {
         id: p.id,
         nome: p.nome || "",
         imagemModeloFrente: getModeloFrenteUrl(p)!,
+        videoUrl: p.videoUrl ?? undefined,
       }));
 
     return NextResponse.json({ produtos: paraDisplay });

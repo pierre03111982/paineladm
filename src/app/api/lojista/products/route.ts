@@ -122,6 +122,8 @@ export async function POST(request: NextRequest) {
       variacoes,
       // Foto Verso e extras (persistir para não perder ao redirecionar após criar rascunho)
       extraImageUrls,
+      // Vídeo gerado (persistir para não perder ao redirecionar após criar rascunho)
+      videoUrl,
     } = body;
 
     const isDraft = status === "draft";
@@ -231,6 +233,9 @@ export async function POST(request: NextRequest) {
           ? { idx: e.idx, url: String(e.url).trim() }
           : null
       ).filter(Boolean);
+    }
+    if (videoUrl && String(videoUrl).trim()) {
+      produtoData.videoUrl = String(videoUrl).trim();
     }
 
     // Adicionar campos da análise IA: usar objeto completo se enviado (rascunho), senão montar a partir dos campos

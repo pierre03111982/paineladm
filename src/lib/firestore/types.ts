@@ -55,6 +55,8 @@ export type ProdutoDoc = {
   status?: "draft" | "published";
   /** Exibir este produto no display da loja (slides de promoção). Imagem usada: Modelo Frente (catalogImageUrls[2]). */
   exibirNoDisplay?: boolean;
+  /** URL do vídeo gerado pela IA (provador virtual), baseado na foto de frente. */
+  videoUrl?: string | null;
 };
 
 export type DislikeReason = "garment_style" | "fit_issue" | "ai_distortion" | "other";

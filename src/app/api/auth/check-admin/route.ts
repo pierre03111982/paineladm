@@ -4,6 +4,20 @@ import { getAdminApp } from "@/lib/firebaseAdmin";
 import { isAdminEmail } from "@/lib/auth/admin-auth";
 
 /**
+ * Handler OPTIONS para CORS
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+/**
  * API route para verificar se um usuário é admin
  * POST /api/auth/check-admin
  */

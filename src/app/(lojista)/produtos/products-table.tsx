@@ -38,18 +38,31 @@ function ProductGridCard({
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Preparar array de imagens para a galeria: todas as imagens do Catálogo IA (frente, costas, modelo, look) + fallback
+  // Preparar array de imagens para a galeria: imagem principal = Modelo Frente quando tiver; senão foto frente (upload/catálogo)
   const CATALOG_LABELS = ["Foto Frente", "Foto Costas", "Modelo Frente", "Modelo Costas", "Look Combinado (1)", "Look Combinado (2)"];
   const produtoImages = useMemo(() => {
     const images: Array<{ url: string; label: string }> = [];
 
-    // 1. Se existir catalogImageUrls (todas as imagens geradas no Catálogo IA), usar na ordem
+    // 1. Se existir catalogImageUrls (Catálogo IA): priorizar Modelo Frente como primeira imagem
     if (Array.isArray(produto.catalogImageUrls) && produto.catalogImageUrls.length > 0) {
-      produto.catalogImageUrls.forEach((url, i) => {
-        if (url && String(url).trim()) {
-          images.push({ url: url.trim(), label: CATALOG_LABELS[i] ?? `Imagem ${i + 1}` });
-        }
-      });
+      const urls = produto.catalogImageUrls.map((u) => (u && String(u).trim()) || "").filter(Boolean);
+      const modeloFrenteUrl = urls[2]; // índice 2 = Modelo Frente
+      const hasModeloFrente = Boolean(modeloFrenteUrl);
+
+      if (hasModeloFrente) {
+        // Colocar Modelo Frente como primeira; depois as demais na ordem (sem duplicar o índice 2)
+        images.push({ url: modeloFrenteUrl, label: CATALOG_LABELS[2] });
+        urls.forEach((url, i) => {
+          if (i !== 2 && url) {
+            images.push({ url, label: CATALOG_LABELS[i] ?? `Imagem ${i + 1}` });
+          }
+        });
+      } else {
+        // Sem Modelo Frente: ordem normal (Foto Frente, Costas, etc.)
+        urls.forEach((url, i) => {
+          images.push({ url, label: CATALOG_LABELS[i] ?? `Imagem ${i + 1}` });
+        });
+      }
     }
 
     // 2. Fallback: Foto Catálogo e Look Combinado (compatibilidade com produtos antigos)
@@ -62,7 +75,7 @@ function ProductGridCard({
       }
     }
 
-    // 3. Fallback: imagem de upload só se não houver nenhuma imagem gerada
+    // 3. Fallback: imagem de upload (foto frente) quando não houver nenhuma do catálogo
     if (images.length === 0) {
       const imagemOriginal = produto.imagemUrlOriginal || produto.imagemUrl;
       if (imagemOriginal) {
@@ -186,16 +199,17 @@ function ProductGridCard({
         )}
       </button>
 
-      {/* Área da imagem: galeria + badge Rascunho SOBRE a imagem (não acima, para não desalinhar os cards) */}
+      {/* Área da imagem: galeria com foto principal primeiro e vídeo (se tiver) logo em seguida */}
       <div className="relative w-full flex-shrink-0">
         {produtoImages.length > 0 ? (
           <ProductImageGallery
             images={produtoImages}
-            aspectRatio="aspect-square"
+            videoUrl={produto.videoUrl ?? undefined}
+            aspectRatio="aspect-[9/16]"
             className="w-full"
           />
         ) : (
-          <div className="aspect-square w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
+          <div className="aspect-[9/16] w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center" style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)' }}>
             <Package className="h-12 w-12 text-gray-300" />
           </div>
         )}
@@ -505,8 +519,8 @@ export function ProductsTable({
       try {
         setLoading(true);
         const url = lojistaIdParam 
-          ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}`
-          : `/api/lojista/products?includeArchived=${showArchived}`;
+          ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}&includeDraft=true`
+          : `/api/lojista/products?includeArchived=${showArchived}&includeDraft=true`;
         const response = await fetch(url);
         if (!response.ok) throw new Error("Erro ao carregar produtos");
         const data = await response.json();
@@ -1044,8 +1058,8 @@ export function ProductsTable({
       // Recarregar produtos do servidor para garantir sincronização completa
       try {
         const url = lojistaIdParam 
-          ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}`
-          : `/api/lojista/products?includeArchived=${showArchived}`;
+          ? `/api/lojista/products?lojistaId=${lojistaIdParam}&includeArchived=${showArchived}&includeDraft=true`
+          : `/api/lojista/products?includeArchived=${showArchived}&includeDraft=true`;
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
@@ -1218,7 +1232,7 @@ export function ProductsTable({
                 height: 'calc(2 * (400px + 1rem))'
               }}
             >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   {filteredProdutos.map((produto) => (
                     <ProductGridCard
                       key={produto.id}

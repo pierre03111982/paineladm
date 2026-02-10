@@ -88,6 +88,7 @@ export async function PATCH(
       extraImageUrls,
       lookCombinado1ProductIds,
       lookCombinado2ProductIds,
+      videoUrl,
     } = body;
 
     // Converter imagem de link para PNG se necessário
@@ -174,6 +175,9 @@ export async function PATCH(
     }
     if (Array.isArray(lookCombinado2ProductIds)) {
       updateData.lookCombinado2ProductIds = lookCombinado2ProductIds.filter((id: unknown) => typeof id === "string" && id.trim() !== "").slice(0, 2);
+    }
+    if (videoUrl !== undefined) {
+      updateData.videoUrl = videoUrl ? String(videoUrl).trim() : null;
     }
     if (descontoProduto !== undefined) {
       // Validar que é um número entre 0 e 100

@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 /**
+ * Handler OPTIONS para CORS
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+/**
  * API route para definir cookies de autenticação
  * POST /api/auth/set-token
  */

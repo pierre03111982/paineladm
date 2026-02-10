@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import { ImageOff } from "lucide-react";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { ProductMediaCard } from "@/components/products/ProductMediaCard";
 import type { DisplayProdutoItem } from "@/app/api/lojista/display-produtos/route";
 
-const SLIDE_INTERVAL_MS = 4000;
+const SLIDE_INTERVAL_IMAGE_MS = 4000;
+const SLIDE_INTERVAL_VIDEO_MS = 8000; // mais tempo quando há vídeo para ele rodar antes de avançar
 
 type DisplayPreviewProps = {
   lojistaId: string;
@@ -44,16 +46,18 @@ export function DisplayPreview({ lojistaId }: DisplayPreviewProps) {
     return () => { cancelled = true; };
   }, [lojistaId]);
 
-  // Avançar slide automaticamente
+  // Avançar slide automaticamente: intervalo maior quando o slide atual tem vídeo
+  const current = produtos[currentIndex];
+  const currentHasVideo = Boolean(current?.videoUrl?.trim());
+  const intervalMs = currentHasVideo ? SLIDE_INTERVAL_VIDEO_MS : SLIDE_INTERVAL_IMAGE_MS;
+
   useEffect(() => {
     if (produtos.length <= 1) return;
     const t = setInterval(() => {
       setCurrentIndex((i) => (i + 1) % produtos.length);
-    }, SLIDE_INTERVAL_MS);
+    }, intervalMs);
     return () => clearInterval(t);
-  }, [produtos.length]);
-
-  const current = produtos[currentIndex];
+  }, [produtos.length, intervalMs]);
 
   // Mesmas medidas da caixa "Visualizar Fotos Catálogo IA": 282px externo, 250×444px área da imagem.
   // Sem margin-bottom para não quebrar o alinhamento da base com a caixa Insights. AnimatedCard = sombra + hover zoom como as outras.
@@ -81,12 +85,20 @@ export function DisplayPreview({ lojistaId }: DisplayPreviewProps) {
           )}
           {!loading && current && (
             <>
-              <img
-                src={current.imagemModeloFrente}
+              <ProductMediaCard
+                key={`${current.id ?? currentIndex}-${current.imagemModeloFrente}-${current.videoUrl ?? ""}`}
+                imageUrl={current.imagemModeloFrente}
+                videoUrl={current.videoUrl ?? undefined}
                 alt={current.nome}
-                className="absolute inset-0 w-full h-full object-cover object-center bg-white"
+                className="absolute inset-0 w-full h-full"
+                aspectRatio=""
+                objectFit="cover"
+                showBadge={Boolean(current.videoUrl)}
+                delayBeforeVideo={600}
+                triggerOnHover={false}
+                skipLazy={true}
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 z-10 pointer-events-none">
                 <p className="text-white text-sm font-medium truncate">{current.nome}</p>
               </div>
             </>

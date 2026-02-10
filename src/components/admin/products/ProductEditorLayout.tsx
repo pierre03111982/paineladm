@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby, UserCircle, User, Star } from "lucide-react";
+import { Upload, Sparkles, RotateCcw, Save, Loader2, Package, X, Plus, Edit, ArrowLeft, Image as ImageIcon, AlertCircle, Info, AlertTriangle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Tag, Ruler, Venus, Mars, Baby, UserCircle, User, Star, Monitor } from "lucide-react";
 import { MANNEQUIN_STYLES } from "@/lib/ai-services/mannequin-prompts";
 import { ManualCombinationModal } from "./ManualCombinationModal";
 import { OutroProdutoModal, type ProductForCombo } from "./OutroProdutoModal";
@@ -111,12 +111,21 @@ interface ProductEditorLayoutProps {
     lookCombinado1ProductIds?: string[];
     /** IDs dos produtos usados no Look Combinado 2 — restaurados ao editar */
     lookCombinado2ProductIds?: string[];
+    /** URL do vídeo gerado — restaurado ao editar */
+    videoUrl?: string;
   };
   produtoNome?: string; // Para edição, mostrar no título
 }
 
 // Lista de categorias disponíveis (usando categorias consolidadas)
 const AVAILABLE_CATEGORIES = getConsolidatedCategories();
+
+/** Prompt para geração de vídeo: catálogo de moda, movimento mínimo, linguagem comercial para reduzir bloqueios. */
+const VIDEO_GENERATION_PROMPT = [
+  "Professional fashion catalog video. This is a clothing product photo for an online store. Add only minimal, subtle motion so the image feels alive: very slight natural breathing and one soft blink. The model stays in the exact same pose, like a high-end product photo with a hint of life.",
+  "Style: commercial product presentation, family-friendly, appropriate for all audiences. The model does not speak, does not move the mouth, does not gesture or move hands. Mouth closed and still. Only breathing and one gentle blink.",
+  "Keep the background, lighting, pose, face, hair, and outfit exactly as in the reference. No changes to the scene. Camera static or very slow subtle zoom. Output must be suitable for fashion e-commerce.",
+].join(" ");
 
 // Sistema de Grades Dinâmicas
 const SIZE_GRIDS = {
@@ -458,6 +467,9 @@ export function ProductEditorLayout({
   const [creditInfo, setCreditInfo] = useState({ credits: 0, catalogPack: 0 });
   const [currentModelSeed, setCurrentModelSeed] = useState<string | null>(null); // Seed Locking do Lifestyle (Foto 3 -> Foto 4)
   const [currentLifestyleScenarioKey, setCurrentLifestyleScenarioKey] = useState<string | null>(null); // Cenário travado da Frente para Costas (auto)
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(initialData?.videoUrl || null);
+  const [videoOperationName, setVideoOperationName] = useState<string | null>(null);
 
   // Caixas 2, 3 e 4: só cabeçalho visível até clicar em "Análise do Produto (IA)"; depois corpo surge (2 com loading, 3 e 4 em sequência)
   const [showBox2Content, setShowBox2Content] = useState(false);
@@ -560,6 +572,59 @@ export function ProductEditorLayout({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.generatedCatalogImage]);
+
+  // Restaurar vídeo na caixa: priorizar último gerado (sessionStorage) para ficar sempre visível; senão initialData
+  useEffect(() => {
+    let urlToShow: string | null = initialData?.videoUrl ?? null;
+    if (typeof window !== "undefined" && lojistaId && produtoId) {
+      try {
+        const stored = window.sessionStorage.getItem(`product-generated-video-${lojistaId}-${produtoId}`);
+        if (stored && stored.trim()) urlToShow = stored.trim();
+      } catch (_) {}
+    }
+    if (urlToShow) setGeneratedVideoUrl(urlToShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData?.videoUrl, lojistaId, produtoId]);
+
+  // Salvar vídeo automaticamente sempre que ele mudar (se houver produtoId)
+  useEffect(() => {
+    if (generatedVideoUrl && produtoId) {
+      console.log("[ProductEditor] Vídeo mudou, salvando automaticamente:", generatedVideoUrl);
+      // Debounce: aguardar 1 segundo antes de salvar para evitar muitas requisições
+      const timeoutId = setTimeout(async () => {
+        try {
+          const imagemUrlCatalogo = studioImages.slot1.url || state.generatedCatalogImage || state.rawImageUrl || "";
+          // Se tem imagemUrlCatalogo, usar saveDraftAsProduct (salva tudo)
+          if (imagemUrlCatalogo) {
+            console.log("[ProductEditor] Salvando vídeo via saveDraftAsProduct");
+            await saveDraftAsProduct(imagemUrlCatalogo);
+          } else {
+            // Se não tem imagem, salvar apenas o vídeo
+            console.log("[ProductEditor] Salvando apenas vídeo via PATCH");
+            const response = await fetch(`/api/lojista/products/${produtoId}?lojistaId=${lojistaId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ videoUrl: generatedVideoUrl }),
+            });
+            if (!response.ok) {
+              throw new Error(`Erro ao salvar vídeo: ${response.statusText}`);
+            }
+            console.log("[ProductEditor] Vídeo salvo com sucesso");
+            if (typeof window !== "undefined" && lojistaId && produtoId) {
+              try {
+                window.sessionStorage.setItem(`product-generated-video-${lojistaId}-${produtoId}`, generatedVideoUrl);
+              } catch (_) {}
+            }
+          }
+        } catch (error: any) {
+          console.error("[ProductEditor] Erro ao salvar vídeo automaticamente:", error);
+        }
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generatedVideoUrl, produtoId, lojistaId]);
 
   // Restaurar produtos dos Looks Combinados 1 e 2 ao abrir para editar (miniaturas nas caixas)
   useEffect(() => {
@@ -1619,6 +1684,144 @@ export function ProductEditorLayout({
     }
   };
 
+  // === HANDLER DE GERAÇÃO DE VÍDEO ===
+  const handleGenerateVideo = async () => {
+    if (!studioImages.slot3?.url) {
+      alert("Por favor, gere primeiro a imagem Modelo Frente no Estúdio Criativo.");
+      return;
+    }
+
+    if (generatingVideo) return;
+
+    setGeneratingVideo(true);
+    // Manter o vídeo atual na caixa até o novo estar pronto (não limpar)
+    setVideoOperationName(null);
+
+    try {
+      // Enviar a URL da imagem para o backend converter para base64 (evita CORS)
+      const response = await fetch('/api/lojista/products/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lojistaId,
+          imageUrl: studioImages.slot3.url, // foto_frente (Modelo Frente) — primeiro frame do vídeo será esta imagem
+          prompt: VIDEO_GENERATION_PROMPT,
+          durationSeconds: 4,
+          aspectRatio: "9:16",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro ao gerar vídeo' }));
+        throw new Error(errorData.error || 'Erro ao gerar vídeo');
+      }
+
+      const data = await response.json();
+      
+      if (data.operationName) {
+        setVideoOperationName(data.operationName);
+        // Iniciar polling para verificar o status
+        pollVideoStatus(data.operationName);
+      } else {
+        throw new Error('Nome da operação não retornado');
+      }
+    } catch (error: any) {
+      console.error("[ProductEditor] Erro ao gerar vídeo:", error);
+      alert(`Erro ao gerar vídeo: ${error.message || "Erro desconhecido"}`);
+      setGeneratingVideo(false);
+    }
+  };
+
+  // Função para verificar o status da operação de geração de vídeo
+  const pollVideoStatus = async (operationName: string) => {
+    const maxAttempts = 120; // 10 minutos máximo (5 segundos * 120)
+    let attempts = 0;
+
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/lojista/products/check-video-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lojistaId,
+            operationName,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao verificar status do vídeo');
+        }
+
+        const data = await response.json();
+
+        if (data.done) {
+          // Verificar se há erro na resposta (ex.: vídeo bloqueado por diretrizes da IA)
+          if (data.error) {
+            const errorMessage = data.errorMessage || (data.error && typeof data.error === 'string' ? data.error : `Erro ao gerar vídeo. Tente outra imagem.`);
+            throw new Error(errorMessage);
+          }
+
+          if (data.videoUrl) {
+            setGeneratedVideoUrl(data.videoUrl);
+            setGeneratingVideo(false);
+            // Persistir na sessão para continuar visível ao sair/voltar sem salvar
+            if (typeof window !== "undefined" && lojistaId && produtoId) {
+              try {
+                window.sessionStorage.setItem(`product-generated-video-${lojistaId}-${produtoId}`, data.videoUrl);
+              } catch (_) {}
+            }
+            // Atualizar créditos após gerar vídeo
+            loadCreditInfo();
+            // Salvar automaticamente o vídeo gerado (sempre que possível)
+            try {
+              const imagemUrlCatalogo = studioImages.slot1.url || state.generatedCatalogImage || state.rawImageUrl || "";
+              
+              // Se tem produtoId, sempre salvar
+              if (produtoId) {
+                if (imagemUrlCatalogo) {
+                  // Salvar tudo usando saveDraftAsProduct
+                  await saveDraftAsProduct(imagemUrlCatalogo);
+                } else {
+                  // Salvar apenas o vídeo se não tem imagem
+                  await fetch(`/api/lojista/products/${produtoId}?lojistaId=${lojistaId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ videoUrl: data.videoUrl }),
+                  });
+                }
+              } else if (imagemUrlCatalogo) {
+                // Se não tem produtoId mas tem imagem, criar rascunho com saveDraftAsProduct
+                await saveDraftAsProduct(imagemUrlCatalogo);
+              }
+            } catch (draftErr: any) {
+              console.warn("[ProductEditor] Erro ao salvar vídeo automaticamente:", draftErr);
+              // Não bloquear o fluxo se o salvamento automático falhar
+            }
+          } else {
+            throw new Error(data.errorMessage || 'Vídeo não foi retornado. Tente outra imagem.');
+          }
+        } else {
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(checkStatus, 5000); // Verificar a cada 5 segundos
+          } else {
+            throw new Error('Tempo limite excedido ao gerar vídeo');
+          }
+        }
+      } catch (error: any) {
+        console.error("[ProductEditor] Erro ao verificar status do vídeo:", error);
+        alert(`Erro ao verificar status do vídeo: ${error.message || "Erro desconhecido"}`);
+        setGeneratingVideo(false);
+      }
+    };
+
+    checkStatus();
+  };
+
   // === HANDLERS DE UPLOAD ===
   const handleFileSelect = async (file: File, imageIndex?: number) => {
     if (!file) return;
@@ -2231,6 +2434,8 @@ export function ProductEditorLayout({
       lookCombinado1ProductIds: [combo1Products[0]?.id, combo1Products[1]?.id].filter((id): id is string => !!id),
       lookCombinado2ProductIds: [combo2Products[0]?.id, combo2Products[1]?.id].filter((id): id is string => !!id),
       exibirNoDisplay: state.manualData.exibirNoDisplay,
+      // Vídeo gerado: salvar automaticamente
+      videoUrl: generatedVideoUrl || undefined,
     };
     if (produtoId) {
       const res = await fetch(`/api/lojista/products/${produtoId}?lojistaId=${lojistaId}`, {
@@ -2254,7 +2459,7 @@ export function ProductEditorLayout({
       const lojistaQ = qs.get("lojistaId") || qs.get("lojistald") || lojistaId;
       router.replace(`/produtos/${newId}/editar?lojistaId=${lojistaQ}`, { scroll: false });
     }
-  }, [lojistaId, produtoId, state.aiAnalysisData, state.manualData, state.rawImageUrl, state.generatedCombinedImage, state.extraImages, studioImages.slot1.url, studioImages.slot2.url, studioImages.slot3?.url, studioImages.slot4.url, studioImages.slot5.url, studioImages.slot6.url, combo1Products, combo2Products, router]);
+  }, [lojistaId, produtoId, state.aiAnalysisData, state.manualData, state.rawImageUrl, state.generatedCombinedImage, state.extraImages, studioImages.slot1.url, studioImages.slot2.url, studioImages.slot3?.url, studioImages.slot4.url, studioImages.slot5.url, studioImages.slot6.url, combo1Products, combo2Products, generatedVideoUrl, router]);
 
   // === HANDLER FOTO FRENTE (Estúdio Criativo - uma imagem por vez) ===
   // A imagem gerada para o catálogo "Foto Frente" tem como base a imagem de upload "Foto Frente" (rawImageUrl).
@@ -3183,6 +3388,8 @@ export function ProductEditorLayout({
         // Produtos usados nos Looks Combinados 1 e 2 — para exibir miniaturas ao editar
         lookCombinado1ProductIds: [combo1Products[0]?.id, combo1Products[1]?.id].filter((id): id is string => !!id),
         lookCombinado2ProductIds: [combo2Products[0]?.id, combo2Products[1]?.id].filter((id): id is string => !!id),
+        // Vídeo gerado — salvar quando o produto é salvo manualmente
+        videoUrl: generatedVideoUrl || undefined,
       };
 
       // Se produto tem variações, processar e salvar grade de estoque
@@ -4893,21 +5100,150 @@ export function ProductEditorLayout({
       
 
 
-      {/* CONTAINER 4: DADOS COMERCIAIS - Preço e Estoque */}
-      <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
-        {/* CardHeader */}
-        <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center gap-3 border-b border-red-500/20">
-          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
-            4
+      {/* CONTAINER 4 e 5: DADOS COMERCIAIS e ESTÚDIO CINEMATOGRÁFICO - Lado a lado */}
+      <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* CONTAINER 4: ESTÚDIO CINEMATOGRÁFICO */}
+        <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm w-full">
+          {/* CardHeader */}
+          <div className="bg-gradient-to-r from-orange-400 to-red-600 px-6 py-4 flex items-center gap-3 border-b border-orange-300/20">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+              4
+            </div>
+            <div className="text-white" style={{ color: 'white' }}>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+                <AlertCircle className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+                <span style={{ color: 'white' }}>Estúdio Cinematográfico</span>
+              </h2>
+              <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Agora é hora de Brihar, crie um vídeo do seu Produto.</p>
+            </div>
           </div>
-          <div className="text-white" style={{ color: 'white' }}>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
-              <AlertCircle className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
-              <span style={{ color: 'white' }}>Preço e Estoque</span>
-            </h2>
-            <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Configure os dados comerciais e publique o produto</p>
+          
+          {/* Corpo - Visualizador de Vídeo */}
+          <div className="p-6">
+            <div className="flex items-start gap-4">
+              {/* Caixa de Visualização de Vídeo */}
+              <div className="border-2 border-slate-200 rounded-lg p-3 bg-slate-50 flex flex-col shrink-0" style={{ width: '282px', flexShrink: 0 }}>
+                <div className="block text-xs font-semibold mb-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 shadow-sm">
+                  Visualizar Vídeo Gerado
+                </div>
+                <div className="flex items-center justify-center relative shrink-0" style={{ width: '250px', height: '444px' }}>
+                  {generatingVideo ? (
+                    <div className="relative w-full h-full border-2 border-purple-300 rounded-lg flex flex-col items-center justify-center bg-gray-50">
+                      <Loader2 className="w-8 h-8 animate-spin text-purple-600 mb-2" />
+                      <p className="text-xs text-gray-600 text-center px-2">Gerando vídeo... Aguarde.</p>
+                    </div>
+                  ) : generatedVideoUrl ? (
+                    <div className="relative w-full h-full border-2 border-purple-400 rounded-lg overflow-hidden bg-gray-50">
+                      <video
+                        src={generatedVideoUrl}
+                        controls
+                        className="w-full h-full object-contain"
+                        style={{ aspectRatio: '9/16' }}
+                      >
+                        Seu navegador não suporta a tag de vídeo.
+                      </video>
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-full border-2 border-purple-300 rounded-lg flex items-center justify-center bg-gray-50">
+                      <p className="text-xs text-gray-400 text-center px-2">O vídeo gerado aparecerá aqui</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Botão Gerar Vídeo e Elementos Relacionados */}
+              <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                {/* Contador de Créditos */}
+                <div className="w-full max-w-xs border-2 border-slate-200 rounded-lg p-3 bg-slate-50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700">Créditos:</span>
+                    <span className="text-sm font-bold text-slate-900">{creditInfo.credits}</span>
+                  </div>
+                </div>
+                
+                {/* Miniatura Modelo Frente */}
+                <div className="relative flex flex-col w-full max-w-xs border-2 border-slate-200 rounded-lg overflow-hidden bg-white">
+                  <div className="relative w-full bg-white rounded-t-lg overflow-hidden flex items-center justify-center" style={{ aspectRatio: '9/16', width: '100%' }}>
+                    {studioImages.slot3?.url ? (
+                      <img
+                        src={studioImages.slot3.url}
+                        alt="Modelo Lifestyle Frente"
+                        className="absolute inset-0 w-full h-full object-cover object-center"
+                        style={{ filter: "drop-shadow(0 10px 15px rgba(0,0,0,0.15))" }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-blue-500 shrink-0" stroke="#3b82f6" fill="none" strokeWidth={2} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="shrink-0 h-8 w-full flex items-center justify-center px-2 text-[10px] font-semibold text-center bg-blue-500 leading-tight rounded-b-lg" style={{ color: '#ffffff' }}>MODELO FRENTE</div>
+                </div>
+                
+                {/* Botão Gerar Vídeo */}
+                <button
+                  type="button"
+                  onClick={handleGenerateVideo}
+                  disabled={generatingVideo || !studioImages.slot3?.url}
+                  className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold rounded-lg transition-all shadow-md flex items-center gap-2"
+                  style={{ color: '#ffffff' }}
+                >
+                  {generatingVideo ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Gerando...</span>
+                    </>
+                  ) : (
+                    'Gerar Vídeo'
+                  )}
+                </button>
+
+                {/* Toggle Display (marcar/desmarcar exibir no display) */}
+                <div className="flex items-center justify-center gap-2.5 w-full max-w-xs min-h-[2rem]">
+                  <Monitor className="w-5 h-5 shrink-0 text-slate-600" aria-hidden />
+                  <span className="text-sm font-medium text-slate-700 leading-tight text-left min-w-0">
+                    Display
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={state.manualData.exibirNoDisplay}
+                    onClick={() => setState(prev => ({
+                      ...prev,
+                      manualData: { ...prev.manualData, exibirNoDisplay: !prev.manualData.exibirNoDisplay },
+                    }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      state.manualData.exibirNoDisplay ? "bg-blue-500" : "bg-slate-300"
+                    }`}
+                    title={state.manualData.exibirNoDisplay ? "Desmarcar: não exibir no display" : "Marcar: exibir no display da loja (com vídeo ou imagem)"}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 shrink-0 transform rounded-full bg-white shadow ring-0 transition ${
+                        state.manualData.exibirNoDisplay ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </AnimatedCard>
+
+        {/* CONTAINER 5: DADOS COMERCIAIS - Preço e Estoque */}
+        <AnimatedCard className="p-0 overflow-hidden bg-white shadow-sm">
+          {/* CardHeader */}
+          <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center gap-3 border-b border-red-500/20">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg" style={{ color: 'white' }}>
+              5
+            </div>
+            <div className="text-white" style={{ color: 'white' }}>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ color: 'white' }}>
+                <AlertCircle className="w-5 h-5" stroke="white" style={{ stroke: 'white' }} />
+                <span style={{ color: 'white' }}>Preço e Estoque</span>
+              </h2>
+              <p className="text-sm text-white mt-0.5" style={{ color: 'white' }}>Configure os dados comerciais e publique o produto</p>
+            </div>
+          </div>
         
         {showBox4Content && (
         <div className={`overflow-hidden transition-all duration-500 ease-out ${animateBox4 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
@@ -5220,7 +5556,8 @@ export function ProductEditorLayout({
         </div>
         </div>
         )}
-      </AnimatedCard>
+        </AnimatedCard>
+      </div>
       </div>
 
       {/* Modal de Combinação Manual */}

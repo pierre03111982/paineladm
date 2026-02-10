@@ -48,12 +48,13 @@ export function LojistaHeaderWithSidebar({
           appModel={appModel}
         />
         <main
-          className="flex-1 min-h-0 flex flex-col overflow-hidden bg-white relative z-10"
+          className="flex-1 min-h-0 flex flex-col overflow-hidden relative z-10"
           style={{
+            backgroundColor: "#d1d5db",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.7)",
           }}
         >
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-8 pr-10 pt-4 pb-12">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-8 pr-10 pt-4 pb-12" style={{ backgroundColor: "#d1d5db" }}>
             <AnimatedPageWrapper>{children}</AnimatedPageWrapper>
           </div>
         </main>

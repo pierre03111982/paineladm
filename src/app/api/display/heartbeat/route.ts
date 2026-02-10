@@ -5,6 +5,20 @@ import { FieldValue } from "firebase-admin/firestore";
 export const dynamic = 'force-dynamic';
 
 /**
+ * Handler OPTIONS para CORS
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
+
+/**
  * PHASE 16: Display Heartbeat API
  * Atualiza o IP, userAgent e lastHeartbeat do display a cada 30 segundos
  * Endpoint: POST /api/display/heartbeat

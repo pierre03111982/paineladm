@@ -59,13 +59,34 @@ export function SidebarWallpaperProvider({ children, lojistaId }: { children: Re
   const [wallpaper, setWallpaper] = useState<string | null>(null);
   const [previewWallpaper, setPreviewWallpaper] = useState<string | null | undefined>(undefined);
 
+  // Pré-carregar imagem do wallpaper
+  const preloadWallpaperImage = (filename: string) => {
+    if (typeof window !== 'undefined' && filename) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = `/wallpapers/${encodeURIComponent(filename)}`;
+      document.head.appendChild(link);
+      
+      // Também criar uma imagem para forçar o cache do navegador
+      const img = new Image();
+      img.src = `/wallpapers/${encodeURIComponent(filename)}`;
+    }
+  };
+
   // Carregar wallpaper salvo do Firestore
   const loadWallpaper = async (lojistaId: string) => {
     try {
       const res = await fetch(`/api/lojista/sidebar-wallpaper?lojistaId=${encodeURIComponent(lojistaId)}`);
       if (res.ok) {
         const data = await res.json();
-        setWallpaper(data.wallpaper || null);
+        const wallpaperFilename = data.wallpaper || null;
+        setWallpaper(wallpaperFilename);
+        
+        // Pré-carregar a imagem imediatamente após obter o filename
+        if (wallpaperFilename) {
+          preloadWallpaperImage(wallpaperFilename);
+        }
       }
     } catch (error) {
       console.error("[useSidebarWallpaper] Erro ao carregar wallpaper:", error);
@@ -103,6 +124,13 @@ export function SidebarWallpaperProvider({ children, lojistaId }: { children: Re
   // Usar preview se existir (mesmo que seja null para padrão), senão usar o wallpaper salvo
   // Se previewWallpaper foi definido (undefined = sem preview, null = padrão, string = customizado), usar ele; caso contrário usar wallpaper salvo
   const activeWallpaper = previewWallpaper !== undefined ? previewWallpaper : wallpaper;
+  
+  // Pré-carregar imagem quando preview mudar
+  useEffect(() => {
+    if (previewWallpaper && previewWallpaper.trim() !== "") {
+      preloadWallpaperImage(previewWallpaper);
+    }
+  }, [previewWallpaper]);
 
   const contextValue: SidebarWallpaperContextType = {
     wallpaper: activeWallpaper,

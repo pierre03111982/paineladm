@@ -77,7 +77,7 @@ function NavItemContent({
       href={href}
       className={cn(
         "relative flex items-center text-sm font-medium transition-all duration-300 w-full",
-        isCollapsed ? "justify-center px-0 py-1.5" : "gap-2.5 px-3 py-1.5",
+        isCollapsed ? "justify-center px-0 py-1" : "gap-2.5 px-3 py-1",
         active
           ? isCollapsed
             ? "text-white font-bold"

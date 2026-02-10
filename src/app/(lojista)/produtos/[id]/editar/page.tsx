@@ -192,6 +192,8 @@ export default async function EditarProdutoPage({ params, searchParams }: Editar
     lookCombinado2ProductIds: Array.isArray(produtoSerializado.lookCombinado2ProductIds) && produtoSerializado.lookCombinado2ProductIds.length > 0
       ? produtoSerializado.lookCombinado2ProductIds
       : undefined,
+    // Vídeo gerado — restaurar ao editar
+    videoUrl: produtoSerializado.videoUrl || undefined,
   };
 
   return (

@@ -112,7 +112,13 @@ function buildLifestylePrompt(params: {
     params.view === "back"
       ? "GARMENT FIDELITY (CRITICAL): Image 1 shows the BACK of the product. The BACK of the garment on the model must match Image 1 exactly: same back neckline, wide straps with ruffles from behind, smocking/shirring on the back of the top, waistband and belt loops on the shorts, same color and fabric. Do not add or remove back details. Only the model, scenario and lighting are new; the back of the clothing must match Image 1."
       : "GARMENT FIDELITY (CRITICAL): The product in the final image must look EXACTLY like the original in Image 1. Copy the garment from Image 1 onto the model: same design, same color and fabric tone, same number and position of buttons (e.g. 3 buttons = 3 buttons), same ruffles/straps/bow/pleats/seams, same texture. Do not simplify, add or remove details. Only the model, scenario and lighting are new; the clothing must match Image 1.";
+  const backOnlyRule =
+    params.view === "back"
+      ? "MANDATORY: Your output MUST be the BACK VIEW — the model must be seen FROM BEHIND, showing the back of the garment. Do NOT output a front view. Do NOT reuse or copy the pose/angle from Image 2. Image 1 is the back of the product — use it as the ONLY garment reference for what the back must look like."
+      : null;
+
   return [
+    backOnlyRule,
     "Photorealistic fashion photography.",
     params.view === "back"
       ? "RULE: The BACK of the garment in the photo must look EXACTLY like the original back product (Image 1). Only the model, scenario and lighting are new."
@@ -243,6 +249,12 @@ export async function POST(request: NextRequest) {
     });
 
     const produtoIdParaGeracao = produtoId || `temp-${Date.now()}`;
+    // Para view=back: primeira imagem (ghostImageUrl) DEVE ser a Foto Costas (slot2); segunda (seedImageUrl) = Modelo Frente (seed). Nunca inverter.
+    const systemInstructionBack =
+      view === "back"
+        ? "You must generate ONLY the BACK view of the model. Image 1 is the back of the product — use it as the sole garment reference for the back. Image 2 is for character/identity only (same person); do NOT copy the pose, angle or view from Image 2. The output must show the model from behind with the back of the garment clearly visible. Never output a front view."
+        : undefined;
+
     // Retry leve em 429 (quota/limite de taxa do Vertex/Gemini)
     let imageUrl: string | null = null;
     const attempts = [0, 1800, 3500]; // tentativa imediata + backoff
@@ -253,6 +265,7 @@ export async function POST(request: NextRequest) {
         imageUrl = await generateCatalogImage(prompt, ghostImageUrl, lojistaId, produtoIdParaGeracao, {
           aspectRatio: "9:16",
           referenceImageUrl: seedImageUrl || undefined,
+          systemInstruction: systemInstructionBack,
         });
         break;
       } catch (e: any) {

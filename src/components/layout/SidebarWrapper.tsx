@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ChevronLeft, Menu } from "lucide-react";
@@ -26,6 +26,43 @@ export function SidebarWrapper({
   // Hook para gerenciar wallpaper (preview ou persistido)
   const { wallpaper } = useSidebarWallpaper();
   
+  // Estado para controlar quando a imagem está carregada
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
+  // Pré-carregar a imagem quando o wallpaper mudar
+  useEffect(() => {
+    if (wallpaper && wallpaper.trim() !== "") {
+      // Resetar estado quando wallpaper mudar
+      setImageLoaded(false);
+      
+      // Criar link de pré-carregamento no head
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = `/wallpapers/${encodeURIComponent(wallpaper)}`;
+      document.head.appendChild(link);
+      
+      // Pré-carregar usando Image para cache
+      const img = new window.Image();
+      img.onload = () => {
+        setImageLoaded(true);
+      };
+      img.onerror = () => {
+        setImageLoaded(false);
+      };
+      img.src = `/wallpapers/${encodeURIComponent(wallpaper)}`;
+      
+      // Cleanup: remover link quando componente desmontar ou wallpaper mudar
+      return () => {
+        if (document.head.contains(link)) {
+          document.head.removeChild(link);
+        }
+      };
+    } else {
+      setImageLoaded(false);
+    }
+  }, [wallpaper]);
+  
   // Gerar posições fixas para os pontos (estrelas) — não muda a cada render
   const starPositions = useMemo(() => {
     return Array.from({ length: 40 }).map(() => ({
@@ -44,9 +81,9 @@ export function SidebarWrapper({
     <motion.aside
       className="lojista-sidebar hidden md:flex flex-col relative z-20 h-full min-h-full overflow-hidden"
       style={{
-        background: hasCustomWallpaper 
-          ? 'linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)' // Fallback enquanto carrega
-          : 'linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)',
+        background: hasCustomWallpaper
+          ? 'transparent' // Sempre transparente quando tem wallpaper (a imagem cobre)
+          : 'linear-gradient(180deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)', // Fallback quando não tem wallpaper
       }}
       animate={{ width: isCollapsed ? "96px" : "256px" }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -54,11 +91,22 @@ export function SidebarWrapper({
       {/* Camada de fundo: Wallpaper customizado (se houver) */}
       {hasCustomWallpaper && (
         <div className="absolute inset-0 z-0 overflow-hidden">
-          <img
+          {/* Imagem de fundo com pré-carregamento */}
+          <Image
             src={`/wallpapers/${encodeURIComponent(wallpaper)}`}
             alt="Sidebar wallpaper"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectFit: "cover" }}
+            fill
+            priority
+            quality={90}
+            className="object-cover"
+            style={{ 
+              objectFit: "cover",
+              opacity: imageLoaded ? 1 : 1, // Mostrar imediatamente (Next.js Image já otimiza)
+            }}
+            onLoad={() => setImageLoaded(true)}
+            onLoadingComplete={() => setImageLoaded(true)}
+            sizes="256px"
+            unoptimized={false}
           />
           {/* Overlay escuro para garantir legibilidade do texto */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/80 to-black/75" />
@@ -152,7 +200,7 @@ export function SidebarWrapper({
       <div
         className={cn(
           "shrink-0 flex items-center justify-center relative z-10",
-          isCollapsed ? "py-4 px-2" : "py-5 px-4"
+          isCollapsed ? "pt-8 pb-3 px-2" : "py-4 px-4"
         )}
       >
         {lojaLogo ? (
@@ -186,22 +234,22 @@ export function SidebarWrapper({
 
       {/* Linha abaixo da logo */}
       {!isCollapsed && (
-        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-white/50 to-transparent mb-2" style={{ zIndex: 10 }} />
+        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-white/50 to-transparent mb-1" style={{ zIndex: 10 }} />
       )}
 
       <div
         className={cn(
-          "flex-1 pt-3 pb-1 relative z-10",
-          isCollapsed ? "px-2" : "px-4"
+          "flex-1 pb-1 relative z-10",
+          isCollapsed ? "pt-5 px-2" : "pt-2 px-4"
         )}
-        style={{ overflowY: "auto", overflowX: "hidden" }}
+        style={{ overflowY: "visible", overflowX: "hidden" }}
       >
         <LojistaNav collapsed={isCollapsed} />
       </div>
 
       {/* Rodapé: Powered by Experimente AI ® */}
       {!isCollapsed && (
-        <div className="shrink-0 px-4 pb-4 pt-2 relative z-10 border-t border-white/10">
+        <div className="shrink-0 px-4 pb-2 pt-1 relative z-10 border-t border-white/10">
           <p className="text-xs text-white/60 text-center">
             Powered by <span className="font-semibold text-white/80">Experimente AI</span> ®
           </p>

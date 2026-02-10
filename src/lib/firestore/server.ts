@@ -545,6 +545,7 @@ export async function fetchProdutos(lojistaId: string): Promise<ProdutoDoc[]> {
         arquivado: data?.arquivado === true,
         status: data?.status === "draft" ? "draft" : data?.status === "published" ? "published" : undefined,
         exibirNoDisplay: data?.exibirNoDisplay === true,
+        videoUrl: typeof data?.videoUrl === "string" && data.videoUrl.trim() ? data.videoUrl.trim() : undefined,
         imagemUrlCatalogo: typeof data?.imagemUrlCatalogo === "string" ? data.imagemUrlCatalogo : undefined,
         imagemUrlOriginal: typeof data?.imagemUrlOriginal === "string" ? data.imagemUrlOriginal : undefined,
         imagemUrlCombinada: typeof data?.imagemUrlCombinada === "string" ? data.imagemUrlCombinada : undefined,
@@ -764,6 +765,8 @@ export async function updateProduto(
     lookCombinado1ProductIds?: string[];
     /** IDs dos produtos usados no Look Combinado 2 (slot6) */
     lookCombinado2ProductIds?: string[];
+    /** URL do vídeo gerado pela IA (provador virtual) */
+    videoUrl?: string | null;
   }
 ): Promise<void> {
   try {
@@ -791,6 +794,7 @@ export async function updateProduto(
     if (Array.isArray(updateData.extraImageUrls)) update.extraImageUrls = updateData.extraImageUrls;
     if (Array.isArray(updateData.lookCombinado1ProductIds)) update.lookCombinado1ProductIds = updateData.lookCombinado1ProductIds.slice(0, 2);
     if (Array.isArray(updateData.lookCombinado2ProductIds)) update.lookCombinado2ProductIds = updateData.lookCombinado2ProductIds.slice(0, 2);
+    if (updateData.videoUrl !== undefined) update.videoUrl = updateData.videoUrl ?? null;
 
     if (updateData.cores !== undefined) update.cores = updateData.cores;
     if (updateData.tamanhos !== undefined) update.tamanhos = updateData.tamanhos;
