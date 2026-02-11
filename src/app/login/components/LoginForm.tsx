@@ -70,6 +70,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
   const router = useRouter();
   const [formState, setFormState] = useState<LoginFormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -155,11 +156,10 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setFormError(null);
-    setSuccessMessage(null);
 
     if (!isFormValid) {
-      setFormError(
+      // Temporarily use console.error for feedback after removing messages
+      console.error(
         "Preencha um e-mail válido e uma senha com pelo menos 6 caracteres."
       );
       return;
@@ -193,7 +193,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
         const data = await response.json();
 
         console.log("[LoginForm] Resposta check-admin:", JSON.stringify(data, null, 2));
-        console.log("[LoginForm] É admin?", data.isAdmin);
+        console.log("[LoginForm] É admin?"), data.isAdmin;
         console.log("[LoginForm] Email verificado:", data.email);
 
         isAdmin = data.isAdmin === true;
@@ -234,7 +234,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
         });
       }
 
-      setSuccessMessage(
+      console.log(
         `Bem-vindo de volta, ${userEmail ?? ""}! Redirecionando para ${isAdmin ? "painel administrativo" : "painel do lojista"}...`
       );
 
@@ -248,7 +248,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
         const errorMessage = firebaseErrorMessages[error.code] ?? 
           "Não foi possível autenticar agora. Tente novamente em breve.";
         
-        setFormError(errorMessage);
+        console.error(errorMessage); // Use console.error for feedback
         
         // Se for erro de rede, sugerir tentar novamente
         if (error.code === "auth/network-request-failed") {
@@ -258,7 +258,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
         return;
       }
 
-      setFormError(
+      console.error(
         "Não conseguimos acessar o serviço agora. Verifique sua conexão e tente novamente."
       );
     } finally {
@@ -267,45 +267,45 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="grid gap-3">
+    <div className="space-y-4">
+      <div className="grid gap-1.5">
         {socialProviders.map((provider) => (
           <button
             key={provider.name}
             type="button"
-            className={`flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-700/60 px-4 py-3 text-left text-sm transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 ${provider.accent}`}
+            className={`flex w-full items-center justify-between gap-3 rounded-lg border border-zinc-700/60 px-3 py-1.5 text-left text-xs transition hover:border-zinc-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 ${provider.accent}`}
           >
             <span className="flex items-center gap-3">
-              {provider.icon}
+              <div className="scale-90">{provider.icon}</div>
               <span>
-                <span className="block font-semibold">{provider.name}</span>
-                <span className="block text-xs opacity-80">
+                <span className="block font-semibold leading-none">{provider.name}</span>
+                <span className="block text-[9px] opacity-70 mt-0.5">
                   {provider.description}
                 </span>
               </span>
             </span>
-            <span aria-hidden className="text-xs uppercase tracking-wide">
+            <span aria-hidden className="text-[9px] uppercase tracking-wide opacity-50 font-medium">
               Em breve
             </span>
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-zinc-500">
-        <span className="h-px flex-1 bg-zinc-800" />
-        <span>Acesse com e-mail e senha</span>
-        <span className="h-px flex-1 bg-zinc-800" />
+      <div className="flex items-center gap-2 text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+        <span className="h-px flex-1 bg-white/5" />
+        <span>E-mail</span>
+        <span className="h-px flex-1 bg-white/5" />
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-6"
+        className="space-y-4"
         noValidate
         aria-describedby={formError ? "login-error" : undefined}
       >
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium text-zinc-200">
-          E-mail
+      <div className="space-y-1.5">
+        <label htmlFor="email" className="text-xs font-semibold text-zinc-400 ml-1">
+          E-mail Corporativo
         </label>
         <input
           id="email"
@@ -318,98 +318,70 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
           onChange={(event) =>
             setFormState((prev) => ({ ...prev, email: event.target.value }))
           }
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/40"
+          className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none backdrop-blur-sm transition focus:border-indigo-500/50 focus:bg-white/[0.06] focus:ring-0"
         />
-        <p className="text-xs text-zinc-400">
-          Use o e-mail corporativo ou o mesmo cadastrado no app.
-        </p>
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium text-zinc-200">
-          Senha
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          minLength={6}
-          placeholder="••••••••"
-          value={formState.password}
-          onChange={(event) =>
-            setFormState((prev) => ({ ...prev, password: event.target.value }))
-          }
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900/60 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/40"
-        />
-        <div className="flex items-center justify-between text-xs text-zinc-400">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-zinc-600 bg-zinc-900 accent-indigo-500"
-              checked={formState.remember}
-              onChange={(event) =>
-                setFormState((prev) => ({
-                  ...prev,
-                  remember: event.target.checked,
-                }))
-              }
-            />
-            Manter conectado
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between px-1">
+          <label htmlFor="password" className="text-xs font-semibold text-zinc-400">
+            Senha de Acesso
           </label>
           <a
             href="#"
-            className="font-medium text-indigo-300 transition hover:text-indigo-200 hover:underline"
+            className="text-[10px] font-medium text-indigo-400/80 transition hover:text-indigo-300 hover:underline"
           >
             Esqueci minha senha
           </a>
         </div>
+        <div className="relative">
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            minLength={6}
+            placeholder="••••••••"
+            value={formState.password}
+            onChange={(event) =>
+              setFormState((prev) => ({ ...prev, password: event.target.value }))
+            }
+            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 pr-10 text-sm text-zinc-100 placeholder-zinc-600 outline-none backdrop-blur-sm transition focus:border-indigo-500/50 focus:bg-white/[0.06] focus:ring-0"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-zinc-500 hover:text-zinc-300 transition"
+            aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
+          >
+            {showPassword ? (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.879 16.121A4.995 4.995 0 0112 15c1.464 0 2.8-.574 3.795-1.528A4.977 4.977 0 0017 12c0-1.464-.574-2.8-1.528-3.795M21 21l-9-9M3 3l9 9" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
-
-      {formError ? (
-        <div
-          id="login-error"
-          role="alert"
-          className="rounded-lg border border-red-500/60 bg-red-500/10 px-4 py-3 text-sm text-red-200"
-        >
-          {formError}
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div
-          role="status"
-          className="rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100"
-        >
-          {successMessage} Redirecionando...
-        </div>
-      ) : null}
 
         <button
           type="submit"
           disabled={!isFormValid || isSubmitting}
-          className="w-full rounded-lg bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:shadow-none"
+          className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-900/20 transition hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-600 disabled:shadow-none"
         >
-          {isSubmitting ? "Entrando..." : "Entrar"}
+          {isSubmitting ? "AUTENTICANDO..." : "ENTRAR NO SISTEMA"}
         </button>
 
-        <p className="text-center text-xs text-zinc-400">
-          Ao continuar você concorda com os{" "}
-          <a
-            href="#"
-            className="text-indigo-300 transition hover:text-indigo-200 hover:underline"
-          >
-            Termos de Uso
-          </a>{" "}
-          e a{" "}
-          <a
-            href="#"
-            className="text-indigo-300 transition hover:text-indigo-200 hover:underline"
-          >
-            Política de Privacidade
-          </a>
-          .
+        <p className="text-center text-[9px] text-zinc-600 leading-tight">
+          Ao autenticar, você confirma ciência dos{" "}
+          <a href="#" className="text-zinc-500 hover:text-indigo-400 underline decoration-zinc-700">Termos</a>{" "}
+          e da{" "}
+          <a href="#" className="text-zinc-500 hover:text-indigo-400 underline decoration-zinc-700">Privacidade</a>.
         </p>
       </form>
     </div>

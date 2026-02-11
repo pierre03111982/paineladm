@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Image from "next/image"
 import { Suspense } from "react"
 import { LoginForm } from "./components/LoginForm"
 
@@ -23,75 +24,114 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const redirectPath = params?.redirect as string | undefined;
   
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-12 md:flex-row md:items-center md:justify-between">
-        <section className="flex-1 space-y-6">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-zinc-700/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-200">
-            Experimente AI
-          </span>
+    <main className="relative h-screen w-screen overflow-hidden bg-black text-white">
+      {/* Background Image Layer */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/fundo-login.png"
+          alt="Background Login"
+          fill
+          priority
+          quality={100}
+          className="object-cover opacity-60"
+        />
+        {/* Gradient Overlay for better readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent/40" />
+      </div>
 
-          <header className="space-y-4">
-            <h1 className="text-4xl font-semibold leading-tight text-white md:text-5xl">
-              Bem-vindo de volta
-            </h1>
-            <p className="max-w-lg text-sm text-zinc-400">
-              Conecte-se para acessar o painel administrativo ou o painel do lojista. O sistema redirecionará automaticamente baseado nas suas credenciais.
-            </p>
-          </header>
-
-          <ul className="grid gap-3 text-sm text-zinc-300">
-            <li className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-              Monitoramento em tempo real das Gerações Try-On e Imagen3.
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-              Controle de catálogo e perfis de clientes sincronizados.
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-              Indicadores de conversão, likes e compartilhamentos em um só lugar.
-            </li>
-          </ul>
-
-          <footer className="space-y-2">
-            <p className="text-xs text-zinc-500">Canais oficiais:</p>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-indigo-300">
-              <Link href={lojaSite} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-100 hover:underline">
-                Site institucional
-              </Link>
-              {lojaInstagram ? (
-                <Link href={lojaInstagram} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-100 hover:underline">
-                  Instagram
-                </Link>
-              ) : null}
-              {lojaFacebook ? (
-                <Link href={lojaFacebook} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-100 hover:underline">
-                  Facebook
-                </Link>
-              ) : null}
-              {lojaTikTok ? (
-                <Link href={lojaTikTok} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-100 hover:underline">
-                  TikTok
-                </Link>
-              ) : null}
+      {/* Main Grid Layout */}
+      <div className="relative z-10 grid h-full w-full grid-cols-1 lg:grid-cols-2 items-end">
+        {/* Left Column: Branding & Value Prop */}
+        <div className="hidden flex-col justify-center px-12 lg:flex lg:px-16 xl:px-24">
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              <div className="relative h-36 w-72">
+                <Image
+                  src="/LOGO EAI.png"
+                  alt="Logo EAI Venda+"
+                  fill
+                  priority
+                  className="object-contain"
+                />
+              </div>
             </div>
-          </footer>
-        </section>
 
-        <section className="w-full max-w-md space-y-6 rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-2xl shadow-indigo-500/10 backdrop-blur-md">
-          <div className="space-y-1 text-center">
-            <h2 className="text-xl font-semibold text-white">
-              Entre no painel
-            </h2>
-            <p className="text-xs text-zinc-400">
-              Use suas credenciais para acessar. O sistema redirecionará automaticamente para o painel correto.
-            </p>
+            <div className="space-y-2 text-center">
+              <h1 className="bg-gradient-to-r from-cyan-400 via-purple-500 to-fuchsia-600 bg-clip-text text-6xl font-black leading-tight tracking-tighter text-transparent xl:text-7xl">
+                EAI Venda+
+              </h1>
+              <p className="max-w-md mx-auto text-xs font-medium text-zinc-400 leading-tight">
+                A Inteligência que impulsiona sua operação.{" "}
+                <span className="font-light opacity-60 italic">Powered by Experimente AI.</span>
+              </p>
+            </div>
+
+            <ul className="grid gap-3 max-w-md mx-auto">
+              <li className="flex items-start gap-3 rounded-xl border border-white/5 bg-black/10 p-4 backdrop-blur-md transition hover:bg-black/30 hover:border-indigo-500/30">
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-indigo-300 mb-0.5">Motor Visual</span>
+                  <span className="text-sm text-white font-medium leading-snug">Catálogo e Vídeos IA de alta conversão.</span>
+                </div>
+              </li>
+              <li className="flex items-start gap-3 rounded-xl border border-white/5 bg-black/50 p-4 backdrop-blur-md transition hover:bg-black/70 hover:border-indigo-500/30">
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-indigo-300 mb-0.5">Núcleo Logístico</span>
+                  <span className="text-sm text-white font-medium leading-snug">Gestão nativa do sistema 'Prove em Casa'.</span>
+                </div>
+              </li>
+              <li className="flex items-start gap-3 rounded-xl border border-white/5 bg-black/50 p-4 backdrop-blur-md transition hover:bg-black/70 hover:border-indigo-500/30">
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-indigo-300 mb-0.5">Inteligência Preditiva</span>
+                  <span className="text-sm text-white font-medium leading-snug">Insights e performance em tempo real.</span>
+                </div>
+              </li>
+            </ul>
           </div>
-          <Suspense fallback={<div className="text-center text-zinc-400">Carregando...</div>}>
-            <LoginForm redirectPath={redirectPath} />
-          </Suspense>
-        </section>
+        </div>
+
+        {/* Right Column: Login Form */}
+        <div className="flex items-center justify-end p-6 lg:pr-24 xl:pr-32">
+          <section className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-black/10 p-6 shadow-[0_0_80px_-15px_rgba(79,70,229,0.3)] backdrop-blur-3xl">
+            {/* Tech LED Glow Effect */}
+            <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-indigo-500/20 pointer-events-none" />
+            
+            <div className="relative space-y-5">
+              <div className="space-y-1 text-center">
+                <h2 className="text-xl font-bold text-white tracking-tight">
+                  Acesso ao Sistema
+                </h2>
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Entre com suas credenciais para gerenciar sua operação industrial.
+                </p>
+              </div>
+
+              <Suspense fallback={<div className="text-center text-xs text-zinc-500">Carregando...</div>}>
+                <LoginForm redirectPath={redirectPath} />
+              </Suspense>
+
+              <div className="pt-2 text-center border-t border-white/5">
+                <p className="text-[9px] font-mono uppercase tracking-[0.3em] text-zinc-600">
+                  Industrial Dashboard v2.0
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   )
