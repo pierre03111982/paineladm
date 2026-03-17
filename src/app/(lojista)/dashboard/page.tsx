@@ -42,8 +42,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       getDashboardData(lojistaId),
       fetchLojaPerfil(lojistaId).catch(() => null),
     ]);
-    const lojaNome = perfil?.nome || "";
-    const lojaLogo = perfil?.logoUrl || null;
+    const lojaNome = perfil?.nome || process.env.NEXT_PUBLIC_LOJA_NOME || "";
+    const lojaLogo = perfil?.logoUrl || process.env.NEXT_PUBLIC_LOJA_LOGO_URL || null;
     const initials = lojaNome.split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() || "EA";
     return (
       <DashboardWrapper

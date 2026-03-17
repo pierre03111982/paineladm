@@ -179,6 +179,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
 
       // Sempre verificar se o usuário é admin após login
       let isAdmin = false;
+      let lojistaId = null;
       let finalRedirectPath = redirectPath || "/dashboard";
 
       try {
@@ -193,10 +194,12 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
         const data = await response.json();
 
         console.log("[LoginForm] Resposta check-admin:", JSON.stringify(data, null, 2));
-        console.log("[LoginForm] É admin?"), data.isAdmin;
+        console.log("[LoginForm] É admin?", data.isAdmin);
         console.log("[LoginForm] Email verificado:", data.email);
+        console.log("[LoginForm] LojistaId identificado:", data.lojistaId);
 
         isAdmin = data.isAdmin === true;
+        lojistaId = data.lojistaId;
 
         // Se for admin, redirecionar para /admin (ou manter redirectPath se for uma rota admin)
         if (isAdmin) {
@@ -212,7 +215,7 @@ export function LoginForm({ redirectPath }: LoginFormProps) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ token, isAdmin }),
+          body: JSON.stringify({ token, isAdmin, lojistaId }),
         });
         
         const setTokenData = await setTokenResponse.json();

@@ -66,6 +66,10 @@ const finalConfig = {
       },
       {
         protocol: "https",
+        hostname: "paineladmexperimenteai.firebasestorage.app",
+      },
+      {
+        protocol: "https",
         hostname: "firebasestorage.googleapis.com",
       },
       {

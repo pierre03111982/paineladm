@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Slide = { type: "image"; url: string; label: string } | { type: "video"; url: string; label: string };
@@ -148,12 +149,12 @@ export function ProductImageGallery({
             autoPlay
           />
         ) : (
-          <Image
+          <ImageWithFallback
             src={currentSlide.url}
             alt={currentSlide.label}
             fill
             className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
-            unoptimized
+            priority={currentIndex === 0}
           />
         )}
       </div>
@@ -181,12 +182,11 @@ export function ProductImageGallery({
             onCanPlay={() => videoRef.current?.play().catch(() => {})}
           />
         ) : (
-          <Image
+          <ImageWithFallback
             src={currentSlide.url}
             alt={currentSlide.label}
             fill
             className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
-            unoptimized
             priority={currentIndex === 0}
           />
         )}

@@ -20,7 +20,18 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const lojistaId = await getCurrentLojistaId();
+    const searchParams = request.nextUrl.searchParams;
+    const lojistaIdFromQuery = searchParams.get("lojistaId");
+
+    // Prioridade: query string (modo admin) > usuário logado > env var
+    const lojistaIdFromAuth = lojistaIdFromQuery ? null : await getCurrentLojistaId();
+    const lojistaId =
+      lojistaIdFromQuery ||
+      lojistaIdFromAuth ||
+      process.env.NEXT_PUBLIC_LOJISTA_ID ||
+      process.env.LOJISTA_ID ||
+      "";
+
     if (!lojistaId) {
       return NextResponse.json(
         { error: "Não autorizado" },
@@ -28,15 +39,43 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar parâmetros opcionais
-    const searchParams = request.nextUrl.searchParams;
-    const lowStockThreshold = parseInt(searchParams.get("lowStockThreshold") || "10", 10);
+    // Definir limite de estoque baixo
+    const lowStockThreshold = 5;
 
-    // Calcular todas as métricas em paralelo
+    // Calcular todas as métricas em paralelo com tratamento de erro individual
     const [roiMetrics, funnel, lowStockAlerts] = await Promise.all([
-      calculateROIMetrics(lojistaId),
-      calculateConversionFunnel(lojistaId),
-      getLowStockAlerts(lojistaId, lowStockThreshold),
+      calculateROIMetrics(lojistaId).catch(err => {
+        console.error("[dashboard-metrics] Erro ao calcular ROI:", err);
+        return {
+          totalCostUSD: 0,
+          totalCostBRL: 0,
+          totalTryOns: 0,
+          costPerTryOn: 0,
+          estimatedRevenue: 0,
+          roi: 0,
+          roiMultiplier: 0,
+        };
+      }),
+      calculateConversionFunnel(lojistaId).catch(err => {
+        console.error("[dashboard-metrics] Erro ao calcular Funil:", err);
+        return {
+          visitantes: 0,
+          tryOns: 0,
+          favoritos: 0,
+          compartilhamentos: 0,
+          compras: 0,
+          conversionRates: {
+            tryOnToFavorito: 0,
+            favoritoToCompartilhamento: 0,
+            compartilhamentoToCompra: 0,
+            tryOnToCompra: 0,
+          },
+        };
+      }),
+      getLowStockAlerts(lojistaId, lowStockThreshold).catch(err => {
+        console.error("[dashboard-metrics] Erro ao buscar alertas de estoque:", err);
+        return [];
+      }),
     ]);
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
-import { getAdminApp } from "@/lib/firebaseAdmin";
+import { getAdminApp, getAdminDb } from "@/lib/firebaseAdmin";
 import { isAdminEmail } from "@/lib/auth/admin-auth";
 
 /**
@@ -47,13 +47,29 @@ export async function POST(request: NextRequest) {
 
     // Verificar se o email está na lista de admins
     const isAdmin = isAdminEmail(email);
+    
+    // Se não for admin, tentar buscar o lojistaId associado a este email
+    let lojistaId = null;
+    if (!isAdmin) {
+      const db = getAdminDb();
+      const lojaSnapshot = await db
+        .collection("lojas")
+        .where("email", "==", email)
+        .limit(1)
+        .get();
+
+      if (!lojaSnapshot.empty) {
+        lojistaId = lojaSnapshot.docs[0].id;
+      }
+    }
 
     console.log("[CheckAdmin] Email verificado:", email);
     console.log("[CheckAdmin] É admin?", isAdmin);
-    console.log("[CheckAdmin] ADMIN_EMAILS:", process.env.ADMIN_EMAILS);
+    console.log("[CheckAdmin] LojistaId encontrado:", lojistaId);
 
     return NextResponse.json({
       isAdmin,
+      lojistaId,
       email: isAdmin ? email : null,
       debug: {
         checkedEmail: email,

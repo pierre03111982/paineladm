@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const redirectPath = params?.redirect as string | undefined;
   
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-black text-white">
+    <main className="relative h-screen w-screen overflow-hidden bg-black text-white flex items-center justify-center">
       {/* Background Image Layer */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -34,35 +34,33 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           priority
           quality={100}
           className="object-cover opacity-60"
+          style={{ objectPosition: 'center' }}
         />
         {/* Gradient Overlay for better readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent/40" />
       </div>
 
-      {/* Main Grid Layout */}
-      <div className="relative z-10 grid h-full w-full grid-cols-1 lg:grid-cols-2 items-end">
+      {/* Main Grid Layout - Centralizado */}
+      <div className="relative z-10 grid h-full w-full max-w-[1920px] mx-auto grid-cols-1 lg:grid-cols-2 items-center">
         {/* Left Column: Branding & Value Prop */}
-        <div className="hidden flex-col justify-center px-12 lg:flex lg:px-16 xl:px-24">
-          <div className="space-y-6">
-            <div className="flex justify-center">
-              <div className="relative h-36 w-72">
-                <Image
-                  src="/LOGO EAI.png"
-                  alt="Logo EAI Venda+"
-                  fill
-                  priority
-                  className="object-contain"
-                />
-              </div>
+        <div className="hidden flex-col justify-center px-12 lg:flex lg:px-16 xl:px-24 h-full">
+          <div className="space-y-8 max-w-xl">
+            <div className="relative h-24 w-64">
+              <Image
+                src="/LOGO EAI.png"
+                alt="Logo EAI Venda+"
+                fill
+                priority
+                className="object-contain object-left"
+              />
             </div>
 
-            <div className="space-y-2 text-center">
-              <h1 className="bg-gradient-to-r from-cyan-400 via-purple-500 to-fuchsia-600 bg-clip-text text-6xl font-black leading-tight tracking-tighter text-transparent xl:text-7xl">
-                EAI Venda+
+            <div className="space-y-4">
+              <h1 className="bg-gradient-to-r from-cyan-400 via-purple-500 to-fuchsia-600 bg-clip-text text-5xl font-black leading-tight tracking-tighter text-transparent xl:text-6xl">
+                A Inteligência que<br/>impulsiona sua operação.
               </h1>
-              <p className="max-w-md mx-auto text-xs font-medium text-zinc-400 leading-tight">
-                A Inteligência que impulsiona sua operação.{" "}
-                <span className="font-light opacity-60 italic">Powered by Experimente AI.</span>
+              <p className="text-lg font-medium text-zinc-400 leading-relaxed max-w-md">
+                Transforme sua loja com vitrines virtuais, provador inteligente e insights em tempo real.
               </p>
             </div>
 
@@ -105,18 +103,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         {/* Right Column: Login Form */}
-        <div className="flex items-center justify-end p-6 lg:pr-24 xl:pr-32">
-          <section className="relative w-full max-w-[420px] rounded-2xl border border-white/10 bg-black/10 p-6 shadow-[0_0_80px_-15px_rgba(79,70,229,0.3)] backdrop-blur-3xl">
+        <div className="flex items-center justify-center p-6 h-full w-full">
+          <section className="relative w-full max-w-[400px] rounded-2xl border border-white/10 bg-black/40 p-8 shadow-[0_0_80px_-15px_rgba(79,70,229,0.3)] backdrop-blur-xl">
             {/* Tech LED Glow Effect */}
-            <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-indigo-500/20 pointer-events-none" />
+            <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10 pointer-events-none" />
             
-            <div className="relative space-y-5">
-              <div className="space-y-1 text-center">
-                <h2 className="text-xl font-bold text-white tracking-tight">
+            <div className="relative space-y-6">
+              <div className="space-y-2 text-center">
+                <h2 className="text-2xl font-bold text-white tracking-tight">
                   Acesso ao Sistema
                 </h2>
-                <p className="text-xs text-zinc-500 leading-relaxed">
-                  Entre com suas credenciais para gerenciar sua operação industrial.
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Entre com suas credenciais para gerenciar sua loja.
                 </p>
               </div>
 
