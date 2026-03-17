@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
 /* ============================================
+   SIDEBAR SEPARATOR LINES - EXPLICIT CSS
+   ============================================ */
+/* Garantir que as linhas separadoras apareçam em produção */
+.lojista-nav-separator {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent);
+  z-index: 30;
+  position: relative;
+}
+
+/* ============================================
    PRODUCT MEDIA CARD — Vídeo (evitar fundo "pular" no cross-fade)
    ============================================ */
 .product-video {

@@ -224,13 +224,7 @@ export default function LojistaNav({ collapsed = false, iconOnly = false }: Loji
               <NavItemContent item={item} href={href} active={active} iconOnly={false} collapsed={collapsed} />
             </div>
             {!collapsed && !isLastItem && (
-              <div 
-                className="h-px w-full bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                style={{
-                  zIndex: 30,
-                  position: 'relative'
-                }}
-              />
+              <div className="lojista-nav-separator" />
             )}
           </React.Fragment>
         );
